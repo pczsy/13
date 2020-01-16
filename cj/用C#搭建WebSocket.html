@@ -1,0 +1,170 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修用C#搭建WebSocket' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>用C#搭建WebSocket</center></div><div class='banquan'>原文出处:本文由博客园博主hello-*-world提供。<br/>
+原文连接:https://www.cnblogs.com/HTLucky/p/11693645.html</div><br>
+    <p>WebSocket 是 HTML5 开始提供的一种在单个 TCP 连接上进行全双工通讯的协议。</p>
+<p>WebSocket 使得客户端和服务器之间的数据交换变得更加简单，允许服务端主动向客户端推送数据。在 WebSocket API 中，浏览器和服务器只需要完成一次握手，两者之间就直接可以创建持久性的连接，并进行双向数据传输。</p>
+<p>在 WebSocket API 中，浏览器和服务器只需要做一个握手的动作，然后，浏览器和服务器之间就形成了一条快速通道。两者之间就直接可以数据互相传送。</p>
+<p>今天在这里我会用C#搭建WebSocket服务端演示WebSocket的通信过程</p>
+<p>一、WebSocket中的事件、属性和方法</p>
+<p>　　属性：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">　　<span style="color: #ff6600;">Socket.readyState</span>                   只读属性 readyState 表示连接状态，可以是以下值：
+                                                </span><span style="color: #800080;">0</span> -<span style="color: #000000;"> 表示连接尚未建立。
+                                                </span><span style="color: #800080;">1</span> -<span style="color: #000000;"> 表示连接已建立，可以进行通信。
+                                                </span><span style="color: #800080;">2</span> -<span style="color: #000000;"> 表示连接正在进行关闭。
+                                                </span><span style="color: #800080;">3</span> - 表示连接已经关闭或者连接不能打开。<br />　　<span style="color: #ff6600;">Socket.bufferedAmount</span>　　　　　　　　 只读属性 <strong>bufferedAmount</strong> 已被 send() 放入正在队列中等待传输，但是还没有发出的 UTF-8 文本字节数</pre>
+</div>
+<p>　　事件：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">　　<strong>事件             事件处理程序            　　 描述</strong>
+　　open     　　　　Socket.onopen              连接建立时触发    
+　　message     　　 Socket.onmessage     　　　客户端接收服务端数据时触发
+　　error      　　　Socket.onerror             通信发生错误时触发    
+　　close      　　　Socket.onclose             连接关闭时触发    </span></pre>
+</div>
+<p>　　方法:</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">　　Socket.send()                     使用连接发送数据    
+　　Socket.close()                    关闭连接</span></pre>
+</div>
+<p>二、有了大概的了解接下来就开始实现这么一个实例</p>
+<p>　　1.客户端</p>
+<div class="cnblogs_code">
+<pre><code>&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+    &lt;head&gt;
+        &lt;meta charset=<span style="color: #800000;">"</span><span style="color: #800000;">utf-8</span><span style="color: #800000;">"</span> /&gt;
+        &lt;title&gt;&lt;/title&gt;
+    &lt;/head&gt;
+    &lt;body &gt;
+        &lt;div style=<span style="color: #800000;">"</span><span style="color: #800000;">margin-left: 650px;</span><span style="color: #800000;">"</span>&gt;
+            &lt;form id=<span style="color: #800000;">"</span><span style="color: #800000;">Form</span><span style="color: #800000;">"</span>&gt; 
+                &lt;input type=<span style="color: #800000;">"</span><span style="color: #800000;">input</span><span style="color: #800000;">"</span> name=<span style="color: #800000;">""</span> id=<span style="color: #800000;">"</span><span style="color: #800000;">SendInfo</span><span style="color: #800000;">"</span> value=<span style="color: #800000;">""</span> /&gt;
+                &lt;button type=<span style="color: #800000;">"</span><span style="color: #800000;">submit</span><span style="color: #800000;">"</span>&gt;提交&lt;/button&gt;
+            &lt;/form&gt;
+    
+            &lt;div id=<span style="color: #800000;">"</span><span style="color: #800000;">hello</span><span style="color: #800000;">"</span> style=<span style="color: #800000;">"</span><span style="color: #800000;">border: dashed 1px black;height: 500px;width: 500px;margin-top: 10px;</span><span style="color: #800000;">"</span>&gt;
+            
+            &lt;/div&gt;
+        &lt;/div&gt;
+        
+    &lt;/body&gt;
+    &lt;script type=<span style="color: #800000;">"</span><span style="color: #800000;">text/javascript</span><span style="color: #800000;">"</span>&gt;
+        <span style="color: #0000ff;">var</span> test=<span style="color: #000000;">function(){
+            
+            </span><span style="color: #0000ff;">var</span> print=document.getElementById(<span style="color: #800000;">'</span><span style="color: #800000;">hello</span><span style="color: #800000;">'</span><span style="color: #000000;">);
+            </span><span style="color: #0000ff;">var</span> form = document.getElementById(<span style="color: #800000;">'</span><span style="color: #800000;">Form</span><span style="color: #800000;">'</span><span style="color: #000000;">);
+            </span><span style="color: #0000ff;">var</span> input = document.getElementById(<span style="color: #800000;">'</span><span style="color: #800000;">SendInfo</span><span style="color: #800000;">'</span><span style="color: #000000;">);
+            print.innerHTML </span>+= <span style="color: #800000;">"</span><span style="color: #800000;">connecting to server ..&lt;br/&gt;</span><span style="color: #800000;">"</span><span style="color: #000000;">;        
+            window.ws </span>= <span style="color: #0000ff;">new</span> WebSocket(<span style="color: #800000;">'</span><span style="color: #800000;">ws://localhost:9898/</span><span style="color: #800000;">'</span>);      <span style="color: #008000;">//</span><span style="color: #008000;">监听webscoket服务端口
+        
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">监听消息状态</span>
+            ws.onmessage=<span style="color: #000000;">function(eve){
+                print.innerHTML</span>+=eve.data+<span style="color: #800000;">'</span><span style="color: #800000;">&lt;br/&gt;</span><span style="color: #800000;">'</span><span style="color: #000000;">
+            }
+            
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">监听链接状态</span>
+            ws.onopen=<span style="color: #000000;">function(){
+                print.innerHTML</span>+=<span style="color: #800000;">'</span><span style="color: #800000;">connection open &lt;br/&gt;</span><span style="color: #800000;">'</span><span style="color: #000000;">
+            }
+            
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">监听关闭状态</span>
+            ws.onclose =<span style="color: #000000;"> function () {
+                print.innerHTML </span>+= <span style="color: #800000;">'</span><span style="color: #800000;">connection closed&lt;br/&gt;</span><span style="color: #800000;">'</span><span style="color: #000000;">;
+            }
+
+               </span><span style="color: #008000;">//</span><span style="color: #008000;">向服务器端发送消息</span>
+               form.addEventListener(<span style="color: #800000;">'</span><span style="color: #800000;">submit</span><span style="color: #800000;">'</span><span style="color: #000000;">,function(e){
+                   e.preventDefault();
+                   </span><span style="color: #0000ff;">var</span> val=<span style="color: #800000;">"</span><span style="color: #800000;">客户端：</span><span style="color: #800000;">"</span>+<span style="color: #000000;">input.value;
+                   ws.send(val);
+                   input.value</span>=<span style="color: #800000;">""</span><span style="color: #000000;">;
+               })
+               
+        }
+        
+        window.onload</span>=<span style="color: #000000;">test();
+    </span>&lt;/script&gt;
+&lt;/html&gt;</pre>
+</div>
+<p>&nbsp;</p>
+<p>　　2.服务端创建一个C#控制台程序</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">using</span><span style="color: #000000;"> Fleck;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Collections.Generic;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Linq;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Text;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Threading.Tasks;
+
+</span><span style="color: #0000ff;">namespace</span><span style="color: #000000;"> WebScoket
+{
+    </span><span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            </span><span style="color: #0000ff;">var</span> allScokets = <span style="color: #0000ff;">new</span> List&lt;IWebSocketConnection&gt;<span style="color: #000000;">();
+            </span><span style="color: #0000ff;">var</span> server = <span style="color: #0000ff;">new</span> WebSocketServer(<span style="color: #800000;">"</span><span style="color: #800000;">ws://127.0.0.1:9898</span><span style="color: #800000;">"</span>);    <span style="color: #008000;">//</span><span style="color: #008000;">创建webscoket服务端实例</span>
+            server.Start(scoket=&gt;<span style="color: #000000;"> {
+                scoket.OnOpen </span>= () =&gt;　　　　　　　　　　　　　　　　　　　<span style="color: #000000;">
+                {
+                    Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Open</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                    allScokets.Add(scoket);
+                };
+                scoket.OnClose </span>= () =&gt;<span style="color: #000000;">
+                {
+                    Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Close</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                    allScokets.Remove(scoket);
+                };
+                scoket.OnMessage </span>=message =&gt;<span style="color: #000000;"> {
+                    Console.WriteLine(message);
+                    allScokets.ToList().ForEach(s</span>=&gt;<span style="color: #000000;">s.Send(message));
+                };
+            });
+
+            </span><span style="color: #0000ff;">var</span> input =<span style="color: #000000;"> Console.ReadLine();
+            </span><span style="color: #0000ff;">while</span> (input != <span style="color: #800000;">"</span><span style="color: #800000;">exit</span><span style="color: #800000;">"</span><span style="color: #000000;">)
+            {
+                </span><span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">var</span> socket <span style="color: #0000ff;">in</span><span style="color: #000000;"> allScokets.ToList())
+                {
+                    socket.Send(</span><span style="color: #800000;">"</span><span style="color: #800000;">服务端：</span><span style="color: #800000;">"</span>+<span style="color: #000000;">input);
+                }
+                input </span>=<span style="color: #000000;"> Console.ReadLine();
+            }
+
+        }
+    }
+}</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>　　3.运行效果</p>
+<p>　<img src="./images/用C#搭建WebSocket0.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>　　</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>　　</p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

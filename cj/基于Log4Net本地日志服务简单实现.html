@@ -1,0 +1,540 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修基于Log4Net本地日志服务简单实现' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>基于Log4Net本地日志服务简单实现</center></div><div class='banquan'>原文出处:本文由博客园博主MeetYan提供。<br/>
+原文连接:https://www.cnblogs.com/MeetYan/p/10687029.html</div><br>
+    <h2 id="背景">背景</h2>
+<ol>
+<li><p>项目开发中，我们或多或少会使用诸如NLog，Log4Net，Kafka+ELK等等日志套件；</p></li>
+<li><p>基于关注点分离原则，业务开发的时候不应该关注日志具体实现；并且后续能方便切换其他日志套件；</p></li>
+<li><p>这里先实现基于文件的日志服务，在下一篇将实现基于Kafka+ELK；</p></li>
+<li><p>具体源码：<a href="https://github.com/YanZhiwei/MasterChief">MasterChief</a></p></li>
+<li><p>Nuget：Install-Package MasterChief.DotNet.Core.Log</p></li>
+<li><p>欢迎Star，欢迎Issues；</p></li>
+</ol>
+<h2 id="日志接口定义">日志接口定义</h2>
+<pre><code><code>/// &lt;summary&gt;
+///     日志记录接口
+/// &lt;/summary&gt;
+public interface ILogService
+{
+    #region Methods
+ 
+    /// &lt;summary&gt;
+    ///     Debug记录
+    /// &lt;/summary&gt;
+    /// &lt;param name=&quot;message&quot;&gt;日志信息&lt;/param&gt;
+    void Debug(string message);
+ 
+    /// &lt;summary&gt;
+    ///     Debug记录
+    /// &lt;/summary&gt;
+    /// &lt;param name=&quot;message&quot;&gt;日志信息&lt;/param&gt;
+    /// &lt;param name=&quot;ex&quot;&gt;异常信息&lt;/param&gt;
+    void Debug(string message, Exception ex);
+ 
+    /// &lt;summary&gt;
+    ///     Error记录
+    /// &lt;/summary&gt;
+    /// &lt;param name=&quot;message&quot;&gt;日志信息&lt;/param&gt;
+    void Error(string message);
+ 
+    /// &lt;summary&gt;
+    ///     Error记录
+    /// &lt;/summary&gt;
+    /// &lt;param name=&quot;message&quot;&gt;日志信息&lt;/param&gt;
+    /// &lt;param name=&quot;ex&quot;&gt;异常信息&lt;/param&gt;
+    void Error(string message, Exception ex);
+ 
+    /// &lt;summary&gt;
+    ///     Fatal记录
+    /// &lt;/summary&gt;
+    /// &lt;param name=&quot;message&quot;&gt;日志信息&lt;/param&gt;
+    void Fatal(string message);
+ 
+    /// &lt;summary&gt;
+    ///     Fatal记录
+    /// &lt;/summary&gt;
+    /// &lt;param name=&quot;message&quot;&gt;日志信息&lt;/param&gt;
+    /// &lt;param name=&quot;ex&quot;&gt;异常信息&lt;/param&gt;
+    void Fatal(string message, Exception ex);
+ 
+    /// &lt;summary&gt;
+    ///     Info记录
+    /// &lt;/summary&gt;
+    /// &lt;param name=&quot;message&quot;&gt;日志信息&lt;/param&gt;
+    void Info(string message);
+ 
+    /// &lt;summary&gt;
+    ///     Info记录
+    /// &lt;/summary&gt;
+    /// &lt;param name=&quot;message&quot;&gt;日志信息&lt;/param&gt;
+    /// &lt;param name=&quot;ex&quot;&gt;异常信息&lt;/param&gt;
+    void Info(string message, Exception ex);
+ 
+    /// &lt;summary&gt;
+    ///     Warn记录
+    /// &lt;/summary&gt;
+    /// &lt;param name=&quot;message&quot;&gt;日志信息&lt;/param&gt;
+    void Warn(string message);
+ 
+    /// &lt;summary&gt;
+    ///     Warn记录
+    /// &lt;/summary&gt;
+    /// &lt;param name=&quot;message&quot;&gt;日志信息&lt;/param&gt;
+    /// &lt;param name=&quot;ex&quot;&gt;异常信息&lt;/param&gt;
+    void Warn(string message, Exception ex);
+ 
+    #endregion Methods
+}</code></pre>
+<h2 id="基于log4net本地文件日志服务实现">基于Log4Net本地文件日志服务实现</h2>
+<pre><code><code>/// &lt;summary&gt;
+///     基于Log4Net的文件日志记录
+/// &lt;/summary&gt;
+public sealed class FileLogService : ILogService
+{
+    #region Constructors
+ 
+    static FileLogService()
+    {
+        DebugLogger = LogManager.GetLogger(DebugLoggerName);
+        InfoLogger = LogManager.GetLogger(InfoLoggerName);
+        WarnLogger = LogManager.GetLogger(WarnLoggerName);
+        ErrorLogger = LogManager.GetLogger(ErrorLoggerName);
+        FatalLogger = LogManager.GetLogger(FatalLoggerName);
+    }
+ 
+    #endregion Constructors
+ 
+    #region Fields
+ 
+    /// &lt;summary&gt;
+    ///     The debug logger name
+    /// &lt;/summary&gt;
+    public const string DebugLoggerName = &quot;DEBUG_FileLogger&quot;;
+ 
+    /// &lt;summary&gt;
+    ///     The error logger name
+    /// &lt;/summary&gt;
+    public const string ErrorLoggerName = &quot;ERROR_FileLogger&quot;;
+ 
+    /// &lt;summary&gt;
+    ///     The fatal logger name
+    /// &lt;/summary&gt;
+    public const string FatalLoggerName = &quot;FATAL_FileLogger&quot;;
+ 
+    /// &lt;summary&gt;
+    ///     The information logger name
+    /// &lt;/summary&gt;
+    public const string InfoLoggerName = &quot;INFO_FileLogger&quot;;
+ 
+    /// &lt;summary&gt;
+    ///     The warn logger name
+    /// &lt;/summary&gt;
+    public const string WarnLoggerName = &quot;WARN_FileLogger&quot;;
+ 
+    /// &lt;summary&gt;
+    ///     The debug logger
+    /// &lt;/summary&gt;
+    public static readonly ILog DebugLogger;
+ 
+    /// &lt;summary&gt;
+    ///     The error logger
+    /// &lt;/summary&gt;
+    public static readonly ILog ErrorLogger;
+ 
+    /// &lt;summary&gt;
+    ///     The fatal logger
+    /// &lt;/summary&gt;
+    public static readonly ILog FatalLogger;
+ 
+    /// &lt;summary&gt;
+    ///     The information logger
+    /// &lt;/summary&gt;
+    public static readonly ILog InfoLogger;
+ 
+    /// &lt;summary&gt;
+    ///     The warn logger
+    /// &lt;/summary&gt;
+    public static readonly ILog WarnLogger;
+ 
+    #endregion Fields
+ 
+    #region Methods
+ 
+    /// &lt;summary&gt;
+    ///     Debug记录
+    /// &lt;/summary&gt;
+    /// &lt;param name=&quot;message&quot;&gt;日志信息&lt;/param&gt;
+    public void Debug(string message)
+    {
+        if (DebugLogger.IsDebugEnabled) DebugLogger.Debug(message);
+    }
+ 
+    /// &lt;summary&gt;
+    ///     Debug记录
+    /// &lt;/summary&gt;
+    /// &lt;param name=&quot;message&quot;&gt;日志信息&lt;/param&gt;
+    /// &lt;param name=&quot;ex&quot;&gt;异常信息&lt;/param&gt;
+    public void Debug(string message, Exception ex)
+    {
+        if (DebugLogger.IsDebugEnabled) DebugLogger.Debug(message, ex);
+    }
+ 
+    /// &lt;summary&gt;
+    ///     Error记录
+    /// &lt;/summary&gt;
+    /// &lt;param name=&quot;message&quot;&gt;日志信息&lt;/param&gt;
+    public void Error(string message)
+    {
+        if (ErrorLogger.IsErrorEnabled) ErrorLogger.Error(message);
+    }
+ 
+    /// &lt;summary&gt;
+    ///     Error记录
+    /// &lt;/summary&gt;
+    /// &lt;param name=&quot;message&quot;&gt;日志信息&lt;/param&gt;
+    /// &lt;param name=&quot;ex&quot;&gt;异常信息&lt;/param&gt;
+    public void Error(string message, Exception ex)
+    {
+        if (ErrorLogger.IsErrorEnabled) ErrorLogger.Error(message, ex);
+    }
+ 
+    /// &lt;summary&gt;
+    ///     Fatal记录
+    /// &lt;/summary&gt;
+    /// &lt;param name=&quot;message&quot;&gt;日志信息&lt;/param&gt;
+    public void Fatal(string message)
+    {
+        if (FatalLogger.IsFatalEnabled) FatalLogger.Fatal(message);
+    }
+ 
+    /// &lt;summary&gt;
+    ///     Fatal记录
+    /// &lt;/summary&gt;
+    /// &lt;param name=&quot;message&quot;&gt;日志信息&lt;/param&gt;
+    /// &lt;param name=&quot;ex&quot;&gt;异常信息&lt;/param&gt;
+    public void Fatal(string message, Exception ex)
+    {
+        if (FatalLogger.IsFatalEnabled) FatalLogger.Fatal(message, ex);
+    }
+ 
+    /// &lt;summary&gt;
+    ///     Info记录
+    /// &lt;/summary&gt;
+    /// &lt;param name=&quot;message&quot;&gt;日志信息&lt;/param&gt;
+    public void Info(string message)
+    {
+        if (InfoLogger.IsInfoEnabled) InfoLogger.Info(message);
+    }
+ 
+    /// &lt;summary&gt;
+    ///     Info记录
+    /// &lt;/summary&gt;
+    /// &lt;param name=&quot;message&quot;&gt;日志信息&lt;/param&gt;
+    /// &lt;param name=&quot;ex&quot;&gt;异常信息&lt;/param&gt;
+    public void Info(string message, Exception ex)
+    {
+        if (InfoLogger.IsInfoEnabled) InfoLogger.Info(message, ex);
+    }
+ 
+    /// &lt;summary&gt;
+    ///     Warn记录
+    /// &lt;/summary&gt;
+    /// &lt;param name=&quot;message&quot;&gt;日志信息&lt;/param&gt;
+    public void Warn(string message)
+    {
+        if (WarnLogger.IsWarnEnabled) WarnLogger.Warn(message);
+    }
+ 
+    /// &lt;summary&gt;
+    ///     Warn记录
+    /// &lt;/summary&gt;
+    /// &lt;param name=&quot;message&quot;&gt;日志信息&lt;/param&gt;
+    /// &lt;param name=&quot;ex&quot;&gt;异常信息&lt;/param&gt;
+    public void Warn(string message, Exception ex)
+    {
+        if (WarnLogger.IsWarnEnabled) WarnLogger.Warn(message, ex);
+    }
+ 
+    #endregion Methods
+}</code></pre>
+<h2 id="log4net-配置文件">Log4Net 配置文件</h2>
+<pre class="xml"><code>&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot; ?&gt;
+&lt;configuration&gt;
+  &lt;configSections&gt;
+    &lt;section name=&quot;log4net&quot; type=&quot;log4net.Config.Log4NetConfigurationSectionHandler&quot; /&gt;
+  &lt;/configSections&gt;
+  &lt;log4net&gt;
+    &lt;!-- FileLogger --&gt;
+    &lt;logger name=&quot;FATAL_FileLogger&quot;&gt;
+      &lt;level value=&quot;ALL&quot; /&gt;
+      &lt;appender-ref ref=&quot;FATAL_FileAppender&quot; /&gt;
+    &lt;/logger&gt;
+    &lt;logger name=&quot;ERROR_FileLogger&quot;&gt;
+      &lt;level value=&quot;ALL&quot; /&gt;
+      &lt;appender-ref ref=&quot;ERROR_FileAppender&quot; /&gt;
+    &lt;/logger&gt;
+    &lt;logger name=&quot;WARN_FileLogger&quot;&gt;
+      &lt;level value=&quot;ALL&quot; /&gt;
+      &lt;appender-ref ref=&quot;WARN_FileAppender&quot; /&gt;
+    &lt;/logger&gt;
+    &lt;logger name=&quot;INFO_FileLogger&quot;&gt;
+      &lt;level value=&quot;ALL&quot; /&gt;
+      &lt;appender-ref ref=&quot;INFO_FileAppender&quot; /&gt;
+    &lt;/logger&gt;
+    &lt;logger name=&quot;DEBUG_FileLogger&quot;&gt;
+      &lt;level value=&quot;ALL&quot; /&gt;
+      &lt;appender-ref ref=&quot;DEBUG_FileAppender&quot; /&gt;
+    &lt;/logger&gt;
+    &lt;!-- AdoNetLogger --&gt;
+    &lt;!--&lt;logger name=&quot;AdoNetLogger&quot;&gt;
+      &lt;level value=&quot;ALL&quot; /&gt;
+      &lt;appender-ref ref=&quot;AdoNetAppender&quot; /&gt;
+    &lt;/logger&gt;--&gt;
+    &lt;!-- ConsoleLogger --&gt;
+    &lt;logger name=&quot;ConsoleLogger&quot;&gt;
+      &lt;level value=&quot;ALL&quot; /&gt;
+      &lt;appender-ref ref=&quot;ColoredConsoleAppender&quot; /&gt;
+    &lt;/logger&gt;
+ 
+    &lt;!--使用Rolling方式记录日志按照日来记录日志--&gt;
+    &lt;appender name=&quot;FATAL_FileAppender&quot; type=&quot;log4net.Appender.RollingFileAppender&quot;&gt;
+      &lt;!--文件名,可以相对路径,也可以绝对路径,这里只给定了文件夹--&gt;
+      &lt;file value=&quot;.\log\\FATAL\\&quot; /&gt;
+      &lt;!--是否增加文件--&gt;
+      &lt;appendToFile value=&quot;true&quot; /&gt;
+      &lt;maxSizeRollBackups value=&quot;5&quot; /&gt;
+      &lt;!--日志追加类型,Date为按日期增加文件,Size为按大小--&gt;
+      &lt;rollingStyle value=&quot;Date&quot; /&gt;
+      &lt;!--最小锁定模型以允许多个进程可以写入同一个文件,解决文件独占问题--&gt;
+      &lt;lockingModel type=&quot;log4net.Appender.FileAppender+MinimalLock&quot; /&gt;
+      &lt;!--最大文件大小--&gt;
+      &lt;maximumFileSize value=&quot;10MB&quot; /&gt;
+      &lt;!--文件命名格式,非日期参数化要进行转义,如自定义文件后缀--&gt;
+      &lt;datePattern value=&quot;yyyyMM\\yyyy-MM-dd&amp;quot;.log&amp;quot;&quot; /&gt;
+      &lt;!--是否固定文件名--&gt;
+      &lt;staticLogFileName value=&quot;false&quot; /&gt;
+      &lt;layout type=&quot;log4net.Layout.PatternLayout&quot;&gt;
+        &lt;conversionPattern value=&quot;---------------------------------------------------%newline发生时间：%date %newline事件级别：%-5level %newline事件来源：%logger%newline日志内容：%message%newline&quot; /&gt;
+      &lt;/layout&gt;
+    &lt;/appender&gt;
+    &lt;appender name=&quot;ERROR_FileAppender&quot; type=&quot;log4net.Appender.RollingFileAppender&quot;&gt;
+      &lt;!--文件名,可以相对路径,也可以绝对路径,这里只给定了文件夹--&gt;
+      &lt;file value=&quot;.\log\\ERROR\\&quot; /&gt;
+      &lt;!--是否增加文件--&gt;
+      &lt;appendToFile value=&quot;true&quot; /&gt;
+      &lt;maxSizeRollBackups value=&quot;5&quot; /&gt;
+      &lt;!--日志追加类型,Date为按日期增加文件,Size为按大小--&gt;
+      &lt;rollingStyle value=&quot;Date&quot; /&gt;
+      &lt;!--最小锁定模型以允许多个进程可以写入同一个文件,解决文件独占问题--&gt;
+      &lt;lockingModel type=&quot;log4net.Appender.FileAppender+MinimalLock&quot; /&gt;
+      &lt;!--最大文件大小--&gt;
+      &lt;maximumFileSize value=&quot;10MB&quot; /&gt;
+      &lt;!--文件命名格式,非日期参数化要进行转义,如自定义文件后缀--&gt;
+      &lt;datePattern value=&quot;yyyyMM\\yyyy-MM-dd&amp;quot;.log&amp;quot;&quot; /&gt;
+      &lt;!--是否固定文件名--&gt;
+      &lt;staticLogFileName value=&quot;false&quot; /&gt;
+      &lt;layout type=&quot;log4net.Layout.PatternLayout&quot;&gt;
+        &lt;conversionPattern value=&quot;---------------------------------------------------%newline发生时间：%date %newline事件级别：%-5level %newline事件来源：%logger%newline日志内容：%message%newline&quot; /&gt;
+      &lt;/layout&gt;
+    &lt;/appender&gt;
+    &lt;appender name=&quot;WARN_FileAppender&quot; type=&quot;log4net.Appender.RollingFileAppender&quot;&gt;
+      &lt;!--文件名,可以相对路径,也可以绝对路径,这里只给定了文件夹--&gt;
+      &lt;file value=&quot;.\log\\WARN\\&quot; /&gt;
+      &lt;!--是否增加文件--&gt;
+      &lt;appendToFile value=&quot;true&quot; /&gt;
+      &lt;maxSizeRollBackups value=&quot;5&quot; /&gt;
+      &lt;!--日志追加类型,Date为按日期增加文件,Size为按大小--&gt;
+      &lt;rollingStyle value=&quot;Date&quot; /&gt;
+      &lt;!--最小锁定模型以允许多个进程可以写入同一个文件,解决文件独占问题--&gt;
+      &lt;lockingModel type=&quot;log4net.Appender.FileAppender+MinimalLock&quot; /&gt;
+      &lt;!--最大文件大小--&gt;
+      &lt;maximumFileSize value=&quot;10MB&quot; /&gt;
+      &lt;!--文件命名格式,非日期参数化要进行转义,如自定义文件后缀--&gt;
+      &lt;datePattern value=&quot;yyyyMM\\yyyy-MM-dd&amp;quot;.log&amp;quot;&quot; /&gt;
+      &lt;!--是否固定文件名--&gt;
+      &lt;staticLogFileName value=&quot;false&quot; /&gt;
+      &lt;layout type=&quot;log4net.Layout.PatternLayout&quot;&gt;
+        &lt;conversionPattern value=&quot;---------------------------------------------------%newline发生时间：%date %newline事件级别：%-5level %newline事件来源：%logger%newline日志内容：%message%newline&quot; /&gt;
+      &lt;/layout&gt;
+    &lt;/appender&gt;
+    &lt;appender name=&quot;INFO_FileAppender&quot; type=&quot;log4net.Appender.RollingFileAppender&quot;&gt;
+      &lt;!--文件名,可以相对路径,也可以绝对路径,这里只给定了文件夹--&gt;
+      &lt;file value=&quot;.\log\\INFO\\&quot; /&gt;
+      &lt;!--是否增加文件--&gt;
+      &lt;appendToFile value=&quot;true&quot; /&gt;
+      &lt;maxSizeRollBackups value=&quot;5&quot; /&gt;
+      &lt;!--日志追加类型,Date为按日期增加文件,Size为按大小--&gt;
+      &lt;rollingStyle value=&quot;Date&quot; /&gt;
+      &lt;!--最小锁定模型以允许多个进程可以写入同一个文件,解决文件独占问题--&gt;
+      &lt;lockingModel type=&quot;log4net.Appender.FileAppender+MinimalLock&quot; /&gt;
+      &lt;!--最大文件大小--&gt;
+      &lt;maximumFileSize value=&quot;10MB&quot; /&gt;
+      &lt;!--文件命名格式,非日期参数化要进行转义,如自定义文件后缀--&gt;
+      &lt;datePattern value=&quot;yyyyMM\\yyyy-MM-dd&amp;quot;.log&amp;quot;&quot; /&gt;
+      &lt;!--是否固定文件名--&gt;
+      &lt;staticLogFileName value=&quot;false&quot; /&gt;
+      &lt;layout type=&quot;log4net.Layout.PatternLayout&quot;&gt;
+        &lt;conversionPattern value=&quot;---------------------------------------------------%newline发生时间：%date %newline事件级别：%-5level %newline事件来源：%logger%newline日志内容：%message%newline&quot; /&gt;
+      &lt;/layout&gt;
+    &lt;/appender&gt;
+    &lt;appender name=&quot;DEBUG_FileAppender&quot; type=&quot;log4net.Appender.RollingFileAppender&quot;&gt;
+      &lt;!--文件名,可以相对路径,也可以绝对路径,这里只给定了文件夹--&gt;
+      &lt;file value=&quot;.\log\\DEBUG\\&quot; /&gt;
+      &lt;!--是否增加文件--&gt;
+      &lt;appendToFile value=&quot;true&quot; /&gt;
+      &lt;maxSizeRollBackups value=&quot;5&quot; /&gt;
+      &lt;!--日志追加类型,Date为按日期增加文件,Size为按大小--&gt;
+      &lt;rollingStyle value=&quot;Date&quot; /&gt;
+      &lt;!--最小锁定模型以允许多个进程可以写入同一个文件,解决文件独占问题--&gt;
+      &lt;lockingModel type=&quot;log4net.Appender.FileAppender+MinimalLock&quot; /&gt;
+      &lt;!--最大文件大小--&gt;
+      &lt;maximumFileSize value=&quot;10MB&quot; /&gt;
+      &lt;!--文件命名格式,非日期参数化要进行转义,如自定义文件后缀--&gt;
+      &lt;datePattern value=&quot;yyyyMM\\yyyy-MM-dd&amp;quot;.log&amp;quot;&quot; /&gt;
+      &lt;!--是否固定文件名--&gt;
+      &lt;staticLogFileName value=&quot;false&quot; /&gt;
+      &lt;layout type=&quot;log4net.Layout.PatternLayout&quot;&gt;
+        &lt;conversionPattern value=&quot;---------------------------------------------------%newline发生时间：%date %newline事件级别：%-5level %newline事件来源：%logger%newline日志内容：%message%newline&quot; /&gt;
+      &lt;/layout&gt;
+    &lt;/appender&gt;
+    &lt;!--使用AdoNetAppender方式记录日志按照日来记录日志--&gt;
+    &lt;!--&lt;appender name=&quot;AdoNetAppender&quot; type=&quot;log4net.Appender.AdoNetAppender&quot;&gt;
+      &lt;bufferSize value=&quot;1&quot; /&gt;
+      &lt;connectionType value=&quot;System.Data.SqlClient.SqlConnection, System.Data, Version=1.0.3300.0, Culture=neutral, PublicKeyToken=b77a5c561934e089&quot; /&gt;
+      &lt;connectionString value=&quot;DATABASE=Sample;SERVER=.\SQLEXPRESS;UID=sa;PWD=sasa;Connect Timeout=15;&quot; /&gt;
+      &lt;commandText value=&quot;INSERT INTO [Log4Net] ([Date],[Host],[Thread],[Level],[Logger],[Message],[Exception]) VALUES (@log_date, @host, @thread, @log_level, @logger, @message, @exception)&quot; /&gt;
+      &lt;parameter&gt;
+        &lt;parameterName value=&quot;@log_date&quot; /&gt;
+        &lt;dbType value=&quot;DateTime&quot; /&gt;
+        &lt;layout type=&quot;log4net.Layout.RawTimeStampLayout&quot; /&gt;
+      &lt;/parameter&gt;
+      &lt;parameter&gt;
+        &lt;parameterName value=&quot;@thread&quot; /&gt;
+        &lt;dbType value=&quot;String&quot; /&gt;
+        &lt;size value=&quot;255&quot; /&gt;
+        &lt;layout type=&quot;log4net.Layout.PatternLayout&quot;&gt;
+          &lt;conversionPattern value=&quot;%thread&quot; /&gt;
+        &lt;/layout&gt;
+      &lt;/parameter&gt;
+ 
+      &lt;parameter&gt;
+        &lt;parameterName value=&quot;@host&quot; /&gt;
+        &lt;dbType value=&quot;String&quot; /&gt;
+        &lt;size value=&quot;50&quot; /&gt;
+        &lt;layout type=&quot;log4net.Layout.PatternLayout&quot;&gt;
+          &lt;conversionPattern value=&quot;%property{log4net:HostName}&quot; /&gt;
+        &lt;/layout&gt;
+      &lt;/parameter&gt;
+      &lt;parameter&gt;
+        &lt;parameterName value=&quot;@log_level&quot; /&gt;
+        &lt;dbType value=&quot;String&quot; /&gt;
+        &lt;size value=&quot;50&quot; /&gt;
+        &lt;layout type=&quot;log4net.Layout.PatternLayout&quot;&gt;
+          &lt;conversionPattern value=&quot;%level&quot; /&gt;
+        &lt;/layout&gt;
+      &lt;/parameter&gt;
+      &lt;parameter&gt;
+        &lt;parameterName value=&quot;@logger&quot; /&gt;
+        &lt;dbType value=&quot;String&quot; /&gt;
+        &lt;size value=&quot;255&quot; /&gt;
+        &lt;layout type=&quot;log4net.Layout.PatternLayout&quot;&gt;
+          &lt;conversionPattern value=&quot;%logger&quot; /&gt;
+        &lt;/layout&gt;
+      &lt;/parameter&gt;
+      &lt;parameter&gt;
+        &lt;parameterName value=&quot;@message&quot; /&gt;
+        &lt;dbType value=&quot;String&quot; /&gt;
+        &lt;size value=&quot;4000&quot; /&gt;
+        &lt;layout type=&quot;log4net.Layout.PatternLayout&quot;&gt;
+          &lt;conversionPattern value=&quot;%message&quot; /&gt;
+        &lt;/layout&gt;
+      &lt;/parameter&gt;
+      &lt;parameter&gt;
+        &lt;parameterName value=&quot;@exception&quot; /&gt;
+        &lt;dbType value=&quot;String&quot; /&gt;
+        &lt;size value=&quot;4000&quot; /&gt;
+        &lt;layout type=&quot;log4net.Layout.ExceptionLayout&quot; /&gt;
+      &lt;/parameter&gt;
+    &lt;/appender&gt;--&gt;
+    &lt;!--使用ConsoleAppender方式记录日志按照日来记录日志--&gt;
+    &lt;appender name=&quot;ColoredConsoleAppender&quot; type=&quot;log4net.Appender.ColoredConsoleAppender&quot;&gt;
+      &lt;mapping&gt;
+        &lt;level value=&quot;INFO&quot; /&gt;
+        &lt;foreColor value=&quot;White, HighIntensity&quot; /&gt;
+        &lt;backColor value=&quot;Green&quot; /&gt;
+      &lt;/mapping&gt;
+      &lt;mapping&gt;
+        &lt;level value=&quot;DEBUG&quot; /&gt;
+        &lt;foreColor value=&quot;White, HighIntensity&quot; /&gt;
+        &lt;backColor value=&quot;Blue&quot; /&gt;
+      &lt;/mapping&gt;
+      &lt;mapping&gt;
+        &lt;level value=&quot;WARN&quot; /&gt;
+        &lt;foreColor value=&quot;Yellow, HighIntensity&quot; /&gt;
+        &lt;backColor value=&quot;Purple&quot; /&gt;
+      &lt;/mapping&gt;
+      &lt;mapping&gt;
+        &lt;level value=&quot;ERROR&quot; /&gt;
+        &lt;foreColor value=&quot;Yellow, HighIntensity&quot; /&gt;
+        &lt;backColor value=&quot;Red&quot; /&gt;
+      &lt;/mapping&gt;
+      &lt;layout type=&quot;log4net.Layout.PatternLayout&quot;&gt;
+        &lt;conversionPattern value=&quot;---------------------------------------------------%newline发生时间：%date %newline事件级别：%-5level%newline事件来源：%logger%newline事件行号：%line%newline日志内容：%message%newline&quot; /&gt;
+      &lt;/layout&gt;
+    &lt;/appender&gt;
+    &lt;appender name=&quot;UdpAppender&quot; type=&quot;log4net.Appender.UdpAppender&quot;&gt;
+      &lt;remoteAddress value=&quot;127.0.0.1&quot; /&gt;
+      &lt;remotePort value=&quot;7071&quot; /&gt;
+      &lt;layout type=&quot;log4net.Layout.XmlLayoutSchemaLog4j&quot; /&gt;
+    &lt;/appender&gt;
+    &lt;root&gt;
+      &lt;appender-ref ref=&quot;UdpAppender&quot; /&gt;
+    &lt;/root&gt;
+  &lt;/log4net&gt;
+&lt;/configuration&gt;</code></pre>
+<h2 id="怎么使用">怎么使用</h2>
+<pre><code><code>private IKernel _kernel = null;
+private ILogService _logService = null;
+ 
+[TestInitialize]
+public void SetUp()
+{
+    _kernel = new StandardKernel(new LogModule());
+    Assert.IsNotNull(_kernel);
+ 
+    _logService = _kernel.Get&lt;ILogService&gt;();
+}
+ 
+[TestMethod()]
+public void DebugTest()
+{
+    _logService.Debug(&quot;DebugTest&quot;);
+}</code></pre>
+<h2 id="结语">结语</h2>
+<ol>
+<li>整个实现很简单，就是业务或者功能不依赖具体实现类，这也是开发中最基本原则；</li>
+<li>小弟不才，大佬轻拍；</li>
+</ol>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,136 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C# Java的加密的各种折腾' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C# Java的加密的各种折腾</center></div><div class='banquan'>原文出处:本文由博客园博主毛毛虫提供。<br/>
+原文连接:https://www.cnblogs.com/catzhou/p/10942183.html</div><br>
+    <p><strong>24位加密</strong></p>
+<p>Java</p>
+<pre><code><code>public class DESUtil {
+
+    private static final String KEY_ALGORITHM = &quot;DESede&quot;;
+
+    private static final String CIPHER_ALGORITHM = &quot;DESede/ECB/PKCS5Padding&quot;;
+
+    private static final String ENCODING = &quot;UTF-8&quot;;
+
+    /**
+     *
+     * @param data body的JSON字符串
+     * @param key 腾住提供的DesSecret密钥
+     * @return
+     */
+    public static String encrypt(String data, String key) {
+        byte[] encrypt = encrypt(data.getBytes(Charset.forName(ENCODING)), key);
+        return encrypt == null ? null : Base64.encodeBase64String(encrypt);
+    }
+
+    private static byte[] encrypt(byte[] data, String key) {
+        try {
+            //实例化Des密钥
+            DESedeKeySpec dks = new DESedeKeySpec(key.getBytes());
+            //实例化密钥工厂
+            SecretKeyFactory keyFactory = SecretKeyFactory.getInstance(KEY_ALGORITHM);
+            //生成密钥
+            SecretKey secretKey = keyFactory.generateSecret(dks);
+            //实例化
+            Cipher cipher = Cipher.getInstance(CIPHER_ALGORITHM);
+            //初始化，设置为加密模式
+            cipher.init(Cipher.ENCRYPT_MODE, secretKey);
+            return cipher.doFinal(data);
+        } catch (InvalidKeyException e) {
+            e.printStackTrace();
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        } catch (InvalidKeySpecException e) {
+            e.printStackTrace();
+        } catch (NoSuchPaddingException e) {
+            e.printStackTrace();
+        } catch (IllegalBlockSizeException e) {
+            e.printStackTrace();
+        } catch (BadPaddingException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+}</code></pre>
+<p>对应的C#</p>
+<pre><code><code>
+ public static string Encrypt(string data, string key)
+        {
+
+
+            if (key.Length &gt; 24)
+                key = key.Substring(0, 24);
+
+            TripleDESCryptoServiceProvider tdsp = new TripleDESCryptoServiceProvider()
+            {
+                Mode = CipherMode.ECB,
+                Padding = PaddingMode.PKCS7,
+                Key = Encoding.UTF8.GetBytes(key)
+            };
+            using (MemoryStream ms = new MemoryStream())
+            {
+                CryptoStream cStream = new CryptoStream(ms, tdsp.CreateEncryptor(), CryptoStreamMode.Write);
+                var buffer = Encoding.UTF8.GetBytes(data);
+                cStream.Write(buffer, 0, buffer.Length);
+                cStream.FlushFinalBlock();
+                cStream.Close();
+                return Convert.ToBase64String(ms.ToArray());
+            }
+        }</code></pre>
+<p>C#8位解密</p>
+<pre><code><code>           private string Des(string pToEncrypt, string key)
+            {
+                DESCryptoServiceProvider des = new DESCryptoServiceProvider();
+                des.Mode = CipherMode.ECB;
+                //des.Mode = CipherMode.CBC;
+                des.Padding = PaddingMode.PKCS7;
+                var buffer = UTF8Encoding.UTF8.GetBytes(key).Take(8).ToArray();
+                des.Key = des.IV = buffer;
+
+                using (MemoryStream ms = new MemoryStream())
+                {
+                    CryptoStream cs = new CryptoStream(ms, des.CreateEncryptor(), CryptoStreamMode.Write);
+                    byte[] inputByteArray = Encoding.UTF8.GetBytes(pToEncrypt);
+                    cs.Write(inputByteArray, 0, inputByteArray.Length);
+                    cs.FlushFinalBlock();
+                    return HttpUtility.UrlEncode(Convert.ToBase64String(ms.ToArray()));//  Encoding.UTF8.GetString(ms.ToArray());
+
+                }
+            }</code></pre>
+<p>C# 16 加密</p>
+<pre><code><code>            byte[] keyArray = Encoding.UTF8.GetBytes(Secret);// Convert.FromBase64String(Secret);
+            byte[] toEncryptArray = JsonHelper.SerializeObject(q);
+
+            RijndaelManaged rDel = new RijndaelManaged();
+            rDel.Key = keyArray;
+            rDel.Mode = CipherMode.ECB;
+            rDel.Padding = PaddingMode.PKCS7;
+
+            ICryptoTransform cTransform = rDel.CreateEncryptor();
+            byte[] resultArray = cTransform.TransformFinalBlock(toEncryptArray, 0, toEncryptArray.Length);
+
+            return Convert.ToBase64String(resultArray, 0, resultArray.Length);
+
+</code></pre>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

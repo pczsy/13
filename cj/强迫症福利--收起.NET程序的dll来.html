@@ -1,0 +1,95 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修强迫症福利--收起.NET程序的dll来' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>强迫症福利--收起.NET程序的dll来</center></div><div class='banquan'>原文出处:本文由博客园博主波多尔斯基提供。<br/>
+原文连接:https://www.cnblogs.com/podolski/p/10836241.html</div><br>
+    <p>作为上床后需要下床检查好几次门关了没有的资深强迫症患者，有一个及其搞我的问题，就是dll问题。</p>
+<p>曾几何时，在没有nuget的年代，当有依赖项需要引用的时候，只能通过文件引用来管理引用问题，版本问题，更新问题层出不穷，很是难受。</p>
+<p>后来出来nuget，喜大普奔，总算解决了引用的问题。开心之余，依然还有一个很膈应人的问题：生成文件夹满地的dll，找个exe眼睛很难受。</p>
+<p>讲道理这个也不是什么大问题，但是就是心痒痒，就特别想把这些dll收到一个单独文件夹里面，外面就留exe和配置等文件。然后就找这个东西：PrettyBin。</p>
+<h2 id="prettybin">PrettyBin</h2>
+<p>PrettyBin是一个开源的nuget包：<a href="https://github.com/slmjy/PrettyBin" class="uri">https://github.com/slmjy/PrettyBin</a>，使用它可以将.NET Framework程序引用的文件收到lib文件夹里面，使用起来也非常方便，老样子，直接nuget安装。</p>
+<pre><code><code>Install-Package PrettyBin</code></pre>
+<p>提示重新加载项目，点击确定，就完事了。<br />
+安装之前，输出是这样的：<br />
+<img src="./images/强迫症福利--收起.NET程序的dll来0.png" /></p>
+<p>安装之后，输出是这样的：<br />
+<img src="./images/强迫症福利--收起.NET程序的dll来1.png" /></p>
+<p>dll之类的文件都进lib文件夹了，感觉世界都干净了很多。</p>
+<h2 id="补充">补充</h2>
+<ol>
+<li><p>细心的童鞋应该能够发现，我写的是<strong>.NET Framework</strong>的程序引用，.NET Core，.NET Standard呢？<br />
+答案是：.NET Core啥的东西生成的就是dll，都一样就没必要了。</p></li>
+<li><p>安装prettybin之后，再安装新的包会怎么样？受不受影响？<br />
+依然有用，不受影响。</p></li>
+<li><p>对于新的nuget管理形式PackageReference效果如何怎么样？<br />
+这个有说法的，需要先了解这个包工作的原理。</p></li>
+</ol>
+<h2 id="原理解析">原理解析</h2>
+<p>首先看看安装的时候，nuget包管理器弹出的提示：</p>
+<pre><code><code>正在执行脚本文件“ConsoleApp4\packages\PrettyBin.1.1.0\tools\init.ps1”
+Init BinPrettify
+正在执行脚本文件“ConsoleApp4\packages\PrettyBin.1.1.0\tools\install.ps1”
+Install PrettifyBin; 
+http://schemas.microsoft.com/developer/msbuild/2003
+No Target AfterBuild Node. Creating
+No ItemGroup whith MoveToLibFolder tag. Creating
+No Move tag in AfterBuild Target. Creating
+Edititing App.config
+runtimeNode items
+No probing Node. Creating
+已将“PrettyBin 1.1.0”成功安装到 ConsoleApp4</code></pre>
+<p>可以看到，这里首先执行的是给项目文件添加`<code>msbuild</code>内容，增加了<code>AfterBuild</code>节点，<code>MoveToLibFolder</code>节点和<code>Move</code>节点。</p>
+<pre class="xml"><code>&lt;Import Project=&quot;$(MSBuildToolsPath)\Microsoft.CSharp.targets&quot; /&gt;
+&lt;Target Name=&quot;AfterBuild&quot;&gt;
+&lt;ItemGroup&gt;
+    &lt;MoveToLibFolder Include=&quot;$(OutputPath)*.dll ; $(OutputPath)*.pdb ; $(OutputPath)*.xml&quot; /&gt;
+&lt;/ItemGroup&gt;
+&lt;Move SourceFiles=&quot;@(MoveToLibFolder)&quot; DestinationFolder=&quot;$(OutputPath)lib&quot; OverwriteReadOnlyFiles=&quot;true&quot; /&gt;
+&lt;/Target&gt;</code></pre>
+<blockquote>
+<p>msbuild可以设置生成后的操作，成功生成之后，将目录下面的dll文件，pdb文件和xml都转到了lib文件夹。<br />
+然后修改了app.config文件，在runtime底下增加了一个<code>probing</code>节点。</p>
+</blockquote>
+<pre class="xml"><code>&lt;runtime&gt;
+&lt;assemblyBinding xmlns=&quot;urn:schemas-microsoft-com:asm.v1&quot;&gt;
+    &lt;probing privatePath=&quot;lib;libs&quot; xmlns=&quot;&quot; /&gt;
+&lt;/assemblyBinding&gt;
+&lt;/runtime&gt;</code></pre>
+<blockquote>
+<p>probing节点提供.NET程序集查找的选项，privatepath指定路径，详细资料可以查看MSDN：<a href="https://support.microsoft.com/en-us/help/837908/how-to-load-an-assembly-at-runtime-that-is-located-in-a-folder-that-is" class="uri">https://support.microsoft.com/en-us/help/837908/how-to-load-an-assembly-at-runtime-that-is-located-in-a-folder-that-is</a><br />
+补充资料：关于<a href="https://docs.microsoft.com/zh-cn/dotnet/framework/configure-apps/specify-assembly-location">指定程序集位置</a></p>
+</blockquote>
+<p>所以，prettybin是通过运行<code>powershell</code>脚本设置生成成功后转移文件，并将程序集查找路径调整为lib文件夹。</p>
+<p>根据<a href="https://docs.microsoft.com/zh-cn/nuget/reference/migrate-packages-config-to-package-reference" class="uri">https://docs.microsoft.com/zh-cn/nuget/reference/migrate-packages-config-to-package-reference</a>，PackageReference方式nuget是不支持install.ps1脚本的。所以并不能支持prettybin。</p>
+<blockquote>
+<p>新建.NET Framework程序是默认是通过传统的package.config文件进行包管理的，新建.NET Core和.NET Standard都是默认使用PackageReference包管理。</p>
+</blockquote>
+<h2 id="结论">结论</h2>
+<ol>
+<li><em>如果需要使用PrettyBin，那么直接默认配置.NET FRAMEWORK项目的nuget管理方式，完美支持。</em></li>
+<li><em>如果需要升级新的包管理方式，可以在安装了PrettyBin之后升级项目，依然支持。</em></li>
+<li><em>升级了PackageReference之后，安装PrettyBin无效。</em></li>
+</ol>
+<h4 id="p.s.-补充不使用prettybin也不调用afterbuild的一种实现httpswww.broculos.net201403visual-studio-build-dlls-to-separate.html.wwitjjfjly8">P.S. 补充不使用prettybin，也不调用AFTERBUILD的一种实现：<a href="https://www.broculos.net/2014/03/visual-studio-build-dlls-to-separate.html#.WWiTjJFJLy8" class="uri">https://www.broculos.net/2014/03/visual-studio-build-dlls-to-separate.html#.WWiTjJFJLy8</a></h4>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,201 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修jQuery自定义插件' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>jQuery自定义插件</center></div><div class='banquan'>原文出处:本文由博客园博主把番茄沉入海底提供。<br/>
+原文连接:https://www.cnblogs.com/449house/p/12000355.html</div><br>
+    <h1>自定义一个jQuery二级菜单插件</h1>
+<p><strong>自定义jQuery插件需要了解：</strong></p>
+<ul>
+<li>命名规范:jQuery.插件名-版本.js</li>
+<li>以工具(全局)函数形式加到jQuery中:</li>
+</ul>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">$.extend({函数名:function(){功能代码}});
+使用时：$.函数名();</span></pre>
+</div>
+<ul>
+<li>以成员(局部)函数形式加到jQuery中:</li>
+</ul>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">$.fn.extend({函数名:function(){功能代码}});
+使用时:$("选择元素").函数名();</span></pre>
+</div>
+<ul>
+<li>以成员形式应返回jQuery对象，便于链式操作。</li>
+</ul>
+<h1>1.创建关联文件</h1>
+<p>创建<strong>插件名.js</strong>文件</p>
+<p>创建<strong>页面名.css</strong>文件</p>
+<p>然后<strong>引入html</strong>中</p>
+<div class="cnblogs_code">
+<pre><code>        <span style="color: #008000;">&lt;!--</span><span style="color: #008000;"> 引入创建的名为myPlugin-menu的css </span><span style="color: #008000;">--&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">link </span><span style="color: #ff0000;">rel</span><span style="color: #0000ff;">="stylesheet"</span><span style="color: #ff0000;"> type</span><span style="color: #0000ff;">="text/css"</span><span style="color: #ff0000;"> href</span><span style="color: #0000ff;">="../css/myPlugin-menu.css"</span><span style="color: #0000ff;">/&gt;</span>
+        <span style="color: #008000;">&lt;!--</span><span style="color: #008000;"> 引入jQuery库，必须在前面，后面的插件文件基于jQuery </span><span style="color: #008000;">--&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script </span><span style="color: #ff0000;">src</span><span style="color: #0000ff;">="../js/jquery-1.11.3.js"</span><span style="color: #ff0000;"> type</span><span style="color: #0000ff;">="text/javascript"</span><span style="color: #ff0000;"> charset</span><span style="color: #0000ff;">="utf-8"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #008000;">&lt;!--</span><span style="color: #008000;"> 引入创建的名为jquery-myPluginmenu-1.0.js </span><span style="color: #008000;">--&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script </span><span style="color: #ff0000;">src</span><span style="color: #0000ff;">="../js/jquery-myPluginmenu-1.0.js"</span><span style="color: #ff0000;"> type</span><span style="color: #0000ff;">="text/javascript"</span><span style="color: #ff0000;"> charset</span><span style="color: #0000ff;">="utf-8"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<p>现在先写出所需基本html代码</p>
+<p>一个<strong>div</strong>里面包含一个<strong>ul</strong>六个<strong>li</strong>标签</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">body</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="menu"</span><span style="color: #0000ff;">&gt;　　<span style="color: #008000;">&lt;!-- id设置为menu --&gt;</span></span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">ul</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;</span><span style="color: #000000;">menu1
+                    </span><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+                        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">a </span><span style="color: #ff0000;">href</span><span style="color: #0000ff;">="#"</span><span style="color: #0000ff;">&gt;</span>menu1<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">a</span><span style="color: #0000ff;">&gt;</span>
+                        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">a </span><span style="color: #ff0000;">href</span><span style="color: #0000ff;">="#"</span><span style="color: #0000ff;">&gt;</span>menu2<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">a</span><span style="color: #0000ff;">&gt;</span>
+                        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">a </span><span style="color: #ff0000;">href</span><span style="color: #0000ff;">="#"</span><span style="color: #0000ff;">&gt;</span>menu3<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">a</span><span style="color: #0000ff;">&gt;</span>
+                        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">a </span><span style="color: #ff0000;">href</span><span style="color: #0000ff;">="#"</span><span style="color: #0000ff;">&gt;</span>menu4<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">a</span><span style="color: #0000ff;">&gt;</span>
+                    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;</span><span style="color: #000000;">menu2
+                    </span><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+                        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">a </span><span style="color: #ff0000;">href</span><span style="color: #0000ff;">="#"</span><span style="color: #0000ff;">&gt;</span>menu1<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">a</span><span style="color: #0000ff;">&gt;</span>
+                        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">a </span><span style="color: #ff0000;">href</span><span style="color: #0000ff;">="#"</span><span style="color: #0000ff;">&gt;</span>menu2<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">a</span><span style="color: #0000ff;">&gt;</span>
+                        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">a </span><span style="color: #ff0000;">href</span><span style="color: #0000ff;">="#"</span><span style="color: #0000ff;">&gt;</span>menu3<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">a</span><span style="color: #0000ff;">&gt;</span>
+                        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">a </span><span style="color: #ff0000;">href</span><span style="color: #0000ff;">="#"</span><span style="color: #0000ff;">&gt;</span>menu4<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">a</span><span style="color: #0000ff;">&gt;</span>
+                    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;</span><span style="color: #000000;">menu3
+                    </span><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+                        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">a </span><span style="color: #ff0000;">href</span><span style="color: #0000ff;">="#"</span><span style="color: #0000ff;">&gt;</span>menu1<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">a</span><span style="color: #0000ff;">&gt;</span>
+                        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">a </span><span style="color: #ff0000;">href</span><span style="color: #0000ff;">="#"</span><span style="color: #0000ff;">&gt;</span>menu2<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">a</span><span style="color: #0000ff;">&gt;</span>
+                        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">a </span><span style="color: #ff0000;">href</span><span style="color: #0000ff;">="#"</span><span style="color: #0000ff;">&gt;</span>menu3<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">a</span><span style="color: #0000ff;">&gt;</span>
+                        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">a </span><span style="color: #ff0000;">href</span><span style="color: #0000ff;">="#"</span><span style="color: #0000ff;">&gt;</span>menu4<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">a</span><span style="color: #0000ff;">&gt;</span>
+                    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;</span><span style="color: #000000;">menu4
+                    </span><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+                        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">a </span><span style="color: #ff0000;">href</span><span style="color: #0000ff;">="#"</span><span style="color: #0000ff;">&gt;</span>menu1<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">a</span><span style="color: #0000ff;">&gt;</span>
+                        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">a </span><span style="color: #ff0000;">href</span><span style="color: #0000ff;">="#"</span><span style="color: #0000ff;">&gt;</span>menu2<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">a</span><span style="color: #0000ff;">&gt;</span>
+                        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">a </span><span style="color: #ff0000;">href</span><span style="color: #0000ff;">="#"</span><span style="color: #0000ff;">&gt;</span>menu3<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">a</span><span style="color: #0000ff;">&gt;</span>
+                        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">a </span><span style="color: #ff0000;">href</span><span style="color: #0000ff;">="#"</span><span style="color: #0000ff;">&gt;</span>menu4<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">a</span><span style="color: #0000ff;">&gt;</span>
+                    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;</span><span style="color: #000000;">menu5
+                    </span><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+                        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">a </span><span style="color: #ff0000;">href</span><span style="color: #0000ff;">="#"</span><span style="color: #0000ff;">&gt;</span>menu1<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">a</span><span style="color: #0000ff;">&gt;</span>
+                        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">a </span><span style="color: #ff0000;">href</span><span style="color: #0000ff;">="#"</span><span style="color: #0000ff;">&gt;</span>menu2<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">a</span><span style="color: #0000ff;">&gt;</span>
+                        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">a </span><span style="color: #ff0000;">href</span><span style="color: #0000ff;">="#"</span><span style="color: #0000ff;">&gt;</span>menu3<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">a</span><span style="color: #0000ff;">&gt;</span>
+                        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">a </span><span style="color: #ff0000;">href</span><span style="color: #0000ff;">="#"</span><span style="color: #0000ff;">&gt;</span>menu4<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">a</span><span style="color: #0000ff;">&gt;</span>
+                    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;</span><span style="color: #000000;">menu6
+                    </span><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+                        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">a </span><span style="color: #ff0000;">href</span><span style="color: #0000ff;">="#"</span><span style="color: #0000ff;">&gt;</span>menu1<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">a</span><span style="color: #0000ff;">&gt;</span>
+                        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">a </span><span style="color: #ff0000;">href</span><span style="color: #0000ff;">="#"</span><span style="color: #0000ff;">&gt;</span>menu2<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">a</span><span style="color: #0000ff;">&gt;</span>
+                        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">a </span><span style="color: #ff0000;">href</span><span style="color: #0000ff;">="#"</span><span style="color: #0000ff;">&gt;</span>menu3<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">a</span><span style="color: #0000ff;">&gt;</span>
+                        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">a </span><span style="color: #ff0000;">href</span><span style="color: #0000ff;">="#"</span><span style="color: #0000ff;">&gt;</span>menu4<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">a</span><span style="color: #0000ff;">&gt;</span>
+                    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">ul</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">body</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<p>初始界面如下：</p>
+<p><img src="./images/jQuery自定义插件0.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;在名为<strong>myPlugin-menu的css</strong>中写入样式</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">/*</span><span style="color: #008000;"> 设置一个类名sunmenu </span><span style="color: #008000;">*/</span>
+<span style="color: #008000;">/*</span><span style="color: #008000;"> 找到menu里面的ul </span><span style="color: #008000;">*/</span><span style="color: #800000;">
+.sunmenu &gt;ul</span>{<span style="color: #ff0000;">
+    margin</span>:<span style="color: #0000ff;"> 0px</span>;    <span style="color: #008000;">/*</span><span style="color: #008000;"> 外边距 </span><span style="color: #008000;">*/</span><span style="color: #ff0000;">
+    padding</span>:<span style="color: #0000ff;"> 0px</span>;    <span style="color: #008000;">/*</span><span style="color: #008000;"> 内边距 </span><span style="color: #008000;">*/</span><span style="color: #ff0000;">
+    list-style</span>:<span style="color: #0000ff;"> none</span>;    <span style="color: #008000;">/*</span><span style="color: #008000;"> 列表属性 </span><span style="color: #008000;">*/</span>
+}
+<span style="color: #008000;">/*</span><span style="color: #008000;"> 找到ul里的li </span><span style="color: #008000;">*/</span><span style="color: #800000;">
+.sunmenu &gt;ul &gt;li</span>{<span style="color: #ff0000;">
+    float</span>:<span style="color: #0000ff;"> left</span>;    <span style="color: #008000;">/*</span><span style="color: #008000;"> 左浮动 </span><span style="color: #008000;">*/</span><span style="color: #ff0000;">
+    display</span>:<span style="color: #0000ff;"> inline-block</span>;    <span style="color: #008000;">/*</span><span style="color: #008000;"> 水平居中显示 </span><span style="color: #008000;">*/</span><span style="color: #ff0000;">
+    width</span>:<span style="color: #0000ff;"> 120px</span>;    <span style="color: #008000;">/*</span><span style="color: #008000;"> 宽度 </span><span style="color: #008000;">*/</span><span style="color: #ff0000;">
+    height</span>:<span style="color: #0000ff;"> 30px</span>;    <span style="color: #008000;">/*</span><span style="color: #008000;"> 高度 </span><span style="color: #008000;">*/</span><span style="color: #ff0000;">
+    line-height</span>:<span style="color: #0000ff;"> 30px</span>;    <span style="color: #008000;">/*</span><span style="color: #008000;"> 行高 </span><span style="color: #008000;">*/</span><span style="color: #ff0000;">
+    background-color</span>:<span style="color: #0000ff;"> #333333</span>;    <span style="color: #008000;">/*</span><span style="color: #008000;"> 背景颜色 </span><span style="color: #008000;">*/</span><span style="color: #ff0000;">
+    color</span>:<span style="color: #0000ff;"> #FFFFFF</span>;    <span style="color: #008000;">/*</span><span style="color: #008000;"> 字体颜色 </span><span style="color: #008000;">*/</span><span style="color: #ff0000;">
+    text-align</span>:<span style="color: #0000ff;"> center</span>;    <span style="color: #008000;">/*</span><span style="color: #008000;"> 文本居中 </span><span style="color: #008000;">*/</span><span style="color: #ff0000;">
+    margin-right</span>:<span style="color: #0000ff;"> 2px</span>;    <span style="color: #008000;">/*</span><span style="color: #008000;"> 右边距 </span><span style="color: #008000;">*/</span>
+}
+<span style="color: #008000;">/*</span><span style="color: #008000;"> 找到li里的div </span><span style="color: #008000;">*/</span><span style="color: #800000;">
+.sunmenu &gt; ul&gt;li&gt;div</span>{<span style="color: #ff0000;">
+    width</span>:<span style="color: #0000ff;"> 120px</span>;    <span style="color: #008000;">/*</span><span style="color: #008000;"> 宽度 </span><span style="color: #008000;">*/</span><span style="color: #ff0000;">
+    background-color</span>:<span style="color: #0000ff;"> #999999</span>;    <span style="color: #008000;">/*</span><span style="color: #008000;"> 背景颜色 </span><span style="color: #008000;">*/</span><span style="color: #ff0000;">
+    position</span>:<span style="color: #0000ff;"> absolute</span>;    <span style="color: #008000;">/*</span><span style="color: #008000;"> 相对定位 </span><span style="color: #008000;">*/</span>
+}
+<span style="color: #008000;">/*</span><span style="color: #008000;"> 找到div里的a </span><span style="color: #008000;">*/</span><span style="color: #800000;">
+.sunmenu &gt;ul&gt;li&gt;div a:link</span>{<span style="color: #ff0000;">
+    text-decoration</span>:<span style="color: #0000ff;"> none</span>;<span style="color: #008000;">/*</span><span style="color: #008000;"> 文本修饰 去掉下划线 </span><span style="color: #008000;">*/</span>
+}<span style="color: #800000;">
+
+.astyle</span>{<span style="color: #ff0000;">
+    color</span>:<span style="color: #0000ff;"> #DDDDDD</span>;    <span style="color: #008000;">/*</span><span style="color: #008000;"> 字体颜色 </span><span style="color: #008000;">*/</span>
+}</pre>
+</div>
+<p>我们需要用js来调用这些样式，让它们隐藏或是显示。</p>
+<p>在创建的<strong>插件.js</strong>中以<strong>成员函数</strong>的形式来设置插件:</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;">以成员函数形式设置插件</span>
+(<span style="color: #0000ff;">function</span><span style="color: #000000;">($){
+    $.fn.extend({
+        submenu:</span><span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">添加样式</span>
+            <span style="color: #0000ff;">this</span>.addClass("sunmenu"<span style="color: #000000;">);
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">隐藏div</span>
+            <span style="color: #0000ff;">this</span>.find("ul&gt;li&gt;div"<span style="color: #000000;">).hide();
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">当鼠标经过li时</span>
+            <span style="color: #0000ff;">this</span>.find("ul&gt;li").on("mouseover",<span style="color: #0000ff;">function</span><span style="color: #000000;">(){    
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">此处的this表示事件源</span>
+                $(<span style="color: #0000ff;">this</span>).find("div").show();    <span style="color: #008000;">//</span><span style="color: #008000;">显示div</span>
+                <span style="color: #008000;">//</span><span style="color: #008000;">当鼠标离开li时</span>
+            }).on("mouseout",<span style="color: #0000ff;">function</span><span style="color: #000000;">(){    
+                $(</span><span style="color: #0000ff;">this</span>).find("div").hide();    <span style="color: #008000;">//</span><span style="color: #008000;">隐藏div</span>
+<span style="color: #000000;">            });
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">再给a标签添加一个鼠标移入移出事件</span>
+            $("a").mouseover(<span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+                $(</span><span style="color: #0000ff;">this</span>).addClass("astyle"<span style="color: #000000;">);
+            }).mouseout(</span><span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+                $(</span><span style="color: #0000ff;">this</span>).removeClass("astyle"<span style="color: #000000;">);
+            })
+            
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span>;    <span style="color: #008000;">//</span><span style="color: #008000;">为了支持链式操作 要返回当前对象</span>
+<span style="color: #000000;">        }
+    })
+})(jQuery);</span></pre>
+</div>
+<p>最后在HTML中运行自定义的插件：</p>
+<div class="cnblogs_code">
+<pre><code>        &lt;script type="text/javascript"&gt;<span style="color: #000000;">
+            $(</span><span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+                $(</span>"#menu").submenu();<span style="color: #008000;">//</span><span style="color: #008000;">选择id为menu的元素调用成员函数submenu</span>
+<span style="color: #000000;">            })
+        </span>&lt;/script&gt;</pre>
+</div>
+<p>运行结果：</p>
+<p><img src="./images/jQuery自定义插件1.png" alt="" width="757" height="91" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;当鼠标移入移出时：</p>
+<p><img src="./images/jQuery自定义插件2.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;如果觉得有用不妨点个赞:D</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

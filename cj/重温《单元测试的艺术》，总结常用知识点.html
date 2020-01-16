@@ -1,0 +1,406 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修重温《单元测试的艺术》，总结常用知识点' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>重温《单元测试的艺术》，总结常用知识点</center></div><div class='banquan'>原文出处:本文由博客园博主dino.c提供。<br/>
+原文连接:https://www.cnblogs.com/dino623/p/The_Art_of_unit_Testing.html</div><br>
+    <h2 id="前言">1. 前言</h2>
+<p>关于单元测试的定义和好处可以借用Stephen Cleary的一段话来概括：</p>
+<blockquote>
+<p>单元测试是现代开发的基础。对项目进行单元测试的好处非常容易理解：单元测试降低了 Bug 数量，缩短了上市时间，防止过度耦合的设计。这些都是很好的优势，但它还有更多与开发人员更直接相关的优点。在我编写单元测试时，我会对代码更有信心。在已测试的代码中更易于添加功能或修复 Bug，因为在代码发生更改时，单元测试起着安全网的作用。</p>
+</blockquote>
+<p>前几个月重温了<a href="https://book.douban.com/subject/25934516/">单元测试的艺术</a>。毕竟是14年的书内容有点旧，于是试着结合书中的内容和一些新的知识点写进这篇文章，希望对自己及各位读者有帮助。</p>
+<p>TDD是另一个话题，这里就不涉及了。</p>
+<h2 id="选择单元测试框架">2. 选择单元测试框架</h2>
+<p>《单元测试的艺术》书中推荐NUnit，VS2019中新建单元测试项目只有MSTest V2、NUnit和xUnit三种。微软自己的项目也不一定会使用MSTest，例如<a href="https://github.com/dotnet/corefx">CoreFX</a>就在用xUnit。</p>
+<p>不过我更喜欢<a href="https://github.com/Microsoft/testfx">MSTest V2</a>，因为从旧的MSTest升级过来几乎没有学习成本，也不用向上司解释为什么要换框架。MSTest已经是个开源项目，<a href="https://github.com/windows-toolkit/WindowsCommunityToolkit">WindowsCommunityToolkit</a>就在用MSTest。</p>
+<h2 id="怎么给单元测试命名">3. 怎么给单元测试命名</h2>
+<p>万事起头难，最难的就是命名。<CODE>OnResolveShouldAddSearchDirectoryListOnANeedToBasis</CODE>这种命名简直吓死人，明明觉得每个单词都认得但感觉就是看不明白。</p>
+<p>《单元测试的艺术》书中推荐了一组测试命名的规则。</p>
+<ul>
+<li><p><strong>项目</strong> 创建一个名为[ProjectUnderTest].UnitTests的测试项目。</p></li>
+<li><p><strong>类</strong> 对应被测试项目中的一个泪，创建一个名为[Classname]Tests的类。</p></li>
+<li><p><strong>工作单元</strong> 对每个工作单元（一个方法，或者几个方法组成的一个逻辑组，或者及各类），创建一个如下命名的测试方法：<code>[UnitOfWorkName]_[ScenarioUnderTest]_[ExpectedBehavior]</code>。</p></li>
+</ul>
+<p>测试方法名称的三个部分：</p>
+<ol>
+<li>UnitOfWorkName，被测试的方法、一组方法或者一组类。</li>
+<li>Scenario，测试进行的假设条件。</li>
+<li>ExpectedBehavior，在测试场景指定的条件下，你对被测试方法行为的语气。</li>
+</ol>
+<p>从一个简单的类开始解释这个命名规则：</p>
+<pre><code><code>public class LogAnalyzer
+{
+    public bool IsValidLogFileName(string fileName)
+    {
+        if (fileName.EndsWith(&quot;.SLF&quot;) == false)
+            return false;
+
+        return true;
+    }
+}</code></pre>
+<p>为这个函数创建对应的单元测试，假设我们传入错误的文件名，预期返回False，则测试方法命名为<CODE>IsValidLogFileName_BadExtension_ReturnFalse</CODE>。不需要在函数名中加入“Test”，这种命名本身已暗示自己是个测试方法。</p>
+<pre><code><code>namespace LogAn.UnitTests
+{
+    [TestClass()]
+    public class LogAnalyzerTests
+    {
+        [TestMethod()]
+        public void IsValidLogFileName_BadExtension_ReturnsFalse()
+        {
+            Assert.Fail();
+        }
+    }
+}</code></pre>
+<h2 id="单元测试的组成">4. 单元测试的组成</h2>
+<p>单元测试通常包含三个行为：</p>
+<ol>
+<li><strong>准备(Arrange)</strong>队形，创建对象，进行必要的设置；</li>
+<li><strong>操作(Act)</strong>对象；</li>
+<li><strong>断言(Assert)</strong>某件事情是预期的。</li>
+</ol>
+<p>以<CODE>IsValidLogFileName_BadExtension_ReturnFalse</CODE>为例：</p>
+<pre><code><code>[TestMethod()]
+public void IsValidLogFileName_BadExtension_ReturnsFalse()
+{
+    var analyzer = new LogAnalyzer();//Arrange
+    var result = analyzer.IsValidLogFileName(&quot;filewithbadextension.foo&quot;);//Act
+    Assert.IsFalse(result);//Assert
+}</code></pre>
+<h2 id="一些mstest常用的功能">5. 一些MSTest常用的功能</h2>
+<h3 id="参数化测试">5.1 参数化测试</h3>
+<p>要覆盖多个测试用例可以使用<a href="https://docs.microsoft.com/en-us/dotnet/api/microsoft.visualstudio.testtools.unittesting.datarowattribute?view=mstest-net-1.3.2">DataRow</a>实现参数化测试（MSTest V1没有这个Attribute），并且可以为每一个测试用例命名，运行测试后可以看到测试用例的名称：</p>
+<pre><code><code>[TestMethod()]
+[DataRow(&quot;filewithbadextension.foo&quot;)]
+[DataRow(&quot;somefile.exe&quot;)]
+public void IsValidLogFileName_BadExtension_ReturnsFalse(string fileName)
+{
+    var analyzer = new LogAnalyzer();
+    var result = analyzer.IsValidLogFileName(fileName);
+    Assert.IsFalse(result);
+}
+
+[TestMethod()]
+[DataRow(&quot;filewithbadextension.SLF&quot;, DisplayName = &quot;A valid fileName&quot;)]
+[DataRow(&quot;somefile.SLF&quot;,DisplayName = &quot;An other valid fileName&quot;)]
+public void IsValidLogFileName_GoodExtension_ReturnsTrue(string fileName)
+{
+    var analyzer = new LogAnalyzer();
+    var result = analyzer.IsValidLogFileName(fileName);
+    Assert.IsTrue(result);
+}</code></pre>
+<p><img src="./images/重温《单元测试的艺术》，总结常用知识点0.png" /></p>
+<h3 id="捕获预期的异常">5.2 捕获预期的异常</h3>
+<p>在以前很流行使用<a href="https://docs.microsoft.com/en-us/dotnet/api/microsoft.visualstudio.testtools.unittesting.expectedexceptionattribute?view=mstest-net-1.3.2">ExpectedExceptionAttribute</a>检查异常，代码如下：</p>
+<pre><code><code>[TestMethod()]
+[ExpectedException(typeof(ArgumentNullException))]
+public void IsValidLogFileName_EmptyFileName_Throws()
+{
+    var analyzer = new LogAnalyzer();
+    analyzer.IsValidLogFileName(null);
+}</code></pre>
+<p>这个方法有一些问题：</p>
+<ol>
+<li>没有Assert语句。</li>
+<li>如果测试代码很多，用户将搞不清楚到底哪行抛出了异常。</li>
+</ol>
+<p>更好的做法是使用<a href="https://docs.microsoft.com/en-us/dotnet/api/microsoft.visualstudio.testtools.unittesting.assert.throwsexception?view=mstest-net-1.3.2#Microsoft_VisualStudio_TestTools_UnitTesting_Assert_ThrowsException__1_System_Func_System_Object__System_String_">Assert.ThrowsException<T>(Action, String, Object[])</a>：</p>
+<pre><code><code>[TestMethod()]
+public void IsValidLogFileName_EmptyFileName_Throws()
+{
+    var analyzer = new LogAnalyzer();
+    Assert.ThrowsException&lt;ArgumentNullException&gt;(()=&gt;analyzer.IsValidLogFileName(null));
+}</code></pre>
+<h3 id="initialize和cleanup">5.3 Initialize和Cleanup</h3>
+<p>进行单元测试时，很重要的一点是保证之前测试的遗留数据或者实例得到销毁，新测试的状态是重建的，就好像之前没有测试运行过一样。<br />
+MSTest提供了一组Attribute用于初始化及释放资源。</p>
+<table>
+<thead>
+<tr class="header">
+<th>Attribute</th>
+<th>功能</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>AssemblyInitialize()</td>
+<td>执行程序集中的所有测试之前运行</td>
+</tr>
+<tr class="even">
+<td>ClassInitialize()</td>
+<td>测试类中的任意测试执行之前运行</td>
+</tr>
+<tr class="odd">
+<td>TestInitialize()</td>
+<td>测试之前要运行</td>
+</tr>
+<tr class="even">
+<td>TestCleanup()</td>
+<td>测试之后运行</td>
+</tr>
+<tr class="odd">
+<td>ClassCleanup()</td>
+<td>测试类中所有的测试都执行以后运行</td>
+</tr>
+<tr class="even">
+<td>AssemblyCleanup()</td>
+<td>执行程序集中的所有测试之后运行</td>
+</tr>
+</tbody>
+</table>
+<pre><code><code>[AssemblyInitialize()]
+public static void AssemblyInit(TestContext context)
+{
+    Debug.WriteLine(&quot;AssemblyInit &quot; + context.TestName);
+}
+
+[ClassInitialize()]
+public static void ClassInit(TestContext context)
+{
+    Debug.WriteLine(&quot;ClassInit &quot; + context.TestName);
+}
+
+[TestInitialize()]
+public void Initialize()
+{
+    Debug.WriteLine(&quot;TestMethodInit&quot;);
+}
+
+[TestCleanup()]
+public void Cleanup()
+{
+    Debug.WriteLine(&quot;TestMethodCleanup&quot;);
+}
+
+[ClassCleanup()]
+public static void ClassCleanup()
+{
+    Debug.WriteLine(&quot;ClassCleanup&quot;);
+}
+
+[AssemblyCleanup()]
+public static void AssemblyCleanup()
+{
+    Debug.WriteLine(&quot;AssemblyCleanup&quot;);
+}</code></pre>
+<p>输出结果如下：</p>
+<pre><code><code>AssemblyInit IsValidLogFileName_EmptyFileName_Throws
+ClassInit IsValidLogFileName_EmptyFileName_Throws
+TestMethodInit
+TestMethodCleanup
+TestMethodInit
+TestMethodCleanup
+TestMethodInit
+TestMethodCleanup
+TestMethodInit
+TestMethodCleanup
+TestMethodInit
+TestMethodCleanup
+ClassCleanup
+AssemblyCleanup</code></pre>
+<h2 id="stub存根和mock模拟对象">6. Stub（存根）和Mock（模拟对象）</h2>
+<p>外部依赖项常常是不写单元测试的借口，如文件系统、网络服务甚至系统时间，开发者往往说没法控制而逃避写单元测试。这种情况可以使用stub或mock破除依赖。</p>
+<h3 id="stub存根">6.1 Stub(存根)</h3>
+<blockquote>
+<p>一个<strong>存根(stub)</strong>是对系统中存在的一个依赖项(又或者协作者)的可控制的替代物。通过使用存根，你在测试代码无需直接处理这个依赖项。</p>
+</blockquote>
+<p>如果前面的LogAnalyzer改成如下形式：</p>
+<pre><code><code>public bool IsValidLogFileName(string fileName)
+{
+    //读取配置文件，由配置文件判断是否支持这个扩展名
+}</code></pre>
+<p>一旦测试依赖了文件系统，你进行的就是集成测试，带来了所有集成测试相关的问题————运行速度慢，需要配置等等。这种情况下可以使用一个stub代替文件系统的依赖。</p>
+<pre><code><code>public class LogAnalyzer
+{
+    private IExtensionManager _manager;
+
+    public LogAnalyzer(IExtensionManager manager) //定义测试代码可以调用的构造函数
+    {
+        _manager = manager;
+    }
+
+    public bool IsValidLogFileName(string fileName)
+    {
+        return _manager.IsValid(fileName);
+    }
+}
+
+
+public interface IExtensionManager
+{
+    bool IsValid(string fileName);
+}
+
+internal class FakeExtensionManager : IExtensionManager //定义一个最简单的stub
+{
+    public bool WillBeValid { get; set; } = false;
+
+    public bool IsValid(string fileName)
+    {
+        return WillBeValid;
+    }
+}
+
+[TestMethod()]
+public void IsValidLogFileName_NameSupportedExtension_ReturnsTrue()
+{
+    var myFakeManager = new FakeExtensionManager { WillBeValid = true }; //准备一个返回true的stub
+    var analyzer = new LogAnalyzer(myFakeManager); //传入stub
+    var result = analyzer.IsValidLogFileName(&quot;short.ext&quot;);
+    Assert.IsTrue(result);
+}</code></pre>
+<p>注入stub的方式由很多，《单元测试的艺术》中有详细的介绍，这里略过。</p>
+<h3 id="mock模拟对象">6.2 Mock（模拟对象）</h3>
+<blockquote>
+<p><strong>模拟对象(Mock)</strong>是系统中的伪对象，它可以验证被测试对象是否按照预期的方式调用了这个伪对象，因此导致单元测试通过或者失败。通常每个测试最多有一个模拟对象。</p>
+</blockquote>
+<p>这次LogAnalyer需要和一个外部的Web服务交互，每次LogAnalyer遇到一个过短的文件名，这个Web服务就会收到一个错误消息。遗憾的是，你要测试的这个Wen服务还没有完全实现，就算实现了，使用这个Web服务会导致测试时间过长。因此这里需要一个Mock，这个Mock只包括需要调用的Web服务方法，然后LogAnalyzer调用这个接口写错误日志。</p>
+<pre><code><code>public interface IWebService
+{
+    void LogError(string message);
+}
+
+public class LogAnalyzer
+{
+    private IWebService _service;
+
+    public LogAnalyzer(IWebService service) //定义测试代码可以调用的构造函数
+    {
+        _service= service;
+    }
+
+    public void Analyze(string fileName)
+    {
+        if (fileName.Length &lt; 9)
+            _service.LogError(&quot;Filename too short:&quot; + fileName); //在产品代码中写错误日志
+    }
+}</code></pre>
+<p>使用mock对象测试LogAnalyzer，注意是对mock对象进行断言，而非LogAnalyer类，因为测试的是LogAnalyer和Web服务之间的交互:</p>
+<pre><code><code>public class FakeWebService : IWebService //定义一个最简单的mock
+{
+    public string LastError { get; private set; }
+
+    public void LogError(string message)
+    {
+        LastError = message;
+    }
+}
+
+
+[TestMethod()]
+public void Analyze_TooShrtFileName_CallsWebService()
+{
+    var mockService = new FakeWebService();
+    var analyzer = new LogAnalyzer(mockService);
+    var tooShortFileName = &quot;abc.ext&quot;;
+    analyzer.Analyze(tooShortFileName);
+    StringAssert.Contains(mockService.LastError, tooShortFileName); //对模拟对象进行断言
+}</code></pre>
+<h3 id="stub存根和mock模拟对象和fake伪对象">6.3 Stub（存根）和Mock（模拟对象）和Fake(伪对象)</h3>
+<blockquote>
+<p><strong>Fake(伪对象)</strong>是通用的术语，可以描述一个stub或mock，，因为stub和mock看想去都很像真实对象。一个伪对象究竟是stub还是mock取决于它在当前测试中的使用方式：如果这个伪对象用来检验一个交互(对其进行断言)，它就是mock，否则就是stub。</p>
+</blockquote>
+<p>如果一个测试只测试一件事情，测试中应该最多只有一个mock，所有其它的伪对象都是stub。如果一个测试有多个mock，这说明你在测试多件事情，会导致测试过于复杂或脆弱。</p>
+<p>前面定义的Stub和Mock都使用了Fake-前缀，因为在类中避免使用&quot;mock&quot;和&quot;stub&quot;，那么这个类的对象就可以具有两种行为方式，以后再不同的测试中重用。</p>
+<h2 id="隔离框架">7. 隔离框架</h2>
+<p>手工编写伪对象有很多问题，最明显的问题就是产生大量的编码和维护工作。使用隔离框架是一个更优雅的方案，它可以在运行时动创建和配置伪对象。</p>
+<p>.NET的隔离框架有很多，《单元测试的艺术》书中以<a href="https://github.com/nsubstitute/NSubstitute">NSubstitute</a>(简称NSub)为例介绍了隔离框架的基本用法(看起来最近nuget下载量比<a href="https://github.com/moq/moq">moq</a>更多)。</p>
+<p>这一节介绍一些NSub的基本操作，更多的内容详见<a href="https://nsubstitute.github.io/help/getting-started/">官网</a>。</p>
+<h3 id="创建伪对象">7.1 创建伪对象</h3>
+<p>假设我们有一个接口：</p>
+<pre><code><code>public interface ICalculator
+{
+    int Add(int a, int b);
+    string Mode { get; set; }
+    event Action PoweringUp;
+}</code></pre>
+<p>NSub用下面的代码创建一个伪对象：</p>
+<pre><code><code>_calculator = Substitute.For&lt;ICalculator&gt;();</code></pre>
+<p>NSub能自动生成伪对象，这个伪造的ICalculator对象实例时动态生成的，实现了ICalculator接口，但没有实现它的任何方法。从模拟对象创建到测试方式结束，对这个模拟对象的所有调用都会自动记录，保存供后来使用。</p>
+<h3 id="模拟值">7.2 模拟值</h3>
+<p>使用<code>Returns</code>模拟函数值并断言：</p>
+<pre><code><code>_calculator.Add(1, 2).Returns(3);
+Assert.AreEqual(_calculator.Add(1, 2), 3);</code></pre>
+<p>模拟属性值并断言：</p>
+<pre><code><code>_calculator.Mode.Returns(&quot;DEC&quot;);
+Assert.AreEqual(_calculator.Mode, &quot;DEC&quot;);
+
+_calculator.Mode = &quot;HEX&quot;;
+Assert.AreEqual(_calculator.Mode, &quot;HEX&quot;);</code></pre>
+<p>也可以模拟一组值并逐个断言：</p>
+<pre><code><code>_calculator.Mode.Returns(&quot;HEX&quot;, &quot;DEC&quot;, &quot;BIN&quot;);
+Assert.AreEqual(_calculator.Mode, &quot;HEX&quot;);
+Assert.AreEqual(_calculator.Mode, &quot;DEC&quot;);
+Assert.AreEqual(_calculator.Mode, &quot;BIN&quot;);</code></pre>
+<h3 id="测试交互">7.3 测试交互</h3>
+<p>使用<code>Received</code>断言接收到调用，以及<code>DidNotReceive</code>断言没接收到调用：</p>
+<pre><code><code>_calculator.Add(1, 2);
+_calculator.Received().Add(1, 2);
+_calculator.DidNotReceive().Add(5, 7);</code></pre>
+<h3 id="参数匹配器">7.4 参数匹配器</h3>
+<p><code>Arg</code>类成为参数匹配器，用于控制参数处理：</p>
+<pre><code><code>_calculator.Add(10, -5);
+_calculator.Received().Add(10, Arg.Any&lt;int&gt;()); //断言第二个参数时int类型
+_calculator.Received().Add(10, Arg.Is&lt;int&gt;(x =&gt; x &lt; 0)); //断言第二个参数小于5</code></pre>
+<p>使用参数匹配器并传入一个function到<code>Returns</code>可以更好地控制返回值：</p>
+<pre><code><code>_calculator.Add(Arg.Any&lt;int&gt;(), Arg.Any&lt;int&gt;())
+           .Returns(x =&gt; (int)x[0] + (int)x[1]);
+Assert.AreEqual(_calculator.Add(5, 10), 15);</code></pre>
+<h3 id="使用when模拟异常">7.5 使用When模拟异常</h3>
+<pre><code><code>_calculator.When(x =&gt; x.Add(Arg.Is&lt;int&gt;(i =&gt; i &lt; 0), Arg.Any&lt;int&gt;()))
+    .Do(context =&gt; throw new ArgumentException(&quot;invalid&quot;));
+
+Assert.ThrowsException&lt;ArgumentException&gt;(() =&gt; _calculator.Add(-5, 0));</code></pre>
+<p>这里<code>When</code>后面的Lambda指示当第一个参数小于0，然后用<code>Do</code>抛出一个异常。</p>
+<h3 id="测试事件">7.6 测试事件</h3>
+<pre><code><code>var eventWasRaised = false;
+_calculator.PoweringUp += () =&gt; eventWasRaised = true;
+
+_calculator.PoweringUp += Raise.Event&lt;Action&gt;();
+Assert.IsTrue(eventWasRaised);</code></pre>
+<p>NSub使用<code>Raise</code>触发事件。</p>
+<h2 id="其它">8. 其它</h2>
+<h3 id="区分单元测试和集成测试">8.1 区分单元测试和集成测试</h3>
+<p>任何测试，如果它运行速度不快，结果不稳定，或者要用到被测试单元的一个或多个真实依赖物，我就认为它是集成测试。</p>
+<blockquote>
+<p><strong>集成测试</strong>是对一个工作单元进行的测试，这个测试对被测试的工作单元没有完全的控制，并使用该单元的一个或多个真实依赖物，例如事件、网络、数据库、线程或随机数产生器等。</p>
+</blockquote>
+<p>集成测试和单元测试的项目应该分开。一般来说，复杂的测试都是集成测试，由于集成测试很慢，可以考虑使用创建一个只包含单元测试的解决方案，这样才可以频繁频繁地执行测试，实行TDD。</p>
+<h3 id="如何测试私有方法">8.2 如何测试私有方法</h3>
+<p>私有方法通常比较难测试，不过你可以这么想：私有方法不会无缘无故地存在，最终在某个地方有公共方法会调用这个私有方法。看到一个私有方法的时候，你应该找到使用这个方法的公共用例并对这个公共用例进行测试。</p>
+<p>如果一个私有方法真的值得进行测试，那么它也许应该设为公共的，静态的。有几种方式处理私有方法：</p>
+<ol>
+<li><p>使方法成为公共方法。如果它真的那么重要，那把它设为公共的并不一定是坏事。使它变成正式的公共契约可以防止它被任意破坏。</p></li>
+<li><p>把方法提取到新类。</p></li>
+<li><p>使方法成为静态方法。</p></li>
+<li><p>使方法成为内部方法并使用InternalsVisibleTo。</p></li>
+</ol>
+<h3 id="用代码审查确保代码覆盖率">8.3 用代码审查确保代码覆盖率</h3>
+<p>代码覆盖率100%说明什么呢？如果没有做代码审查，这个覆盖率不能说明什么。也许这些测试连断言都没有，只是为了达到更高的覆盖率所写的代码。如果你做了代码审查和测试审查，确保测试优秀而且覆盖了所有代码，那么你就拥有了一个安全网，可以避免愚蠢的错误，同时团队也获得了分享的知识，从持续的学习中获益。</p>
+<h2 id="结语">9. 结语</h2>
+<p>虽然《单元测试的艺术》是一本有点旧的书，但我是不是还是会拿出来重温并推荐给别人，毕竟.NET专门讲单元测试的书不多。<em>如果有其它单元测试方面的优秀书籍请推荐给我。</em></p>
+<p>另外，微软的 <a href="https://docs.microsoft.com/zh-cn/visualstudio/test/unit-test-basics?view=vs-2019">单元测试基础</a> 也是个很不错的文档。</p>
+<h2 id="参考">10. 参考</h2>
+<p><a href="https://docs.microsoft.com/zh-cn/visualstudio/test/unit-test-your-code?view=vs-2017">单元测试 - Visual Studio Microsoft Docs</a></p>
+<p><a href="https://docs.microsoft.com/en-us/dotnet/api/microsoft.visualstudio.testtools.unittesting?redirectedfrom=MSDN&amp;view=mstest-net-1.3.2">Microsoft.VisualStudio.TestTools.UnitTesting Namespace Microsoft Docs</a></p>
+<p><a href="https://nsubstitute.github.io/">NSubstitute A friendly substitute for .NET mocking libraries</a></p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

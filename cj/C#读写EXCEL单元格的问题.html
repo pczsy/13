@@ -1,0 +1,87 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C#读写EXCEL单元格的问题' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C#读写EXCEL单元格的问题</center></div><div class='banquan'>原文出处:本文由博客园博主微时空提供。<br/>
+原文连接:https://www.cnblogs.com/JTCLASSROOM/p/10769371.html</div><br>
+    <p>最近， 我在用C#开发一个EXCEL Add-In的时候，发现了一些害人不浅的坑，特来总结列举如下：</p>
+<p>这里我读写EXCEL引用的是using Excel = Microsoft.Office.Interop.Excel;</p>
+<p>&nbsp;</p>
+<p><span style="text-decoration: underline;"><strong>问题一</strong></span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="text-decoration: underline;"><strong> 如何判断一个单元格去除首尾空格后是不是空的</strong></span></p>
+<hr />
+<p>在获取单元格内的文本内容进行判断时，总觉得最好用Text属性，少用或不用Value和Value2属性</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">if</span> (cur_sht.Range["A1"].Text.Trim() == <span style="color: #800000;">""</span><span style="color: #000000;">)
+{</span><span style="color: #000000;">}</span></pre>
+</div>
+<p>Text属性是只读，没有任何参数，会读取单元格的表面内容，表面内容是指当单元格的格式发生变化时，Text属性读取到的内容也会发生变化</p>
+<p>Value属性可读可写，有一个可选参数（XlRangeValueDataType），会读取单元格的实际内容，实际内容是指给单元格赋值时是怎么样的内容，实际内容就一直保持不变，除非重新赋值</p>
+<p>这个可选参数有三个值可选，第一个值是默认的，其他两个值没试过，估计永远也不会去用</p>
+<p>xlRangeValueDefault=10：cur_sht.Range["A1"].Value[Excel.XlRangeValueDataType.xlRangeValueDefault]</p>
+<p>xlRangeValueMSPersistXML=12：cur_sht.Range["A1"].Value[Excel.XlRangeValueDataType.xlRangeValueMSPersistXML]</p>
+<p>xlRangeValueXMLSpreadsheet=11：cur_sht.Range["A1"].Value[Excel.XlRangeValueDataType.xlRangeValueXMLSpreadsheet]</p>
+<p>Value2属性也是可读可写，跟Value属性一样，但没有参数</p>
+<p>对于实际内容不为空的单元格，使用cur_sht.Range["A1"].Value.Trim()或者cur_sht.Range["A1"].Value2.Trim()是完全没问题的，但如果是一个完全为空的单元格，Value和Value2属性就会返回一个空对象，这时候后面再接Trim()方法就会报错了，要用Value或Value2属性找出这种完全为空的单元格，可以这样：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">if</span> (cur_sht.Range[<span style="color: #800000;">"</span><span style="color: #800000;">A1</span><span style="color: #800000;">"</span>].Value <span style="color: #0000ff;">is</span> <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+{</span><span style="color: #000000;">}</span></pre>
+</div>
+<p>但是这样就不能把去除空格后的情况考虑进去了，而Text属性又有一个弊端，因为它是读取单元格的表面内容，所以有时候读取到的内容用来判断并不能反映真实的情况：</p>
+<p>比如单元格存储的是一个长日期，但是单元格宽度不够的话就会显示成"##########"，这时候Text属性获取到的就是一串井号，这种情况可以在前面添加一句代码：</p>
+<div class="cnblogs_code">
+<pre><code>cur_sht.Columns.AutoFit();</pre>
+</div>
+<p>总之，两种方法皆有利有弊，视具体情况选择吧。</p>
+<p>&nbsp;</p>
+<p><span style="text-decoration: underline;"><strong>问题二</strong></span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="text-decoration: underline;"><strong> 给</strong><strong>一个单元格赋值为空有多少种方法</strong></span></p>
+<hr />
+<p>这三种方法效果都是一样的，用cur_sht.Range["A1"].Value取值都会返回null。</p>
+<div class="cnblogs_code">
+<pre><code>cur_sht.Range[<span style="color: #800000;">"</span><span style="color: #800000;">A1</span><span style="color: #800000;">"</span>].Value = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+cur_sht.Range[</span><span style="color: #800000;">"</span><span style="color: #800000;">A1</span><span style="color: #800000;">"</span>].Value = <span style="color: #800000;">""</span><span style="color: #000000;">;
+cur_sht.Range[</span><span style="color: #800000;">"</span><span style="color: #800000;">A1</span><span style="color: #800000;">"</span>].Value =<span style="color: #0000ff;">string</span>.Empty;</pre>
+</div>
+<p>&nbsp;</p>
+<p><span style="text-decoration: underline;"><strong>问题三</strong></span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="text-decoration: underline;"><strong> 如何</strong><strong>利用数组快速读写单元格区域内容</strong></span></p>
+<hr />
+<p>如果要向行向区域的单元格写入东西，可以用一维数组，比如：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">int</span>[] arr1 = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">int</span>[<span style="color: #800080;">4</span>] { <span style="color: #800080;">1</span>, <span style="color: #800080;">2</span>, <span style="color: #800080;">3</span>, <span style="color: #800080;">4</span><span style="color: #000000;"> };
+cur_sht.Range[</span><span style="color: #800000;">"</span><span style="color: #800000;">a1:d1</span><span style="color: #800000;">"</span>].Value = arr1;</pre>
+</div>
+<p>如果要向列向区域的单元格写入东西，可以用二维数组，比如：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">int</span>[,] arr2 = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">int</span>[<span style="color: #800080;">4</span>, <span style="color: #800080;">1</span>] { { <span style="color: #800080;">4</span>, },{ <span style="color: #800080;">3</span>, },{ <span style="color: #800080;">2</span>, },{ <span style="color: #800080;">1</span><span style="color: #000000;">, } };<br />//int[,] arr2 = new int[4, 1] { {4},{3},{2},{1} };这个也可以
+cur_sht.Range[</span><span style="color: #800000;">"</span><span style="color: #800000;">a1:a4</span><span style="color: #800000;">"</span>].Value = arr2;</pre>
+</div>
+<p>如果要向矩形区域的单元格写入东西，更要用二维数组，比如：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">int</span>[,] arr3 = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">int</span>[<span style="color: #800080;">4</span>, <span style="color: #800080;">2</span>] { { <span style="color: #800080;">4</span>, <span style="color: #800080;">3</span>}, { <span style="color: #800080;">3</span>, <span style="color: #800080;">2</span>}, { <span style="color: #800080;">2</span>, <span style="color: #800080;">1</span>}, { <span style="color: #800080;">1</span>, <span style="color: #800080;">4</span><span style="color: #000000;">} };
+cur_sht.Range[</span><span style="color: #800000;">"</span><span style="color: #800000;">a1:b4</span><span style="color: #800000;">"</span>].Value = arr3;</pre>
+</div>
+<p>如果要从单元格区域读出内容，放进数组中，不管一二维，都可以这么写：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">object</span><span style="color: #000000;">[,] arr4 </span>= (<span style="color: #0000ff;">object</span>[,])cur_sht.Range[<span style="color: #800000;">"</span><span style="color: #800000;">a1:b4</span><span style="color: #800000;">"</span><span style="color: #000000;">].Value2;
+MessageBox.Show(arr4.GetValue(</span><span style="color: #800080;">1</span>,<span style="color: #800080;">1</span>).ToString());//这里输出的是A1单元格，index从1开始</pre>
+</div>
+<p>&nbsp;</p>
+<p>好了，拿去用吧，不谢^ ^</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

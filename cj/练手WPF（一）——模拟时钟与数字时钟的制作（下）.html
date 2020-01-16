@@ -1,0 +1,228 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修练手WPF（一）——模拟时钟与数字时钟的制作（下）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>练手WPF（一）——模拟时钟与数字时钟的制作（下）</center></div><div class='banquan'>原文出处:本文由博客园博主sssion提供。<br/>
+原文连接:https://www.cnblogs.com/moonblogcore/p/10927845.html</div><br>
+    <p>继续数字时钟。上一篇写好了数字笔划专用的DigitLine类。现在是时候使用它了。下面对一些主要代码进行说明。</p>
+<p>打开MainWindow.xaml.cs文件：</p>
+<p>（1）添加字段变量</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> 数字时钟字段定义</span>
+DigitLine[] digitLine = <span style="color: #0000ff;">new</span> DigitLine[<span style="color: #800080;">6</span><span style="color: #000000;">];
+DigitLine[] digitLineBack </span>= <span style="color: #0000ff;">new</span> DigitLine[<span style="color: #800080;">6</span><span style="color: #000000;">];
+
+DigitLine[] digitColon </span>= <span style="color: #0000ff;">new</span> DigitLine[<span style="color: #800080;">2</span><span style="color: #000000;">];
+DigitLine[] digitColonBack </span>= <span style="color: #0000ff;">new</span> DigitLine[<span style="color: #800080;">2</span>];</pre>
+</div>
+<p>第一对类数组变量用于6个数字及其背景字样，第二对是冒号用的。</p>
+<p>（2）在构造方法中进行变量初始化</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> 初始化数字</span>
+<span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i=<span style="color: #800080;">0</span>; i&lt;<span style="color: #800080;">6</span>; i++<span style="color: #000000;">)
+{
+    digitLine[i] </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> DigitLine(Brushes.Black);
+    digitLineBack[i] </span>= <span style="color: #0000ff;">new</span> DigitLine(<span style="color: #0000ff;">new</span> SolidColorBrush(Color.FromArgb(<span style="color: #800080;">255</span>, <span style="color: #800080;">120</span>, <span style="color: #800080;">120</span>, <span style="color: #800080;">120</span><span style="color: #000000;">)));
+}
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 初始化冒号</span>
+<span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i=<span style="color: #800080;">0</span>; i&lt;<span style="color: #800080;">2</span>; i++<span style="color: #000000;">)
+{
+    digitColon[i] </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> DigitLine(Brushes.Black);
+    digitColonBack[i] </span>= <span style="color: #0000ff;">new</span> DigitLine(<span style="color: #0000ff;">new</span> SolidColorBrush(Color.FromArgb(<span style="color: #800080;">255</span>, <span style="color: #800080;">120</span>, <span style="color: #800080;">120</span>, <span style="color: #800080;">120</span><span style="color: #000000;">)));
+}</span></pre>
+</div>
+<p>（3）开始设置显示元素</p>
+<p>这个方法用于显示数字表外边框：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #808080;">///</span><span style="color: #008000;"> 显示数字表矩形外框
+</span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="pos"&gt;&lt;/param&gt;</span>
+<span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="width"&gt;&lt;/param&gt;</span>
+<span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="height"&gt;&lt;/param&gt;</span>
+<span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="color"&gt;&lt;/param&gt;</span>
+<span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> DrawDigitRect(Point pos, <span style="color: #0000ff;">double</span> width, <span style="color: #0000ff;">double</span><span style="color: #000000;"> height, Brush color)
+{
+    Rectangle rect </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Rectangle();
+    rect.Width </span>=<span style="color: #000000;"> width;
+    rect.Height </span>=<span style="color: #000000;"> height;
+    rect.Fill </span>=<span style="color: #000000;"> color;
+    Canvas.SetLeft(rect, pos.X);
+    Canvas.SetTop(rect, pos.Y);
+    digitCanvas.Children.Add(rect);
+
+}</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>显示数字和冒号的背景，数字的话时只要画6个8就可以了，这个很容易理解，看一下真实的电子表就清楚了。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #808080;">///</span><span style="color: #008000;"> 显示背景数字（底色）
+</span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="brush"&gt;&lt;/param&gt;</span>
+<span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> DrawDigitTimeBack(Brush brush)
+{
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 第1、2位--小时</span>
+    Canvas.SetLeft(digitLineBack[<span style="color: #800080;">0</span>].Path0_9[<span style="color: #800080;">8</span>], <span style="color: #800080;">40</span><span style="color: #000000;">);
+    Canvas.SetTop(digitLineBack[</span><span style="color: #800080;">0</span>].Path0_9[<span style="color: #800080;">8</span>], <span style="color: #800080;">80</span><span style="color: #000000;">);
+    digitCanvas.Children.Add(digitLineBack[</span><span style="color: #800080;">0</span>].Path0_9[<span style="color: #800080;">8</span><span style="color: #000000;">]);
+
+    Canvas.SetLeft(digitLineBack[</span><span style="color: #800080;">1</span>].Path0_9[<span style="color: #800080;">8</span>], <span style="color: #800080;">120</span><span style="color: #000000;">);
+    Canvas.SetTop(digitLineBack[</span><span style="color: #800080;">1</span>].Path0_9[<span style="color: #800080;">8</span>], <span style="color: #800080;">80</span><span style="color: #000000;">);
+    digitCanvas.Children.Add(digitLineBack[</span><span style="color: #800080;">1</span>].Path0_9[<span style="color: #800080;">8</span><span style="color: #000000;">]);
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 冒号</span>
+    Canvas.SetLeft(digitColonBack[<span style="color: #800080;">0</span>].PathColon, <span style="color: #800080;">190</span><span style="color: #000000;">);
+    Canvas.SetTop(digitColonBack[</span><span style="color: #800080;">0</span>].PathColon, <span style="color: #800080;">100</span><span style="color: #000000;">);
+    digitCanvas.Children.Add(digitColonBack[</span><span style="color: #800080;">0</span><span style="color: #000000;">].PathColon);
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 第二冒号</span>
+    Canvas.SetLeft(digitColonBack[<span style="color: #800080;">1</span>].PathColon, <span style="color: #800080;">370</span><span style="color: #000000;">);
+    Canvas.SetTop(digitColonBack[</span><span style="color: #800080;">1</span>].PathColon, <span style="color: #800080;">100</span><span style="color: #000000;">);
+    digitCanvas.Children.Add(digitColonBack[</span><span style="color: #800080;">1</span><span style="color: #000000;">].PathColon);
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 3、4位--分钟</span>
+    Canvas.SetLeft(digitLineBack[<span style="color: #800080;">2</span>].Path0_9[<span style="color: #800080;">8</span>], <span style="color: #800080;">220</span><span style="color: #000000;">);
+    Canvas.SetTop(digitLineBack[</span><span style="color: #800080;">2</span>].Path0_9[<span style="color: #800080;">8</span>], <span style="color: #800080;">80</span><span style="color: #000000;">);
+    digitCanvas.Children.Add(digitLineBack[</span><span style="color: #800080;">2</span>].Path0_9[<span style="color: #800080;">8</span><span style="color: #000000;">]);
+
+    Canvas.SetLeft(digitLineBack[</span><span style="color: #800080;">3</span>].Path0_9[<span style="color: #800080;">8</span>], <span style="color: #800080;">300</span><span style="color: #000000;">);
+    Canvas.SetTop(digitLineBack[</span><span style="color: #800080;">3</span>].Path0_9[<span style="color: #800080;">8</span>], <span style="color: #800080;">80</span><span style="color: #000000;">);
+    digitCanvas.Children.Add(digitLineBack[</span><span style="color: #800080;">3</span>].Path0_9[<span style="color: #800080;">8</span><span style="color: #000000;">]);
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 5、6位--秒钟</span>
+    Canvas.SetLeft(digitLineBack[<span style="color: #800080;">4</span>].Path0_9[<span style="color: #800080;">8</span>], <span style="color: #800080;">400</span><span style="color: #000000;">);
+    Canvas.SetTop(digitLineBack[</span><span style="color: #800080;">4</span>].Path0_9[<span style="color: #800080;">8</span>], <span style="color: #800080;">80</span><span style="color: #000000;">);
+    digitCanvas.Children.Add(digitLineBack[</span><span style="color: #800080;">4</span>].Path0_9[<span style="color: #800080;">8</span><span style="color: #000000;">]);
+
+    Canvas.SetLeft(digitLineBack[</span><span style="color: #800080;">5</span>].Path0_9[<span style="color: #800080;">8</span>], <span style="color: #800080;">480</span><span style="color: #000000;">);
+    Canvas.SetTop(digitLineBack[</span><span style="color: #800080;">5</span>].Path0_9[<span style="color: #800080;">8</span>], <span style="color: #800080;">80</span><span style="color: #000000;">);
+    digitCanvas.Children.Add(digitLineBack[</span><span style="color: #800080;">5</span>].Path0_9[<span style="color: #800080;">8</span><span style="color: #000000;">]);
+}<br /><br /></span></pre>
+</div>
+<p>&nbsp;</p>
+<p>将画外框和背景底色功能添加到构造方法的最后部分：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> 画数字表背景矩形</span>
+DrawDigitRect(<span style="color: #0000ff;">new</span> Point(-<span style="color: #800080;">24</span>, <span style="color: #800080;">36</span>), <span style="color: #800080;">616</span>, <span style="color: #800080;">196</span><span style="color: #000000;">, Brushes.Black);
+DrawDigitRect(</span><span style="color: #0000ff;">new</span> Point(-<span style="color: #800080;">16</span>, <span style="color: #800080;">44</span>), <span style="color: #800080;">600</span>, <span style="color: #800080;">180</span><span style="color: #000000;">, Brushes.Gray);
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 画数字底色</span>
+DrawDigitTimeBack(<span style="color: #0000ff;">new</span> SolidColorBrush(Color.FromArgb(<span style="color: #800080;">255</span>, <span style="color: #800080;">120</span>, <span style="color: #800080;">120</span>, <span style="color: #800080;">120</span>)));</pre>
+</div>
+<p>&nbsp;</p>
+<p>（4）最重要的显示时间数字和冒号的方法：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #808080;">///</span><span style="color: #008000;"> 显示数字时间
+</span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> DrawDigitTime()
+{
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 删除已在画图区的数字</span>
+    <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i=<span style="color: #800080;">0</span>; i&lt;<span style="color: #800080;">6</span>; i++<span style="color: #000000;">)
+    {
+        </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> j=<span style="color: #800080;">0</span>; j&lt;<span style="color: #800080;">10</span>; j++<span style="color: #000000;">)
+        {
+            </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (digitCanvas.Children.Contains(digitLine[i].Path0_9[j]))
+            {
+                digitCanvas.Children.Remove(digitLine[i].Path0_9[j]);
+            }
+        }
+    }
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 小时</span>
+    <span style="color: #0000ff;">int</span> hour =<span style="color: #000000;"> CurrTime.Hour;
+    </span><span style="color: #0000ff;">int</span> hour1 = hour / <span style="color: #800080;">10</span><span style="color: #000000;">;
+    </span><span style="color: #0000ff;">int</span> hour2 = hour % <span style="color: #800080;">10</span><span style="color: #000000;">;
+    Canvas.SetLeft(digitLine[</span><span style="color: #800080;">0</span>].Path0_9[hour1], <span style="color: #800080;">40</span><span style="color: #000000;">);
+    Canvas.SetTop(digitLine[</span><span style="color: #800080;">0</span>].Path0_9[hour1], <span style="color: #800080;">80</span><span style="color: #000000;">);
+    digitCanvas.Children.Add(digitLine[</span><span style="color: #800080;">0</span><span style="color: #000000;">].Path0_9[hour1]);
+
+    Canvas.SetLeft(digitLine[</span><span style="color: #800080;">1</span>].Path0_9[hour2], <span style="color: #800080;">120</span><span style="color: #000000;">);
+    Canvas.SetTop(digitLine[</span><span style="color: #800080;">1</span>].Path0_9[hour2], <span style="color: #800080;">80</span><span style="color: #000000;">);
+    digitCanvas.Children.Add(digitLine[</span><span style="color: #800080;">1</span><span style="color: #000000;">].Path0_9[hour2]);
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 冒号闪烁</span>
+    <span style="color: #0000ff;">if</span> (CurrTime.Second % <span style="color: #800080;">2</span> == <span style="color: #800080;">0</span><span style="color: #000000;">)
+    {
+        digitColon[</span><span style="color: #800080;">0</span>].PathColon.Visibility =<span style="color: #000000;"> Visibility.Visible;
+        digitColon[</span><span style="color: #800080;">1</span>].PathColon.Visibility =<span style="color: #000000;"> Visibility.Visible;
+    }
+    </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+    {
+        digitColon[</span><span style="color: #800080;">0</span>].PathColon.Visibility =<span style="color: #000000;"> Visibility.Hidden;
+        digitColon[</span><span style="color: #800080;">1</span>].PathColon.Visibility =<span style="color: #000000;"> Visibility.Hidden;
+    }            
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 分钟</span>
+    <span style="color: #0000ff;">int</span> minute =<span style="color: #000000;"> CurrTime.Minute;
+    </span><span style="color: #0000ff;">int</span> minu1 = minute / <span style="color: #800080;">10</span><span style="color: #000000;">;
+    </span><span style="color: #0000ff;">int</span> minu2 = minute % <span style="color: #800080;">10</span><span style="color: #000000;">;
+    Canvas.SetLeft(digitLine[</span><span style="color: #800080;">2</span>].Path0_9[minu1], <span style="color: #800080;">220</span><span style="color: #000000;">);
+    Canvas.SetTop(digitLine[</span><span style="color: #800080;">2</span>].Path0_9[minu1], <span style="color: #800080;">80</span><span style="color: #000000;">);
+    digitCanvas.Children.Add(digitLine[</span><span style="color: #800080;">2</span><span style="color: #000000;">].Path0_9[minu1]);
+
+    Canvas.SetLeft(digitLine[</span><span style="color: #800080;">3</span>].Path0_9[minu2], <span style="color: #800080;">300</span><span style="color: #000000;">);
+    Canvas.SetTop(digitLine[</span><span style="color: #800080;">3</span>].Path0_9[minu2], <span style="color: #800080;">80</span><span style="color: #000000;">);
+    digitCanvas.Children.Add(digitLine[</span><span style="color: #800080;">3</span><span style="color: #000000;">].Path0_9[minu2]);
+    
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 秒钟</span>
+    <span style="color: #0000ff;">int</span> second =<span style="color: #000000;"> CurrTime.Second;
+    </span><span style="color: #0000ff;">int</span> sec1 = second / <span style="color: #800080;">10</span><span style="color: #000000;">;
+    </span><span style="color: #0000ff;">int</span> sec2 = second % <span style="color: #800080;">10</span><span style="color: #000000;">;
+    Canvas.SetLeft(digitLine[</span><span style="color: #800080;">4</span>].Path0_9[sec1], <span style="color: #800080;">400</span><span style="color: #000000;">);
+    Canvas.SetTop(digitLine[</span><span style="color: #800080;">4</span>].Path0_9[sec1], <span style="color: #800080;">80</span><span style="color: #000000;">);
+    digitCanvas.Children.Add(digitLine[</span><span style="color: #800080;">4</span><span style="color: #000000;">].Path0_9[sec1]);
+
+    Canvas.SetLeft(digitLine[</span><span style="color: #800080;">5</span>].Path0_9[sec2], <span style="color: #800080;">480</span><span style="color: #000000;">);
+    Canvas.SetTop(digitLine[</span><span style="color: #800080;">5</span>].Path0_9[sec2], <span style="color: #800080;">80</span><span style="color: #000000;">);
+    digitCanvas.Children.Add(digitLine[</span><span style="color: #800080;">5</span><span style="color: #000000;">].Path0_9[sec2]);
+}</span></pre>
+</div>
+<p>根据当前时间，显示相应数字，很容易懂。</p>
+<p>&nbsp;</p>
+<p>（5）更新时间</p>
+<p>将上面的DrawDigitTime()方法调用添加到（上）篇的计时器事件方法中即可。现在该方法如下：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #808080;">///</span><span style="color: #008000;"> 计时器事件
+</span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="sender"&gt;&lt;/param&gt;</span>
+<span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="e"&gt;&lt;/param&gt;</span>
+<span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> Timer_Tick(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)
+{
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 更新当前时间</span>
+    CurrTime =<span style="color: #000000;"> DateTime.Now;
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 更新数字时钟数字</span>
+<span style="color: #000000;">    DrawDigitTime();
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 更新圆盘时针</span>
+<span style="color: #000000;">    Update();
+}</span></pre>
+</div>
+<p>（6）大致如此，看看最后效果吧。</p>
+<p><img src="./images/练手WPF（一）——模拟时钟与数字时钟的制作（下）0.png" alt="" /></p>
+<p><img src="./images/练手WPF（一）——模拟时钟与数字时钟的制作（下）1.png" alt="" /></p>
+<p>最后来一个合影 :)</p>
+<p><img src="./images/练手WPF（一）——模拟时钟与数字时钟的制作（下）2.png" alt="" /></p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

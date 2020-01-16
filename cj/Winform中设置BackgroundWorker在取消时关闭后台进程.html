@@ -1,0 +1,86 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Winform中设置BackgroundWorker在取消时关闭后台进程' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Winform中设置BackgroundWorker在取消时关闭后台进程</center></div><div class='banquan'>原文出处:本文由博客园博主霸道流氓提供。<br/>
+原文连接:https://www.cnblogs.com/badaoliumangqizhi/p/11934935.html</div><br>
+    <h1>场景</h1>
+<p>在Winform中拖拽 一个BackgroundWorker控件，配合进度条控件能开启一个后台线程并报告进度条进度。</p>
+<p>但是在执行后台线程的任务时，如果想要取消，怎样让其停止执行。</p>
+<p>注:</p>
+<p>博客主页： <br /><a href="https://blog.csdn.net/badao_liumang_qizhi">https://blog.csdn.net/badao_liumang_qizhi</a> 
+<br />关注公众号 <br />霸道的程序猿 <br />获取编程相关电子书、教程推送与免费下载。</p>
+<h1>实现</h1>
+<h2>设置可取消为true</h2>
+<p>将BackgroundWorker控件的WorkerSupportsCancellation属性设置为true。</p>
+<p><img src="./images/Winform中设置BackgroundWorker在取消时关闭后台进程0.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>这里是直接通过控件设置属性的方式，如果是直接声明的对象，则可以通过对象.属性去设置。</p>
+<p>如果不设置则会提示：此BackgroundWorker声明它不支持取消。。。</p>
+<p><img src="./images/Winform中设置BackgroundWorker在取消时关闭后台进程1.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h2>发起取消后台操作的请求</h2>
+<p>在上面允许取消后，在取消按钮的点击事件中发起取消后台操作的请求。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">this</span>.backgroundWorker1.CancelAsync();</pre>
+</div>
+<p>完整示例代码</p>
+<div class="cnblogs_code">
+<pre><code> <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> btnCancel_Click(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)
+        {
+            </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.backgroundWorker1.CancelAsync();
+            </span><span style="color: #0000ff;">this</span>.DialogResult =<span style="color: #000000;"> DialogResult.Cancel;
+            </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.Close();
+        }</span></pre>
+</div>
+<p>&nbsp;</p>
+<h2>真正取消后台操作</h2>
+<p>上面发起取消后台操作的请求后，并不会真正关闭后台进程，只是报告要取消后台进程。</p>
+<p>如果要执行的操作是一个循环则会一直循环完。</p>
+<p>在进行后台具体执行的操作时是这样绑定的</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">this</span>.backgroundWorker1.DoWork +=<span style="color: #000000;"> backgroundWorker1_DoWork;
+</span><span style="color: #008000;">//</span><span style="color: #008000;">触发事件</span>
+<span style="color: #0000ff;">this</span>.backgroundWorker1.RunWorkerAsync();</pre>
+</div>
+<p>&nbsp;</p>
+<p>所以要在具体执行后台操作的方法 backgroundWorker1_DoWork中去进行判断并终止</p>
+<p>在上面进行请求取消操作后，那么BackgroundWorker对象的CancellationPending属性就为true。</p>
+<p>所以在具体执行后台操作的方法中的循环操作中</p>
+<p>&nbsp;</p>
+<div class="cnblogs_code">
+<pre><code>BackgroundWorker bgWorker = sender <span style="color: #0000ff;">as</span><span style="color: #000000;"> BackgroundWorker;
+                </span><span style="color: #0000ff;">if</span> ((bgWorker.CancellationPending == <span style="color: #0000ff;">true</span><span style="color: #000000;">))
+                {
+                    e.Cancel </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+                    errMsg </span>= <span style="color: #800000;">"</span><span style="color: #800000;">已取消导出</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+                    </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+                }
+                </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (e.Cancel)
+                {
+                    errMsg </span>= <span style="color: #800000;">"</span><span style="color: #800000;">已取消导出</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+                    </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+                }</span></pre>
+</div>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

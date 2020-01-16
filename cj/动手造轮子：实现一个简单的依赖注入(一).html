@@ -1,0 +1,830 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修动手造轮子：实现一个简单的依赖注入(一)' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>动手造轮子：实现一个简单的依赖注入(一)</center></div><div class='banquan'>原文出处:本文由博客园博主WeihanLi提供。<br/>
+原文连接:https://www.cnblogs.com/weihanli/p/implement-dependency-injection-01.html</div><br>
+    <h1 id="动手造轮子实现一个简单的依赖注入一">动手造轮子：实现一个简单的依赖注入(一)</h1>
+<h2 id="intro">Intro</h2>
+<p>在<a href="https://www.cnblogs.com/weihanli/p/implement-dependency-injection.html">上一篇文章</a>中主要介绍了一下要做的依赖注入的整体设计和大概编程体验，这篇文章要开始写代码了，开始实现自己的依赖注入框架。</p>
+<h2 id="类图">类图</h2>
+<p>首先来温习一下上次提到的 UML 类图</p>
+<p><img src="./images/动手造轮子：实现一个简单的依赖注入(一)0.png" /></p>
+<h2 id="服务生命周期">服务生命周期</h2>
+<p>服务生命周期定义：</p>
+<pre><code><code>public enum ServiceLifetime : sbyte
+{
+    /// &lt;summary&gt;
+    /// Specifies that a single instance of the service will be created.
+    /// &lt;/summary&gt;
+    Singleton = 0,
+
+    /// &lt;summary&gt;
+    /// Specifies that a new instance of the service will be created for each scope.
+    /// &lt;/summary&gt;
+    Scoped = 1,
+
+    /// &lt;summary&gt;
+    /// Specifies that a new instance of the service will be created every time it is requested.
+    /// &lt;/summary&gt;
+    Transient = 2,
+}</code></pre>
+<h2 id="服务定义">服务定义</h2>
+<p>服务注册定义：</p>
+<pre><code><code>public class ServiceDefinition
+{
+    // 服务生命周期
+    public ServiceLifetime ServiceLifetime { get; }
+    // 实现类型
+    public Type ImplementType { get; }
+    // 服务类型
+    public Type ServiceType { get; }
+    // 实现实例
+    public object ImplementationInstance { get; }
+    // 实现工厂
+    public Func&lt;IServiceProvider, object&gt; ImplementationFactory { get; }
+
+    // 获取真实的实现类型
+    public Type GetImplementType()
+    {
+        if (ImplementationInstance != null)
+            return ImplementationInstance.GetType();
+
+        if (ImplementationFactory != null)
+            return ImplementationFactory.Method.DeclaringType;
+
+        if (ImplementType != null)
+            return ImplementType;
+
+        return ServiceType;
+    }
+
+    public ServiceDefinition(object instance, Type serviceType)
+    {
+        ImplementationInstance = instance;
+        ServiceType = serviceType;
+        ServiceLifetime = ServiceLifetime.Singleton;
+    }
+
+    public ServiceDefinition(Type serviceType, ServiceLifetime serviceLifetime) : this(serviceType, serviceType, serviceLifetime)
+    {
+    }
+
+    public ServiceDefinition(Type serviceType, Type implementType, ServiceLifetime serviceLifetime)
+    {
+        ServiceType = serviceType;
+        ImplementType = implementType ?? serviceType;
+        ServiceLifetime = serviceLifetime;
+    }
+
+    public ServiceDefinition(Type serviceType, Func&lt;IServiceProvider, object&gt; factory, ServiceLifetime serviceLifetime)
+    {
+        ServiceType = serviceType;
+        ImplementationFactory = factory;
+        ServiceLifetime = serviceLifetime;
+    }
+}</code></pre>
+<p>为了使用起来更方便添加了一些静态方法</p>
+<pre><code><code>public static ServiceDefinition Singleton&lt;TService&gt;(Func&lt;IServiceProvider, object&gt; factory)
+{
+    return new ServiceDefinition(typeof(TService), factory, ServiceLifetime.Singleton);
+}
+
+public static ServiceDefinition Scoped&lt;TService&gt;(Func&lt;IServiceProvider, object&gt; factory)
+{
+    return new ServiceDefinition(typeof(TService), factory, ServiceLifetime.Scoped);
+}
+
+public static ServiceDefinition Transient&lt;TService&gt;(Func&lt;IServiceProvider, object&gt; factory)
+{
+    return new ServiceDefinition(typeof(TService), factory, ServiceLifetime.Transient);
+}
+
+public static ServiceDefinition Singleton&lt;TService&gt;()
+{
+    return new ServiceDefinition(typeof(TService), ServiceLifetime.Singleton);
+}
+
+public static ServiceDefinition Scoped&lt;TService&gt;()
+{
+    return new ServiceDefinition(typeof(TService), ServiceLifetime.Scoped);
+}
+
+public static ServiceDefinition Transient&lt;TService&gt;()
+{
+    return new ServiceDefinition(typeof(TService), ServiceLifetime.Transient);
+}
+
+public static ServiceDefinition Singleton&lt;TService, TServiceImplement&gt;() where TServiceImplement : TService
+{
+    return new ServiceDefinition(typeof(TService), typeof(TServiceImplement), ServiceLifetime.Singleton);
+}
+
+public static ServiceDefinition Scoped&lt;TService, TServiceImplement&gt;() where TServiceImplement : TService
+{
+    return new ServiceDefinition(typeof(TService), typeof(TServiceImplement), ServiceLifetime.Scoped);
+}
+
+public static ServiceDefinition Transient&lt;TService, TServiceImplement&gt;() where TServiceImplement : TService
+{
+    return new ServiceDefinition(typeof(TService), typeof(TServiceImplement), ServiceLifetime.Transient);
+}</code></pre>
+<h2 id="servicecontainer">ServiceContainer</h2>
+<h3 id="servicecontainer-v1">serviceContainer v1</h3>
+<pre><code><code>public class ServiceContainer : IServiceContainer
+{
+    internal readonly List&lt;ServiceDefinition&gt; _services;
+
+    private readonly ConcurrentDictionary&lt;Type, object&gt; _singletonInstances;
+
+    private readonly ConcurrentDictionary&lt;Type, object&gt; _scopedInstances;
+    
+    private readonly List&lt;object&gt; _transientDisposables = new List&lt;object&gt;();
+
+    private readonly bool _isRootScope;
+
+    public ServiceContainer()
+    {
+        _isRootScope = true;
+        _singletonInstances = new ConcurrentDictionary&lt;Type, object&gt;();
+        _services = new List&lt;ServiceDefinition&gt;();
+    }
+
+    internal ServiceContainer(ServiceContainer serviceContainer)
+    {
+        _isRootScope = false;
+        _singletonInstances = serviceContainer._singletonInstances;
+        _services = serviceContainer._services;
+        _scopedInstances = new ConcurrentDictionary&lt;Type, object&gt;();
+    }
+
+    public void Add(ServiceDefinition item)
+    {
+        _services.Add(item);
+    }
+
+    public IServiceContainer CreateScope()
+    {
+        return new ServiceContainer(this);
+    }
+
+    private bool _disposed;
+
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        if (_isRootScope)
+        {
+            lock (_singletonInstances)
+            {
+                if (_disposed)
+                {
+                    return;
+                }
+
+                _disposed = true;
+                foreach (var instance in _singletonInstances.Values)
+                {
+                    (instance as IDisposable)?.Dispose();
+                }
+
+                foreach (var o in _transientDisposables)
+                {
+                    (o as IDisposable)?.Dispose();
+                }
+            }
+        }
+        else
+        {
+            lock (_scopedInstances)
+            {
+                if (_disposed)
+                {
+                    return;
+                }
+
+                _disposed = true;
+                foreach (var instance in _scopedInstances.Values)
+                {
+                    (instance as IDisposable)?.Dispose();
+                }
+
+                foreach (var o in _transientDisposables)
+                {
+                    (o as IDisposable)?.Dispose();
+                }
+            }
+        }
+    }
+
+    private object GetServiceInstance(Type serviceType, ServiceDefinition serviceDefinition)
+    {
+        if (serviceDefinition.ImplementationInstance != null)
+            return serviceDefinition.ImplementationInstance;
+
+        if (serviceDefinition.ImplementationFactory != null)
+            return serviceDefinition.ImplementationFactory.Invoke(this);
+
+        var implementType = (serviceDefinition.ImplementType ?? serviceType);
+
+        if (implementType.IsInterface || implementType.IsAbstract)
+        {
+            throw new InvalidOperationException($&quot;invalid service registered, serviceType: {serviceType.FullName}, implementType: {serviceDefinition.ImplementType}&quot;);
+        }
+
+        var ctorInfos = implementType.GetConstructors(BindingFlags.Instance | BindingFlags.Public);
+        if (ctorInfos.Length == 0)
+        {
+            throw new InvalidOperationException($&quot;service {serviceType.FullName} does not have any public constructors&quot;);
+        }
+
+        ConstructorInfo ctor;
+        if (ctorInfos.Length == 1)
+        {
+            ctor = ctorInfos[0];
+        }
+        else
+        {
+            // try find best ctor
+            ctor = ctorInfos
+                .OrderBy(_ =&gt; _.GetParameters().Length)
+                .First();
+        }
+
+        var parameters = ctor.GetParameters();
+        if (parameters.Length == 0)
+        {
+            // TODO: cache New Func
+            return Expression.Lambda&lt;Func&lt;object&gt;&gt;(Expression.New(ctor)).Compile().Invoke();
+        }
+        else
+        {
+            var ctorParams = new object[parameters.Length];
+            for (var index = 0; index &lt; parameters.Length; index++)
+            {
+                var parameter = parameters[index];
+                var param = GetService(parameter.ParameterType);
+                if (param == null &amp;&amp; parameter.HasDefaultValue)
+                {
+                    param = parameter.DefaultValue;
+                }
+
+                ctorParams[index] = param;
+            }
+            return Expression.Lambda&lt;Func&lt;object&gt;&gt;(Expression.New(ctor, ctorParams.Select(Expression.Constant))).Compile().Invoke();
+        }
+    }
+
+    public object GetService(Type serviceType)
+    {
+        var serviceDefinition = _services.LastOrDefault(_ =&gt; _.ServiceType == serviceType);
+        if (null == serviceDefinition)
+        {
+            return null;
+        }
+
+        if (_isRootScope &amp;&amp; serviceDefinition.ServiceLifetime == ServiceLifetime.Scoped)
+        {
+            throw new InvalidOperationException($&quot;can not get scope service from the root scope, serviceType: {serviceType.FullName}&quot;);
+        }
+
+        if (serviceDefinition.ServiceLifetime == ServiceLifetime.Singleton)
+        {
+            var svc = _singletonInstances.GetOrAdd(serviceType, (t) =&gt; GetServiceInstance(t, serviceDefinition));
+            return svc;
+        }
+        else if (serviceDefinition.ServiceLifetime == ServiceLifetime.Scoped)
+        {
+            var svc = _scopedInstances.GetOrAdd(serviceType, (t) =&gt; GetServiceInstance(t, serviceDefinition));
+            return svc;
+        }
+        else
+        {
+            var svc = GetServiceInstance(serviceType, serviceDefinition);
+            if (svc is IDisposable)
+            {
+                _transientDisposables.Add(svc);
+            }
+            return svc;
+        }
+    }
+}</code></pre>
+<p>为了使得服务注册更加方便，可以写一些扩展方法来方便注册：</p>
+<pre><code><code>public static IServiceContainer AddSingleton&lt;TService&gt;([NotNull]this IServiceContainer serviceContainer, [NotNull]TService service)
+{
+    serviceContainer.Add(new ServiceDefinition(service, typeof(TService)));
+    return serviceContainer;
+}
+
+public static IServiceContainer AddSingleton([NotNull]this IServiceContainer serviceContainer, [NotNull]Type serviceType)
+{
+    serviceContainer.Add(new ServiceDefinition(serviceType, ServiceLifetime.Singleton));
+    return serviceContainer;
+}
+
+public static IServiceContainer AddSingleton([NotNull]this IServiceContainer serviceContainer, [NotNull]Type serviceType, [NotNull]Type implementType)
+{
+    serviceContainer.Add(new ServiceDefinition(serviceType, implementType, ServiceLifetime.Singleton));
+    return serviceContainer;
+}
+
+public static IServiceContainer AddSingleton&lt;TService&gt;([NotNull]this IServiceContainer serviceContainer, [NotNull]Func&lt;IServiceProvider, object&gt; func)
+{
+    serviceContainer.Add(ServiceDefinition.Singleton&lt;TService&gt;(func));
+    return serviceContainer;
+}
+
+
+public static IServiceContainer AddSingleton&lt;TService&gt;([NotNull]this IServiceContainer serviceContainer)
+{
+    serviceContainer.Add(ServiceDefinition.Singleton&lt;TService&gt;());
+    return serviceContainer;
+}
+
+
+public static IServiceContainer AddSingleton&lt;TService, TServiceImplement&gt;([NotNull]this IServiceContainer serviceContainer) where TServiceImplement : TService
+{
+    serviceContainer.Add(ServiceDefinition.Singleton&lt;TService, TServiceImplement&gt;());
+    return serviceContainer;
+}
+
+public static IServiceContainer AddScoped([NotNull]this IServiceContainer serviceContainer, [NotNull]Type serviceType)
+{
+    serviceContainer.Add(new ServiceDefinition(serviceType, ServiceLifetime.Scoped));
+    return serviceContainer;
+}
+
+public static IServiceContainer AddScoped([NotNull]this IServiceContainer serviceContainer, [NotNull]Type serviceType, [NotNull]Type implementType)
+{
+    serviceContainer.Add(new ServiceDefinition(serviceType, implementType, ServiceLifetime.Scoped));
+    return serviceContainer;
+}
+
+public static IServiceContainer AddScoped&lt;TService&gt;([NotNull]this IServiceContainer serviceContainer, [NotNull]Func&lt;IServiceProvider, object&gt; func)
+{
+    serviceContainer.Add(ServiceDefinition.Scoped&lt;TService&gt;(func));
+    return serviceContainer;
+}
+
+
+public static IServiceContainer AddScoped&lt;TService&gt;([NotNull]this IServiceContainer serviceContainer)
+{
+    serviceContainer.Add(ServiceDefinition.Scoped&lt;TService&gt;());
+    return serviceContainer;
+}
+
+
+public static IServiceContainer AddScoped&lt;TService, TServiceImplement&gt;([NotNull]this IServiceContainer serviceContainer) where TServiceImplement : TService
+{
+    serviceContainer.Add(ServiceDefinition.Scoped&lt;TService, TServiceImplement&gt;());
+    return serviceContainer;
+}
+
+public static IServiceContainer AddTransient([NotNull]this IServiceContainer serviceContainer, [NotNull]Type serviceType)
+{
+    serviceContainer.Add(new ServiceDefinition(serviceType, ServiceLifetime.Transient));
+    return serviceContainer;
+}
+
+public static IServiceContainer AddTransient([NotNull]this IServiceContainer serviceContainer, [NotNull]Type serviceType, [NotNull]Type implementType)
+{
+    serviceContainer.Add(new ServiceDefinition(serviceType, implementType, ServiceLifetime.Transient));
+    return serviceContainer;
+}
+
+public static IServiceContainer AddTransient&lt;TService&gt;([NotNull]this IServiceContainer serviceContainer, [NotNull]Func&lt;IServiceProvider, object&gt; func)
+{
+    serviceContainer.Add(ServiceDefinition.Transient&lt;TService&gt;(func));
+    return serviceContainer;
+}
+
+
+public static IServiceContainer AddTransient&lt;TService&gt;([NotNull]this IServiceContainer serviceContainer)
+{
+    serviceContainer.Add(ServiceDefinition.Transient&lt;TService&gt;());
+    return serviceContainer;
+}
+
+
+public static IServiceContainer AddTransient&lt;TService, TServiceImplement&gt;([NotNull]this IServiceContainer serviceContainer) where TServiceImplement : TService
+{
+    serviceContainer.Add(ServiceDefinition.Transient&lt;TService, TServiceImplement&gt;());
+    return serviceContainer;
+}</code></pre>
+<p>通过上面的代码就可以实现基本依赖注入了，但是从功能上来说，上面的代码只支持获取单个服务的实例，不支持注册一个接口的多个实现，获取接口的所有实现，为此对 <code>ServiceContainer</code> 中的 Instance 的 <code>ConcurrentDictionary</code> 的 Key 进行一下改造，使得可以能够以接口类型和实现类型联合作为 key，为此就有了第二版的 <code>ServiceContainer</code></p>
+<h3 id="servicecontainer-v2"><code>ServiceContainer</code> v2</h3>
+<p>为此定义了一个 <code>ServiceKey</code> 的类型，请注意这里一定要重写 <code>GetHashCode</code> 方法：</p>
+<pre><code><code>private class ServiceKey : IEquatable&lt;ServiceKey&gt;
+{
+    public Type ServiceType { get; }
+
+    public Type ImplementType { get; }
+
+    public ServiceKey(Type serviceType, ServiceDefinition definition)
+    {
+        ServiceType = serviceType;
+        ImplementType = definition.GetImplementType();
+    }
+
+    public bool Equals(ServiceKey other)
+    {
+        return ServiceType == other?.ServiceType &amp;&amp; ImplementType == other?.ImplementType;
+    }
+
+    public override bool Equals(object obj)
+    {
+        return Equals((ServiceKey)obj);
+    }
+
+    public override int GetHashCode()
+    {
+        var key = $&quot;{ServiceType.FullName}_{ImplementType.FullName}&quot;;
+        return key.GetHashCode();
+    }
+}</code></pre>
+<p>第二版的 <code>ServiceContainer</code> :</p>
+<pre><code><code>public class ServiceContainer : IServiceContainer
+{
+    internal readonly ConcurrentBag&lt;ServiceDefinition&gt; _services;
+
+    private readonly ConcurrentDictionary&lt;ServiceKey, object&gt; _singletonInstances;
+
+    private readonly ConcurrentDictionary&lt;ServiceKey, object&gt; _scopedInstances;
+    private ConcurrentBag&lt;object&gt; _transientDisposables = new ConcurrentBag&lt;object&gt;();
+
+    private class ServiceKey : IEquatable&lt;ServiceKey&gt;
+    {
+        public Type ServiceType { get; }
+
+        public Type ImplementType { get; }
+
+        public ServiceKey(Type serviceType, ServiceDefinition definition)
+        {
+            ServiceType = serviceType;
+            ImplementType = definition.GetImplementType();
+        }
+
+        public bool Equals(ServiceKey other)
+        {
+            return ServiceType == other?.ServiceType &amp;&amp; ImplementType == other?.ImplementType;
+        }
+
+        public override bool Equals(object obj)
+        {
+            return Equals((ServiceKey)obj);
+        }
+
+        public override int GetHashCode()
+        {
+            var key = $&quot;{ServiceType.FullName}_{ImplementType.FullName}&quot;;
+            return key.GetHashCode();
+        }
+    }
+
+    private readonly bool _isRootScope;
+
+    public ServiceContainer()
+    {
+        _isRootScope = true;
+        _singletonInstances = new ConcurrentDictionary&lt;ServiceKey, object&gt;();
+        _services = new ConcurrentBag&lt;ServiceDefinition&gt;();
+    }
+
+    private ServiceContainer(ServiceContainer serviceContainer)
+    {
+        _isRootScope = false;
+        _singletonInstances = serviceContainer._singletonInstances;
+        _services = serviceContainer._services;
+        _scopedInstances = new ConcurrentDictionary&lt;ServiceKey, object&gt;();
+    }
+
+    public IServiceContainer Add(ServiceDefinition item)
+    {
+        if (_disposed)
+        {
+            throw new InvalidOperationException(&quot;the service container had been disposed&quot;);
+        }
+        if (_services.Any(_ =&gt; _.ServiceType == item.ServiceType &amp;&amp; _.GetImplementType() == item.GetImplementType()))
+        {
+            return this;
+        }
+
+        _services.Add(item);
+        return this;
+    }
+
+    public IServiceContainer TryAdd(ServiceDefinition item)
+    {
+        if (_disposed)
+        {
+            throw new InvalidOperationException(&quot;the service container had been disposed&quot;);
+        }
+        if (_services.Any(_ =&gt; _.ServiceType == item.ServiceType))
+        {
+            return this;
+        }
+        _services.Add(item);
+        return this;
+    }
+
+    public IServiceContainer CreateScope()
+    {
+        return new ServiceContainer(this);
+    }
+
+    private bool _disposed;
+
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        if (_isRootScope)
+        {
+            lock (_singletonInstances)
+            {
+                if (_disposed)
+                {
+                    return;
+                }
+
+                _disposed = true;
+                foreach (var instance in _singletonInstances.Values)
+                {
+                    (instance as IDisposable)?.Dispose();
+                }
+
+                foreach (var o in _transientDisposables)
+                {
+                    (o as IDisposable)?.Dispose();
+                }
+
+                _singletonInstances.Clear();
+                _transientDisposables = null;
+            }
+        }
+        else
+        {
+            lock (_scopedInstances)
+            {
+                if (_disposed)
+                {
+                    return;
+                }
+
+                _disposed = true;
+                foreach (var instance in _scopedInstances.Values)
+                {
+                    (instance as IDisposable)?.Dispose();
+                }
+
+                foreach (var o in _transientDisposables)
+                {
+                    (o as IDisposable)?.Dispose();
+                }
+
+                _scopedInstances.Clear();
+                _transientDisposables = null;
+            }
+        }
+    }
+
+    private object GetServiceInstance(Type serviceType, ServiceDefinition serviceDefinition)
+    {
+        if (serviceDefinition.ImplementationInstance != null)
+            return serviceDefinition.ImplementationInstance;
+
+        if (serviceDefinition.ImplementationFactory != null)
+            return serviceDefinition.ImplementationFactory.Invoke(this);
+
+        var implementType = (serviceDefinition.ImplementType ?? serviceType);
+
+        if (implementType.IsInterface || implementType.IsAbstract)
+        {
+            throw new InvalidOperationException($&quot;invalid service registered, serviceType: {serviceType.FullName}, implementType: {serviceDefinition.ImplementType}&quot;);
+        }
+
+        if (implementType.IsGenericType)
+        {
+            implementType = implementType.MakeGenericType(serviceType.GetGenericArguments());
+        }
+
+        var ctorInfos = implementType.GetConstructors(BindingFlags.Instance | BindingFlags.Public);
+        if (ctorInfos.Length == 0)
+        {
+            throw new InvalidOperationException($&quot;service {serviceType.FullName} does not have any public constructors&quot;);
+        }
+
+        ConstructorInfo ctor;
+        if (ctorInfos.Length == 1)
+        {
+            ctor = ctorInfos[0];
+        }
+        else
+        {
+            // TODO: try find best ctor
+            ctor = ctorInfos
+                .OrderBy(_ =&gt; _.GetParameters().Length)
+                .First();
+        }
+
+        var parameters = ctor.GetParameters();
+        if (parameters.Length == 0)
+        {
+            // TODO: cache New Func
+            return Expression.Lambda&lt;Func&lt;object&gt;&gt;(Expression.New(ctor)).Compile().Invoke();
+        }
+        else
+        {
+            var ctorParams = new object[parameters.Length];
+            for (var index = 0; index &lt; parameters.Length; index++)
+            {
+                var parameter = parameters[index];
+                var param = GetService(parameter.ParameterType);
+                if (param == null &amp;&amp; parameter.HasDefaultValue)
+                {
+                    param = parameter.DefaultValue;
+                }
+
+                ctorParams[index] = param;
+            }
+            return Expression.Lambda&lt;Func&lt;object&gt;&gt;(Expression.New(ctor, ctorParams.Select(Expression.Constant))).Compile().Invoke();
+        }
+    }
+
+    public object GetService(Type serviceType)
+    {
+        if (_disposed)
+        {
+            throw new InvalidOperationException($&quot;can not get scope service from a disposed scope, serviceType: {serviceType.FullName}&quot;);
+        }
+
+        var serviceDefinition = _services.LastOrDefault(_ =&gt; _.ServiceType == serviceType);
+        if (null == serviceDefinition)
+        {
+            if (serviceType.IsGenericType)
+            {
+                var genericType = serviceType.GetGenericTypeDefinition();
+                serviceDefinition = _services.LastOrDefault(_ =&gt; _.ServiceType == genericType);
+                if (null == serviceDefinition)
+                {
+                    var innerServiceType = serviceType.GetGenericArguments().First();
+                    if (typeof(IEnumerable&lt;&gt;).MakeGenericType(innerServiceType)
+                        .IsAssignableFrom(serviceType))
+                    {
+                        var innerRegType = innerServiceType;
+                        if (innerServiceType.IsGenericType)
+                        {
+                            innerRegType = innerServiceType.GetGenericTypeDefinition();
+                        }
+                        //
+                        var list = new List&lt;object&gt;(4);
+                        foreach (var def in _services.Where(_ =&gt; _.ServiceType == innerRegType))
+                        {
+                            object svc;
+                            if (def.ServiceLifetime == ServiceLifetime.Singleton)
+                            {
+                                svc = _singletonInstances.GetOrAdd(new ServiceKey(innerServiceType, def), (t) =&gt; GetServiceInstance(innerServiceType, def));
+                            }
+                            else if (def.ServiceLifetime == ServiceLifetime.Scoped)
+                            {
+                                svc = _scopedInstances.GetOrAdd(new ServiceKey(innerServiceType, def), (t) =&gt; GetServiceInstance(innerServiceType, def));
+                            }
+                            else
+                            {
+                                svc = GetServiceInstance(innerServiceType, def);
+                                if (svc is IDisposable)
+                                {
+                                    _transientDisposables.Add(svc);
+                                }
+                            }
+                            if (null != svc)
+                            {
+                                list.Add(svc);
+                            }
+                        }
+
+                        var methodInfo = typeof(Enumerable)
+                            .GetMethod(&quot;Cast&quot;, BindingFlags.Static | BindingFlags.Public);
+                        if (methodInfo != null)
+                        {
+                            var genericMethod = methodInfo.MakeGenericMethod(innerServiceType);
+                            var castedValue = genericMethod.Invoke(null, new object[] { list });
+                            if (typeof(IEnumerable&lt;&gt;).MakeGenericType(innerServiceType) == serviceType)
+                            {
+                                return castedValue;
+                            }
+                            var toArrayMethod = typeof(Enumerable).GetMethod(&quot;ToArray&quot;, BindingFlags.Static | BindingFlags.Public)
+                                .MakeGenericMethod(innerServiceType);
+
+                            return toArrayMethod.Invoke(null, new object[] { castedValue });
+                        }
+                        return list;
+                    }
+
+                    return null;
+                }
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        if (_isRootScope &amp;&amp; serviceDefinition.ServiceLifetime == ServiceLifetime.Scoped)
+        {
+            throw new InvalidOperationException($&quot;can not get scope service from the root scope, serviceType: {serviceType.FullName}&quot;);
+        }
+
+        if (serviceDefinition.ServiceLifetime == ServiceLifetime.Singleton)
+        {
+            var svc = _singletonInstances.GetOrAdd(new ServiceKey(serviceType, serviceDefinition), (t) =&gt; GetServiceInstance(t.ServiceType, serviceDefinition));
+            return svc;
+        }
+        else if (serviceDefinition.ServiceLifetime == ServiceLifetime.Scoped)
+        {
+            var svc = _scopedInstances.GetOrAdd(new ServiceKey(serviceType, serviceDefinition), (t) =&gt; GetServiceInstance(t.ServiceType, serviceDefinition));
+            return svc;
+        }
+        else
+        {
+            var svc = GetServiceInstance(serviceType, serviceDefinition);
+            if (svc is IDisposable)
+            {
+                _transientDisposables.Add(svc);
+            }
+            return svc;
+        }
+    }
+}
+</code></pre>
+<p>这样我们就不仅支持了 <code>IEnumerable&lt;TService&gt;</code> 的注册，也支持 <code>IReadOnlyList&lt;TService&gt;</code>/ <code>IReadOnlyCollection&lt;TService&gt;</code> 的注册</p>
+<p>因为 <code>GetService</code> 返回是 object , 不是强类型的，所以为了使用起来方便，定义了几个扩展方法，类似于微软的依赖注入框架里的 <code>GetService&lt;TService&gt;()</code>/<code>GetServices&lt;TService&gt;()</code>/<code>GetRequiredService&lt;TService&gt;()</code></p>
+<pre><code><code>/// &lt;summary&gt;
+/// ResolveService
+/// &lt;/summary&gt;
+/// &lt;typeparam name=&quot;TService&quot;&gt;TService&lt;/typeparam&gt;
+/// &lt;param name=&quot;serviceProvider&quot;&gt;serviceProvider&lt;/param&gt;
+/// &lt;returns&gt;&lt;/returns&gt;
+public static TService ResolveService&lt;TService&gt;([NotNull]this IServiceProvider serviceProvider)
+    =&gt; (TService)serviceProvider.GetService(typeof(TService));
+
+/// &lt;summary&gt;
+/// ResolveRequiredService
+/// throw exception if can not get a service instance
+/// &lt;/summary&gt;
+/// &lt;typeparam name=&quot;TService&quot;&gt;TService&lt;/typeparam&gt;
+/// &lt;param name=&quot;serviceProvider&quot;&gt;serviceProvider&lt;/param&gt;
+/// &lt;returns&gt;&lt;/returns&gt;
+public static TService ResolveRequiredService&lt;TService&gt;([NotNull] this IServiceProvider serviceProvider)
+{
+    var serviceType = typeof(TService);
+    var svc = serviceProvider.GetService(serviceType);
+    if (null == svc)
+    {
+        throw new InvalidOperationException($&quot;service had not been registered, serviceType: {serviceType}&quot;);
+    }
+    return (TService)svc;
+}
+
+/// &lt;summary&gt;
+/// Resolve services
+/// &lt;/summary&gt;
+/// &lt;typeparam name=&quot;TService&quot;&gt;TService&lt;/typeparam&gt;
+/// &lt;param name=&quot;serviceProvider&quot;&gt;serviceProvider&lt;/param&gt;
+/// &lt;returns&gt;&lt;/returns&gt;
+public static IEnumerable&lt;TService&gt; ResolveServices&lt;TService&gt;([NotNull]this IServiceProvider serviceProvider)
+    =&gt; serviceProvider.ResolveService&lt;IEnumerable&lt;TService&gt;&gt;();</code></pre>
+<h2 id="more">More</h2>
+<p>后面还更新了一版，主要优化性能，目前来说还不太满意，暂时这里先不提了</p>
+<h2 id="reference">Reference</h2>
+<ul>
+<li><a href="https://social.msdn.microsoft.com/Forums/en-US/80a18021-549e-452c-be7f-35312d38eaa7/dynamic-casting-using-reflection?forum=csharpgeneral">Dynamic Casting using Reflection</a></li>
+<li><a href="https://github.com/WeihanLi/WeihanLi.Common/blob/dev/test/WeihanLi.Common.Test/DependencyInjectionTest.cs" class="uri">https://github.com/WeihanLi/WeihanLi.Common/blob/dev/test/WeihanLi.Common.Test/DependencyInjectionTest.cs</a></li>
+</ul>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

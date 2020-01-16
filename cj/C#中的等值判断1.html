@@ -1,0 +1,169 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C#中的等值判断1' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C#中的等值判断1</center></div><div class='banquan'>原文出处:本文由博客园博主iskcal提供。<br/>
+原文连接:https://www.cnblogs.com/iskcal/p/csharp-equal-compare-1.html</div><br>
+    <div class="toc">
+    <p class="toc-title">目录</p>
+    <div class="toc-list">
+        <ul>
+        <li><a href="#简介">简介</a></li>
+        <li><a href="#值类型和引用类型的相等比较">值类型和引用类型的相等比较</a></li>
+        <li><a href="#和相等比较相关的函数">和相等比较相关的函数</a></li>
+        <li><a href="#string-和-system.uri-的等值比较"><code>string</code> 和 <code>System.Uri</code> 的等值比较</a></li>
+        <li><a href="#泛型接口-iequatablet">泛型接口 <code>IEquatable&lt;T&gt;</code></a></li>
+        <li><a href="#自定义比较方法">自定义比较方法</a></li>
+        <li><a href="#举例">举例</a></li>
+        <li><a href="#总结">总结</a></li>
+        </ul>
+    </div>
+</div>
+<h1 id="简介">简介</h1>
+<p>最近正在看《C# in a nutshell》这本书，可以看到虽然 .NET 框架有一些不足和缺憾，但是整体上来说其设计还是比较优秀的。这里，本文打算从C#语言对两个对象之间的比较进行相关阐述。</p>
+<h1 id="值类型和引用类型的相等比较">值类型和引用类型的相等比较</h1>
+<p>在C#中，我们知道对于不同的数据类型，其比较的方式不同。最典型的就是，值类型比较的是二者的值是否相等，而引用类型则比较的是二者是否引用了同一个对象。下面这个例子就可以看到其二者的区别。</p>
+<pre><code><code>int v1 = 3, v2 = 3;
+object r1 = v1;
+object r2 = v1;
+object r3 = r1;
+Console.WriteLine($&quot;v1 is equal to v2: {v1 == v2}&quot;);    // true
+Console.WriteLine($&quot;r1 is equal to r2: {r1 == r2}&quot;);    // false
+Console.WriteLine($&quot;r1 is equal to r3: {r1 == r3}&quot;);    // true</code></pre>
+<p>在这个例子中，类型 <code>int</code> 属于值类型，其变量 <code>v1</code> 和 <code>v2</code> 均为3。从输出的结果可以看到，二者确实是相等的。但是对于 <code>object</code> 这种引用类型来说，即使是同一个 <code>int</code> 型数据转换而来（由<code>int</code>型数据装箱），其二者也不是同一个引用，因而并不相等（即第6行）。但是对于 <code>r3</code> 来说，均是引用 <code>r1</code> 所指的对象，因而 <code>r3</code> 和 <code>r1</code> 相等。</p>
+<p>虽然说值类型比较按照值比较，引用类型按照是否引用同一个数据比较。然而，也有一些特别的情况。典型的例子就是字符串 <code>string</code> 以及 <code>System.Uri</code> 。这两类数据类型虽然是引用类型（本质上都是类），但其在相等判断上所表现的结果却和值类型类似。</p>
+<pre><code><code>string s1 = &quot;test&quot;;
+string s2 = &quot;test&quot;;
+Uri u1 = new Uri(&quot;https://www.bing.com&quot;);
+Uri u2 = new Uri(&quot;https://www.bing.com&quot;);
+Console.WriteLine($&quot;s1 is equal to s2: {s1 == s2}&quot;);    // true
+Console.WriteLine($&quot;u1 is equal to u2: {u1 == u2}&quot;);    // true
+</code></pre>
+<p>可以看到，这两个数据类型打破了之前给出的规则。虽然说 <code>string</code> 和 <code>System.Uri</code> 两个类的比较结果相似，但二者具体实现的行为并不相同。那么不同的数据类型比较具体是怎么样的流程，以及如何自定义比较方式将会在后续部分进行讨论。但我们首先来看下在C#中相等逻辑是如何进行处理的。</p>
+<h1 id="和相等比较相关的函数">和相等比较相关的函数</h1>
+<p>在C#的语言体系中，可以知道类 <code>Object</code> 是整个所有数据类型的根类。从 .NET Core 3.0 中的 <code>Object</code> 可以看到，与等值判断相关的函数有4个，其中2个为类成员方法，2个为类静态成员方法，如下所示：</p>
+<pre><code><code>public virtual bool Equals(object? obj);
+public virtual int GetHashCode();
+public static bool ReferenceEquals(object? objA, object? objB);
+public static bool Equals(object? objA, object? objB);</code></pre>
+<p>可以注意到一点，这里和其他资料里面并不完全一样，唯一一点区别就是传入的参数类型是 <code>object?</code> 而不是 <code>object</code>。这主要是C#在8.0版本中引入的可空引用类型。这里可空引用类型并不是本文的重点，这里完全可以当作是 <code>object</code> 来处理。</p>
+<p>这里我们对这4个函数一一介绍：</p>
+<ol>
+<li>类成员方法 <code>Equals</code> 。该方法的作用是将当前使用的对象和传入的对象进行比较，如果一致则认为是相等。该方法被设置为<code>virtual</code>，即在子类中可以重写该方法。</li>
+<li>类成员方法 <code>GetHashCode</code> 。该方法主要用在哈希处理中，比如哈希表和字典类中。对于这个函数，它有一个基本的要求，如果两个对象认定为相等，则它们会返回相同的哈希值。对于不同的对象，该函数没有要求一定要返回不同的哈希值，但是希望尽可能地返回不同地哈希值，以便在哈希处理时能够区分不同的对象数据。和上面方法一样，因 <code>virtual</code> 关键字修饰，同样可以在子类中被重写。</li>
+<li>静态成员方法 <code>ReferenceEquals</code> 。该方法主要用来判断两个引用是否指向同一个对象。在 <a href="https://source.dot.net/#System.Private.CoreLib/shared/System/Object.cs,d9262ceecc1719ab">源码</a> 中也可以看到，其本质就一句话：<code>return objA == objB;</code>。由于该方法是静态方法，因此无法重写。</li>
+<li>静态成员方法 <code>Equals</code>。对于该方法，从源码中也可以看到，首先判断两个引用是否相同，在不相同的情况下，再利用对象方法 <code>Equals</code> 判断二者是否相等。同样的，由于该方法是静态方法，也是无法重写的。</li>
+</ol>
+<h1 id="string-和-system.uri-的等值比较"><code>string</code> 和 <code>System.Uri</code> 的等值比较</h1>
+<p>好了，我们回到原先的问题上来，为什么<code>string</code> 和 <code>System.Uri</code> 表现行为和其他引用类型不一样，反而和值类型类似。其实，严格上来说，<code>string</code> 和 <code>System.Uri</code> 的对象比较虽然表现上类似于值类型，但是二者内部的细节并不一样。</p>
+<p>对于 <code>string</code> 来说，大部分情况下，在一个程序副本当中，一个字符串只会被保存一次，无论新建多少个字符串变量，只要其值相同，那么均会引用到同一个内存地址上。所以对于字符串的比较，其依旧是比较引用，只不过值相同的大多是引用到同一个对象上。</p>
+<p>而 <code>System.Uri</code> 不同，对于这样的类对象来说，新建了多少个对象就会在堆上开辟相对应数目个的内存空间并存放数据。然而在比较时，比较方法采用的是先比较引用再比较值。即当二者并不是引用到同一个对象时再比较其值是否相等（<a href="https://github.com/dotnet/corefx/blob/master/src/System.Private.Uri/src/System/Uri.cs#L1584">源码</a>）。</p>
+<pre><code><code>string s1 = &quot;test&quot;;
+string s2 = &quot;test&quot;;
+Uri u1 = new Uri(&quot;https://www.bing.com&quot;);
+Uri u2 = new Uri(&quot;https://www.bing.com&quot;);
+Console.WriteLine($&quot;s1 is equal to s2 by the reference: {Object.ReferenceEquals(s1, s2)}&quot;); // true
+Console.WriteLine($&quot;s1 is equal to s2: {s1 == s2}&quot;);    // true
+Console.WriteLine($&quot;u1 is equal to u2 by the reference: {Object.ReferenceEquals(u1, u2)}&quot;); // false
+Console.WriteLine($&quot;u1 is equal to u2: {u1 == u2}&quot;);    // true</code></pre>
+<p>以上例子可以看出，两个字符串变量均指向了同一个数据对象（<code>ReferenceEquals</code> 方法是判断两个引用是否引用同一个对象，这里可以看到返回值为 <code>true</code>）。而对于 <code>System.Uri</code> 来说，两个变量并没有指向同一个对象，然而后续相等判断时二者依旧相等，这时候可以看出此时根据二者的值来判断是否相等。</p>
+<h1 id="泛型接口-iequatablet">泛型接口 <code>IEquatable&lt;T&gt;</code></h1>
+<p>从以上的例子中可以看到，C#中对两个对象是否相等基本上通过 <code>Equals</code> 方法来判断。然而，<code>Equals</code> 方法也并不是万能的，这一点尤其体现在值类型当中。</p>
+<p>由于 <code>Equals</code> 方法要求传入的参数类型是 <code>object</code>。如果将该方法应用到值类型上，会导致将值类型强制转换到 <code>object</code> 类型上，也就是会装箱（boxing）一次。装箱和拆箱一般比较耗时，容易降低效率。此外，<code>object</code>类型意味着该类对象可以和任意其他类对象进行相等判断，但是一般而言，我们判断两个对象是否相等的前提肯定都是同一个类的对象。</p>
+<p>C#所采用的解决办法是使用泛型接口 <code>IEquatable&lt;T&gt;</code> 来解决。<code>IEquatable&lt;T&gt;</code> 主要包含两个方法，如下所示：</p>
+<pre><code><code>public interface IEquatable&lt;T&gt;
+{
+    bool Equals(T other);
+}</code></pre>
+<p>和<code>Object.Equals(object? obj)</code> 相比，其内部的函数为泛型方法，如果一个类或者结构体等数据实现了该接口，那么当调用 <code>Equals</code> 方法时，根据类型最适应的原则，那么会首先调用 <code>IEquatable&lt;T&gt;</code> 内的 <code>Equals(T other)</code> 方法。这样就避免了值类型的装箱操作。</p>
+<h1 id="自定义比较方法">自定义比较方法</h1>
+<p>在有时候，为了更好模拟现实中的场景，我们需要自定义两个个体之间的比较。为了实现这样的比较方法，通常有三步需要完成：</p>
+<ol>
+<li>重写 <code>Equals(object obj)</code> 和 <code>GetHashCode()</code> 方法；</li>
+<li>重载操作符 <code>==</code> 和 <code>!=</code>；</li>
+<li>实现 <code>IEquatable&lt;T&gt;</code> 方法；</li>
+</ol>
+<p>对于第一点来说，这两个函数是必须要重写的。对于 <code>Equals(object obj)</code> 的实现的话，如果实现了泛型接口内的方法，可以考虑这里直接调用该方法即可。<code>GetHashCode()</code> 用于尽可能区分不同对象，所以如果两个对象相等的话，其哈希值也应该相等，这样在哈希表以及字典类中会有比较好的性能。</p>
+<p>对于第二点和第三点来说，并不是必须的，但是一般地，为了更好地使用，这两点最好需要进行重载。</p>
+<p>可以看到，这三点均涉及到比较的逻辑。一般而言，我们倾向于把比较的核心逻辑放在泛型接口中，对于其他方法，通过调用泛型接口内的方法即可。</p>
+<h1 id="举例">举例</h1>
+<p>这里，我们举一个小例子。设想这样一个场景，目前机器学习越来越火热，而谈及机器学习离不开矩阵运算。对于矩阵，我们可以使用二维数组来保存。在数学领域中，我们判断两个矩阵是否相等，是判断两个矩阵内的每个元素是否相等，也就是值类型的判断方式。而在C#中，由于二维数组是引用类型，直接使用相等判断无法达到这一目的。因此，我们需要修改其判断方式。</p>
+<pre><code><code>   public class Matrix : IEquatable&lt;Matrix&gt;
+    {
+        private double[,] matrix;
+
+        public Matrix(double[,] m)
+        {
+            matrix = m;
+        }
+
+        public bool Equals([AllowNull] Matrix other)
+        {
+            if (Object.ReferenceEquals(other, null))
+                return false;
+            if (matrix == other.matrix)
+                return true;
+            if (matrix.GetLength(0) != other.matrix.GetLength(0) ||
+                matrix.GetLength(1) != other.matrix.GetLength(1))
+                return false;
+            for (int row = 0; row &lt; matrix.GetLength(0); row++)
+                for (int col = 0; col &lt; matrix.GetLength(1); col++)
+                    if (matrix[row,col] != other.matrix[row,col])
+                        return false;
+            return true;
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (!(obj is Matrix)) return false;
+            return Equals((Matrix)obj);
+        }
+
+        public override int GetHashCode()
+        {
+            int hashcode = 0;
+            for (int row = 0; row &lt; matrix.GetLength(0); row++)
+                for (int col = 0; col &lt; matrix.GetLength(1); col++)
+                    hashcode = (hashcode + matrix[row, col].GetHashCode()) % int.MaxValue;
+                return hashcode;
+        }
+
+        public static bool operator == (Matrix m1, Matrix m2)
+        {
+            return Object.ReferenceEquals(m1, null) ? Object.ReferenceEquals(m2, null) : m1.Equals(m2);
+
+        }
+        public static bool operator !=(Matrix m1, Matrix m2)
+        {
+            return !(m1 == m2);
+
+        }
+    }
+    
+Matrix m1 = new Matrix(new double[,] { { 1, 2, 3 }, { 4, 5, 6 } });
+Matrix m2 = new Matrix(new double[,] { { 1, 2, 3 }, { 4, 5, 6 } });
+
+Console.WriteLine($&quot;m1 is equal to m2 by the reference: {Object.ReferenceEquals(m1, m2)}&quot;);     // false
+Console.WriteLine($&quot;m1 is equal to m2: {m1 == m2}&quot;);    //true</code></pre>
+<p>比较的逻辑实现放在 <code>Equals(Matrix other)</code> 中。在该方法中，首先判断两个矩阵是否引用了同一个二维数组，之后判断行列的数目是否相等，最后再按照每个元素进行判断。整个核心逻辑就在这里。对于 <code>Equals(object obj)</code> 以及 <code>==</code> 和 <code>!=</code> 则直接调用 <code>Equals(Matrix other)</code> 方法。注意一点，在重载 <code>==</code> 符号时，不能直接用 <code>m1==null</code> 来判断第一个对象是否为空，否则的话就是无限循环调用 <code>==</code> 操作符重载函数。在该函数中需要需要进行引用判断的话，可以使用 <code>Object</code> 类中的静态方法<code>ReferenceEquals</code> 来判断。</p>
+<h1 id="总结">总结</h1>
+<p>总体而言，C#中的相等比较参照的是这样一条规律：值类型比较的是值是否相等，而引用类型比较的则是二者是否引用同一个对象。此外，本文还介绍了一些和相等判断有关的函数和接口，这些函数和接口的作用在于构建了一个相等比较的框架。通过这些函数和接口，不仅可以使用默认的比较规则，而且我们还可以自定义比较规则。在本文的最后，我们还给出了一个例子来模拟自定义比较规则的用途。通过该例子，我们可以清楚地看到自定义比较的实现。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

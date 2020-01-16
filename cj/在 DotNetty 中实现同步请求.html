@@ -1,0 +1,94 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修在 DotNetty 中实现同步请求' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>在 DotNetty 中实现同步请求</center></div><div class='banquan'>原文出处:本文由博客园博主myzony提供。<br/>
+原文连接:https://www.cnblogs.com/myzony/p/10904070.html</div><br>
+    <h2 id="一背景">一、背景</h2>
+<p>DotNetty 本身是一个优秀的网络通讯框架，不过它是基于异步事件驱动来处理另一端的响应，需要在单独的 Handler 去处理相应的返回结果。而在我们的实际使用当中，尤其是 <strong>客户端程序</strong> 基本都是 <strong>请求-响应</strong> 模型，在发送了数据时候需要等待服务器的响应才能进行下一步操作，如果服务器返回的是错误信息，则需要进行特殊的处理。</p>
+<p>类似于下面这种方式：</p>
+<pre><code><code>public async void Button1_Click()
+{
+    var result = await DotNettyClient.SendData(&quot;Hello&quot;);
+    
+    if(result == &quot;Error&quot;)
+    {
+        throw new Exception(&quot;服务器返回错误!&quot;);
+    }
+    
+    Console.WriteLine($&quot;Hello {result}&quot;);
+}</code></pre>
+<h2 id="二解决思路">二、解决思路</h2>
+<p>参阅了大部分资料之后，发现在 Java 的 Netty 当中可以使用 Future / Promise 来实现，那么 C# 是否有类似的组件呢？答案是有的，他们对应的就是 <code>Task</code> 和 <code>TaskCompletionSource</code>，前者是给调用者的任务，而后者则是用于设置响应任务的结果。</p>
+<p>那么我们就可以这么来处理，当客户端发送请求时，附带唯一的一个请求 ID，并将 <code>TaskCompletionSource</code> 放在一个请求字典当中，请求 ID 作为字典的 Key，值是 <code>TaskCompletionSource</code>，之后返回一个 <code>Task</code>。当客户端接收到服务器响应的时候，通过 <code>TaskCompletionSource</code> 设置之前那个 <code>Task</code> 的结果，这样我们接收到响应之后，就会从之前 await 的地方继续执行。</p>
+<p>这里我自己的需求仅仅是类似于 <strong>同步阻塞式</strong> 的操作，所以我直接使用一个队列来做简单处理，并没有用唯一的请求 ID 来表示不同的请求，也没有使用字典，因为我可以 <strong>保证在同一时间内有且仅有一个客户端请求被发起</strong>，而且也做了响应的超时处理机制。</p>
+<h2 id="三代码实现">三、代码实现</h2>
+<p>实现起来超级简单，只需要在发起请求的时候，创建一个 <code>TaskCompletionSource&lt;TResponse&gt;</code> 对象。这个泛型参数指的是你想要的返回值类型，这里我以 TResponse 代替，下面的 DEMO 我会用 <code>string</code> 类型进行演示。</p>
+<p>创建好一个 <code>TaskCompletionSource&lt;TResponse&gt;</code> 之后，在发送方法里面，我们可以将其对象放在一个先进先出的队列当中，然后将其 <code>Task</code> 属性作为发送方法的返回值。</p>
+<p>我们再来到处理服务器响应的 Handler 当中，从队列里面拿去之前存放的 <code>TaskCompletionSource&lt;TResponse&gt;</code> 对象，调用其 <code>SetResult()</code> 方法，将具体响应进行设置。</p>
+<p>通过以上的操作，我们在发送数据的时候，就可以使用 <code>await</code> 关键字等待服务端的响应，但不会阻塞线程，当客户端接收到服务端响应时，就会恢复到之前 <code>await</code> 的位置继续执行。</p>
+<p><strong>数据发送方法：</strong></p>
+<pre><code><code>public static class DotNettyClient
+{
+    static DotNettyClient()
+    {
+        RequestQueue = new Queue&lt;TaskCompletionSource&lt;string&gt;&gt;();
+    }
+    
+    public static Queue&lt;TaskCompletionSource&lt;string&gt;&gt; RequestQueue { get; set; }
+    
+    public static async Task&lt;string&gt; SendData(string data)
+    {
+        var resultTask = new TaskCompletionSource&lt;string&gt;();
+        
+        var buffer = new Unpooled.Buffer();
+        buffer.WriteBytes(Encoding.UTF8.GetBytes(data));
+        await _clientChannel.WriteAndFlushAsync(buffer);
+        
+        RequestQueue.Enqueue(resultTask);
+        
+        return await resultTask.Task;
+    }
+}</code></pre>
+<p><strong>服务端响应处理：</strong></p>
+<pre><code><code>public class ProtocolHandler : ChannelHandlerAdapter
+{
+    public override void ChannelRead(IChannelHandlerContext context, object message)
+    {
+        if(message is string response)
+        {
+            if(!DotNettyClient.RequestQueue.TryDequeue(out TaskCompletionSource&lt;string&gt; result)) return;
+            result.SetResult(response);
+        }
+    }
+}</code></pre>
+<p>这里我就不再编写解析器，主要说明一下代码的思路，下面在使用的时候就如同第一节说的一样，直接使用 <code>await</code> 关键字等待响应结果即可。</p>
+<h2 id="四缺陷">四、缺陷</h2>
+<p>在这里我并没有展示多个异步请求的情况，如果是用户同时发起多个请求的时候，你可以通过数据的唯一 ID 来标识每一个请求，读取时根据唯一 ID 从字典获取数据，这样在接收服务端响应的时候就能处理这种情况了。</p>
+<h2 id="五参考资料">五、参考资料</h2>
+<ul>
+<li><a href="https://github.com/Azure/DotNetty/issues/84">DotNetty Github Issues</a></li>
+<li><a href="https://dotblogs.com.tw/renewalwu/2014/07/27/eventdriven2awaitablemethod">dotBlogs - 《[C#] 將事件驅動 (event-driven) 的模式改為可等候的方法 (awaitable method)》</a></li>
+<li><a href="https://dotblogs.com.tw/yc421206/2013/08/07/113628">dotBlogs -《[C#.NET][TPL] 利用 TaskCompletionSource 將 EAP 轉換成 TAP》</a></li>
+<li><a href="https://www.cnblogs.com/1zhk/p/5399538.html">HK-Zhang -《TaskCompletionSource的使用场景》</a></li>
+</ul>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

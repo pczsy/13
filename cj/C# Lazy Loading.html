@@ -1,0 +1,119 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C# Lazy Loading' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C# Lazy Loading</center></div><div class='banquan'>原文出处:本文由博客园博主HueiFeng提供。<br/>
+原文连接:https://www.cnblogs.com/yyfh/p/11996509.html</div><br>
+    <blockquote>
+<h2 id="前言">前言</h2>
+</blockquote>
+<p>按需加载对象延迟加载实际是推迟进行创建对象，直到对其调用后才进行创建初始化，延迟（懒加载）的好处是提高系统性能，避免不必要的计算以及不必要的资源浪费。</p>
+<p>常规有这些情况：</p>
+<ul>
+<li>对象创建成本高且程序可能不会使用它。 例如，假定内存中有具有 Orders 属性的 Customer 对象，该对象包含大量 Order 对象，初始化这些对象需要数据库连接。 如果用户永远不要求显示 Orders 或在计算中使用该数据，则无需使用系统内存或计算周期来创建它。 通过使用 Lazy<Orders> 来声明 Orders对象用于迟缓初始化，可以避免在不使用该对象时浪费系统资源。</li>
+<li>对象创建成本高，且希望将其创建推迟到其他高成本操作完成后。 例如，假定程序在启动时加载多个对象实例，但是只需立即加载其中一部分。 可以通过推迟初始化不需要的对象，直到创建所需对象，提升程序的启动性能。(来源官方)</li>
+</ul>
+<blockquote>
+<h2 id="示例">示例</h2>
+</blockquote>
+<p>创建用户类</p>
+<pre><code><code>
+ public class User
+    {
+        public string Name { get; set; }
+
+        public int Age { get; set; }
+
+
+        public User() {
+            this.Name = &quot;Name&quot;;
+            this.Age = 0;
+        }
+    }
+</code></pre>
+<p>默认情况下，Lazy<T> 对象是线程安全的。 也就是说，如果构造函数没有指定线程安全性的类型，该函数创建的 Lazy<T> 对象是线程安全的。 在多线程方案中，访问线程安全 Lazy<T> 对象的 Value 属性的第一个线程会为所有线程上的所有后续访问对其初始化，且所有线程共享相同的数据。 因此，哪个线程初始化对象并不重要，争用条件是良性的。</p>
+<pre><code><code>
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            Lazy&lt;User&gt; user = new Lazy&lt;User&gt;();
+            ThreadLocal&lt;User&gt; threadLocal = new ThreadLocal&lt;User&gt;();
+
+            if (!user.IsValueCreated)
+                Console.WriteLine(&quot;The object is not initialized&quot;);
+            Console.WriteLine(user.Value.Name);
+            user.Value.Name = &quot;Name1&quot;;
+            user.Value.Age = 1;
+            Console.WriteLine(user.Value.Name);
+            Console.Read();
+        }
+    }        
+
+</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th>对象的线程安全性</th>
+<th>LazyThreadSafetyMode mode 参数</th>
+<th>布尔 isThreadSafe 参数</th>
+<th>没有线程安全性参数</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>完全线程安全；一次只有一个线程尝试初始化值。</td>
+<td>ExecutionAndPublication</td>
+<td>true</td>
+<td>可以。</td>
+</tr>
+<tr class="even">
+<td>非线程安全。</td>
+<td>None</td>
+<td>false</td>
+<td>不适用。</td>
+</tr>
+<tr class="odd">
+<td>完全线程安全；线程争用以初始化值。</td>
+<td>PublicationOnly</td>
+<td>不适用。</td>
+<td>不适用。</td>
+</tr>
+</tbody>
+</table>
+<p>其中IsValueCreated属性是个Boolean类型，我们可以通过此属性去确定当前对象有没有被初始化</p>
+<p><img src="./images/C# Lazy Loading0.png" /></p>
+<p>调用后，进行了创建操作</p>
+<p><img src="./images/C# Lazy Loading1.png" /></p>
+<p>再说说Lazy中几个构造函数，</p>
+<ul>
+<li><p><strong>public Lazy (bool isThreadSafe)</strong>：<br />
+isThreadSafe 的布尔参数，该方法参数用于指定是否从多线程访问 Value 属性。 如果想要仅从一个线程访问属性，则传入 false 以获取适度的性能优势。 如果想要从多线程访问属性，则传入 true 以指示 Lazy<T> 实例正确处理争用条件（初始化时一个线程引发异常）。</p></li>
+<li><p><strong>public Lazy (LazyThreadSafetyMode mode)</strong>：提供线程安全模式。</p></li>
+<li><p><strong>public Lazy (Func<T> valueFactory)</strong>：<br />
+lambda 表达式传递给新的 Lazy<T> 对象的构造函数。 下一次访问 Value 属性将导致新 Lazy<T> 的初始化，并且其 Value 属性此后会返回已分配给该属性的新值。</p></li>
+</ul>
+<blockquote>
+<h2 id="总结">总结</h2>
+</blockquote>
+<p>参考：<a href="https://docs.microsoft.com/en-us/dotnet/framework/performance/lazy-initialization" class="uri">https://docs.microsoft.com/en-us/dotnet/framework/performance/lazy-initialization</a></p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

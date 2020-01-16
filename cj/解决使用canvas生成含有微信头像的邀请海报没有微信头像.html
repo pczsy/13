@@ -1,0 +1,117 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修解决使用canvas生成含有微信头像的邀请海报没有微信头像' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>解决使用canvas生成含有微信头像的邀请海报没有微信头像</center></div><div class='banquan'>原文出处:本文由博客园博主东莞有故事提供。<br/>
+原文连接:https://www.cnblogs.com/pendy/p/11717104.html</div><br>
+    <p>&nbsp; &nbsp; 最近做了一个微信内访问的H5页面，长按分享图片发送朋友邀请的海报，网上搜索资料，得出解决思路，用canvas将页面绘制生成图片，</p>
+<p>&nbsp; &nbsp; 问题：canvas 图片跨域。</p>
+<p>&nbsp; &nbsp; 解决过程（填坑历程）：&nbsp;</p>
+<p>&nbsp; &nbsp; 1.从网上存在如图解决办法&nbsp; &nbsp; &nbsp;img.crossOrigin&nbsp; = ""&nbsp; &nbsp;（专业采坑，数年）。亲测无效。很是不解。</p>
+<p>&nbsp; &nbsp;&nbsp;<img src="./images/解决使用canvas生成含有微信头像的邀请海报没有微信头像0.png" alt="" /></p>
+<p>&nbsp; &nbsp;&nbsp;</p>
+<p>&nbsp; &nbsp; 2.网上也存在后端服务解决</p>
+<p>&nbsp; &nbsp;设置header头，或者nginx 服务配置等 允许访问。但是，存在问题（图片大部分为了优化，都会存放在第三方cdn.上面。这是第三方的配置，是否允许，自己很难控制）</p>
+<p>&nbsp;</p>
+<p>&nbsp; &nbsp; 3.解决办法：采用所有图片路径，转化为base64流来处理。图片存为本地图片。这也可以就避开了跨域问题。</p>
+<p>&nbsp;</p>
+<p>&nbsp; &nbsp;&nbsp;最后个人解决方法：没有采用第3种保存本地，这样会增加本地图片，而且会存在本地跟微信端没有同步更新的问题，不是用户最新的头像。个人是采用远程下载后直接绘制输出图片，这样图片就变成本地图片，解决canvas绘制图片不支持跨域问题。</p>
+<p>&nbsp; &nbsp;wxheadimg.aspx 页面代码：</p>
+<div class="cnblogs_Highlighter">
+<pre><code>        if (!string.IsNullOrEmpty(Request.QueryString["data"].ToString()))
+        {
+            HttpWebRequest request = (HttpWebRequest)WebRequest.Create(Request.QueryString["data"].ToString());
+            request.Timeout = 3000;
+            WebResponse response = request.GetResponse();
+            Stream stream = response.GetResponseStream();
+
+            Bitmap image = new Bitmap(stream);
+            //保存为PNG到内存流  
+            MemoryStream ms = new MemoryStream();
+            image.Save(ms, ImageFormat.Png);
+
+            //重新输出头像
+            Response.BinaryWrite(ms.GetBuffer());
+            Response.End();
+
+            ms.Close();
+            response.Close();
+            stream.Close();
+        }</pre>
+</div>
+<p>&nbsp; &nbsp;&nbsp;canvas绘制页面引用：&lt;img src="wxheadimg.aspx?data=<code><span class="token property">headimgurl</span></code>" /&gt;</p>
+<p>&nbsp; &nbsp;&nbsp;&nbsp;</p>
+<p>&nbsp; &nbsp; canvas绘制代码也顺便弄出来：</p>
+<div class="cnblogs_code">
+<pre><code>&lt;script type="text/javascript"&gt;<span style="color: #000000;">
+window.onload </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;"> ()
+{
+    </span><span style="color: #0000ff;">var</span><span style="color: #000000;"> IMAGE_URL;
+    </span><span style="color: #0000ff;">function</span><span style="color: #000000;"> takeScreenshot(){
+        </span><span style="color: #0000ff;">var</span> shareContent = document.getElementById('shareMember');<span style="color: #008000;">//</span><span style="color: #008000;">需要截图的包裹的（原生的）DOM 对象</span>
+        <span style="color: #0000ff;">var</span> width = shareContent.offsetWidth; <span style="color: #008000;">//</span><span style="color: #008000;">获取dom 宽度</span>
+        <span style="color: #0000ff;">var</span> height = shareContent.offsetHeight; <span style="color: #008000;">//</span><span style="color: #008000;">获取dom 高度</span>
+        <span style="color: #0000ff;">var</span> canvas = document.createElement("canvas"); <span style="color: #008000;">//</span><span style="color: #008000;">创建一个canvas节点</span>
+
+        <span style="color: #0000ff;">var</span> scale = 1; <span style="color: #008000;">//</span><span style="color: #008000;">定义任意放大倍数 支持小数</span>
+        canvas.width = width * scale; <span style="color: #008000;">//</span><span style="color: #008000;">定义canvas 宽度 * 缩放</span>
+        canvas.height = height * scale; <span style="color: #008000;">//</span><span style="color: #008000;">定义canvas高度 *缩放</span>
+        canvas.getContext("2d").scale(scale, scale); <span style="color: #008000;">//</span><span style="color: #008000;">获取context,设置scale</span>
+
+        <span style="color: #008000;">//</span><span style="color: #008000;">var rect = shareContent.getBoundingClientRect();//获取元素相对于视察的偏移量</span>
+        <span style="color: #008000;">//</span><span style="color: #008000;">canvas.getContext("2d").translate(-rect.left, -rect.top);//设置context位置，值为相对于视窗的偏移量负值，让图片复位</span>
+        <span style="color: #0000ff;">var</span> opts =<span style="color: #000000;"> {
+            scale:scale, </span><span style="color: #008000;">//</span><span style="color: #008000;"> 添加的scale 参数</span>
+            canvas:canvas, <span style="color: #008000;">//</span><span style="color: #008000;">自定义 canvas</span>
+            logging: <span style="color: #0000ff;">true</span>, <span style="color: #008000;">//</span><span style="color: #008000;">日志开关</span>
+            width:width, <span style="color: #008000;">//</span><span style="color: #008000;">dom 原始宽度</span>
+            height:height, <span style="color: #008000;">//</span><span style="color: #008000;">dom 原始高度</span>
+            backgroundColor: 'transparent'<span style="color: #000000;">,
+        };
+        html2canvas(shareContent, opts,{useCORS:</span><span style="color: #0000ff;">true</span>,logging:<span style="color: #0000ff;">true</span>}).then(<span style="color: #0000ff;">function</span><span style="color: #000000;"> (canvas)
+        {
+            IMAGE_URL </span>= canvas.toDataURL("image/png"<span style="color: #000000;">);
+            $(</span>'.copyImage').attr('src'<span style="color: #000000;">,IMAGE_URL);
+        })
+    }
+    takeScreenshot();
+}
+</span>&lt;/script&gt;</pre>
+</div>
+<p>&nbsp; &nbsp; 页面代码 ：</p>
+<div class="cnblogs_Highlighter">
+<pre class="brush:html;gutter:true;">    &lt;div class="shareBox" id="shareMember"&gt;
+		&lt;div class="top"&gt;
+			&lt;div class="logo"&gt;&lt;img src="wxheadimg.aspx?data=微信头像网址"/&gt;&lt;/div&gt;
+		&lt;/div&gt;
+        &lt;div class="middle"&gt;
+            &lt;img src="makeQRCode.aspx?data=二维码内容" class="qrcode" /&gt;
+        &lt;/div&gt;
+        &lt;img src="" class="copyImage"&gt;
+    &lt;/div&gt;
+
+.shareBox{position:relative}
+.shareBox .copyImage{position:absolute;top:0px;left:0px;z-index:999;opacity:0;height:666px;width:666px;}
+</pre>
+</div>
+<p>　　</p>
+<p>&nbsp; &nbsp; 最后： 人人为我，我为人人，美美与共</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

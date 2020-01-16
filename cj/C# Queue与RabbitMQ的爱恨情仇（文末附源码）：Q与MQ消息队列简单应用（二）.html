@@ -1,0 +1,202 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C# Queue与RabbitMQ的爱恨情仇（文末附源码）：Q与MQ消息队列简单应用（二）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C# Queue与RabbitMQ的爱恨情仇（文末附源码）：Q与MQ消息队列简单应用（二）</center></div><div class='banquan'>原文出处:本文由博客园博主熊泽-学习中的苦与乐提供。<br/>
+原文连接:https://www.cnblogs.com/xiongze520/p/10967874.html</div><br>
+    <p><span style="font-size: 16px;">上一章我们讲了队列（&nbsp;Queue），这一章我们讲Message Queue消息队列，简称MQ。</span></p>
+<p><strong><span style="font-size: 16px;">定义：</span></strong></p>
+<p><span style="font-size: 16px;">　　MQ是MessageQueue，消息队列的简称（是流行的开源消息队列系统，利用erlang语言开发）。MQ是一种应用程序对应用程序的通信方法。</span></p>
+<p><span style="font-size: 16px;">应用程序通过读写入队和出队的消息来通信，无需专用连接来链接它们。</span></p>
+<p><span style="font-size: 16px;">消息传递是程序之间通过在消息中发送数据进行通信，而不是通过直接调用彼此来通信，一般应用于远程过程调用的技术。</span></p>
+<p><span style="font-size: 16px;">&nbsp;排队指的是应用程序通过队列来通信。应用队列避免接收和发送数据的同时进行。</span></p>
+<p><strong><span style="font-size: 16px;">特点：</span></strong></p>
+<p><span style="font-size: 16px;">　　MQ是消费者-生产者模型的代表。一端往消息队列中写入消息，另一端可以读取或者订阅队列中的消息。</span></p>
+<p><span style="font-size: 16px;">MQ遵循的是AMQP协议（高级消息队列协议：使得遵从该规范的客户端应用和消息中间件服务器的全功能互操作成为可能）的具体实现和产品。</span></p>
+<p><strong><span style="font-size: 16px;">应用：</span></strong></p>
+<p><span style="font-size: 16px;">　　在使用MQ时，我们不需要实时的返回信息。获取信息和返回信息进行异步处理。</span></p>
+<p><span style="font-size: 16px;">例如：在项目中，我们需要从汽车系统中利用CAN总线实时的获取汽车的相关信息，但是没有必要给汽车返回信息。</span></p>
+<p><span style="font-size: 16px;">如，获取汽车的轮胎气压，但是我们不需要给汽车一个返回的信息或结果。</span></p>
+<p><span style="font-size: 16px;">&nbsp; &nbsp;&nbsp;C#项目要利用RabbitMQ来获取实时数据的话，需要先安装客户端的库文件：RabbitMQ.Client.dll，下面有提到。</span></p>
+<p><span style="font-size: 16px;">备用下载路径：</span></p>
+<p><span style="font-size: 16px;">链接：https://pan.baidu.com/s/1zcQmPnBF7WcD8sqV4W54pw&nbsp;<br />提取码：6962&nbsp;</span></p>
+<hr />
+<p><strong><span style="font-size: 16px;">写在前面：</span></strong></p>
+<p><span style="font-size: 16px;">这个就需要安装RabbitMQ服务、下载Erlang环境并安装、引入RabbitMQ.client.dll动态库。下面有官网可以下载相应的内容。</span></p>
+<p><span style="font-size: 16px;">我这个使用windows 64位的，我这里整理安装程序在百度网盘，官网打开Erlang很慢的去我百度网盘下载</span></p>
+<p><span style="font-size: 16px;">链接：https://pan.baidu.com/s/1zcQmPnBF7WcD8sqV4W54pw </span><br /><span style="font-size: 16px;">提取码：6962&nbsp;</span></p>
+<hr />
+<p>&nbsp;</p>
+<p><span style="font-size: 18pt; font-family: 'Microsoft YaHei';"><strong>安装</strong></span></p>
+<p>需要安装RabbitMQ服务：</p>
+<p>官网下载地址：<a href="http://www.rabbitmq.com/download.html" target="_blank">http://www.rabbitmq.com/download.html</a>。</p>
+<p><img src="./images/C# Queue与RabbitMQ的爱恨情仇（文末附源码）：Q与MQ消息队列简单应用（二）0.png" alt="" /></p>
+<p><img src="./images/C# Queue与RabbitMQ的爱恨情仇（文末附源码）：Q与MQ消息队列简单应用（二）1.png" alt="" /></p>
+<p><span style="font-size: 16px;">下载完成后一直点击下一步即可。</span></p>
+<p><span style="font-size: 16px;">如果没有Erlang环境会弹出下面的提示：</span></p>
+<p>&nbsp;<img src="./images/C# Queue与RabbitMQ的爱恨情仇（文末附源码）：Q与MQ消息队列简单应用（二）2.png" alt="" /></p>
+<p><span style="font-size: 16px;">下载Erlang环境并安装，安装时一直点下一步即可</span></p>
+<p><span style="font-size: 16px;">地址：<a href="http://www.erlang.org/downloads" target="_blank">http://www.erlang.org/downloads</a></span></p>
+<p><span style="font-size: 16px;">如果打开网页慢或者打不开的，去下载我整理也行，不过我的是windows 64的。</span></p>
+<p><span style="font-size: 16px;">链接：https://pan.baidu.com/s/1zcQmPnBF7WcD8sqV4W54pw&nbsp;<br />提取码：6962&nbsp;</span></p>
+<p><span style="font-size: 16px;">安装完成后我们需要配置环境变量，如下：</span></p>
+<p><span style="font-size: 16px;">点击【计算机】右键，属性，高级系统设置，高级，环境变量，</span></p>
+<p><span style="font-size: 16px;">新建一个系统变量。</span></p>
+<p><span style="font-size: 16px;"><img src="./images/C# Queue与RabbitMQ的爱恨情仇（文末附源码）：Q与MQ消息队列简单应用（二）3.png" alt="" /></span></p>
+<p><span style="font-size: 16px;">输入</span></p>
+<p><span style="font-size: 16px;">变量名：ERLANG_HOME，</span></p>
+<p><span style="font-size: 16px;">变量值：C:\Program Files\erl9.3</span></p>
+<p><span style="font-size: 16px;">变量值是你刚刚安装Erlang的路径</span></p>
+<p><span style="font-size: 16px;"><img src="./images/C# Queue与RabbitMQ的爱恨情仇（文末附源码）：Q与MQ消息队列简单应用（二）4.png" alt="" /></span></p>
+<p>&nbsp;</p>
+<p><span style="font-size: 16px;">&nbsp;然后在找到环境变量里面的Path，点击编辑，在变量值的最后面加上&nbsp; ;%ERLANG_HOME%\bin;，记得有分号(英文分号)</span></p>
+<p>&nbsp;<img src="./images/C# Queue与RabbitMQ的爱恨情仇（文末附源码）：Q与MQ消息队列简单应用（二）5.png" alt="" /></p>
+<p>&nbsp;</p>
+<p><span style="font-size: 16px;">安装成功后会在服务中看到该服务。.</span></p>
+<p><span style="font-size: 16px;"><img src="./images/C# Queue与RabbitMQ的爱恨情仇（文末附源码）：Q与MQ消息队列简单应用（二）6.png" alt="" /></span></p>
+<p>&nbsp;</p>
+<p><span style="font-size: 16px;">然后安装RabbitMQ，也是一直点击下一步即可，&nbsp;</span></p>
+<p><span style="font-size: 16px;">到这里后就准备工作做完了，接下来我们就编写代码。</span></p>
+<p><span style="font-size: 16px;">有的童鞋不知道为什么需要安装RabbitMQ服务和Erlang环境，我这里简单普及一下，详细的请百度一下。</span></p>
+<p><span style="color: #ff0000; font-size: 16px;"><strong>RabbitMQ</strong>是实现了高级消息队列协议（AMQP）的开源消息代理软件（亦称面向消息的中间件）。</span></p>
+<p><span style="color: #ff0000; font-size: 16px;"><strong>RabbitMQ</strong>服务器是用<strong>Erlang</strong>语言编写的，而集群和故障转移是构建在开放电信平台框架上的。</span></p>
+<p><span style="color: #ff0000; font-size: 16px;">所有主要的编程语言均有与代理接口通讯的客户端库。</span></p>
+<p>.</p>
+<hr />
+<p><strong style="font-size: 18px;"><span>&nbsp;代码实例：</span></strong></p>
+<p><span style="font-size: 16px;">为了讲解效果更佳，我们新建两个控制台应用程序MessageQueueClient（生产者）和MessageQueueServer（消费者），</span></p>
+<p><span style="font-size: 16px;">不要急着建立，</span><span style="font-size: 16px;">看下面的代码依次建立。</span></p>
+<p><strong><span style="font-size: 16px;">生产者 ：</span></strong></p>
+<p><span style="font-size: 16px;">新建控制台应用程序MessageQueueClient，引用动态文件库RabbitMQ.Client.dll，可以去百度下载一个，上面的网盘路径里面有。</span></p>
+<p><span style="font-size: 16px;">入队代码编写：</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">using</span><span style="color: #000000;"> RabbitMQ.Client;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Collections.Generic;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Linq;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Text;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Threading.Tasks;
+
+</span><span style="color: #0000ff;">namespace</span><span style="color: #000000;"> MessageQueueClient
+{
+    </span><span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">生产者</span>
+            ConnectionFactory factory = <span style="color: #0000ff;">new</span><span style="color: #000000;"> ConnectionFactory();
+            factory.HostName </span>= <span style="color: #800000;">"</span><span style="color: #800000;">127.0.0.1</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">默认端口</span>
+            factory.Port = <span style="color: #800080;">5672</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">using</span> (IConnection conn =<span style="color: #000000;"> factory.CreateConnection())
+            {
+                </span><span style="color: #0000ff;">using</span> (IModel channel =<span style="color: #000000;"> conn.CreateModel())
+                {
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">在MQ上定义一个持久化队列，如果名称相同不会重复创建</span>
+                    channel.QueueDeclare(<span style="color: #800000;">"</span><span style="color: #800000;">MyRabbitMQ</span><span style="color: #800000;">"</span>, <span style="color: #0000ff;">true</span>, <span style="color: #0000ff;">false</span>, <span style="color: #0000ff;">false</span>, <span style="color: #0000ff;">null</span><span style="color: #000000;">);
+                    </span><span style="color: #0000ff;">while</span> (<span style="color: #0000ff;">true</span><span style="color: #000000;">)
+                    {
+                        </span><span style="color: #0000ff;">string</span> message = <span style="color: #0000ff;">string</span>.Format(<span style="color: #800000;">"</span><span style="color: #800000;">{0}</span><span style="color: #800000;">"</span>, Console.ReadLine());  <span style="color: #008000;">//</span><span style="color: #008000;">Console.ReadLine()为控制台输入的内容，我们可以用其他方式获取</span>
+                        <span style="color: #0000ff;">byte</span>[] buffer =<span style="color: #000000;"> Encoding.UTF8.GetBytes(message);
+                        IBasicProperties properties </span>=<span style="color: #000000;"> channel.CreateBasicProperties();  
+                        properties.DeliveryMode </span>= <span style="color: #800080;">2</span><span style="color: #000000;">;
+                        channel.BasicPublish(</span><span style="color: #800000;">""</span>, <span style="color: #800000;">"</span><span style="color: #800000;">MyRabbitMQ</span><span style="color: #800000;">"</span>, properties, buffer);  <span style="color: #008000;">//</span><span style="color: #008000;">入队</span>
+                        Console.WriteLine(<span style="color: #800000;">"</span><span style="color: #800000;">入队成功：</span><span style="color: #800000;">"</span> +<span style="color: #000000;"> message);
+                    }
+                }
+            }
+        }
+    }
+}</span></pre>
+</div>
+<p><span style="font-size: 16px;">控制台入队操作，控制台这一步可以结合实际代码需求进行入队。</span></p>
+<p><span style="font-size: 16px;"><img src="./images/C# Queue与RabbitMQ的爱恨情仇（文末附源码）：Q与MQ消息队列简单应用（二）7.png" alt="" /></span></p>
+<p><span style="font-size: 16px;">这里就入队成功了，接下来我们出队，也就是读取数据，这里和readis有点像，我们之前安装的RabbitMQ服务就是在这里用到了。</span></p>
+<p>&nbsp;</p>
+<p><span style="font-size: 16px;"><strong>生产者 ：</strong></span></p>
+<p><span style="font-size: 16px;">新建控制台应用程序MessageQueueServer，引用动态文件库RabbitMQ.Client.dll，可以去百度下载一个，上面的网盘路径里面有。</span></p>
+<p><span style="font-size: 16px;">出队代码编写：</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">using</span><span style="color: #000000;"> RabbitMQ.Client;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> RabbitMQ.Client.Events;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Collections.Generic;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Linq;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Text;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Threading.Tasks;
+
+</span><span style="color: #0000ff;">namespace</span><span style="color: #000000;"> MessageQueueServer
+{
+    </span><span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">消费者</span>
+            ConnectionFactory factory = <span style="color: #0000ff;">new</span><span style="color: #000000;"> ConnectionFactory();
+            factory.HostName </span>= <span style="color: #800000;">"</span><span style="color: #800000;">127.0.0.1</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">默认端口</span>
+            factory.Port = <span style="color: #800080;">5672</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">using</span> (IConnection conn =<span style="color: #000000;"> factory.CreateConnection())
+            {
+                </span><span style="color: #0000ff;">using</span> (IModel channel =<span style="color: #000000;"> conn.CreateModel())
+                {
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">在MQ上定义一个持久化队列，如果名称相同不会重复创建</span>
+                    channel.QueueDeclare(<span style="color: #800000;">"</span><span style="color: #800000;">MyRabbitMQ</span><span style="color: #800000;">"</span>, <span style="color: #0000ff;">true</span>, <span style="color: #0000ff;">false</span>, <span style="color: #0000ff;">false</span>, <span style="color: #0000ff;">null</span><span style="color: #000000;">);
+
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">输入1，那如果接收一个消息，但是没有应答，则客户端不会收到下一个消息</span>
+                    channel.BasicQos(<span style="color: #800080;">0</span>, <span style="color: #800080;">1</span>, <span style="color: #0000ff;">false</span><span style="color: #000000;">);
+
+                    Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Listening...</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">在队列上定义一个消费者</span>
+                    QueueingBasicConsumer consumer = <span style="color: #0000ff;">new</span><span style="color: #000000;"> QueueingBasicConsumer(channel);
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">消费队列，并设置应答模式为程序主动应答</span>
+                    channel.BasicConsume(<span style="color: #800000;">"</span><span style="color: #800000;">MyRabbitMQ</span><span style="color: #800000;">"</span>, <span style="color: #0000ff;">false</span><span style="color: #000000;">, consumer);
+
+                    </span><span style="color: #0000ff;">while</span> (<span style="color: #0000ff;">true</span><span style="color: #000000;">)
+                    {
+                        </span><span style="color: #008000;">//</span><span style="color: #008000;">阻塞函数，获取队列中的消息</span>
+                        BasicDeliverEventArgs ea =<span style="color: #000000;"> (BasicDeliverEventArgs)consumer.Queue.Dequeue();
+                        </span><span style="color: #0000ff;">byte</span>[] bytes =<span style="color: #000000;"> ea.Body;
+                        </span><span style="color: #0000ff;">string</span> str =<span style="color: #000000;"> Encoding.UTF8.GetString(bytes);
+
+                        Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">读取队列消息:</span><span style="color: #800000;">"</span> +<span style="color: #000000;"> str.ToString());
+                        </span><span style="color: #008000;">//</span><span style="color: #008000;">回复确认</span>
+                        channel.BasicAck(ea.DeliveryTag, <span style="color: #0000ff;">false</span><span style="color: #000000;">);
+                    }
+                }
+            }
+        }
+    }
+}</span></pre>
+</div>
+<p>运行代码，读取队列里面的内容，遵循先入先出原则。</p>
+<p><img src="./images/C# Queue与RabbitMQ的爱恨情仇（文末附源码）：Q与MQ消息队列简单应用（二）8.png" alt="" /></p>
+<p><span style="font-size: 16px;">这样队列的数据就读取到了。</span></p>
+<p>&nbsp;</p>
+<p><span style="font-size: 18px;"><strong>总结：</strong></span></p>
+<p><span style="font-size: 16px;">这是一个简单的消息队列的应用，写的比较粗浅，具体需要结合实际应用项目编写。</span></p>
+<p><span style="font-size: 16px;">另外感谢大家的支持^_^</span></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><span style="font-size: 16px;">&nbsp;</span></p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

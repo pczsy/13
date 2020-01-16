@@ -1,0 +1,48 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Microsoft.Windows.Controls.Ribbon.RibbonWindow 碰到 AvalonDock出现的诡异现象' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Microsoft.Windows.Controls.Ribbon.RibbonWindow 碰到 AvalonDock出现的诡异现象</center></div><div class='banquan'>原文出处:本文由博客园博主njit_77提供。<br/>
+原文连接:https://www.cnblogs.com/njit-77/p/11477711.html</div><br>
+    <h3 id="部分一">部分一</h3>
+<p>14年底进入目前公司时，领导准备开发一款新软件平台以取代原有平台。原平台采用C++Build开发界面(window c/s客户端) 、Visual Studio(封装dll模块)。过完年，领导已把框架搭建完毕(过年期间领导加班了 ^_^ )。当时菜鸟一个(目前老鸟了)，新框架用wpf模式，RibbonWindow(界面功能按钮) + AvalonDock(界面布局，灵活好用)，工具当然是最新的Visual Studio 2013了。虽然使用wpf开发，但是上位机软件客户不关心UI美观与否，只看功能是否强大。也因此本人只是把checkbox，Text等常用控件按照网上资料封装供自己调用，自定义控件方向没再继续往下研究。用的比较多的是用MVVM模式开发一些业务逻辑。绑定真的好用，View与ViewModel之间数据传输不需要在编写代码了。需求改变时，工作量也大大减轻了，从此步入新社会了。废话不多说，进入正题</p>
+<p>16年中测试人员反馈，软件莫名其妙情况下，界面上一些输入控件无法响应键盘输入。接到反馈后，我们立即排查分析。<br />
+1、怀疑键盘消息没有传递到软件，但是现象出现时一部分控件可以输入，一部分无法输入，分分钟立刻打脸；<br />
+2、因无法输入的控件不是wpf本身提供控件，是一些mfc封装的窗口中的控件或者引用的winform控件如DataGridView，此时怀疑兼容性原因，看了<a href="https://docs.microsoft.com/zh-cn/dotnet/framework/wpf/advanced/wpf-and-windows-forms-interoperation">微软官方资料</a>，在窗口前添加</p>
+<pre><code><code>System.Windows.Forms.Integration.ElementHost.EnableModelessKeyboardInterop(this)</code></pre>
+<p>还是无法解决问题。最终因能力不够只能临时搁浅此问题，采用临时方案，增加一个键盘输入窗口，当问题出现时，调用键盘输入窗口输入信息。</p>
+<p>随着时间流失，我从小菜鸟变成了老菜鸟，但是该问题一直徘徊在我脑海中，无情嘲笑我，菜逼！！！</p>
+<h3 id="部分二">部分二</h3>
+<p>18年4月份，我重新回头查看此问题，主要看一下<a href="https://referencesource.microsoft.com/">开源源码</a> 以期能解决问题。无意中我发现了造成此现象的原因。</p>
+<p>1、点击RibbonSplitButton按键一次，下拉菜单弹出，再点击一次下拉菜单收回。此时无法输入信息</p>
+<p>2、点击RibbonSplitButton按键一次，下拉菜单弹出，再点击其它地方。此时无法输入信息</p>
+<p>3、点击RibbonSplitButton按键一次。此时可以输入信息。</p>
+<p>请看下图，操作步骤按照1、2、3进行</p>
+<p><img src="./images/Microsoft.Windows.Controls.Ribbon.RibbonWindow 碰到 AvalonDock出现的诡异现象0.png" /></p>
+<p>能重现问题，顿时感觉希望就在眼前。难道是RibbonSplitButton控件造成的，替换成RibbonMenuButton，结果还是一样。难不成重写一个控件？此方案放到最后吧，再想想其它思路。新在公司测试代码没法考出来，周末在自己电脑重新新建了一个工程。然而不管怎么点击，一直可以输入。难不成是我们平台其它bug造成的？天啊，平台开发3年多了，怎么去找问题，一个一个模块排除吗？终于，苦心人天不负，付出是有回报的。我发现自己新建工程中的RibbonWindow与公司不是同一个。公司引用<strong>Microsoft.Windows.Controls.Ribbon.RibbonWindow</strong>，而我引用<strong>System.Windows.Controls.Ribbon.RibbonWindow</strong>。</p>
+<p>​</p>
+<h3 id="部分三">部分三</h3>
+<p>​ 胜利就在眼前了，赶紧重新新建两个工程，分别引用<strong>Microsoft.Windows.Controls.Ribbon.RibbonWindow</strong>和<strong>System.Windows.Controls.Ribbon.RibbonWindow</strong>，其余代码不变。结果引用<strong>Microsoft.Windows.Controls.Ribbon.RibbonWindow</strong>出现键盘无法输入现象，另一个正常。</p>
+<h3 id="笔记">笔记</h3>
+<p>该问题只能说临时解决了，<strong>Microsoft.Windows.Controls.Ribbon.RibbonWindow</strong>库出现原因不清楚。也没在继续跟踪下去。准备在stackoverflow上提交一下该问题，目前还在研究怎么新建问题，头大...</p>
+<p><a href="https://files.cnblogs.com/files/njit-77/%E6%96%B0%E5%BB%BA%E6%96%87%E4%BB%B6%E5%A4%B9.7z">测试代码</a></p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

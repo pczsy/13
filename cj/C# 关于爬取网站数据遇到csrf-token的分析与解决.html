@@ -1,0 +1,233 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C# 关于爬取网站数据遇到csrf-token的分析与解决' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C# 关于爬取网站数据遇到csrf-token的分析与解决</center></div><div class='banquan'>原文出处:本文由博客园博主yibey提供。<br/>
+原文连接:https://www.cnblogs.com/yibey/p/10870472.html</div><br>
+    <h2 id="问题描述">需求</h2>
+<p>某航空公司物流单信息查询，是一个post请求。通过后台模拟POST HTTP请求发现无法获取页面数据，通过查看航空公司网站后，发现网站使用避免CSRF攻击机制，直接发挥40X错误。</p>
+<h2 id="关于csrf">关于CSRF</h2>
+<p>读者自行百度</p>
+<h2 id="关于csrf">网站HTTP请求分析&nbsp;</h2>
+<p>Headers</p>
+<p><img src="./images/C# 关于爬取网站数据遇到csrf-token的分析与解决0.png" alt="" /></p>
+<p>Form Data</p>
+<p><img src="./images/C# 关于爬取网站数据遇到csrf-token的分析与解决1.png" alt="" /></p>
+<p>在head里包含了cookie 与 x-csrf-token&nbsp; formdata 里包含了_csrf （与head里的值是一样的）.</p>
+<p>&nbsp;</p>
+<p><img src="./images/C# 关于爬取网站数据遇到csrf-token的分析与解决2.png" alt="" /></p>
+<p><img src="./images/C# 关于爬取网站数据遇到csrf-token的分析与解决3.png" alt="" /></p>
+<p>这里通过查看该网站的JS源代码发现_csrf 来自于网页的head标签里</p>
+<p>猜测cookie与&nbsp;x-csrf-token是有一定的有效期，并且他们共同作用来防御CSRF攻击。</p>
+<h2 id="关于csrf">解决方案</h2>
+<p>1，首先请求一下该航空公司的网站，获取cookie与_csrf</p>
+<p>2，然后C# 模拟http分别在head和formdata里加入如上参数，发起请求</p>
+<p>&nbsp;</p>
+<p>&nbsp;代码</p>
+<p>&nbsp;</p>
+<div class="cnblogs_code">
+<pre><code> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> CSRFToken
+    {
+        </span><span style="color: #0000ff;">string</span> cookie;<span style="color: #008000;">//</span><span style="color: #008000;">用于请求的站点的cookie</span>
+        List&lt;<span style="color: #0000ff;">string</span>&gt; csrfs;<span style="color: #008000;">//</span><span style="color: #008000;">用于请求站点的token的key 以及 value</span>
+
+        <span style="color: #0000ff;">public</span> CSRFToken(<span style="color: #0000ff;">string</span><span style="color: #000000;"> url)
+        {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">校验传输安全</span>
+            <span style="color: #0000ff;">if</span> (!<span style="color: #0000ff;">string</span><span style="color: #000000;">.IsNullOrWhiteSpace(url))
+            {
+                </span><span style="color: #0000ff;">try</span><span style="color: #000000;">
+                {
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">设置请求的头信息.获取url的host</span>
+                    <span style="color: #0000ff;">var</span> _http = <span style="color: #0000ff;">new</span><span style="color: #000000;"> HttpHelper(url);
+                    </span><span style="color: #0000ff;">string</span><span style="color: #000000;"> cookie;
+                    </span><span style="color: #0000ff;">string</span> html = _http.CreateGetHttpResponseForPC(<span style="color: #0000ff;">out</span><span style="color: #000000;"> cookie);
+                    </span><span style="color: #0000ff;">this</span>.cookie =<span style="color: #000000;"> cookie;
+
+                    </span><span style="color: #0000ff;">string</span> headRegex = <span style="color: #800000;">@"</span><span style="color: #800000;">&lt;meta name=""_csrf.*"" content="".*""/&gt;</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+
+                    MatchCollection matches </span>=<span style="color: #000000;"> Regex.Matches(html, headRegex);
+                    Regex re </span>= <span style="color: #0000ff;">new</span> Regex(<span style="color: #800000;">"</span><span style="color: #800000;">(?&lt;=content=\").*?(?=\")</span><span style="color: #800000;">"</span><span style="color: #000000;">, RegexOptions.None);
+                    csrfs </span>= <span style="color: #0000ff;">new</span> List&lt;<span style="color: #0000ff;">string</span>&gt;<span style="color: #000000;">();
+                    </span><span style="color: #0000ff;">foreach</span> (Match math <span style="color: #0000ff;">in</span><span style="color: #000000;"> matches)
+                    {
+
+                        MatchCollection mc </span>=<span style="color: #000000;"> re.Matches(math.Value);
+                        </span><span style="color: #0000ff;">foreach</span> (Match ma <span style="color: #0000ff;">in</span><span style="color: #000000;"> mc)
+                        {
+                            csrfs.Add(ma.Value);
+                        }
+                    }
+
+                }
+                </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception e)
+                {
+
+                }
+            }
+        }
+
+        </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> String getCookie()
+        {
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> cookie;
+        }
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setCookie(String cookie)
+        {
+            </span><span style="color: #0000ff;">this</span>.cookie =<span style="color: #000000;"> cookie;
+        }
+        </span><span style="color: #0000ff;">public</span> List&lt;<span style="color: #0000ff;">string</span>&gt;<span style="color: #000000;"> getCsrf_token()
+        {
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> csrfs;
+        }
+    }</span></pre>
+</div>
+<p>httpHelper</p>
+<div class="cnblogs_code">
+<pre><code>  <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> CreatePostHttpResponse(IDictionary&lt;<span style="color: #0000ff;">string</span>, <span style="color: #0000ff;">string</span>&gt; headers, IDictionary&lt;<span style="color: #0000ff;">string</span>, <span style="color: #0000ff;">string</span>&gt;<span style="color: #000000;"> parameters)
+        {
+            HttpWebRequest request </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">HTTPSQ请求  </span>
+            UTF8Encoding encoding = <span style="color: #0000ff;">new</span><span style="color: #000000;"> System.Text.UTF8Encoding();
+            ServicePointManager.ServerCertificateValidationCallback </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> RemoteCertificateValidationCallback(CheckValidationResult);
+            request </span>= WebRequest.Create(_baseIPAddress) <span style="color: #0000ff;">as</span><span style="color: #000000;"> HttpWebRequest;
+            request.ProtocolVersion </span>=<span style="color: #000000;"> HttpVersion.Version10;
+            ServicePointManager.SecurityProtocol </span>= SecurityProtocolType.Tls12 |<span style="color: #000000;"> SecurityProtocolType.Tls11;
+            request.Method </span>= <span style="color: #800000;">"</span><span style="color: #800000;">POST</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            request.ContentType </span>= <span style="color: #800000;">"</span><span style="color: #800000;">application/x-www-form-urlencoded</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> request.ContentType = "application/json";</span>
+            request.UserAgent =<span style="color: #000000;"> DefaultUserAgent;
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">request.Headers.Add("X-CSRF-TOKEN", "bc0cc533-60cc-484a-952d-0b4c1a95672c");
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">request.Referer = "</span><span style="color: #008000; text-decoration: underline;">https://www.asianacargo.com/tracking/viewTraceAirWaybill.do</span><span style="color: #008000;">";
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">request.Headers.Add("Origin", "</span><span style="color: #008000; text-decoration: underline;">https://www.asianacargo.com</span><span style="color: #008000;">");
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">request.Headers.Add("Cookie", "JSESSIONID=HP21d2Dq5FoSlG4Fyw4slWwHb0-Sl1CG6jGtj7HE41e5f4aN_R1p!-435435446!117330181");
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">request.Host = "www.asianacargo.com";</span>
+
+
+            <span style="color: #0000ff;">if</span> (!(headers == <span style="color: #0000ff;">null</span> || headers.Count == <span style="color: #800080;">0</span><span style="color: #000000;">))
+            {
+
+                </span><span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">string</span> key <span style="color: #0000ff;">in</span><span style="color: #000000;"> headers.Keys)
+                {
+                    request.Headers.Add(key, headers[key]);
+                }
+
+            }
+
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">如果需要POST数据     </span>
+            <span style="color: #0000ff;">if</span> (!(parameters == <span style="color: #0000ff;">null</span> || parameters.Count == <span style="color: #800080;">0</span><span style="color: #000000;">))
+            {
+                StringBuilder buffer </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> StringBuilder();
+                </span><span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span><span style="color: #000000;">;
+                </span><span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">string</span> key <span style="color: #0000ff;">in</span><span style="color: #000000;"> parameters.Keys)
+                {
+                    </span><span style="color: #0000ff;">if</span> (i &gt; <span style="color: #800080;">0</span><span style="color: #000000;">)
+                    {
+                        buffer.AppendFormat(</span><span style="color: #800000;">"</span><span style="color: #800000;">&amp;{0}={1}</span><span style="color: #800000;">"</span><span style="color: #000000;">, key, parameters[key]);
+                    }
+                    </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+                    {
+                        buffer.AppendFormat(</span><span style="color: #800000;">"</span><span style="color: #800000;">{0}={1}</span><span style="color: #800000;">"</span><span style="color: #000000;">, key, parameters[key]);
+                    }
+                    i</span>++<span style="color: #000000;">;
+                }
+                </span><span style="color: #0000ff;">byte</span>[] data =<span style="color: #000000;"> encoding.GetBytes(buffer.ToString());
+                </span><span style="color: #0000ff;">using</span> (Stream stream =<span style="color: #000000;"> request.GetRequestStream())
+                {
+                    stream.Write(data, </span><span style="color: #800080;">0</span><span style="color: #000000;">, data.Length);
+                }
+            }
+
+            HttpWebResponse response;
+
+            </span><span style="color: #0000ff;">try</span><span style="color: #000000;">
+            {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">获得响应流</span>
+                response =<span style="color: #000000;"> (HttpWebResponse)request.GetResponse();
+                Stream s </span>=<span style="color: #000000;"> response.GetResponseStream();
+
+                StreamReader readStream </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> StreamReader(s, Encoding.UTF8);
+                </span><span style="color: #0000ff;">string</span> SourceCode =<span style="color: #000000;"> readStream.ReadToEnd();
+                response.Close();
+                readStream.Close();
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> SourceCode;
+            }
+            </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (WebException ex)
+            {
+                response </span>= ex.Response <span style="color: #0000ff;">as</span> HttpWebResponse; <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+            }
+
+        }
+
+   </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> CreateGetHttpResponse(<span style="color: #0000ff;">out</span> <span style="color: #0000ff;">string</span><span style="color: #000000;"> cookie)
+        {
+            HttpWebRequest request </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">HTTPSQ请求  </span>
+            UTF8Encoding encoding = <span style="color: #0000ff;">new</span><span style="color: #000000;"> System.Text.UTF8Encoding();
+            ServicePointManager.ServerCertificateValidationCallback </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> RemoteCertificateValidationCallback(CheckValidationResult);
+            request </span>= WebRequest.Create(_baseIPAddress) <span style="color: #0000ff;">as</span><span style="color: #000000;"> HttpWebRequest;
+            request.ProtocolVersion </span>=<span style="color: #000000;"> HttpVersion.Version10;
+            ServicePointManager.SecurityProtocol </span>= SecurityProtocolType.Tls12 |<span style="color: #000000;"> SecurityProtocolType.Tls11;
+            request.Method </span>= <span style="color: #800000;">"</span><span style="color: #800000;">GET</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            request.ContentType </span>= <span style="color: #800000;">"</span><span style="color: #800000;">application/x-www-form-urlencoded</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            request.UserAgent </span>=<span style="color: #000000;"> DefaultUserAgent;
+
+            HttpWebResponse response;
+
+            </span><span style="color: #0000ff;">try</span><span style="color: #000000;">
+            {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">获得响应流</span>
+                response =<span style="color: #000000;"> (HttpWebResponse)request.GetResponse();
+
+                cookie </span>= response.Headers[<span style="color: #800000;">"</span><span style="color: #800000;">Set-Cookie</span><span style="color: #800000;">"</span><span style="color: #000000;">];
+                Stream s </span>=<span style="color: #000000;"> response.GetResponseStream();
+
+                StreamReader readStream </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> StreamReader(s, Encoding.UTF8);
+                </span><span style="color: #0000ff;">string</span> SourceCode =<span style="color: #000000;"> readStream.ReadToEnd();
+                response.Close();
+                readStream.Close();
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> SourceCode;
+            }
+            </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (WebException ex)
+            {
+                response </span>= ex.Response <span style="color: #0000ff;">as</span><span style="color: #000000;"> HttpWebResponse;
+                cookie </span>= <span style="color: #800000;">""</span><span style="color: #000000;">;
+                </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+            }
+
+        }<br /></span></pre>
+</div>
+<p>爬取程序</p>
+<p><img src="./images/C# 关于爬取网站数据遇到csrf-token的分析与解决4.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h2>爬取结果</h2>
+<h2><img src="./images/C# 关于爬取网站数据遇到csrf-token的分析与解决5.png" alt="" /></h2>
+<h2 id="关于csrf">浏览器结果</h2>
+<p><img src="./images/C# 关于爬取网站数据遇到csrf-token的分析与解决6.png" alt="" /></p>
+<h2 id="关于csrf">注意事项与结论</h2>
+<p>1，不同的网站，获取cstf的方式不一样，无论怎么做，只要信息传到前台我们都可以有相应的方法来获取。</p>
+<p>2，请求时候的http验证可能不一样，测试的某航空公司物流信息的时候，http请求的安全协议是tis12。</p>
+<p>&nbsp;ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | SecurityProtocolType.Tls11; 还有其他参数比如UserAgent后台可能也会验证</p>
+<p>3,基于如上航空公司，发现它的cookie和cstf_token一定时间内不会改变，那么当实际爬取的时候可以考虑缓存cookie以及cstf_token,只有当请求失败的时候，才重新获取</p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,196 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修jqGrid TreeGrid 加载数据 排序 扩展' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>jqGrid TreeGrid 加载数据 排序 扩展</center></div><div class='banquan'>原文出处:本文由博客园博主cl@cnblog提供。<br/>
+原文连接:https://www.cnblogs.com/cl-blogs/p/10829279.html</div><br>
+    <ul>
+<li><span style="background-color: #ffffff;"><strong><span style="font-size: 18px;">发现&nbsp;jqGrid TreeGrid 加载的数据必须要排序</span></strong></span></li>
+<li><span style="background-color: #ffffff;"><strong><span style="font-size: 18px;">给了两种平滑数据模式尽然不内部递归</span></strong></span></li>
+<li><span style="background-color: #ffffff;"><strong><span style="font-size: 18px;">所以改了下源码加了个数据二次过滤器扩展</span></strong></span></li>
+</ul>
+<p>&nbsp;</p>
+<p><span style="font-size: 18px; background-color: #ffffff;"><strong>数据本该是这样的</strong></span></p>
+<p><img src="./images/jqGrid TreeGrid 加载数据 排序 扩展0.png" alt="" /></p>
+<p><span style="font-size: 18px;"><strong>结果没排序成这样了 (而且还得是从根节点到子节点整体排序)</strong></span></p>
+<p><img src="./images/jqGrid TreeGrid 加载数据 排序 扩展1.png" alt="" /></p>
+<p>&nbsp;</p>
+<p><span style="font-size: 18px; color: #000000;"><strong>1. loadFilters: 数据过滤器扩展 (顺带把ParentId为非字符串类型导致初始化后没闭合bug解决了)&nbsp;</strong></span></p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('a040cf9c-9284-4872-9e29-ef0b5e675267')"><img id="code_img_closed_a040cf9c-9284-4872-9e29-ef0b5e675267" class="code_img_closed" src="./images/jqGrid TreeGrid 加载数据 排序 扩展2.png" alt="" /><img id="code_img_opened_a040cf9c-9284-4872-9e29-ef0b5e675267" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('a040cf9c-9284-4872-9e29-ef0b5e675267',event)" src="./images/jqGrid TreeGrid 加载数据 排序 扩展3.png" alt="" />
+<div id="cnblogs_code_open_a040cf9c-9284-4872-9e29-ef0b5e675267" class="cnblogs_code_hide">
+<pre><code><span style="color: #000000;">$.extend($.jgrid.defaults, {
+        loadFilter: </span><span style="color: #0000ff;">function</span><span style="color: #000000;"> (d) {
+
+            </span><span style="color: #0000ff;">function</span><span style="color: #000000;"> compare(name, minor) {
+                </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">function</span><span style="color: #000000;"> (o, p) {
+                    </span><span style="color: #0000ff;">var</span><span style="color: #000000;"> a, b;
+                    </span><span style="color: #0000ff;">if</span> (o &amp;&amp; p &amp;&amp; <span style="color: #0000ff;">typeof</span> o === 'object' &amp;&amp; <span style="color: #0000ff;">typeof</span> p === 'object'<span style="color: #000000;">) {
+                        a </span>=<span style="color: #000000;"> o[name];
+                        b </span>=<span style="color: #000000;"> p[name];
+                        </span><span style="color: #0000ff;">if</span> (a ===<span style="color: #000000;"> b) {
+                            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">typeof</span> minor === 'function' ? minor(o, p) : 0<span style="color: #000000;">;
+                        }
+                        </span><span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">typeof</span> a === <span style="color: #0000ff;">typeof</span><span style="color: #000000;"> b) {
+                            </span><span style="color: #0000ff;">return</span> a &lt; b ? -1 : 1<span style="color: #000000;">;
+                        }
+                        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">typeof</span> a &lt; <span style="color: #0000ff;">typeof</span> b ? -1 : 1<span style="color: #000000;">;
+                    } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+                        thro(</span>"error"<span style="color: #000000;">);
+                    }
+                }
+            }
+            </span><span style="color: #0000ff;">function</span><span style="color: #000000;"> rawdata(r, parentField) {
+                </span><span style="color: #0000ff;">if</span> (!(r <span style="color: #0000ff;">instanceof</span><span style="color: #000000;"> Array)) {
+                    r[parentField] </span>= r[parentField].toString(); <span style="color: #008000;">//</span><span style="color: #008000;">转string初始化才会闭合</span>
+                    r['isLeaf'] = <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+                    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> r;
+                }
+                </span><span style="color: #0000ff;">var</span> datatmp =<span style="color: #000000;"> [];
+                </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> i = 0; i &lt; r.length; i++<span style="color: #000000;">) {
+                    </span><span style="color: #0000ff;">var</span> children = r[i]['children'<span style="color: #000000;">];
+                    r[i][</span>'children'] = <span style="color: #0000ff;">null</span><span style="color: #000000;">; 
+                    r[i][parentField] </span>= r[i][parentField].toString(); <span style="color: #008000;">//</span><span style="color: #008000;">转string初始化才会闭合</span>
+                    r[i]['isLeaf'] = !<span style="color: #000000;">children;
+                    datatmp.push(r[i]);
+                    </span><span style="color: #0000ff;">if</span> (children) datatmp =<span style="color: #000000;"> datatmp.concat(rawdata(children, parentField));
+                }
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> datatmp;
+            }
+
+            </span><span style="color: #0000ff;">var</span> data =<span style="color: #000000;"> d.rows;
+            </span><span style="color: #0000ff;">var</span><span style="color: #000000;"> idField, treeField, parentField, seqField, level_field;
+            idField     </span>= <span style="color: #0000ff;">this</span>.p.treeReader.id_field || 'id'<span style="color: #000000;">;
+            parentField </span>= <span style="color: #0000ff;">this</span>.p.treeReader.parent_id_field || 'pid'<span style="color: #000000;">;
+            levelField  </span>= <span style="color: #0000ff;">this</span>.p.treeReader.level_field || idField<span style="color: #008000;">//</span><span style="color: #008000;">'level'</span>
+            seqField    = <span style="color: #0000ff;">this</span>.p.treeReader.seq_field || idField<span style="color: #008000;">//</span><span style="color: #008000;">'seq' // 注意：绑定上是显示字段用 treeField </span>
+
+            <span style="color: #0000ff;">if</span>(seqField !=<span style="color: #000000;"> idField)  data.sort(compare(levelField, compare(seqField)));
+            </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> data.sort(compare(seqField) );
+
+            </span><span style="color: #0000ff;">var</span> i, l, treeData = [], tmpMap =<span style="color: #000000;"> [];
+            </span><span style="color: #0000ff;">for</span> (i = 0, l = data.length; i &lt; l; i++<span style="color: #000000;">) {
+                tmpMap[data[i][idField]] </span>=<span style="color: #000000;"> data[i];
+            }
+            </span><span style="color: #0000ff;">for</span> (i = 0, l = data.length; i &lt; l; i++<span style="color: #000000;">) {
+                </span><span style="color: #0000ff;">if</span> (tmpMap[data[i][parentField]] &amp;&amp; data[i][idField] !=<span style="color: #000000;"> data[i][parentField]) {
+                    </span><span style="color: #0000ff;">if</span> (!tmpMap[data[i][parentField]]['children'<span style="color: #000000;">])
+                        tmpMap[data[i][parentField]][</span>'children'] =<span style="color: #000000;"> []; 
+                    tmpMap[data[i][parentField]][</span>'children'<span style="color: #000000;">].push(data[i]);
+                } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> { 
+                    data.sort(</span><span style="color: #0000ff;">function</span> (a, b) { <span style="color: #0000ff;">return</span> a[seqField] - b[seqField]; }); <span style="color: #008000;">//</span><span style="color: #008000;">从小到大排序</span>
+<span style="color: #000000;">                    treeData.push(data[i]);
+                }
+            }
+            d.rows </span>=<span style="color: #000000;"> rawdata(treeData, parentField);
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> d;
+        }
+    });</span></pre>
+</div>
+<span class="cnblogs_code_collapse">xxoo</span></div>
+<p>&nbsp;</p>
+<p><span style="font-size: 18px;"><strong>2. TreeGrid配置数据</strong></span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span>     "treeGrid": <span style="color: #0000ff;">true</span><span style="color: #000000;">,
+</span><span style="color: #008080;"> 2</span>     "ExpandColumn": "Title"<span style="color: #000000;">,
+</span><span style="color: #008080;"> 3</span>     "treedatatype": "json"<span style="color: #000000;">,
+</span><span style="color: #008080;"> 4</span>     "treeGridModel": "adjacency",  <span style="color: #008000;">//</span><span style="color: #008000;">选adjacency模式 (nested模式真zz,怎么会有这种数据格式) </span>
+<span style="color: #008080;"> 5</span>     "treeReader"<span style="color: #000000;">: {
+</span><span style="color: #008080;"> 6</span>         "id_field": "Id",              <span style="color: #008000;">//</span><span style="color: #008000;">Id       非空</span>
+<span style="color: #008080;"> 7</span>         "parent_id_field": "ParentId", <span style="color: #008000;">//</span><span style="color: #008000;">父节点Id 非空  </span>
+<span style="color: #008080;"> 8</span>         "level_field": "Level",        <span style="color: #008000;">//</span><span style="color: #008000;">层级     非空</span>
+<span style="color: #008080;"> 9</span>         "seq_field": "seq",            <span style="color: #008000;">//</span><span style="color: #008000;">层级排序 可选字段 默认Id排序</span>
+<span style="color: #008080;">10</span>         <span style="color: #008000;">//</span><span style="color: #008000;">"leaf_field": "isLeaf",      //叶节点过滤内已处理</span>
+<span style="color: #008080;">11</span>     },    </pre>
+</div>
+<div class="cnblogs_code" onclick="cnblogs_code_show('a432effe-6ede-4fca-8b8f-dd2317369856')"><img id="code_img_closed_a432effe-6ede-4fca-8b8f-dd2317369856" class="code_img_closed" src="./images/jqGrid TreeGrid 加载数据 排序 扩展2.png" alt="" /><img id="code_img_opened_a432effe-6ede-4fca-8b8f-dd2317369856" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('a432effe-6ede-4fca-8b8f-dd2317369856',event)" src="./images/jqGrid TreeGrid 加载数据 排序 扩展3.png" alt="" />
+<div id="cnblogs_code_open_a432effe-6ede-4fca-8b8f-dd2317369856" class="cnblogs_code_hide">
+<pre><code>jQuery(document).ready(<span style="color: #0000ff;">function</span><span style="color: #000000;">($) {
+        jQuery(</span>'#jqGrid'<span style="color: #000000;">).jqGrid({
+            </span>"url": '@Url.Action("GetMenu", "Setup")'<span style="color: #000000;">,
+            </span>"datatype": "json", <span style="color: #008000;">//</span><span style="color: #008000;">json", //data: jsondata,</span>
+            "colModel"<span style="color: #000000;">:[
+                    { name: </span>'Id', "key": <span style="color: #0000ff;">true</span>, "width": 50 }, <span style="color: #008000;">//</span><span style="color: #008000;"> "hidden": true,</span>
+                { lable:'PId' , name: 'ParentId', width: 70<span style="color: #000000;"> },
+                 { label: </span>'名称', name: 'Title', width: 180<span style="color: #000000;">,  },
+                 { label: </span>'图标', name: 'img', width: 180<span style="color: #000000;"> },
+                 { label: </span>'地址', name: 'href', width: 300<span style="color: #000000;"> },
+                 { label: </span>'排序', name: 'seq', width: 80<span style="color: #000000;"> },
+                 { label: </span>'打开方式', name: 'Target', width: 80<span style="color: #000000;"> },
+                 { label: </span>'层级', name: 'Level', width: 80<span style="color: #000000;"> },
+                 { label: </span>'删除', name: 'IsDel', width: 80<span style="color: #000000;"> }
+            ],
+            </span>"hoverrows":<span style="color: #0000ff;">false</span><span style="color: #000000;">,
+            </span>"viewrecords":<span style="color: #0000ff;">false</span><span style="color: #000000;">,
+            </span>"gridview":<span style="color: #0000ff;">true</span><span style="color: #000000;">,
+            </span>"height":"auto"<span style="color: #000000;">,
+            </span>"rowNum":100<span style="color: #000000;">,
+            </span>"scrollrows": <span style="color: #0000ff;">true</span><span style="color: #000000;">,
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">"loadonce": true,</span>
+            "treeGrid": <span style="color: #0000ff;">true</span><span style="color: #000000;">,
+            </span>"ExpandColumn": "Title"<span style="color: #000000;">,
+            </span>"treedatatype": "json"<span style="color: #000000;">,
+            </span>"treeGridModel": "adjacency",  <span style="color: #008000;">//</span><span style="color: #008000;">选adjacency模式 (nested模式真zz,怎么会有这种数据格式) </span>
+            "treeReader"<span style="color: #000000;">: {
+                </span>"id_field": "Id",              <span style="color: #008000;">//</span><span style="color: #008000;">Id       非空</span>
+                "parent_id_field": "ParentId", <span style="color: #008000;">//</span><span style="color: #008000;">父节点Id 非空  </span>
+                "level_field": "Level",        <span style="color: #008000;">//</span><span style="color: #008000;">层级     非空</span>
+                "seq_field": "seq",            <span style="color: #008000;">//</span><span style="color: #008000;">层级排序 可选字段 默认Id排序</span>
+                <span style="color: #008000;">//</span><span style="color: #008000;">"leaf_field": "isLeaf",      //叶节点过滤内已处理</span>
+<span style="color: #000000;">            },
+            </span>"pager": "#jqGridPager"<span style="color: #000000;">
+        });
+    });</span></pre>
+</div>
+<span class="cnblogs_code_collapse">完整绑定</span></div>
+<p>&nbsp;</p>
+<p><span style="font-size: 18px;"><strong>3.jsGrid.js源码修改 2处</strong></span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//&gt;</span><span style="color: #008000;">1 注册过滤器扩展方法</span>
+$.fn.jqGrid = <span style="color: #0000ff;">function</span><span style="color: #000000;">( pin ) {
+    </span><span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">typeof</span> pin === 'string'<span style="color: #000000;">) {
+        ........
+    }
+    </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span>.each( <span style="color: #0000ff;">function</span><span style="color: #000000;">() {
+                ........
+        </span><span style="color: #0000ff;">var</span> p = $.extend(<span style="color: #0000ff;">true</span><span style="color: #000000;">, {
+            loadFilter: </span><span style="color: #0000ff;">null</span>, <span style="color: #008000;">//</span><span style="color: #008000;">就加这一行  ajax加载数据后二次过滤</span>
+            url: ""<span style="color: #000000;">,
+            height: </span>150,</pre>
+</div>
+<p>&nbsp;</p>
+<div class="cnblogs_code">
+<pre><code>　　<span style="color: #008000;">//</span><span style="color: #008000;">&gt;2 调用过滤器 搜索 case "script" 或 $.ajax</span>
+　　<span style="color: #0000ff;">case</span> "script"<span style="color: #000000;">:
+        $.ajax($.extend({
+            url:
+                        ........
+            success: </span><span style="color: #0000ff;">function</span><span style="color: #000000;"> (data, st, xhr) {
+                </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> ($.isFunction(ts.p.loadFilter)) { 
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">添加这个if块即可   加载数据后二次过滤</span>
+                    data =<span style="color: #000000;"> ts.p.loadFilter.call(ts,data);
+                }     
+                </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> ($.isFunction(ts.p.beforeProcessing)) {
+                                 .......
+                            }  </span></pre>
+</div>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

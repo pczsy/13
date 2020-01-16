@@ -1,0 +1,276 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修动手造轮子：基于 Redis 实现 EventBus' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>动手造轮子：基于 Redis 实现 EventBus</center></div><div class='banquan'>原文出处:本文由博客园博主WeihanLi提供。<br/>
+原文连接:https://www.cnblogs.com/weihanli/p/implement-eventbus-with-redis-pubsub.html</div><br>
+    <h1 id="动手造轮子基于-redis-实现-eventbus">动手造轮子：基于 Redis 实现 EventBus</h1>
+<h2 id="intro">Intro</h2>
+<p>上次我们造了一个<a href="https://www.cnblogs.com/weihanli/p/implement-a-simple-event-bus.html">简单的基于内存的 <code>EventBus</code></a>，但是如果要跨系统的话就不合适了，所以有了这篇基于 <code>Redis</code> 的 <code>EventBus</code> 探索。</p>
+<p>本文的实现是基于 <code>StackExchange.Redis</code> 来实现的。</p>
+<h2 id="rediseventstore-实现"><code>RedisEventStore</code> 实现</h2>
+<p>既然要实现跨系统的 <code>EventBus</code> 再使用基于内存的 EventStore 自然不行，因此这里基于 Redis 设计了一个 <code>EventStoreInRedis</code> ,基于 redis 的 Hash 来实现，以 Event 的 EventKey 作为 fieldName，以 Event 对应的 EventHandler 作为 value。</p>
+<p><code>EventStoreInRedis</code> 实现：</p>
+<pre><code><code>public class EventStoreInRedis : IEventStore
+{
+    protected readonly string EventsCacheKey;
+    protected readonly ILogger Logger;
+
+    private readonly IRedisWrapper Wrapper;
+
+    public EventStoreInRedis(ILogger&lt;EventStoreInRedis&gt; logger)
+    {
+        Logger = logger;
+        Wrapper = new RedisWrapper(RedisConstants.EventStorePrefix);
+
+        EventsCacheKey = RedisManager.RedisConfiguration.EventStoreCacheKey;
+    }
+
+    public bool AddSubscription&lt;TEvent, TEventHandler&gt;()
+        where TEvent : IEventBase
+        where TEventHandler : IEventHandler&lt;TEvent&gt;
+    {
+        var eventKey = GetEventKey&lt;TEvent&gt;();
+        var handlerType = typeof(TEventHandler);
+        if (Wrapper.Database.HashExists(EventsCacheKey, eventKey))
+        {
+            var handlers = Wrapper.Unwrap&lt;HashSet&lt;Type&gt;&gt;(Wrapper.Database.HashGet(EventsCacheKey, eventKey));
+
+            if (handlers.Contains(handlerType))
+            {
+                return false;
+            }
+            handlers.Add(handlerType);
+            Wrapper.Database.HashSet(EventsCacheKey, eventKey, Wrapper.Wrap(handlers));
+            return true;
+        }
+        else
+        {
+            return Wrapper.Database.HashSet(EventsCacheKey, eventKey, Wrapper.Wrap(new HashSet&lt;Type&gt; { handlerType }), StackExchange.Redis.When.NotExists);
+        }
+    }
+
+    public bool Clear()
+    {
+        return Wrapper.Database.KeyDelete(EventsCacheKey);
+    }
+
+    public ICollection&lt;Type&gt; GetEventHandlerTypes&lt;TEvent&gt;() where TEvent : IEventBase
+    {
+        var eventKey = GetEventKey&lt;TEvent&gt;();
+        return Wrapper.Unwrap&lt;HashSet&lt;Type&gt;&gt;(Wrapper.Database.HashGet(EventsCacheKey, eventKey));
+    }
+
+    public string GetEventKey&lt;TEvent&gt;()
+    {
+        return typeof(TEvent).FullName;
+    }
+
+    public bool HasSubscriptionsForEvent&lt;TEvent&gt;() where TEvent : IEventBase
+    {
+        var eventKey = GetEventKey&lt;TEvent&gt;();
+        return Wrapper.Database.HashExists(EventsCacheKey, eventKey);
+    }
+
+    public bool RemoveSubscription&lt;TEvent, TEventHandler&gt;()
+        where TEvent : IEventBase
+        where TEventHandler : IEventHandler&lt;TEvent&gt;
+    {
+        var eventKey = GetEventKey&lt;TEvent&gt;();
+        var handlerType = typeof(TEventHandler);
+
+        if (!Wrapper.Database.HashExists(EventsCacheKey, eventKey))
+        {
+            return false;
+        }
+
+        var handlers = Wrapper.Unwrap&lt;HashSet&lt;Type&gt;&gt;(Wrapper.Database.HashGet(EventsCacheKey, eventKey));
+
+        if (!handlers.Contains(handlerType))
+        {
+            return false;
+        }
+
+        handlers.Remove(handlerType);
+        Wrapper.Database.HashSet(EventsCacheKey, eventKey, Wrapper.Wrap(handlers));
+        return true;
+    }
+}
+</code></pre>
+<p><code>RedisWrapper</code> 及更具体的代码可以参考我的 Redis 的扩展的实现 <a href="https://github.com/WeihanLi/WeihanLi.Redis" class="uri">https://github.com/WeihanLi/WeihanLi.Redis</a></p>
+<h2 id="rediseventbus-实现"><code>RedisEventBus</code> 实现</h2>
+<p>RedisEventBus 是基于 Redis 的 PUB/SUB 实现的，实现的感觉还有一些小问题，我想确保每个客户端注册的时候每个 <code>EventHandler</code> 即使多次注册也只注册一次，但是还没找到一个好的实现，如果你有什么想法欢迎指出，和我一起交流。具体的实现细节如下：</p>
+<pre><code><code>public class RedisEventBus : IEventBus
+{
+    private readonly IEventStore _eventStore;
+    private readonly ISubscriber _subscriber;
+    private readonly IServiceProvider _serviceProvider;
+
+    public RedisEventBus(IEventStore eventStore, IConnectionMultiplexer connectionMultiplexer, IServiceProvider serviceProvider)
+    {
+        _eventStore = eventStore;
+        _serviceProvider = serviceProvider;
+        _subscriber = connectionMultiplexer.GetSubscriber();
+    }
+
+    private string GetChannelPrefix&lt;TEvent&gt;() where TEvent : IEventBase
+    {
+        var eventKey = _eventStore.GetEventKey&lt;TEvent&gt;();
+        var channelPrefix =
+            $&quot;{RedisManager.RedisConfiguration.EventBusChannelPrefix}{RedisManager.RedisConfiguration.KeySeparator}{eventKey}{RedisManager.RedisConfiguration.KeySeparator}&quot;;
+        return channelPrefix;
+    }
+
+    private string GetChannelName&lt;TEvent, TEventHandler&gt;() where TEvent : IEventBase
+        where TEventHandler : IEventHandler&lt;TEvent&gt;
+        =&gt; GetChannelName&lt;TEvent&gt;(typeof(TEventHandler));
+
+    private string GetChannelName&lt;TEvent&gt;(Type eventHandlerType) where TEvent : IEventBase
+    {
+        var channelPrefix = GetChannelPrefix&lt;TEvent&gt;();
+        var channelName = $&quot;{channelPrefix}{eventHandlerType.FullName}&quot;;
+
+        return channelName;
+    }
+
+    public bool Publish&lt;TEvent&gt;(TEvent @event) where TEvent : IEventBase
+    {
+        if (!_eventStore.HasSubscriptionsForEvent&lt;TEvent&gt;())
+        {
+            return false;
+        }
+
+        var eventData = @event.ToJson();
+        var handlerTypes = _eventStore.GetEventHandlerTypes&lt;TEvent&gt;();
+        foreach (var handlerType in handlerTypes)
+        {
+            var handlerChannelName = GetChannelName&lt;TEvent&gt;(handlerType);
+            _subscriber.Publish(handlerChannelName, eventData);
+        }
+
+        return true;
+    }
+
+    public bool Subscribe&lt;TEvent, TEventHandler&gt;()
+        where TEvent : IEventBase
+        where TEventHandler : IEventHandler&lt;TEvent&gt;
+    {
+        _eventStore.AddSubscription&lt;TEvent, TEventHandler&gt;();
+
+        var channelName = GetChannelName&lt;TEvent, TEventHandler&gt;();
+
+        //// TODO: if current client subscribed the channel
+        //if (true)
+        //{
+        _subscriber.Subscribe(channelName, async (channel, eventMessage) =&gt;
+        {
+            var eventData = eventMessage.ToString().JsonToType&lt;TEvent&gt;();
+            var handler = _serviceProvider.GetServiceOrCreateInstance&lt;TEventHandler&gt;();
+            if (null != handler)
+            {
+                await handler.Handle(eventData).ConfigureAwait(false);
+            }
+        });
+        return true;
+        //}
+
+        //return false;
+    }
+
+    public bool Unsubscribe&lt;TEvent, TEventHandler&gt;()
+        where TEvent : IEventBase
+        where TEventHandler : IEventHandler&lt;TEvent&gt;
+    {
+        _eventStore.RemoveSubscription&lt;TEvent, TEventHandler&gt;();
+
+        var channelName = GetChannelName&lt;TEvent, TEventHandler&gt;();
+
+        //// TODO: if current client subscribed the channel
+        //if (true)
+        //{
+        _subscriber.Unsubscribe(channelName);
+        return true;
+        //}
+        //return false;
+    }
+}</code></pre>
+<h2 id="使用示例">使用示例：</h2>
+<p>使用起来大体上和上一篇使用一致，只是在初始化注入服务的时候，我们需要把 <code>IEventBus</code> 和 <code>IEventStore</code> 替换为对应 Redis 的实现即可。</p>
+<ol>
+<li><p>注册服务</p>
+<pre><code><code>services.AddSingleton&lt;IEventBus, RedisEventBus&gt;();
+services.AddSingleton&lt;IEventStore, EventStoreInRedis&gt;();</code></pre></li>
+<li><p>注册 <code>EventHandler</code></p>
+<pre><code><code>services.AddSingleton&lt;NoticeViewEventHandler&gt;();</code></pre></li>
+<li><p>订阅事件</p>
+<pre><code><code>eventBus.Subscribe&lt;NoticeViewEvent, NoticeViewEventHandler&gt;();</code></pre></li>
+<li><p>发布事件</p>
+<pre><code><code>[HttpGet(&quot;{path}&quot;)]
+public async Task&lt;IActionResult&gt; GetByPath(string path, CancellationToken cancellationToken, [FromServices]IEventBus eventBus)
+{
+    var notice = await _repository.FetchAsync(n =&gt; n.NoticeCustomPath == path, cancellationToken);
+    if (notice == null)
+    {
+        return NotFound();
+    }
+    eventBus.Publish(new NoticeViewEvent { NoticeId = notice.NoticeId });
+    return Ok(notice);
+}</code></pre></li>
+</ol>
+<h2 id="memo">Memo</h2>
+<p>如果要实现基于消息队列的事件处理，需要注意，消息可能会重复，可能会需要在事件处理中注意一下业务的幂等性或者对消息对一个去重处理。</p>
+<p>我在使用 Redis 的事件处理中使用了一个基于 Redis 原子递增的特性设计的一个防火墙，从而实现一段时间内某一个消息id只会被处理一次，实现源码：<a href="https://github.com/WeihanLi/ActivityReservation/blob/dev/ActivityReservation.Helper/Events/NoticeViewEvent.cs" class="uri">https://github.com/WeihanLi/ActivityReservation/blob/dev/ActivityReservation.Helper/Events/NoticeViewEvent.cs</a></p>
+<pre><code><code>public class NoticeViewEvent : EventBase
+{
+    public Guid NoticeId { get; set; }
+
+    // UserId
+    // IP
+    // ...
+}
+
+public class NoticeViewEventHandler : IEventHandler&lt;NoticeViewEvent&gt;
+{
+    public async Task Handle(NoticeViewEvent @event)
+    {
+        var firewallClient = RedisManager.GetFirewallClient($&quot;{nameof(NoticeViewEventHandler)}_{@event.EventId}&quot;, TimeSpan.FromMinutes(5));
+        if (await firewallClient.HitAsync())
+        {
+            await DependencyResolver.Current.TryInvokeServiceAsync&lt;ReservationDbContext&gt;(async dbContext =&gt;
+            {
+                //var notice = await dbContext.Notices.FindAsync(@event.NoticeId);
+                //notice.NoticeVisitCount += 1;
+                //await dbContext.SaveChangesAsync();
+
+                var conn = dbContext.Database.GetDbConnection();
+                await conn.ExecuteAsync($@&quot;UPDATE tabNotice SET NoticeVisitCount = NoticeVisitCount +1 WHERE NoticeId = @NoticeId&quot;, new { @event.NoticeId });
+            });
+        }
+    }
+}</code></pre>
+<h2 id="reference">Reference</h2>
+<ul>
+<li><a href="https://github.com/WeihanLi/ActivityReservation" class="uri">https://github.com/WeihanLi/ActivityReservation</a></li>
+<li><a href="https://github.com/WeihanLi/WeihanLi.Redis" class="uri">https://github.com/WeihanLi/WeihanLi.Redis</a></li>
+<li><a href="https://redis.io/topics/pubsub" class="uri">https://redis.io/topics/pubsub</a></li>
+</ul>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

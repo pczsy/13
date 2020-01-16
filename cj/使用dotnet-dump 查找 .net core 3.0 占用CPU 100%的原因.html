@@ -1,0 +1,214 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修使用dotnet-dump 查找 .net core 3.0 占用CPU 100%的原因' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>使用dotnet-dump 查找 .net core 3.0 占用CPU 100%的原因</center></div><div class='banquan'>原文出处:本文由博客园博主zhouandke提供。<br/>
+原文连接:https://www.cnblogs.com/zhouandke/p/11070114.html</div><br>
+    <p>　　公司的产品一直紧跟 .net core 3.0 preview 不断升级, 部署到 Linux 服务器后, 偶尔会出现某个进程CPU占用100%.<br />　　由于服务部署在云上, 不能使用远程调试; 在局域网内的Linux 服务器 或 Windows开发机上又不能重现这个问题, 联想到Java的jstack, 很是羡慕啊. 想到.net core 已经出来这么久了, 还是试着找找看吧, 结果还真找到一篇博客<a title="Introducing diagnostics improvements in .NET Core 3.0" href="https://devblogs.microsoft.com/dotnet/introducing-diagnostics-improvements-in-net-core-3-0/" target="_blank">Introducing diagnostics improvements in .NET Core 3.0</a></p>
+<p>&nbsp;</p>
+<p>　　这篇文章介绍了3个工具</p>
+<ul>
+<li>dotnet-counters: 实时统计runtime的状况, 包括 CPU、内存、GC、异常等</li>
+<li>dotnet-trace: 类似性能探测器</li>
+<li>dotnet-dump: 程序崩溃时使用该工具</li>
+
+
+
+</ul>
+<p>　　这次使用的是dotnet-dump, 即使程序没有崩溃, 也可以dump程序快照, 用于分析</p>
+<p>&nbsp;</p>
+<p>实验环境</p>
+<p>ubuntu-16.04.5-desktop-amd64<br />SDK 3.0.100-preview6-012264 </p>
+<p>&nbsp;</p>
+<p>1. 新建一个简单Console程序(<span style="color: #ff0000;"><strong>只能是 .net core 3.0的程序, 不支持 .net core 2.2</strong></span>), 模拟CPU占用100%的情况</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">mkdir</span> NetCoreDumpTest &amp;&amp;<span style="color: #000000;"> cd NetCoreDumpTest
+dotnet new console</span></pre>
+</div>
+<p>编辑Program.cs</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">namespace</span><span style="color: #000000;"> NetCoreDumpTest
+{
+    </span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System;
+    </span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Threading.Tasks;
+    </span><span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            Task.Factory.StartNew(() </span>=&gt; PrintNumber(<span style="color: #800000;">"</span><span style="color: #800000;">Print</span><span style="color: #800000;">"</span>, <span style="color: #800080;">5</span><span style="color: #000000;">));
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Press any key to exit.</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            Console.ReadKey();
+        }
+
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> PrintNumber(<span style="color: #0000ff;">string</span> message, <span style="color: #0000ff;">int</span><span style="color: #000000;"> startNumber)
+        {
+            </span><span style="color: #0000ff;">var</span> number =<span style="color: #000000;"> startNumber;
+            </span><span style="color: #0000ff;">while</span> (<span style="color: #0000ff;">true</span><span style="color: #000000;">)
+                Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">{message} {number++}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+        }
+    }
+}</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>2. 安装dotnet-dump</p>
+<div class="cnblogs_code">
+<pre><code>dotnet tool <span style="color: #0000ff;">install</span> --global dotnet-dump --version <span style="color: #800080;">1.0</span>.<span style="color: #800080;">4</span>-preview6.<span style="color: #800080;">19311.1</span></pre>
+</div>
+<p>提示</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">If you are using bash, you can add it to your profile by running the following command:
+
+</span><span style="color: #0000ff;">cat</span> &lt;&lt; \EOF &gt;&gt; ~/<span style="color: #000000;">.bash_profile
+# Add .NET Core SDK tools
+export PATH</span>=<span style="color: #800000;">"</span><span style="color: #800000;">$PATH:/home/****/.dotnet/tools</span><span style="color: #800000;">"</span><span style="color: #000000;">
+EOF
+
+You can add it to the current session by running the following command:
+
+export PATH</span>=<span style="color: #800000;">"</span><span style="color: #800000;">$PATH:/home/****/.dotnet/tools</span><span style="color: #800000;">"</span><span style="color: #000000;">
+
+You can invoke the tool using the following command: dotnet</span>-<span style="color: #000000;">dump
+Tool </span><span style="color: #800000;">'</span><span style="color: #800000;">dotnet-dump</span><span style="color: #800000;">'</span> (version <span style="color: #800000;">'</span><span style="color: #800000;">1.0.4-preview6.19311.1</span><span style="color: #800000;">'</span>) was successfully installed.</pre>
+</div>
+<p>建议将 $HOME/.dotnet/tools加入到PATH, 好吧, 照着做吧, 记得使用下面的命令使设置立即生效</p>
+<div class="cnblogs_code">
+<pre><code>source ~/.bash_profile</pre>
+</div>
+<p>&nbsp;</p>
+<p>3. 使用 dotnet NetCoreDumpTest.dll 启动我们的问题程序, 然后使用&nbsp; ps -ef | grep dotnet&nbsp; 查看程序的进程ID, 可以看到进程ID是 3411</p>
+<div class="cnblogs_code">
+<pre><code>ps -ef | grep dotnet<br />z*****e     <span style="color: #800080;">3411</span>   <span style="color: #800080;">1464</span> <span style="color: #800080;">22</span> <span style="color: #800080;">07</span>:<span style="color: #800080;">51</span> pts/<span style="color: #800080;">8</span>    <span style="color: #800080;">00</span>:<span style="color: #800080;">00</span>:<span style="color: #800080;">59</span><span style="color: #000000;"> dotnet NetCoreDumpTest.dll
+z</span>*****e     <span style="color: #800080;">3431</span>   <span style="color: #800080;">2935</span>  <span style="color: #800080;">0</span> <span style="color: #800080;">07</span>:<span style="color: #800080;">55</span> pts/<span style="color: #800080;">9</span>    <span style="color: #800080;">00</span>:<span style="color: #800080;">00</span>:<span style="color: #800080;">00</span> <span style="color: #0000ff;">grep</span> --color=auto dotnet</pre>
+</div>
+<p>针对进程3411, 我们还需要知道是哪个线程占CPU, 使用&nbsp;top -Hp 3411 可以列出所有线程, 由于top每隔3秒刷新一次, 所以可能需要多观察几秒才能看到具体是哪个线程占用CPU比较高, 这里我们可以看到是PID=3418的线程(Linux的进程ID和线程ID请自行了解一下).</p>
+<div class="cnblogs_code">
+<pre><code>top -Hp <span style="color: #800080;">3411</span><span style="color: #000000;">
+   PID USER      PR  NI    VIRT    RES    SHR S </span>%CPU %MEM     TIME+<span style="color: #000000;"> COMMAND
+  </span><span style="color: #800080;">3418</span> z*****e    <span style="color: #800080;">20</span>   <span style="color: #800080;">0</span> <span style="color: #800080;">2997700</span>  <span style="color: #800080;">29060</span>  <span style="color: #800080;">22400</span> R <span style="color: #800080;">10.3</span>  <span style="color: #800080;">1.4</span>   <span style="color: #800080;">0</span>:<span style="color: #800080;">20.68</span><span style="color: #000000;"> dotnet
+  </span><span style="color: #800080;">3411</span> z*****e    <span style="color: #800080;">20</span>   <span style="color: #800080;">0</span> <span style="color: #800080;">2997700</span>  <span style="color: #800080;">29060</span>  <span style="color: #800080;">22400</span> S  <span style="color: #800080;">0.0</span>  <span style="color: #800080;">1.4</span>   <span style="color: #800080;">0</span>:<span style="color: #800080;">00.11</span><span style="color: #000000;"> dotnet
+  </span><span style="color: #800080;">3412</span> z*****e    <span style="color: #800080;">20</span>   <span style="color: #800080;">0</span> <span style="color: #800080;">2997700</span>  <span style="color: #800080;">29060</span>  <span style="color: #800080;">22400</span> S  <span style="color: #800080;">0.0</span>  <span style="color: #800080;">1.4</span>   <span style="color: #800080;">0</span>:<span style="color: #800080;">00.02</span><span style="color: #000000;"> dotnet
+  </span><span style="color: #800080;">3413</span> z*****e    <span style="color: #800080;">20</span>   <span style="color: #800080;">0</span> <span style="color: #800080;">2997700</span>  <span style="color: #800080;">29060</span>  <span style="color: #800080;">22400</span> S  <span style="color: #800080;">0.0</span>  <span style="color: #800080;">1.4</span>   <span style="color: #800080;">0</span>:<span style="color: #800080;">00.00</span><span style="color: #000000;"> dotnet
+  </span><span style="color: #800080;">3414</span> z*****e    <span style="color: #800080;">20</span>   <span style="color: #800080;">0</span> <span style="color: #800080;">2997700</span>  <span style="color: #800080;">29060</span>  <span style="color: #800080;">22400</span> S  <span style="color: #800080;">0.0</span>  <span style="color: #800080;">1.4</span>   <span style="color: #800080;">0</span>:<span style="color: #800080;">00.00</span><span style="color: #000000;"> dotnet
+  </span><span style="color: #800080;">3415</span> z*****e    <span style="color: #800080;">20</span>   <span style="color: #800080;">0</span> <span style="color: #800080;">2997700</span>  <span style="color: #800080;">29060</span>  <span style="color: #800080;">22400</span> S  <span style="color: #800080;">0.0</span>  <span style="color: #800080;">1.4</span>   <span style="color: #800080;">0</span>:<span style="color: #800080;">00.01</span><span style="color: #000000;"> dotnet
+  </span><span style="color: #800080;">3416</span> z*****e    <span style="color: #800080;">20</span>   <span style="color: #800080;">0</span> <span style="color: #800080;">2997700</span>  <span style="color: #800080;">29060</span>  <span style="color: #800080;">22400</span> S  <span style="color: #800080;">0.0</span>  <span style="color: #800080;">1.4</span>   <span style="color: #800080;">0</span>:<span style="color: #800080;">00.00</span><span style="color: #000000;"> dotnet
+  </span><span style="color: #800080;">3417</span> z*****e    <span style="color: #800080;">20</span>   <span style="color: #800080;">0</span> <span style="color: #800080;">2997700</span>  <span style="color: #800080;">29060</span>  <span style="color: #800080;">22400</span> S  <span style="color: #800080;">0.0</span>  <span style="color: #800080;">1.4</span>   <span style="color: #800080;">0</span>:<span style="color: #800080;">00.00</span><span style="color: #000000;"> dotnet
+  </span><span style="color: #800080;">3421</span> z*****e    <span style="color: #800080;">20</span>   <span style="color: #800080;">0</span> <span style="color: #800080;">2997700</span>  <span style="color: #800080;">29060</span>  <span style="color: #800080;">22400</span> S  <span style="color: #800080;">0.0</span>  <span style="color: #800080;">1.4</span>   <span style="color: #800080;">0</span>:<span style="color: #800080;">00.00</span> dotnet</pre>
+</div>
+<p>&nbsp;</p>
+<p>获取dump, 只能正对进程进行dump, 所以我们输入的是 3411</p>
+<div class="cnblogs_code">
+<pre><code>dotnet-dump collect -p <span style="color: #800080;">3411</span><span style="color: #000000;">
+Writing minidump with heap to </span>/tmp/<span style="color: #000000;">core_20190623_075649
+Complete</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>4. 分析</p>
+<p>dotnet-dump analyze&nbsp;core_20190623_075649</p>
+<p>使用clrthreads 查看所有线程</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">&gt;clrthreads
+ThreadCount:      </span><span style="color: #800080;">4</span><span style="color: #000000;">
+UnstartedThread:  </span><span style="color: #800080;">0</span><span style="color: #000000;">
+BackgroundThread: </span><span style="color: #800080;">3</span><span style="color: #000000;">
+PendingThread:    </span><span style="color: #800080;">0</span><span style="color: #000000;">
+DeadThread:       </span><span style="color: #800080;">0</span><span style="color: #000000;">
+Hosted Runtime:   no
+                                                                                                        Lock
+ DBG   ID OSID ThreadOBJ           State GC Mode     GC Alloc Context                  Domain           Count Apt Exception
+   </span><span style="color: #800080;">0</span>    <span style="color: #800080;">1</span>  d53 0000000001307D80    <span style="color: #800080;">20020</span> Preemptive  <span style="color: #800080;">0000000000000000</span>:<span style="color: #800080;">0000000000000000</span> <span style="color: #800080;">0000000001306450</span> <span style="color: #800080;">1</span><span style="color: #000000;">     Ukn
+   </span><span style="color: #800080;">4</span>    <span style="color: #800080;">2</span>  d57 000000000135BBD0    <span style="color: #800080;">21220</span> Preemptive  <span style="color: #800080;">0000000000000000</span>:<span style="color: #800080;">0000000000000000</span> <span style="color: #800080;">0000000001306450</span> <span style="color: #800080;">0</span><span style="color: #000000;">     Ukn (Finalizer)
+   </span><span style="color: #800080;">6</span>    <span style="color: #800080;">3</span>  d59 00007F666C0009F0  <span style="color: #800080;">1020220</span> Preemptive  <span style="color: #800080;">0000000000000000</span>:<span style="color: #800080;">0000000000000000</span> <span style="color: #800080;">0000000001306450</span> <span style="color: #800080;">0</span><span style="color: #000000;">     Ukn (Threadpool Worker)
+   </span><span style="color: #800080;">7</span>    <span style="color: #800080;">4</span>  d5a 000000000130DA40  <span style="color: #800080;">1021220</span> Preemptive  00007F6678106860:00007F6678106F20 <span style="color: #800080;">0000000001306450</span> <span style="color: #800080;">1</span>     Ukn (Threadpool Worker)</pre>
+</div>
+<p>我们关心的线程3418的16进制是d5a, 也就是最后一行, 它的DBG是7,&nbsp;我们需要使用 setthread 7, 将其设置为&nbsp; <strong>当前操作的线程</strong></p>
+<p>然后使用 clrstack 获取线程调用信息</p>
+<div class="cnblogs_code">
+<pre><code>&gt; setthread <span style="color: #800080;">7</span>
+&gt;<span style="color: #000000;"> clrstack
+OS Thread Id: </span><span style="color: #800080;">0xd5a</span> (<span style="color: #800080;">7</span><span style="color: #000000;">)
+        Child SP               IP Call Site
+00007F6715561558 00007f671a2bd4bd [InlinedCallFrame: 00007f6715561558] Interop</span>+Sys.Write(System.Runtime.InteropServices.SafeHandle, Byte*<span style="color: #000000;">, Int32)
+00007F6715561558 00007f669f669a9e [InlinedCallFrame: 00007f6715561558] Interop</span>+Sys.Write(System.Runtime.InteropServices.SafeHandle, Byte*<span style="color: #000000;">, Int32)
+00007F6715561540 00007F669F669A9E ILStubClass.IL_STUB_PInvoke
+00007F67155615E0 00007F669F67333E System.ConsolePal.Write(Microsoft.Win32.SafeHandles.SafeFileHandle, Byte</span>*<span style="color: #000000;">, Int32, Boolean)
+00007F67155616A0 00007F669F67360C System.ConsolePal.Write(Microsoft.Win32.SafeHandles.SafeFileHandle, Byte[], Int32, Int32, Boolean) [</span>/_/src/System.Console/src/System/ConsolePal.Unix.cs @ <span style="color: #800080;">1236</span><span style="color: #000000;">]
+00007F67155616C0 00007F669F672B2A System.IO.StreamWriter.Flush(Boolean, Boolean) [</span>/_/src/System.Private.CoreLib/shared/System/IO/StreamWriter.cs @ <span style="color: #800080;">261</span><span style="color: #000000;">]
+00007F6715561710 00007F669F6729F3 System.IO.StreamWriter.WriteLine(System.String) [</span>/_/src/System.Private.CoreLib/shared/System/IO/StreamWriter.cs @ <span style="color: #800080;">474</span><span style="color: #000000;">]
+00007F6715561760 00007F669F6727D3 System.IO.TextWriter</span>+SyncTextWriter.WriteLine(System.String) [/_/src/System.Private.CoreLib/shared/System/IO/TextWriter.cs @ <span style="color: #800080;">891</span><span style="color: #000000;">]
+00007F67155617A0 00007F669F672770 System.Console.WriteLine(System.String) [</span>/_/src/System.Console/src/System/Console.cs @ <span style="color: #800080;">550</span><span style="color: #000000;">]
+00007F67155617C0 00007F669F663791 NetCoreDumpTest.Program.PrintNumber(System.String, Int32) [</span>/home/zhouke/NetCoreDumpTest/Program.cs @ <span style="color: #800080;">18</span><span style="color: #000000;">]
+00007F6715561800 00007F669F6636D9 NetCoreDumpTest.Program</span>+&lt;&gt;c.&lt;Main&gt;<span style="color: #000000;">b__0_0()
+00007F6715561820 00007F669F1872A1 System.Threading.Tasks.Task.InnerInvoke() [</span>/_/src/System.Private.CoreLib/shared/System/Threading/Tasks/Task.cs @ <span style="color: #800080;">2466</span><span style="color: #000000;">]
+00007F6715561840 00007F669F18CBC2 System.Threading.Tasks.Task</span>+&lt;&gt;c.&lt;.cctor&gt;b__274_0(System.Object) [/_/src/System.Private.CoreLib/shared/System/Threading/Tasks/Task.cs @ <span style="color: #800080;">2445</span><span style="color: #000000;">]
+00007F6715561850 00007F669F171AF2 System.Threading.ExecutionContext.RunFromThreadPoolDispatchLoop(System.Threading.Thread, System.Threading.ExecutionContext, System.Threading.ContextCallback, System.Object) [</span>/_/src/System.Private.CoreLib/shared/System/Threading/ExecutionContext.cs @ <span style="color: #800080;">289</span><span style="color: #000000;">]
+00007F6715561890 00007F669F187111 System.Threading.Tasks.Task.ExecuteWithThreadLocal(System.Threading.Tasks.Task ByRef, System.Threading.Thread) [</span>/_/src/System.Private.CoreLib/shared/System/Threading/Tasks/Task.cs @ <span style="color: #800080;">2406</span><span style="color: #000000;">]
+00007F6715561910 00007F669F186F28 System.Threading.Tasks.Task.ExecuteEntryUnsafe(System.Threading.Thread) [</span>/_/src/System.Private.CoreLib/shared/System/Threading/Tasks/Task.cs @ <span style="color: #800080;">2344</span><span style="color: #000000;">]
+00007F6715561930 00007F669F186EBB System.Threading.Tasks.Task.ExecuteFromThreadPool(System.Threading.Thread)
+00007F6715561940 00007F669F17B754 System.Threading.ThreadPoolWorkQueue.Dispatch() [</span>/_/src/System.Private.CoreLib/shared/System/Threading/ThreadPool.cs @ <span style="color: #800080;">663</span><span style="color: #000000;">]
+00007F67155619C0 00007F669F169A5B System.Threading._ThreadPoolWaitCallback.PerformWaitCallback() [</span>/_/src/System.Private.CoreLib/src/System/Threading/ThreadPool.CoreCLR.cs @ <span style="color: #800080;">29</span><span style="color: #000000;">]
+00007F6715561D50 00007f6718a1ccaf [DebuggerU2MCatchHandlerFrame: 00007f6715561d50]</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>哗啦啦一大片, 有点Java调用堆栈的味道, 不过我们还是找到了我们的问题代码</p>
+<p>NetCoreDumpTest.Program.PrintNumber(System.String, Int32)</p>
+<p>&nbsp;</p>
+<p>有时候我们想知道传入的什么参数导致CPU占用高, 可以给clrstack加上参数 -a</p>
+<div class="cnblogs_code">
+<pre><code>&gt; clrstack -<span style="color: #000000;">a
+..............
+00007F0DD6FFC7C0 00007F0D6EEF3791 NetCoreDumpTest.Program.PrintNumber(System.String, Int32) [</span>/home/zhouke/NetCoreDumpTest/Program.cs @ <span style="color: #800080;">18</span><span style="color: #000000;">]
+    PARAMETERS:
+        message (</span><span style="color: #800080;">0x00007F0DD6FFC7E8</span>) = <span style="color: #800080;">0x00007f0d4800b8b0</span><span style="color: #000000;">
+        startNumber (</span><span style="color: #800080;">0x00007F0DD6FFC7E4</span>) = <span style="color: #800080;">0x0000000000000005</span><span style="color: #000000;">
+    LOCALS:
+        </span><span style="color: #800080;">0x00007F0DD6FFC7E0</span> = <span style="color: #800080;">0x000000000014e42b</span>
+        <span style="color: #800080;">0x00007F0DD6FFC7DC</span> = <span style="color: #800080;">0x0000000000000001</span><span style="color: #000000;">
+...............</span></pre>
+</div>
+<p>可以看到PARAMETERS里,&nbsp;startNumber作为值类型, 可以直接看到数值为5, 而message是引用类型, 指向0x00007f0d4800b8b0, 这时候需要用到 dumpobj 命令</p>
+<div class="cnblogs_code">
+<pre><code>&gt; dumpobj <span style="color: #800080;">0x00007f0d4800b8b0</span><span style="color: #000000;">
+Name:        System.String
+MethodTable: 00007f0d6ef70f90
+EEClass:     00007f0d6eede1c0
+Size:        </span><span style="color: #800080;">32</span>(<span style="color: #800080;">0x20</span><span style="color: #000000;">) bytes
+File:        </span>/home/zhouke/dotnet/shared/Microsoft.NETCore.App/<span style="color: #800080;">3.0</span>.<span style="color: #800080;">0</span>-preview6-<span style="color: #800080;">27804</span>-<span style="color: #800080;">01</span>/<span style="color: #000000;">System.Private.CoreLib.dll
+<span style="color: #ff0000; background-color: #ffff00;">String:      Print</span>
+Fields:
+              MT    Field   Offset                 Type VT     Attr            Value Name
+00007f0d6ef6a138  400022b        </span><span style="color: #800080;">8</span>         System.Int32  <span style="color: #800080;">1</span> instance                <span style="color: #800080;">5</span><span style="color: #000000;"> _stringLength
+00007f0d6ef66f38  400022c        c          System.Char  </span><span style="color: #800080;">1</span> instance               <span style="color: #800080;">50</span><span style="color: #000000;"> _firstChar
+00007f0d6ef70f90  400022d      </span><span style="color: #800080;">108</span>        System.String  <span style="color: #800080;">0</span>   static 00007f0d47fff360 Empty</pre>
+</div>
+<p>好了, 可以看到它是一个字符串, 内容为 "Print"</p>
+<p>假如message是一个复杂类型, 可以查看Fields下面的信息进一步查看</p>
+<p>clrstack 还有一个实验性质的参数 -i, 协助查看各种变量信息, 需要用到lldb, 按照官方教程, 我暂时没有实验成功.</p>
+<p>&nbsp;</p>
+<p>查看进程ID和线程ID, 更方便的方法是 htop(需要安装), 然后按 F4 进行过滤, 输入dotnet 即可</p>
+<p><img src="./images/使用dotnet-dump 查找 .net core 3.0 占用CPU 100%的原因0.png" alt="" /></p>
+<p>这张图是重新运行问题程序的结果, 进程ID和线程ID与前面不一样</p>
+<p>第二行白色的是进程ID=1650, 第一行CPU占用高, 是问题线程ID=1658</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>End</p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

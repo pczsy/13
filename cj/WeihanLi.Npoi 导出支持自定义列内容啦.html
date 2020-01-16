@@ -1,0 +1,159 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修WeihanLi.Npoi 导出支持自定义列内容啦' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>WeihanLi.Npoi 导出支持自定义列内容啦</center></div><div class='banquan'>原文出处:本文由博客园博主WeihanLi提供。<br/>
+原文连接:https://www.cnblogs.com/weihanli/p/custom-column-output-support-for-weihanli-npoi.html</div><br>
+    <h1 id="weihanli.npoi-导出支持自定义列内容啦">WeihanLi.Npoi 导出支持自定义列内容啦</h1>
+<h2 id="intro">Intro</h2>
+<p>之前也有网友给提出过希望列合并或者自定义列内容的 issue 或请求，起初因为自己做 <code>WeihanLi.Npoi</code> 这个扩展的最初目的是导入导出的简单化，使用这个扩展导出的 Excel/csv 可以直接导入成 <code>List&lt;TEntity&gt;</code>，所以如果涉及的列合并的话或者自定义列的话，可能就不能直接导入生成 <code>List&lt;TEntity&gt;</code>，可能会有数据错误。但是最近发现可能有好多用这个扩展的只是用来导出，不会涉及到导入，所以最近考虑允许用户自定义列导出内容，之前默认是属性值的内容（后面增加了formatter 主要用于 ToString(formatter))，从 <code>WeihanLi.Npoi</code> 1.3.7 版本开始支持自定义列导出内容，你可以下载体验咯。</p>
+<h2 id="使用介绍">使用介绍</h2>
+<blockquote>
+<p>目前只支持 Excel 的导出，只支持 FluentAPI 方式配置</p>
+</blockquote>
+<p>使用起来和之前没有什么差异，只是多了一个方法，可以在 Property 上设置自定义导出，提供了一个 HasColumnFormatter 的扩展方法，参数可以是一个委托</p>
+<p>简单示例，示例源码：<a href="https://github.com/WeihanLi/WeihanLi.Npoi/blob/dev/samples/DotNetCoreSample/Program.cs" class="uri">https://github.com/WeihanLi/WeihanLi.Npoi/blob/dev/samples/DotNetCoreSample/Program.cs</a></p>
+<pre><code><code>private static void FluentSettingsForExcel()
+{
+    var setting = ExcelHelper.SettingFor&lt;TestEntity&gt;();
+    // ExcelSetting
+    setting.HasAuthor(&quot;WeihanLi&quot;)
+        .HasTitle(&quot;WeihanLi.Npoi test&quot;)
+        .HasDescription(&quot;&quot;)
+        .HasSubject(&quot;&quot;);
+
+    setting.HasSheetConfiguration(0, &quot;SystemSettingsList&quot;);
+
+    setting.HasFilter(0, 1)
+        .HasFreezePane(0, 1, 2, 1);
+    setting.Property(_ =&gt; _.SettingId)
+        .HasColumnIndex(0);
+
+    setting.Property(_ =&gt; _.SettingName)
+        .HasColumnTitle(&quot;SettingName&quot;)
+        .HasColumnIndex(1);
+
+    setting.Property(_ =&gt; _.DisplayName)
+        .HasColumnFormatter((entity, displayName) =&gt; $&quot;AAA_{entity.SettingName}_{displayName}&quot;) // 多个列合并到一个列
+        .HasColumnTitle(&quot;DisplayName&quot;)
+        .HasColumnIndex(2);
+
+    setting.Property(_ =&gt; _.SettingValue)
+        .HasColumnTitle(&quot;SettingValue&quot;)
+        .HasColumnIndex(3);
+
+    setting.Property(_ =&gt; _.CreatedTime)
+        .HasColumnTitle(&quot;CreatedTime&quot;)
+        .HasColumnIndex(5)
+        .HasColumnFormatter(&quot;yyyy-MM-dd HH:mm:ss&quot;);
+
+    setting.Property(_ =&gt; _.CreatedBy)
+        .HasColumnIndex(4)
+        .HasColumnTitle(&quot;CreatedBy&quot;);
+
+    // setting.Property(_ =&gt; _.PKID).Ignored();
+    setting.Property(_ =&gt; _.UpdatedBy).Ignored();
+    setting.Property(_ =&gt; _.UpdatedTime).Ignored();
+}</code></pre>
+<p>活动预约导出配置方式如下 ， 实例源码：<a href="https://github.com/WeihanLi/ActivityReservation/blob/dev/ActivityReservation/Startup.cs#L243" class="uri">https://github.com/WeihanLi/ActivityReservation/blob/dev/ActivityReservation/Startup.cs#L243</a></p>
+<pre><code><code>private void FluentExcelSettings()
+{
+    //
+    var settings = ExcelHelper.SettingFor&lt;ReservationListViewModel&gt;();
+    settings.HasAuthor(&quot;WeihanLi&quot;)
+        .HasTitle(&quot;活动室预约信息&quot;)
+        .HasDescription(&quot;活动室预约信息&quot;);
+    settings.Property(r =&gt; r.ReservationId).Ignored();
+    settings.Property(r =&gt; r.ReservationForDate)
+        .HasColumnTitle(&quot;预约使用日期&quot;);
+    settings.Property(r =&gt; r.ReservationForTime)
+        .HasColumnTitle(&quot;预约使用的时间段&quot;);
+    settings.Property(r =&gt; r.ReservationUnit)
+        .HasColumnTitle(&quot;预约单位&quot;);
+    settings.Property(r =&gt; r.ReservationTime)
+        .HasColumnTitle(&quot;预约时间&quot;)
+        .HasColumnFormatter(&quot;yyyy-MM-dd HH:mm:ss&quot;);
+    settings.Property(r =&gt; r.ReservationPersonName)
+        .HasColumnTitle(&quot;预约人姓名&quot;);
+    settings.Property(r =&gt; r.ReservationPersonPhone)
+        .HasColumnTitle(&quot;预约人手机号&quot;);
+    settings.Property(r =&gt; r.ReservationActivityContent)
+        .HasColumnTitle(&quot;预约活动内容&quot;);
+    settings.Property(r =&gt; r.ReservationPlaceName)
+        .HasColumnTitle(&quot;活动室名称&quot;);
+    settings.Property(r =&gt; r.ReservationStatus)
+        .HasColumnTitle(&quot;审核状态&quot;)
+        .HasColumnFormatter((entity, propertyVal) =&gt; propertyVal.GetDescription()); // 这个取枚举的Description 的值
+}</code></pre>
+<p>审核状态是一个枚举，定义如下：</p>
+<pre><code><code>public enum ReservationStatus
+{
+    /// &lt;summary&gt;
+    /// 待审核
+    /// &lt;/summary&gt;
+    [Description(&quot;待审核&quot;)]
+    UnReviewed = 0,
+
+    /// &lt;summary&gt;
+    /// 审核通过
+    /// &lt;/summary&gt;
+    [Description(&quot;审核通过&quot;)]
+    Reviewed = 1,
+
+    /// &lt;summary&gt;
+    /// 被拒绝
+    /// &lt;/summary&gt;
+    [Description(&quot;未通过审核&quot;)]
+    Rejected = 2,
+}</code></pre>
+<p>导出效果如下：</p>
+<p><img src="./images/WeihanLi.Npoi 导出支持自定义列内容啦0.png" /></p>
+<h2 id="详细介绍">详细介绍</h2>
+<pre><code><code>var settings = ExcelHelper.SettingsFor&lt;TestEntity&gt;()
+settings.Property(r=&gt;r.SettingName)
+    .HasColumnFormatter((entity, propertyVal)=&gt; $&quot;ddd_{propertyVal}&quot;);
+
+setting.Property(_ =&gt; _.DisplayName)
+        .HasColumnFormatter((entity, displayName) =&gt; $&quot;AAA_{entity.SettingName}_{displayName}&quot;) // 多个列合并到一个列
+        .HasColumnTitle(&quot;DisplayName&quot;)
+        .HasColumnIndex(2);</code></pre>
+<p>针对 Property 提供了一个 <code>HasColumnFormatter(Func&lt;TEntity, TProperty, object&gt; formatter)</code> 的扩展，可以使用 entity 来定制输出的内容，使得用户可以自由的定制要输出的内容。</p>
+<h2 id="fluentapi-配置方式探讨">FluentAPI 配置方式探讨</h2>
+<p>最近使用 Serilog 的时候发现，现在的 FluentAPI 的语法和 Serilog 有一些不太一样，对比如下：</p>
+<p>Serilog 配置:</p>
+<pre><code><code>loggingConfig
+    .WriteTo.Elasticsearch(Configuration.GetConnectionString(&quot;ElasticSearch&quot;), $&quot;logstash-{ApplicationHelper.ApplicationName.ToLower()}&quot;)
+    .Enrich.FromLogContext()
+    .Enrich.WithRequestInfo()
+    ;</code></pre>
+<p>如果改成这样方式的话，WeihanLi.Npoi 的配置可能是下面这样的：</p>
+<pre><code><code>var settings = ExcelHelper.SettingsFor&lt;TestEntity&gt;()
+settings
+.Property(r=&gt;r.SettingName).HasColumnFormatter((entity, propertyVal)=&gt; $&quot;ddd_{propertyVal}&quot;)
+
+.Property(_ =&gt; _.DisplayName).HasColumnFormatter((entity, displayName) =&gt; $&quot;AAA_{entity.SettingName}_{displayName}&quot;) // 多个列合并到一个列
+.Property(_ =&gt; _.DisplayName).HasColumnTitle(&quot;DisplayName&quot;)
+.Property(_ =&gt; _.DisplayName).HasColumnIndex(2);</code></pre>
+<p>个人感觉不如现在的语法清晰，所以想要看看大家的意见，如果大多数都喜欢 Serilog 的写法，考虑修改一下 FluentAPI 写法</p>
+<h2 id="end">End</h2>
+<p>最后，期待大家的反馈，如果有什么问题或其他的需求，欢迎反馈 <a href="https://github.com/WeihanLi/WeihanLi.Npoi/issues/new" class="uri">https://github.com/WeihanLi/WeihanLi.Npoi/issues/new</a></p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

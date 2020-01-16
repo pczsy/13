@@ -1,0 +1,122 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C# 表达式树讲解（一）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C# 表达式树讲解（一）</center></div><div class='banquan'>原文出处:本文由博客园博主园子的蜗牛提供。<br/>
+原文连接:https://www.cnblogs.com/snailblog/p/11521043.html</div><br>
+    <h2>一、前言</h2>
+<p>一直想写一篇Dpper的定制化扩展的文章，但是里面会设计到对Lambda表达式的解析，而解析Lambda表达式，就必须要知道表达式树的相关知识点。我希望能通过对各个模块的知识点或者运用能够多一点的讲解，能够帮助到园友了解得更多。虽然讲解得不全面，如果能成为打开这块的一把钥匙，也是蜗牛比较欣慰的。</p>
+<p>表达式系列目录</p>
+<p>C# 表达式树讲解（一）</p>
+<p><a href="https://www.cnblogs.com/snailblog/p/11521335.html" target="_blank">C# 表达式树遍历（二）</a></p>
+<p><a href="https://www.cnblogs.com/snailblog/p/11521359.html" target="_blank">C# 表达式树分页扩展（三）</a></p>
+<p><a href="https://www.cnblogs.com/snailblog/p/11525118.html" target="_blank">C# 表达式树Lambda扩展（四）</a></p>
+<h2>二、表达树理解</h2>
+<p>表达式树以树形数据结构表示代码，其中每一个节点都是一种表达式，它将我们原来可以直接由代码编写的逻辑以表达式的方式存储在树状的结构里，从而可以在运行时去解析这个树，然后执行，实现动态的编辑和执行代码。在.Net 里面的Linq to SQL就是对表达式树的解析。</p>
+<p>这里先讲解下表达式和表达式树，表达式相信大家都知道，比如x+5或者5，都可以算是表达式，而表达式树里面的树指的二叉树，也就是表达式的集合，C#中的Expression类就是表达式类。对于一棵表达式树，其叶子节点都是参数或者常数，非叶子节点都是运算符或者控制符。</p>
+<h3>2.1、表达式的创建</h3>
+<p>Lambda表达式方法：</p>
+<div class="cnblogs_code">
+<pre><code>Expression&lt;Func&lt;<span style="color: #0000ff;">int</span>, <span style="color: #0000ff;">int</span>,<span style="color: #0000ff;">bool</span>&gt;&gt; fun = (x, y) =&gt; x &lt; y</pre>
+</div>
+<p>这种方法创建出的表达式根节点类型为ExpressionType.Lambda，Type类型为返回值类型typeof(bool)</p>
+<p>组装法（通过 API 创建表达式树）：</p>
+<div class="cnblogs_code">
+<pre><code>ParameterExpression numParam = Expression.Parameter(<span style="color: #0000ff;">typeof</span>(<span style="color: #0000ff;">int</span>), "<span style="color: #8b0000;">num</span>");
+ConstantExpression five = Expression.Constant(5, <span style="color: #0000ff;">typeof</span>(<span style="color: #0000ff;">int</span>));
+BinaryExpression numLessThanFive = Expression.LessThan(numParam, five);
+Expression&lt;Func&lt;<span style="color: #0000ff;">int</span>, <span style="color: #0000ff;">bool</span>&gt;&gt; lambda1 =
+    Expression.Lambda&lt;Func&lt;<span style="color: #0000ff;">int</span>, <span style="color: #0000ff;">bool</span>&gt;&gt;(
+        numLessThanFive,
+        <span style="color: #0000ff;">new</span> ParameterExpression[] { numParam });</pre>
+</div>
+<p>我们先创建了两个参数表达式num和5，然后用LessThan组装在一起，最终的表达式为&ldquo;num&lt;5&rdquo;，expr的节点类型为LessThan，Type类型为typeof(bool)</p>
+<p>我们先看看表达式树里面的构造</p>
+<p>首先Expression&lt;TDelegate&gt;的功能是将强类型Lambda表达式表示为表达式树形式的数据结构，他的父类是LambdaExpression，比较他们代码可知，Lambda表达式的主体，名称和参数全部保存在LambdaExpression里面。</p>
+<p>Expression&lt;TDelegate&gt;与LambdaExpression代码截图：</p>
+<p><a href="https://img2018.cnblogs.com/blog/1764554/201909/1764554-20190915071754137-2086334705.png"><img style="display: inline; background-image: none;" title="image" src="./images/C# 表达式树讲解（一）0.png" alt="image" width="900" height="174" border="0" /></a></p>
+<p><a href="https://img2018.cnblogs.com/blog/1764554/201909/1764554-20190915071755051-290137207.png"><img style="display: inline; background-image: none;" title="image" src="./images/C# 表达式树讲解（一）1.png" alt="image" width="900" height="376" border="0" /></a></p>
+<p>LambdaExpression里面的Body就是我们的表达式。</p>
+<p>C#表达式给我们提供了丰富的表达式类，进入到LambdaExpression类里面</p>
+<p><a href="https://img2018.cnblogs.com/blog/1764554/201909/1764554-20190915071756183-938814028.png"><img style="display: inline; background-image: none;" title="image" src="./images/C# 表达式树讲解（一）2.png" alt="image" width="542" height="373" border="0" /></a></p>
+<p>方法返回类型以&ldquo;Expression&rdquo;结尾的，基本上都是一个表达式类。</p>
+<p>每个表达式代表的定义和创建方法，可以参照微软官方文档<a href="https://docs.microsoft.com/zh-cn/dotnet/api/system.linq.expressions.binaryexpression?view=netframework-4.8" target="_blank">https://docs.microsoft.com/zh-cn/dotnet/api/system.linq.expressions.binaryexpression?view=netframework-4.8</a></p>
+<p>下面是平常使用最多的表达式</p>
+<p><span style="color: #0000ff;">ConstantExpression</span>：常量表达式</p>
+<p><span style="color: #0000ff;">ParameterExpression</span>：参数表达式</p>
+<p><span style="color: #0000ff;">UnaryExpression</span>：一元运算符表达式</p>
+<p><span style="color: #0000ff;">BinaryExpression</span>：二元运算符表达式</p>
+<p><span style="color: #0000ff;">TypeBinaryExpression</span>：is运算符表达式</p>
+<p><span style="color: #0000ff;">ConditionalExpression</span>：条件表达式</p>
+<p><span style="color: #0000ff;">MemberExpression</span>：访问字段或属性表达式</p>
+<p><span style="color: #0000ff;">MethodCallExpression</span>：调用成员函数表达式</p>
+<p><span style="color: #0000ff;">Expression&lt;TDelegate&gt;：</span>委托表达式</p>
+<h3>2.2、表达式的解析</h3>
+<p>表达式树解析</p>
+<p>通过LambdaExpression类我们可以知道，表达式树包含：参数[Parameters]，表达式树类型[NodeType]，表达式[Body]，返回类型[ReturnType]，Lambda表达式的委托[Compile]以及Lambda表达式名称[name]，如图所示：</p>
+<p><a href="https://img2018.cnblogs.com/blog/1764554/201909/1764554-20190915071757461-354039163.png"><img style="display: inline; background-image: none;" title="image" src="./images/C# 表达式树讲解（一）3.png" alt="image" width="900" height="240" border="0" /></a></p>
+<p>表达式解析：</p>
+<p>所有的表达式都包含：左节点【Left】，右节点【Right】，类型【NodeType】，不同的表达式还会有其他属性，这里的左右节点依旧是表达式。</p>
+<p>下图是BinaryExpression表达式截图</p>
+<p><a href="https://img2018.cnblogs.com/blog/1764554/201909/1764554-20190915071758295-213967368.png"><img style="display: inline; background-image: none;" title="image" src="./images/C# 表达式树讲解（一）4.png" alt="image" width="854" height="266" border="0" /></a></p>
+<p>表达式树和表达式里面的类型NodeType是一个枚举，一共有85个类型，有兴趣的朋友可以去了解下。</p>
+<p>常用的类型如下：</p>
+<p><span style="color: #0000ff;">ExpressionType.And</span>：C#中类似于&amp;</p>
+<p><span style="color: #0000ff;">ExpressionType.AndAlso</span>：C#中类似于&amp;&amp;</p>
+<p><span style="color: #0000ff;">ExpressionType.Or</span>：C#中类似于|</p>
+<p><span style="color: #0000ff;">ExpressionType.OrElse</span>：C#中类似于||</p>
+<p><span style="color: #0000ff;">ExpressionType.Equal</span>：C#中类似于==</p>
+<p><span style="color: #0000ff;">ExpressionType.NotEqual</span>：C#中类似于!=</p>
+<p><span style="color: #0000ff;">ExpressionType.GreaterThan</span>：C#中类似于&gt;</p>
+<p><span style="color: #0000ff;">ExpressionType.GreaterThanOrEqual</span>：C#中类似于&gt;=</p>
+<p><span style="color: #0000ff;">ExpressionType.LessThan</span>：C#中类似于&lt;</p>
+<p><span style="color: #0000ff;">ExpressionType.LessThanOrEqual</span>：C#中类似于&lt;=</p>
+<p><span style="color: #0000ff;">ExpressionType.Add</span>：C#中类似于+</p>
+<p><span style="color: #0000ff;">ExpressionType.AddChecked</span>：C#中类似于+</p>
+<p><span style="color: #0000ff;">ExpressionType.Subtract</span>：C#中类似于-</p>
+<p><span style="color: #0000ff;">ExpressionType.SubtractChecked</span>：C#中类似于-</p>
+<p><span style="color: #0000ff;">ExpressionType.Divide</span>：C#中类似于/</p>
+<p><span style="color: #0000ff;">ExpressionType.Multiply</span>：C#中类似于*</p>
+<p><span style="color: #0000ff;">ExpressionType.MultiplyChecked</span>：C#中类似于*</p>
+<h3>2.3、编译表达式树</h3>
+<p>在表达式创建那，我们组合创建了一个Lambda表达式，那么应该怎么使用它呢？在&ldquo;表达式的解析&rdquo;里面，LambdaExpression类和Expression&lt;TDelegate&gt;类都有一个Compile的方法，学名是Lambda表达式的委托，其实就是Lambda表达式编译函数的委托，所以我们只需要调用他，得到的结果就是一个函数方法。</p>
+<p>代码修改如下：<br /><br /></p>
+<div class="cnblogs_code">
+<pre><code>ParameterExpression numParam = Expression.Parameter(<span style="color: #0000ff;">typeof</span>(<span style="color: #0000ff;">int</span>), "<span style="color: #8b0000;">num</span>");
+ConstantExpression five = Expression.Constant(5, <span style="color: #0000ff;">typeof</span>(<span style="color: #0000ff;">int</span>));
+BinaryExpression numLessThanFive = Expression.LessThan(numParam, five);
+Expression&lt;Func&lt;<span style="color: #0000ff;">int</span>, <span style="color: #0000ff;">bool</span>&gt;&gt; lambda1 =
+    Expression.Lambda&lt;Func&lt;<span style="color: #0000ff;">int</span>, <span style="color: #0000ff;">bool</span>&gt;&gt;(
+        numLessThanFive,
+        <span style="color: #0000ff;">new</span> ParameterExpression[] { numParam });
+
+Console.WriteLine($"<span style="color: #8b0000;">Lambda的内容：{lambda1.ToString()}</span>");
+
+<span style="color: #008000;">//表达式的编译</span>
+var func = lambda1.Compile();
+Console.WriteLine($"<span style="color: #8b0000;">Lambda的运行结果：{func(6)}</span>");
+</pre>
+</div>
+<p>运行结果</p>
+<p><a href="https://img2018.cnblogs.com/blog/1764554/201909/1764554-20190915071759024-1214255219.png"><img style="display: inline; background-image: none;" title="image" src="./images/C# 表达式树讲解（一）5.png" alt="image" width="410" height="114" border="0" /></a></p>
+<h2>三、总结</h2>
+<p>这里我们对表达式做了基本的讲解，相信大家对Lambda表达式有了初步的了解，下面我们将继续讲解对一个表达式树的遍历。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

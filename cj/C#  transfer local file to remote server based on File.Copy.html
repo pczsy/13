@@ -1,0 +1,280 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C#  transfer local file to remote server based on File.Copy' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C#  transfer local file to remote server based on File.Copy</center></div><div class='banquan'>原文出处:本文由博客园博主Fred1987提供。<br/>
+原文连接:https://www.cnblogs.com/Fred1987/p/11981011.html</div><br>
+    <div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">using</span><span style="color: #000000;"> System;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Collections.Generic;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.ComponentModel;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Linq;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Runtime.InteropServices;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Text;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Threading.Tasks;
+
+</span><span style="color: #0000ff;">namespace</span><span style="color: #000000;"> TFCP
+{
+    </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+    <span style="color: #808080;">///</span><span style="color: #008000;"> Provides access to a network share.
+    </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> NetworkShareAccesser : IDisposable
+    {
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">string</span><span style="color: #000000;"> _remoteUncName;
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">string</span><span style="color: #000000;"> _remoteComputerName;
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span><span style="color: #000000;"> RemoteComputerName
+        {
+            </span><span style="color: #0000ff;">get</span><span style="color: #000000;">
+            {
+                </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">._remoteComputerName;
+            }
+            </span><span style="color: #0000ff;">set</span><span style="color: #000000;">
+            {
+                </span><span style="color: #0000ff;">this</span>._remoteComputerName =<span style="color: #000000;"> value;
+                </span><span style="color: #0000ff;">this</span>._remoteUncName = <span style="color: #800000;">@"</span><span style="color: #800000;">\\</span><span style="color: #800000;">"</span> + <span style="color: #0000ff;">this</span><span style="color: #000000;">._remoteComputerName;
+            }
+        }
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span><span style="color: #000000;"> UserName
+        {
+            </span><span style="color: #0000ff;">get</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">set</span><span style="color: #000000;">;
+        }
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span><span style="color: #000000;"> Password
+        {
+            </span><span style="color: #0000ff;">get</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">set</span><span style="color: #000000;">;
+        }
+
+        </span><span style="color: #0000ff;">#region</span> Consts
+
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">int</span> RESOURCE_CONNECTED = <span style="color: #800080;">0x00000001</span><span style="color: #000000;">;
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">int</span> RESOURCE_GLOBALNET = <span style="color: #800080;">0x00000002</span><span style="color: #000000;">;
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">int</span> RESOURCE_REMEMBERED = <span style="color: #800080;">0x00000003</span><span style="color: #000000;">;
+
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">int</span> RESOURCETYPE_ANY = <span style="color: #800080;">0x00000000</span><span style="color: #000000;">;
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">int</span> RESOURCETYPE_DISK = <span style="color: #800080;">0x00000001</span><span style="color: #000000;">;
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">int</span> RESOURCETYPE_PRINT = <span style="color: #800080;">0x00000002</span><span style="color: #000000;">;
+
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">int</span> RESOURCEDISPLAYTYPE_GENERIC = <span style="color: #800080;">0x00000000</span><span style="color: #000000;">;
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">int</span> RESOURCEDISPLAYTYPE_DOMAIN = <span style="color: #800080;">0x00000001</span><span style="color: #000000;">;
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">int</span> RESOURCEDISPLAYTYPE_SERVER = <span style="color: #800080;">0x00000002</span><span style="color: #000000;">;
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">int</span> RESOURCEDISPLAYTYPE_SHARE = <span style="color: #800080;">0x00000003</span><span style="color: #000000;">;
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">int</span> RESOURCEDISPLAYTYPE_FILE = <span style="color: #800080;">0x00000004</span><span style="color: #000000;">;
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">int</span> RESOURCEDISPLAYTYPE_GROUP = <span style="color: #800080;">0x00000005</span><span style="color: #000000;">;
+
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">int</span> RESOURCEUSAGE_CONNECTABLE = <span style="color: #800080;">0x00000001</span><span style="color: #000000;">;
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">int</span> RESOURCEUSAGE_CONTAINER = <span style="color: #800080;">0x00000002</span><span style="color: #000000;">;
+
+
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">int</span> CONNECT_INTERACTIVE = <span style="color: #800080;">0x00000008</span><span style="color: #000000;">;
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">int</span> CONNECT_PROMPT = <span style="color: #800080;">0x00000010</span><span style="color: #000000;">;
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">int</span> CONNECT_REDIRECT = <span style="color: #800080;">0x00000080</span><span style="color: #000000;">;
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">int</span> CONNECT_UPDATE_PROFILE = <span style="color: #800080;">0x00000001</span><span style="color: #000000;">;
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">int</span> CONNECT_COMMANDLINE = <span style="color: #800080;">0x00000800</span><span style="color: #000000;">;
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">int</span> CONNECT_CMD_SAVECRED = <span style="color: #800080;">0x00001000</span><span style="color: #000000;">;
+
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">int</span> CONNECT_LOCALDRIVE = <span style="color: #800080;">0x00000100</span><span style="color: #000000;">;
+
+        </span><span style="color: #0000ff;">#endregion</span>
+
+        <span style="color: #0000ff;">#region</span> Errors
+
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">int</span> NO_ERROR = <span style="color: #800080;">0</span><span style="color: #000000;">;
+
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">int</span> ERROR_ACCESS_DENIED = <span style="color: #800080;">5</span><span style="color: #000000;">;
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">int</span> ERROR_ALREADY_ASSIGNED = <span style="color: #800080;">85</span><span style="color: #000000;">;
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">int</span> ERROR_BAD_DEVICE = <span style="color: #800080;">1200</span><span style="color: #000000;">;
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">int</span> ERROR_BAD_NET_NAME = <span style="color: #800080;">67</span><span style="color: #000000;">;
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">int</span> ERROR_BAD_PROVIDER = <span style="color: #800080;">1204</span><span style="color: #000000;">;
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">int</span> ERROR_CANCELLED = <span style="color: #800080;">1223</span><span style="color: #000000;">;
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">int</span> ERROR_EXTENDED_ERROR = <span style="color: #800080;">1208</span><span style="color: #000000;">;
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">int</span> ERROR_INVALID_ADDRESS = <span style="color: #800080;">487</span><span style="color: #000000;">;
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">int</span> ERROR_INVALID_PARAMETER = <span style="color: #800080;">87</span><span style="color: #000000;">;
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">int</span> ERROR_INVALID_PASSWORD = <span style="color: #800080;">1216</span><span style="color: #000000;">;
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">int</span> ERROR_MORE_DATA = <span style="color: #800080;">234</span><span style="color: #000000;">;
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">int</span> ERROR_NO_MORE_ITEMS = <span style="color: #800080;">259</span><span style="color: #000000;">;
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">int</span> ERROR_NO_NET_OR_BAD_PATH = <span style="color: #800080;">1203</span><span style="color: #000000;">;
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">int</span> ERROR_NO_NETWORK = <span style="color: #800080;">1222</span><span style="color: #000000;">;
+
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">int</span> ERROR_BAD_PROFILE = <span style="color: #800080;">1206</span><span style="color: #000000;">;
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">int</span> ERROR_CANNOT_OPEN_PROFILE = <span style="color: #800080;">1205</span><span style="color: #000000;">;
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">int</span> ERROR_DEVICE_IN_USE = <span style="color: #800080;">2404</span><span style="color: #000000;">;
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">int</span> ERROR_NOT_CONNECTED = <span style="color: #800080;">2250</span><span style="color: #000000;">;
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">int</span> ERROR_OPEN_FILES = <span style="color: #800080;">2401</span><span style="color: #000000;">;
+
+        </span><span style="color: #0000ff;">#endregion</span>
+
+        <span style="color: #0000ff;">#region</span> PInvoke Signatures<span style="color: #000000;">
+
+        [DllImport(</span><span style="color: #800000;">"</span><span style="color: #800000;">Mpr.dll</span><span style="color: #800000;">"</span><span style="color: #000000;">)]
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">extern</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> WNetUseConnection(
+            IntPtr hwndOwner,
+            NETRESOURCE lpNetResource,
+            </span><span style="color: #0000ff;">string</span><span style="color: #000000;"> lpPassword,
+            </span><span style="color: #0000ff;">string</span><span style="color: #000000;"> lpUserID,
+            </span><span style="color: #0000ff;">int</span><span style="color: #000000;"> dwFlags,
+            </span><span style="color: #0000ff;">string</span><span style="color: #000000;"> lpAccessName,
+            </span><span style="color: #0000ff;">string</span><span style="color: #000000;"> lpBufferSize,
+            </span><span style="color: #0000ff;">string</span><span style="color: #000000;"> lpResult
+            );
+
+        [DllImport(</span><span style="color: #800000;">"</span><span style="color: #800000;">Mpr.dll</span><span style="color: #800000;">"</span><span style="color: #000000;">)]
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">extern</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> WNetCancelConnection2(
+            </span><span style="color: #0000ff;">string</span><span style="color: #000000;"> lpName,
+            </span><span style="color: #0000ff;">int</span><span style="color: #000000;"> dwFlags,
+            </span><span style="color: #0000ff;">bool</span><span style="color: #000000;"> fForce
+            );
+
+        [StructLayout(LayoutKind.Sequential)]
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> NETRESOURCE
+        {
+            </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span> dwScope = <span style="color: #800080;">0</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span> dwType = <span style="color: #800080;">0</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span> dwDisplayType = <span style="color: #800080;">0</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span> dwUsage = <span style="color: #800080;">0</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> lpLocalName = <span style="color: #800000;">""</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> lpRemoteName = <span style="color: #800000;">""</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> lpComment = <span style="color: #800000;">""</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> lpProvider = <span style="color: #800000;">""</span><span style="color: #000000;">;
+        }
+
+        </span><span style="color: #0000ff;">#endregion</span>
+
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> Creates a NetworkShareAccesser for the given computer name. The user will be promted to enter credentials
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="remoteComputerName"&gt;&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> NetworkShareAccesser Access(<span style="color: #0000ff;">string</span><span style="color: #000000;"> remoteComputerName)
+        {
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> NetworkShareAccesser(remoteComputerName);
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> Creates a NetworkShareAccesser for the given computer name using the given domain/computer name, username and password
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="remoteComputerName"&gt;&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="domainOrComuterName"&gt;&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="userName"&gt;&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="password"&gt;&lt;/param&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> NetworkShareAccesser Access(<span style="color: #0000ff;">string</span> remoteComputerName, <span style="color: #0000ff;">string</span> domainOrComuterName, <span style="color: #0000ff;">string</span> userName, <span style="color: #0000ff;">string</span><span style="color: #000000;"> password)
+        {
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> NetworkShareAccesser(remoteComputerName,
+                                            domainOrComuterName </span>+ <span style="color: #800000;">@"</span><span style="color: #800000;">\</span><span style="color: #800000;">"</span> +<span style="color: #000000;"> userName,
+                                            password);
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> Creates a NetworkShareAccesser for the given computer name using the given username (format: domainOrComputername\Username) and password
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="remoteComputerName"&gt;&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="userName"&gt;&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="password"&gt;&lt;/param&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> NetworkShareAccesser Access(<span style="color: #0000ff;">string</span> remoteComputerName, <span style="color: #0000ff;">string</span> userName, <span style="color: #0000ff;">string</span><span style="color: #000000;"> password)
+        {
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> NetworkShareAccesser(remoteComputerName,
+                                            userName,
+                                            password);
+        }
+
+        </span><span style="color: #0000ff;">private</span> NetworkShareAccesser(<span style="color: #0000ff;">string</span><span style="color: #000000;"> remoteComputerName)
+        {
+            RemoteComputerName </span>=<span style="color: #000000;"> remoteComputerName;
+
+            </span><span style="color: #0000ff;">this</span>.ConnectToShare(<span style="color: #0000ff;">this</span>._remoteUncName, <span style="color: #0000ff;">null</span>, <span style="color: #0000ff;">null</span>, <span style="color: #0000ff;">true</span><span style="color: #000000;">);
+        }
+
+        </span><span style="color: #0000ff;">private</span> NetworkShareAccesser(<span style="color: #0000ff;">string</span> remoteComputerName, <span style="color: #0000ff;">string</span> userName, <span style="color: #0000ff;">string</span><span style="color: #000000;"> password)
+        {
+            RemoteComputerName </span>=<span style="color: #000000;"> remoteComputerName;
+            UserName </span>=<span style="color: #000000;"> userName;
+            Password </span>=<span style="color: #000000;"> password;
+
+            </span><span style="color: #0000ff;">this</span>.ConnectToShare(<span style="color: #0000ff;">this</span>._remoteUncName, <span style="color: #0000ff;">this</span>.UserName, <span style="color: #0000ff;">this</span>.Password, <span style="color: #0000ff;">false</span><span style="color: #000000;">);
+        }
+
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> ConnectToShare(<span style="color: #0000ff;">string</span> remoteUnc, <span style="color: #0000ff;">string</span> username, <span style="color: #0000ff;">string</span> password, <span style="color: #0000ff;">bool</span><span style="color: #000000;"> promptUser)
+        {
+            NETRESOURCE nr </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> NETRESOURCE
+            {
+                dwType </span>=<span style="color: #000000;"> RESOURCETYPE_DISK,
+                lpRemoteName </span>=<span style="color: #000000;"> remoteUnc
+            };
+
+            </span><span style="color: #0000ff;">int</span><span style="color: #000000;"> result;
+            </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (promptUser)
+            {
+                result </span>= WNetUseConnection(IntPtr.Zero, nr, <span style="color: #800000;">""</span>, <span style="color: #800000;">""</span>, CONNECT_INTERACTIVE | CONNECT_PROMPT, <span style="color: #0000ff;">null</span>, <span style="color: #0000ff;">null</span>, <span style="color: #0000ff;">null</span><span style="color: #000000;">);
+            }
+            </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+            {
+                result </span>= WNetUseConnection(IntPtr.Zero, nr, password, username, <span style="color: #800080;">0</span>, <span style="color: #0000ff;">null</span>, <span style="color: #0000ff;">null</span>, <span style="color: #0000ff;">null</span><span style="color: #000000;">);
+            }
+
+            </span><span style="color: #0000ff;">if</span> (result !=<span style="color: #000000;"> NO_ERROR)
+            {
+                </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> Win32Exception(result);
+            }
+        }
+
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> DisconnectFromShare(<span style="color: #0000ff;">string</span><span style="color: #000000;"> remoteUnc)
+        {
+            </span><span style="color: #0000ff;">int</span> result = WNetCancelConnection2(remoteUnc, CONNECT_UPDATE_PROFILE, <span style="color: #0000ff;">false</span><span style="color: #000000;">);
+            </span><span style="color: #0000ff;">if</span> (result !=<span style="color: #000000;"> NO_ERROR)
+            {
+                </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> Win32Exception(result);
+            }
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;filterpriority&gt;</span><span style="color: #008000;">2</span><span style="color: #808080;">&lt;/filterpriority&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> Dispose()
+        {
+            </span><span style="color: #0000ff;">this</span>.DisconnectFromShare(<span style="color: #0000ff;">this</span><span style="color: #000000;">._remoteUncName);
+        }
+    }
+}
+
+
+ </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> PathCopyToRemoteDemo()
+        {
+             </span><span style="color: #0000ff;">string</span> destFile = <span style="color: #800000;">@"</span><span style="color: #800000;">\\RemotePCName\SharedFile</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">string</span> sourceFile = <span style="color: #800000;">@"</span><span style="color: #800000;">C:\myfolder\mytxt.txt</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">string</span> fileName =<span style="color: #000000;"> Path.GetFileName(sourceFile);
+            </span><span style="color: #0000ff;">string</span> remotePCName = <span style="color: #800000;">"</span><span style="color: #800000;">remotePCName</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">string</span> remotePCDOMAINName = <span style="color: #800000;">"</span><span style="color: #800000;">remotePCDOMAINName</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">string</span> remotePCUserName = <span style="color: #800000;">"</span><span style="color: #800000;">RemotePCPassword</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">string</span> remotePCUserPwd = <span style="color: #800000;">"</span><span style="color: #800000;">remotePCUserPwd</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">string</span> destFullName =<span style="color: #000000;"> Path.Combine(destFile, fileName);
+            </span><span style="color: #0000ff;">using</span><span style="color: #000000;"> (NetworkShareAccesser.Access(remotePCName, remotePCDOMAINName, remotePCUserName, remotePCUserPwd))
+            {
+                File.Copy(sourceFile, destFullName);
+            }
+        }</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>based on&nbsp;<a href="https://stackoverflow.com/questions/659013/accessing-a-shared-file-unc-from-a-remote-non-trusted-domain-with-credentials">https://stackoverflow.com/questions/659013/accessing-a-shared-file-unc-from-a-remote-non-trusted-domain-with-credentials</a></p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

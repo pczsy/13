@@ -1,0 +1,87 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Sql Server 的参数化查询' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Sql Server 的参数化查询</center></div><div class='banquan'>原文出处:本文由博客园博主小世界的野孩子提供。<br/>
+原文连接:https://www.cnblogs.com/hulizhong/p/10685943.html</div><br>
+    <p>为什么要使用参数化查询呢？参数化查询写起来看起来都麻烦，还不如用拼接sql语句来的方便快捷。当然，拼接sql语句执行查询虽然看起来方便简洁，其实不然。远没有参数化查询来的安全和快捷。</p>
+<p>&nbsp;</p>
+<p>今天刚好了解了一下关于Sql Server 参数化查询和拼接sql语句来执行查询的一点区别。</p>
+<p>参数化查询与拼接sql语句查询相比主要有两点好处：</p>
+<p>　　　　<strong>1、防止sql注入&nbsp;</strong></p>
+<p><strong>　　　　2、&nbsp;提高性能（复用查询计划）</strong></p>
+<p>首先我们来谈下参数化查询是如何防止sql注入的这个问题吧。</p>
+<p>防注入例子：</p>
+<p>　　拼接sql语句：</p>
+<div class="cnblogs_code">
+<pre><code>(<span style="color: #800000;">"</span><span style="color: #800000;">select * from user where name={0}</span><span style="color: #800000;">"</span><span style="color: #000000;">,username)
+
+或者
+
+（</span><span style="color: #800000;">"</span><span style="color: #800000;">select * from user where name=</span><span style="color: #800000;">"</span>+username）</pre>
+</div>
+<p>当 name传进来是一个'aa';Truncate Table user 的时候，这样会导致直接清除整个表数据</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #800000;">"</span><span style="color: #800000;">select * from user where name='aa';Truncate Table user</span></pre>
+</div>
+<p><br />　　我们使用参数化的时候：&nbsp;</p>
+<div class="cnblogs_code">
+<pre><code>(<span style="color: #800000;">"</span><span style="color: #800000;">select * from user where name=@username</span><span style="color: #800000;">"</span>,<span style="color: #0000ff;">new</span> {username=username})</pre>
+</div>
+<p><br />这时候即使我们传进来的是<span style="background-color: #ffcc00;"><strong>'aa';Truncate Table user</strong></span> ，数据库端也会把这些当做字符串处理，执行的sql语句会变成</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">select</span> * <span style="color: #0000ff;">from</span> user <span style="color: #0000ff;">where</span> name=<span style="color: #800000;">''</span>aa<span style="color: #800000;">'</span><span style="color: #800000;">;Truncate Table user </span><span style="color: #800000;">'</span></pre>
+</div>
+<p>实际上把<span style="background-color: #ffcc00;"><strong>'aa';Truncate Table user 这个当做了name的值</strong></span>做查询条件了</p>
+<p>以上就是一个简单的例子介绍关于参数化查询如何防止sql注入。</p>
+<p>再看到底是如何提高性能的呢？</p>
+<p>复用查询计划：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">select</span> * <span style="color: #0000ff;">from</span> AU_User <span style="color: #0000ff;">where</span> Id=<span style="color: #800080;">1</span>
+<span style="color: #0000ff;">select</span> * <span style="color: #0000ff;">from</span> AU_User <span style="color: #0000ff;">where</span> Id=<span style="color: #800080;">2</span></pre>
+</div>
+<p>Sql Server在执行一条查询语句之前都对对它进行&ldquo;编译 &rdquo;并生成&ldquo;查询计划&rdquo;，上面两条查询语句生成的查询计划就是两条不一样的查询计划，在下面这张图片当中我们可以去尝试下执行这两条sql语句</p>
+<p>，结果显而易见会生成两条查询计划，Id后面所接的参数不一致。</p>
+<p><img style="float: left;" src="./images/Sql Server 的参数化查询0.png" alt="" width="502" height="390" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>然后我们再来看看使用参数化查询</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">select</span> * <span style="color: #0000ff;">from</span> AU_User <span style="color: #0000ff;">where</span> Id=@Id</pre>
+</div>
+<p><br />这样不管你传的参数是多少，执行编译生成的查询计划都是 select * from AU_User where Id=@Id，这样可以实现查询计划的复用，并不需要同一个查询去生成多个查询计划<br />完全可以节省其中生成查询计划的时间</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><strong>欢迎大家扫描下方二维码，和我一起学习更多的知识😊</strong></p>
+<p>&nbsp;</p>
+<p><strong>　　<img src="./images/Sql Server 的参数化查询1.png" alt="" width="278" height="278" /></strong></p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

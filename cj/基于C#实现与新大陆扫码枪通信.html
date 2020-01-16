@@ -1,0 +1,303 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修基于C#实现与新大陆扫码枪通信' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>基于C#实现与新大陆扫码枪通信</center></div><div class='banquan'>原文出处:本文由博客园博主.NET开发者提供。<br/>
+原文连接:https://www.cnblogs.com/xiketangedu/p/11104770.html</div><br>
+    <h3>　　　随着工业互联的发展，扫码枪在很多场合都有所应用，超市、商场以及一些智能工厂。今天主要讲如何通过C#实现与新大陆扫码枪（OY10）进行通信，对于扫码枪的配置，这里就不多说了，结合说明书就可以实现。这里值得注意的是，如果安装驱动后，电脑设备管理器中看不到COM口，可能需要扫一个条形码来设置一下，具体参考说明书通讯配置章节。</h3>
+<h3>　　　首先贴下界面，基于Winform开发，主要就是正常的串口通信，涉及的技术包括UI界面设计+串口通信知识+参数配置处理+委托更新界面，涵盖了一个小系统必备的一些知识。</h3>
+<p>　　　　<img src="./images/基于C#实现与新大陆扫码枪通信0.png" alt="" /></p>
+<p>&nbsp;</p>
+<h3>　　　　再来贴一些源码，首先贴个核心串口类的编写：</h3>
+<p>&nbsp;</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('cf5e720d-d4d3-48e6-9661-652099c81d58')"><img id="code_img_closed_cf5e720d-d4d3-48e6-9661-652099c81d58" class="code_img_closed" src="./images/基于C#实现与新大陆扫码枪通信1.png" alt="" /><img id="code_img_opened_cf5e720d-d4d3-48e6-9661-652099c81d58" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('cf5e720d-d4d3-48e6-9661-652099c81d58',event)" src="./images/基于C#实现与新大陆扫码枪通信2.png" alt="" />
+<div id="cnblogs_code_open_cf5e720d-d4d3-48e6-9661-652099c81d58" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;">  1</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System;
+</span><span style="color: #008080;">  2</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Collections.Generic;
+</span><span style="color: #008080;">  3</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.IO.Ports;
+</span><span style="color: #008080;">  4</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Linq;
+</span><span style="color: #008080;">  5</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Text;
+</span><span style="color: #008080;">  6</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Threading.Tasks;
+</span><span style="color: #008080;">  7</span> 
+<span style="color: #008080;">  8</span> <span style="color: #0000ff;">namespace</span><span style="color: #000000;"> NewLand
+</span><span style="color: #008080;">  9</span> <span style="color: #000000;">{
+</span><span style="color: #008080;"> 10</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">delegate</span> <span style="color: #0000ff;">void</span> ShowMsgDelegate(<span style="color: #0000ff;">string</span><span style="color: #000000;"> info);
+</span><span style="color: #008080;"> 11</span> 
+<span style="color: #008080;"> 12</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> NewLandSerial
+</span><span style="color: #008080;"> 13</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;"> 14</span> 
+<span style="color: #008080;"> 15</span>         <span style="color: #008000;">//</span><span style="color: #008000;">定义串口类对象</span>
+<span style="color: #008080;"> 16</span>         <span style="color: #0000ff;">private</span><span style="color: #000000;"> SerialPort MyCom;
+</span><span style="color: #008080;"> 17</span>         <span style="color: #008000;">//</span><span style="color: #008000;">定义接收字节数组</span>
+<span style="color: #008080;"> 18</span>         <span style="color: #0000ff;">byte</span>[] bData = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">byte</span>[<span style="color: #800080;">1024</span><span style="color: #000000;">];
+</span><span style="color: #008080;"> 19</span>         <span style="color: #0000ff;">byte</span><span style="color: #000000;"> mReceiveByte;
+</span><span style="color: #008080;"> 20</span>         <span style="color: #0000ff;">int</span> mReceiveByteCount = <span style="color: #800080;">0</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 21</span>         <span style="color: #0000ff;">public</span><span style="color: #000000;"> ShowMsgDelegate myShowInfo;
+</span><span style="color: #008080;"> 22</span> 
+<span style="color: #008080;"> 23</span>         <span style="color: #0000ff;">public</span><span style="color: #000000;"> NewLandSerial()
+</span><span style="color: #008080;"> 24</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 25</span>             MyCom = <span style="color: #0000ff;">new</span><span style="color: #000000;"> SerialPort();
+</span><span style="color: #008080;"> 26</span> 
+<span style="color: #008080;"> 27</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 28</span> 
+<span style="color: #008080;"> 29</span>         <span style="color: #0000ff;">#region</span> 打开关闭串口方法
+<span style="color: #008080;"> 30</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;"> 31</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 打开串口方法【9600 N 8 1】
+</span><span style="color: #008080;"> 32</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;"> 33</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="iBaudRate"&gt;</span><span style="color: #008000;">波特率</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;"> 34</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="iPortNo"&gt;</span><span style="color: #008000;">端口号</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;"> 35</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="iDataBits"&gt;</span><span style="color: #008000;">数据位</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;"> 36</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="iParity"&gt;</span><span style="color: #008000;">校验位</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;"> 37</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="iStopBits"&gt;</span><span style="color: #008000;">停止位</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;"> 38</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+<span style="color: #008080;"> 39</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">bool</span> OpenMyComm(<span style="color: #0000ff;">int</span> iBaudRate, <span style="color: #0000ff;">string</span> iPortNo, <span style="color: #0000ff;">int</span><span style="color: #000000;"> iDataBits, Parity iParity, StopBits iStopBits)
+</span><span style="color: #008080;"> 40</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 41</span>             <span style="color: #0000ff;">try</span>
+<span style="color: #008080;"> 42</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 43</span>                 <span style="color: #008000;">//</span><span style="color: #008000;">关闭已打开串口</span>
+<span style="color: #008080;"> 44</span>                 <span style="color: #0000ff;">if</span><span style="color: #000000;"> (MyCom.IsOpen)
+</span><span style="color: #008080;"> 45</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;"> 46</span> <span style="color: #000000;">                    MyCom.Close();
+</span><span style="color: #008080;"> 47</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;"> 48</span>                 <span style="color: #008000;">//</span><span style="color: #008000;">设置串口属性</span>
+<span style="color: #008080;"> 49</span>                 MyCom.BaudRate =<span style="color: #000000;"> iBaudRate;
+</span><span style="color: #008080;"> 50</span>                 MyCom.PortName =<span style="color: #000000;"> iPortNo;
+</span><span style="color: #008080;"> 51</span>                 MyCom.DataBits =<span style="color: #000000;"> iDataBits;
+</span><span style="color: #008080;"> 52</span>                 MyCom.Parity =<span style="color: #000000;"> iParity;
+</span><span style="color: #008080;"> 53</span>                 MyCom.StopBits =<span style="color: #000000;"> iStopBits;
+</span><span style="color: #008080;"> 54</span>                 MyCom.ReceivedBytesThreshold = <span style="color: #800080;">1</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 55</span>                 MyCom.DataReceived +=<span style="color: #000000;"> MyCom_DataReceived;
+</span><span style="color: #008080;"> 56</span> 
+<span style="color: #008080;"> 57</span> <span style="color: #000000;">                MyCom.Open();
+</span><span style="color: #008080;"> 58</span>                 <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 59</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 60</span>             <span style="color: #0000ff;">catch</span>
+<span style="color: #008080;"> 61</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 62</span>                 <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 63</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 64</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 65</span> 
+<span style="color: #008080;"> 66</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> MyCom_DataReceived(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, SerialDataReceivedEventArgs e)
+</span><span style="color: #008080;"> 67</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 68</span>             mReceiveByteCount = <span style="color: #800080;">0</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 69</span>             <span style="color: #0000ff;">while</span> (MyCom.BytesToRead &gt; <span style="color: #800080;">0</span><span style="color: #000000;">)
+</span><span style="color: #008080;"> 70</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 71</span>                 mReceiveByte = (<span style="color: #0000ff;">byte</span><span style="color: #000000;">)MyCom.ReadByte();
+</span><span style="color: #008080;"> 72</span>                 bData[mReceiveByteCount] =<span style="color: #000000;"> mReceiveByte;
+</span><span style="color: #008080;"> 73</span>                 mReceiveByteCount += <span style="color: #800080;">1</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 74</span>                 <span style="color: #0000ff;">if</span> (mReceiveByteCount &gt;= <span style="color: #800080;">1024</span><span style="color: #000000;">)
+</span><span style="color: #008080;"> 75</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;"> 76</span>                     mReceiveByteCount = <span style="color: #800080;">0</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 77</span>                     <span style="color: #008000;">//</span><span style="color: #008000;">清除输入缓存区</span>
+<span style="color: #008080;"> 78</span> <span style="color: #000000;">                    MyCom.DiscardInBuffer();
+</span><span style="color: #008080;"> 79</span>                     <span style="color: #0000ff;">return</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 80</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;"> 81</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 82</span>             <span style="color: #0000ff;">if</span> (mReceiveByteCount &gt; <span style="color: #800080;">0</span><span style="color: #000000;">)
+</span><span style="color: #008080;"> 83</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 84</span>                 myShowInfo(Encoding.ASCII.GetString(GetByteArray(bData, <span style="color: #800080;">0</span><span style="color: #000000;">, mReceiveByteCount)));
+</span><span style="color: #008080;"> 85</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 86</span> 
+<span style="color: #008080;"> 87</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 88</span> 
+<span style="color: #008080;"> 89</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;"> 90</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 自定义截取字节数组
+</span><span style="color: #008080;"> 91</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;"> 92</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="byteArr"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;"> 93</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="start"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;"> 94</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="length"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;"> 95</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+<span style="color: #008080;"> 96</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">byte</span>[] GetByteArray(<span style="color: #0000ff;">byte</span>[] byteArr, <span style="color: #0000ff;">int</span> start, <span style="color: #0000ff;">int</span><span style="color: #000000;"> length)
+</span><span style="color: #008080;"> 97</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 98</span>             <span style="color: #0000ff;">byte</span>[] Res = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">byte</span><span style="color: #000000;">[length];
+</span><span style="color: #008080;"> 99</span>             <span style="color: #0000ff;">if</span> (byteArr != <span style="color: #0000ff;">null</span> &amp;&amp; byteArr.Length &gt;=<span style="color: #000000;"> length)
+</span><span style="color: #008080;">100</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">101</span>                 <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; length; i++<span style="color: #000000;">)
+</span><span style="color: #008080;">102</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">103</span>                     Res[i] = byteArr[i +<span style="color: #000000;"> start];
+</span><span style="color: #008080;">104</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">105</span> 
+<span style="color: #008080;">106</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">107</span>             <span style="color: #0000ff;">return</span><span style="color: #000000;"> Res;
+</span><span style="color: #008080;">108</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">109</span> 
+<span style="color: #008080;">110</span> 
+<span style="color: #008080;">111</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">112</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 关闭串口方法
+</span><span style="color: #008080;">113</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">114</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+<span style="color: #008080;">115</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">bool</span><span style="color: #000000;"> ClosePort()
+</span><span style="color: #008080;">116</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">117</span>             <span style="color: #0000ff;">if</span><span style="color: #000000;"> (MyCom.IsOpen)
+</span><span style="color: #008080;">118</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">119</span> <span style="color: #000000;">                MyCom.Close();
+</span><span style="color: #008080;">120</span>                 <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+</span><span style="color: #008080;">121</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">122</span>             <span style="color: #0000ff;">else</span>
+<span style="color: #008080;">123</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">124</span>                 <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+</span><span style="color: #008080;">125</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">126</span> 
+<span style="color: #008080;">127</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">128</span>         <span style="color: #0000ff;">#endregion</span>
+<span style="color: #008080;">129</span> 
+<span style="color: #008080;">130</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">131</span> }</pre>
+</div>
+<span class="cnblogs_code_collapse">NewLandSerial</span></div>
+<p>&nbsp;</p>
+<h3>　　　　再者就是界面的调用，直接看代码：</h3>
+<div class="cnblogs_code" onclick="cnblogs_code_show('4736b97e-62f0-4b18-a10c-e584443eb7e0')"><img id="code_img_closed_4736b97e-62f0-4b18-a10c-e584443eb7e0" class="code_img_closed" src="./images/基于C#实现与新大陆扫码枪通信1.png" alt="" /><img id="code_img_opened_4736b97e-62f0-4b18-a10c-e584443eb7e0" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('4736b97e-62f0-4b18-a10c-e584443eb7e0',event)" src="./images/基于C#实现与新大陆扫码枪通信2.png" alt="" />
+<div id="cnblogs_code_open_4736b97e-62f0-4b18-a10c-e584443eb7e0" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System;
+</span><span style="color: #008080;"> 2</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Collections.Generic;
+</span><span style="color: #008080;"> 3</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.ComponentModel;
+</span><span style="color: #008080;"> 4</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Configuration;
+</span><span style="color: #008080;"> 5</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Data;
+</span><span style="color: #008080;"> 6</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Drawing;
+</span><span style="color: #008080;"> 7</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.IO.Ports;
+</span><span style="color: #008080;"> 8</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Linq;
+</span><span style="color: #008080;"> 9</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Text;
+</span><span style="color: #008080;">10</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Threading.Tasks;
+</span><span style="color: #008080;">11</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Windows.Forms;
+</span><span style="color: #008080;">12</span> 
+<span style="color: #008080;">13</span> <span style="color: #0000ff;">namespace</span><span style="color: #000000;"> NewLand
+</span><span style="color: #008080;">14</span> <span style="color: #000000;">{
+</span><span style="color: #008080;">15</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">partial</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> FrmMain : Form
+</span><span style="color: #008080;">16</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;">17</span>         <span style="color: #0000ff;">public</span><span style="color: #000000;"> FrmMain()
+</span><span style="color: #008080;">18</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">19</span> <span style="color: #000000;">            InitializeComponent();
+</span><span style="color: #008080;">20</span>             <span style="color: #0000ff;">this</span>.Load +=<span style="color: #000000;"> FrmMain_Load;
+</span><span style="color: #008080;">21</span> 
+<span style="color: #008080;">22</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">23</span> 
+<span style="color: #008080;">24</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> FrmMain_Load(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)
+</span><span style="color: #008080;">25</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">26</span>             <span style="color: #0000ff;">this</span>.btn_DisConn.Enabled = <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+</span><span style="color: #008080;">27</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">28</span> 
+<span style="color: #008080;">29</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> txt_Info_DoubleClick(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)
+</span><span style="color: #008080;">30</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">31</span>             <span style="color: #0000ff;">this</span><span style="color: #000000;">.txt_Info.Clear();
+</span><span style="color: #008080;">32</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">33</span> 
+<span style="color: #008080;">34</span> <span style="color: #000000;">        NewLandSerial myNewLand;
+</span><span style="color: #008080;">35</span> 
+<span style="color: #008080;">36</span> 
+<span style="color: #008080;">37</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> btn_Connect_Click(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)
+</span><span style="color: #008080;">38</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">39</span>            <span style="color: #0000ff;">string</span> Port= ConfigurationManager.AppSettings[<span style="color: #800000;">"</span><span style="color: #800000;">Port</span><span style="color: #800000;">"</span><span style="color: #000000;">].ToString();
+</span><span style="color: #008080;">40</span> 
+<span style="color: #008080;">41</span>             myNewLand = <span style="color: #0000ff;">new</span><span style="color: #000000;"> NewLandSerial();
+</span><span style="color: #008080;">42</span>             myNewLand.myShowInfo +=<span style="color: #000000;"> ShowInfo;
+</span><span style="color: #008080;">43</span> 
+<span style="color: #008080;">44</span>             <span style="color: #0000ff;">if</span> (myNewLand.OpenMyComm(<span style="color: #800080;">9600</span>, Port, <span style="color: #800080;">8</span><span style="color: #000000;">, Parity.None, StopBits.One))
+</span><span style="color: #008080;">45</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">46</span>                 MessageBox.Show(<span style="color: #800000;">"</span><span style="color: #800000;">连接成功！</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">建立连接</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">47</span>                 <span style="color: #0000ff;">this</span>.btn_Connect.Enabled = <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+</span><span style="color: #008080;">48</span>                 <span style="color: #0000ff;">this</span>.btn_DisConn.Enabled = <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+</span><span style="color: #008080;">49</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">50</span>             <span style="color: #0000ff;">else</span>
+<span style="color: #008080;">51</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">52</span>                 MessageBox.Show(<span style="color: #800000;">"</span><span style="color: #800000;">连接失败！</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">建立连接</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">53</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">54</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">55</span> 
+<span style="color: #008080;">56</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> ShowInfo(<span style="color: #0000ff;">string</span><span style="color: #000000;"> info)
+</span><span style="color: #008080;">57</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">58</span>             Invoke(<span style="color: #0000ff;">new</span> Action(() =&gt;
+<span style="color: #008080;">59</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">60</span>                 <span style="color: #0000ff;">this</span>.txt_Info.AppendText(DateTime.Now.ToString(<span style="color: #800000;">"</span><span style="color: #800000;">yyyy/MM/dd HH:mm:ss</span><span style="color: #800000;">"</span>) + <span style="color: #800000;">"</span>   <span style="color: #800000;">"</span> + info +<span style="color: #000000;"> Environment.NewLine);
+</span><span style="color: #008080;">61</span> <span style="color: #000000;">            }));
+</span><span style="color: #008080;">62</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">63</span> 
+<span style="color: #008080;">64</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> btn_DisConn_Click(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)
+</span><span style="color: #008080;">65</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">66</span>             <span style="color: #0000ff;">if</span><span style="color: #000000;"> (myNewLand.ClosePort())
+</span><span style="color: #008080;">67</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">68</span>                 MessageBox.Show(<span style="color: #800000;">"</span><span style="color: #800000;">断开连接成功！</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">断开连接</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">69</span>                 <span style="color: #0000ff;">this</span>.btn_Connect.Enabled = <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+</span><span style="color: #008080;">70</span>                 <span style="color: #0000ff;">this</span>.btn_DisConn.Enabled = <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+</span><span style="color: #008080;">71</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">72</span>             <span style="color: #0000ff;">else</span>
+<span style="color: #008080;">73</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">74</span>                 MessageBox.Show(<span style="color: #800000;">"</span><span style="color: #800000;">断开连接失败！</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">断开连接</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">75</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">76</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">77</span> 
+<span style="color: #008080;">78</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> btn_ParaSet_Click(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)
+</span><span style="color: #008080;">79</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">80</span>             <span style="color: #0000ff;">new</span><span style="color: #000000;"> FrmParaSet().ShowDialog();
+</span><span style="color: #008080;">81</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">82</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">83</span> }</pre>
+</div>
+<span class="cnblogs_code_collapse">FrmMain</span></div>
+<p>&nbsp;</p>
+<h3>　　　　最后是参数配置，通过App.Config实现：</h3>
+<div class="cnblogs_code" onclick="cnblogs_code_show('a480c9d2-e9e3-4764-9b40-f3ec687da8b6')"><img id="code_img_closed_a480c9d2-e9e3-4764-9b40-f3ec687da8b6" class="code_img_closed" src="./images/基于C#实现与新大陆扫码枪通信1.png" alt="" /><img id="code_img_opened_a480c9d2-e9e3-4764-9b40-f3ec687da8b6" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('a480c9d2-e9e3-4764-9b40-f3ec687da8b6',event)" src="./images/基于C#实现与新大陆扫码枪通信2.png" alt="" />
+<div id="cnblogs_code_open_a480c9d2-e9e3-4764-9b40-f3ec687da8b6" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System;
+</span><span style="color: #008080;"> 2</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Collections.Generic;
+</span><span style="color: #008080;"> 3</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.ComponentModel;
+</span><span style="color: #008080;"> 4</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Configuration;
+</span><span style="color: #008080;"> 5</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Data;
+</span><span style="color: #008080;"> 6</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Drawing;
+</span><span style="color: #008080;"> 7</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Linq;
+</span><span style="color: #008080;"> 8</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Text;
+</span><span style="color: #008080;"> 9</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Threading.Tasks;
+</span><span style="color: #008080;">10</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Windows.Forms;
+</span><span style="color: #008080;">11</span> 
+<span style="color: #008080;">12</span> <span style="color: #0000ff;">namespace</span><span style="color: #000000;"> NewLand
+</span><span style="color: #008080;">13</span> <span style="color: #000000;">{
+</span><span style="color: #008080;">14</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">partial</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> FrmParaSet : Form
+</span><span style="color: #008080;">15</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;">16</span>         <span style="color: #0000ff;">public</span><span style="color: #000000;"> FrmParaSet()
+</span><span style="color: #008080;">17</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">18</span> <span style="color: #000000;">            InitializeComponent();
+</span><span style="color: #008080;">19</span>             <span style="color: #0000ff;">this</span>.Load +=<span style="color: #000000;"> FrmParaSet_Load;
+</span><span style="color: #008080;">20</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">21</span> 
+<span style="color: #008080;">22</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> FrmParaSet_Load(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)
+</span><span style="color: #008080;">23</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">24</span>             <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; <span style="color: #800080;">20</span>; i++<span style="color: #000000;">)
+</span><span style="color: #008080;">25</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">26</span>                 <span style="color: #0000ff;">this</span>.cmb_Port.Items.Add(<span style="color: #800000;">"</span><span style="color: #800000;">COM</span><span style="color: #800000;">"</span> +<span style="color: #000000;"> i.ToString());
+</span><span style="color: #008080;">27</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">28</span> 
+<span style="color: #008080;">29</span>             <span style="color: #0000ff;">this</span>.cmb_Port.Text = ConfigurationManager.AppSettings[<span style="color: #800000;">"</span><span style="color: #800000;">Port</span><span style="color: #800000;">"</span><span style="color: #000000;">].ToString();
+</span><span style="color: #008080;">30</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">31</span> 
+<span style="color: #008080;">32</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> btn_Set_Click(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)
+</span><span style="color: #008080;">33</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">34</span>             Configuration cfa = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None); <span style="color: #008000;">//</span><span style="color: #008000;">首先打开配置文件</span>
+<span style="color: #008080;">35</span>             cfa.AppSettings.Settings[<span style="color: #800000;">"</span><span style="color: #800000;">Port</span><span style="color: #800000;">"</span>].Value = <span style="color: #0000ff;">this</span><span style="color: #000000;">.cmb_Port.Text;
+</span><span style="color: #008080;">36</span>             cfa.Save();  <span style="color: #008000;">//</span><span style="color: #008000;">保存配置文件</span>
+<span style="color: #008080;">37</span>             ConfigurationManager.RefreshSection(<span style="color: #800000;">"</span><span style="color: #800000;">appSettings</span><span style="color: #800000;">"</span>);  <span style="color: #008000;">//</span><span style="color: #008000;">刷新配置文件</span>
+<span style="color: #008080;">38</span>             <span style="color: #0000ff;">this</span><span style="color: #000000;">.Close();
+</span><span style="color: #008080;">39</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">40</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">41</span> }</pre>
+</div>
+<span class="cnblogs_code_collapse">FrmParamSet</span></div>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

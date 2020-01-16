@@ -1,0 +1,124 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修亲手撸码，爬取 手机号码归属地最新数据（201911）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>亲手撸码，爬取 手机号码归属地最新数据（201911）</center></div><div class='banquan'>原文出处:本文由博客园博主im531提供。<br/>
+原文连接:https://www.cnblogs.com/im531/p/11858017.html</div><br>
+    <p>某天，某部门负责人<span style="color: #ff0000;">小姐姐：要在订单中识别收货人手机号码归属地，这样可以参考判断该客户是否为恶意下单。</span><br /><span style="color: #0000ff;">搬砖君：可以，有两种方案；</span><br /><span style="color: #0000ff;">&nbsp; &nbsp; 一、网上买个API接口（需要RMB支持）；</span><br /><span style="color: #0000ff;">&nbsp; &nbsp; 二、找个手机归属地库（免费，有可能不是最新）；</span><br /><span style="color: #ff0000;">小姐姐：申请RMB，估计领导不会签字，那就免费的吧。</span><br /><span style="color: #0000ff;">搬砖君：好吧，<img src="./images/亲手撸码，爬取 手机号码归属地最新数据（201911）0.png" alt="" />（此时心中一万个。。。（你们懂的））；</span></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>于是某度搜索 手机号码归属地最新数据库 排名第一的居然是园子里的高手，瞬间兴奋起来，</p>
+<p><img src="./images/亲手撸码，爬取 手机号码归属地最新数据（201911）1.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><br />打开链接看到 github ，心想这下不要去撸码找数据了。结果翻遍每个文件夹只有查询方法，却没有库。<br />再往下看原来库是有 购买 链接，还有升级链接。看来这路走不通了。</p>
+<p><img src="./images/亲手撸码，爬取 手机号码归属地最新数据（201911）2.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>再翻了下某度的其它搜索结果，要么不最新，要么收费，要么就是登录需要积分下载。<br />心想去找个API接口把他的数据撸出来就好了。 继续某度 手机号码归属地查询API接口 ，<br />经过测试，比对，找了4个可用而且可信度比较高的。</p>
+<p>&nbsp;<img src="./images/亲手撸码，爬取 手机号码归属地最新数据（201911）3.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>开始撸码【抱歉，数据源和数据入库 画面请各位小伙伴自行脑补】：</p>
+<div class="cnblogs_Highlighter">
+<pre><code>private static List&lt;string&gt; MobileList = new List&lt;string&gt;();
+// 中途中断后, 已经存在的手机号段列表
+using (SqlConnection conn = new SqlConnection(ConStr))
+{
+    if (MobileList.Count == 0)
+    {
+        string temp_sql = $"SELECT [Mobile] From [App_Mobile_20191113]";
+        using (SqlCommand command = new SqlCommand(temp_sql, conn))
+        {
+            command.CommandType = System.Data.CommandType.Text;
+            if (conn.State == ConnectionState.Closed) conn.Open();
+            using (SqlDataReader dreader = command.ExecuteReader())
+            {
+                while (dreader.Read())
+                {
+                    MobileList.Add(dreader[0].ToString());
+                }
+            }
+        }
+    }
+}</pre>
+</div>
+<p>一个号码段前三位一个线程</p>
+<div class="cnblogs_Highlighter">
+<pre><code>List&lt;Task&gt; taskList = new List&lt;Task&gt;();
+TaskFactory taskFactory = new TaskFactory();
+// 从手机前3位 130 开始 至 199 结束
+for (int i = 130; i &lt; 200; i++)
+{
+    int mobile_no = i;
+    taskList.Add(taskFactory.StartNew(() =&gt;
+    {
+        Console.WriteLine($"{mobile_no} = {Thread.CurrentThread.ManagedThreadId}");
+        Get(mobile_no);
+    }));
+}
+Task.WaitAll(taskList.ToArray());
+</pre>
+</div>
+<p>开始获取数据</p>
+<div class="cnblogs_Highlighter">
+<pre><code>static void Get(int start_no)
+{
+    int start_mobile = int.Parse($"{start_no}0000");
+    int end_mobile = int.Parse($"{start_no}9999");
+    // 获取某开头下的所有号码段 如: 1300000 - 1309999
+    for (int i = start_mobile; i &lt;= end_mobile; i++)
+    {
+        if (MobileList.Contains(i.ToString())) continue; //已经存在的号码
+        int code = new Random().Next(1000, 9999); // 随机手机号码最后4位
+        string mobile = $"{i}{code}";
+        //获取数据 【抱歉，数据来源画面请各位小伙伴自行脑补】
+        ModelMobile model = Get1(mobile); // 数据源1
+        if (!model.QueryResult || string.IsNullOrWhiteSpace(model.Province)) model = Get2(mobile); // 数据源2
+        if (!model.QueryResult || string.IsNullOrWhiteSpace(model.Province)) model = Get3(mobile); // 数据源3
+        if (!model.QueryResult || string.IsNullOrWhiteSpace(model.Province)) model = Get4(mobile); // 数据源4
+        //获取成功后入库【入库画面请各位小伙伴自行脑补】
+        if (model.QueryResult)
+        {
+            if (save_data(model))
+                Console.WriteLine($" {Thread.CurrentThread.ManagedThreadId}. Success \t{i} = {model.Province} {model.City} ({model.Corp}) [{model.Source}] ......");
+            else
+                Console.WriteLine($" {Thread.CurrentThread.ManagedThreadId}. SaveFail \t{i} = {model.Province} {model.City} ({model.Corp}) [{model.Source}] ......");
+        }
+        else
+            Console.WriteLine($" {Thread.CurrentThread.ManagedThreadId}. Fail \t{i} = {model.Message} [{model.Source}] ......");
+    }
+}
+</pre>
+</div>
+<p>运行效果：</p>
+<p><img src="./images/亲手撸码，爬取 手机号码归属地最新数据（201911）4.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>爬完所有号段后，数据总 442245 条，比某度排第一园子里的高手还要多。</p>
+<p><img src="./images/亲手撸码，爬取 手机号码归属地最新数据（201911）5.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><img src="./images/亲手撸码，爬取 手机号码归属地最新数据（201911）1.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>只要源数据正常，这库还可以一直正常升级。<br />撸码完成，敢快去通知小姐姐，已经可以正常调用了。</p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,175 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修jQuery 源码分析(二) 入口模块' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>jQuery 源码分析(二) 入口模块</center></div><div class='banquan'>原文出处:本文由博客园博主大沙漠提供。<br/>
+原文连接:https://www.cnblogs.com/greatdesert/p/11399137.html</div><br>
+    <p>jQuery返回的对象本质上是一个JavaScript对象，而入口模块则可以保存对应的节点的引用，然后供其它模块操作</p>
+<p>我们创建jQuery对象时可以给jQuery传递各种不同的选择器，如下:</p>
+<p>　　false　　　　　　　　;返回一个空jQuery对象</p>
+<p>　　DOM节点　　　　　　;返回包含该DOM元素引用的jQuery对象。</p>
+<p>　　body　　　　　　　　;字符串'body',返回包含body元素引用的jQuery对象</p>
+<p>　　单独标签　　　　　　;调用document.createElement创建标签对应的DOM元素</p>
+<p>　　较复杂的html代码　　;调用jQuery.buildFragment创建元素</p>
+<p>　　函数　　　　　　　　;是$(document).ready(function)的简写，等到DOM加载完毕后再执行，后面有几篇专门介绍</p>
+<p>例如:</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;!</span><span style="color: #ff00ff;">DOCTYPE html</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">html </span><span style="color: #ff0000;">lang</span><span style="color: #0000ff;">="en"</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">head</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">meta </span><span style="color: #ff0000;">charset</span><span style="color: #0000ff;">="UTF-8"</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">title</span><span style="color: #0000ff;">&gt;</span>Document<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">title</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script </span><span style="color: #ff0000;">src</span><span style="color: #0000ff;">="http://libs.baidu.com/jquery/1.7.1/jquery.min.js"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">head</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">body</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">p </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="p"</span><span style="color: #0000ff;">&gt;</span>123<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">p</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span><span style="background-color: #f5f5f5; color: #000000;">
+        console.log( $(</span><span style="background-color: #f5f5f5; color: #0000ff;">false</span><span style="background-color: #f5f5f5; color: #000000;">) )
+        console.log( $(p) )
+        console.log( $(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">body</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">) )
+        console.log( $(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">&lt;p&gt;123&lt;/p&gt;</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">) )
+        $(</span><span style="background-color: #f5f5f5; color: #0000ff;">function</span><span style="background-color: #f5f5f5; color: #000000;">(){console.log(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">Dom loaded</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">)}) 
+    </span><span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">body</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">html</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<p>输出如下:</p>
+<p><img src="./images/jQuery 源码分析(二) 入口模块0.png" alt="" /></p>
+<p>输出的五条信息分别对应上面的五个输出，第一条为空jQuery对象，第二条为包含p元素的jQuery对象，第三条为包含body节点引用的jQuery对象，第四条为jQuery创建的未挂载到dom的jQuery对象，第五条就直接输出信息的，对应着例子的$(function(){})对象</p>
+<p>&nbsp;</p>
+<p>&nbsp;<strong><span style="font-size: 18pt;">源码分析</span></strong></p>
+<hr />
+<p class="hwi">&nbsp;writer by:大沙漠 QQ:22969969</p>
+<p>&nbsp;入口模块就是上一篇文章分析的jQuery内部的jQuery.fn.init函数，该函数会通过参数的不同来做不同的实现，如下：</p>
+<div class="cnblogs_code">
+<pre><code>  init: <span style="color: #0000ff;">function</span>( selector, context, rootjQuery ) {           <span style="color: #008000;">//</span><span style="color: #008000;">负责解析参数selector和context的类型，并执行相应的逻辑</span>
+    <span style="color: #0000ff;">var</span><span style="color: #000000;"> match, elem, ret, doc;
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> Handle $(""), $(null), or $(undefined)</span>
+    <span style="color: #0000ff;">if</span> ( !selector ) {                                                        <span style="color: #008000;">//</span><span style="color: #008000;">selector是"",null,undefined和false的等可以转换为false的情况下，<span style="color: #ff0000;">对应上面的第一个jQuery实例</span></span>
+      <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+    }
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> Handle $(DOMElement)</span>
+    <span style="color: #0000ff;">if</span> ( selector.nodeType ) {                                                <span style="color: #008000;">//</span><span style="color: #008000;">selector有属性nodeType，则认为selector是DOM元素,例如:$(document.getELementById('d'))<span style="color: #008000;">，<span style="color: #ff0000;">对应上面的第二个jQuery实例</span></span></span>
+      <span style="color: #0000ff;">this</span>.context = <span style="color: #0000ff;">this</span>[0] =<span style="color: #000000;"> selector;
+      </span><span style="color: #0000ff;">this</span>.length = 1<span style="color: #000000;">;
+      </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+    }
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> The body element only exists once, optimize finding it</span>
+    <span style="color: #0000ff;">if</span> ( selector === "body" &amp;&amp; !context &amp;&amp; document.body ) {               <span style="color: #008000;">//</span><span style="color: #008000;">如果参数selector是字符串'body'，且context为空,如:$('body'),<span style="color: #ff0000;">对应上面的第三个jQuery实例</span></span>
+      <span style="color: #0000ff;">this</span>.context =<span style="color: #000000;"> document;
+      </span><span style="color: #0000ff;">this</span>[0] =<span style="color: #000000;"> document.body;
+      </span><span style="color: #0000ff;">this</span>.selector =<span style="color: #000000;"> selector;
+      </span><span style="color: #0000ff;">this</span>.length = 1<span style="color: #000000;">;
+      </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+    }
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> Handle HTML strings</span>
+    <span style="color: #0000ff;">if</span> ( <span style="color: #0000ff;">typeof</span> selector === "string" ) {                                   <span style="color: #008000;">//</span><span style="color: #008000;">参数selector是字符串形式</span>
+      <span style="color: #008000;">//</span><span style="color: #008000;"> Are we dealing with HTML string or an ID?</span>
+      <span style="color: #0000ff;">if</span> ( selector.charAt(0) === "&lt;" &amp;&amp; selector.charAt( selector.length - 1 ) === "&gt;" &amp;&amp; selector.length &gt;= 3 ) {       <span style="color: #008000;">//</span><span style="color: #008000;">如果参数selector以"&lt;"开头、以"&gt;"结尾，且长度大于等于3</span>
+        <span style="color: #008000;">//</span><span style="color: #008000;"> Assume that strings that start and end with &lt;&gt; are HTML and skip the regex check   </span>
+        match = [ <span style="color: #0000ff;">null</span>, selector, <span style="color: #0000ff;">null</span> ];                                                                                     <span style="color: #008000;">//</span><span style="color: #008000;">则假设这个字符串是HTML片段,跳过正则quickExpr的检查。注意这里仅仅是假设，并不一定表示它是真正合法的HTML代码</span>
+<span style="color: #000000;">
+      } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+        match </span>= quickExpr.exec( selector );                                                                               <span style="color: #008000;">//</span><span style="color: #008000;">否则用quickExpr来检测参数selector是否为稍微复杂一点的代码，</span>
+<span style="color: #000000;">      }
+
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> Verify a match, and that no context was specified for #id</span>
+      <span style="color: #0000ff;">if</span> ( match &amp;&amp; (match[1] || !<span style="color: #000000;">context) ) {
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> HANDLE: $(html) -&gt; $(array)</span>
+        <span style="color: #0000ff;">if</span> ( match[1<span style="color: #000000;">] ) {
+          context </span>= context <span style="color: #0000ff;">instanceof</span> jQuery ? context[0<span style="color: #000000;">] : context;
+          doc </span>= ( context ? context.ownerDocument ||<span style="color: #000000;"> context : document );
+
+          </span><span style="color: #008000;">//</span><span style="color: #008000;"> If a single string is passed in and it's a single tag</span>
+          <span style="color: #008000;">//</span><span style="color: #008000;"> just do a createElement and skip the rest</span>
+          ret =<span style="color: #000000;"> rsingleTag.exec( selector );
+
+          </span><span style="color: #0000ff;">if</span> ( ret ) {                                                      <span style="color: #008000;">//</span><span style="color: #008000;">如果参数selector是单独标签比如$('&lt;p&gt;&lt;/p&gt;');</span>
+            <span style="color: #0000ff;">if</span><span style="color: #000000;"> ( jQuery.isPlainObject( context ) ) {
+              selector </span>= [ document.createElement( ret[1<span style="color: #000000;">] ) ];
+              jQuery.fn.attr.call( selector, context, </span><span style="color: #0000ff;">true</span><span style="color: #000000;"> );
+
+            } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+              selector </span>= [ doc.createElement( ret[1<span style="color: #000000;">] ) ];
+            }
+
+          } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+            ret </span>= jQuery.buildFragment( [ match[1<span style="color: #000000;">] ], [ doc ] );
+            selector </span>= ( ret.cacheable ?<span style="color: #000000;"> jQuery.clone(ret.fragment) : ret.fragment ).childNodes;
+          }
+
+          </span><span style="color: #0000ff;">return</span> jQuery.merge( <span style="color: #0000ff;">this</span><span style="color: #000000;">, selector );
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> HANDLE: $("#id")</span>
+        } <span style="color: #0000ff;">else</span> {                                                            <span style="color: #008000;">//</span><span style="color: #008000;">参数selector是"#id"格式,如:$('#p1')</span>
+          elem = document.getElementById( match[2<span style="color: #000000;">] );
+
+          </span><span style="color: #008000;">//</span><span style="color: #008000;"> Check parentNode to catch when Blackberry 4.6 returns</span>
+          <span style="color: #008000;">//</span><span style="color: #008000;"> nodes that are no longer in the document #6963</span>
+          <span style="color: #0000ff;">if</span> ( elem &amp;&amp;<span style="color: #000000;"> elem.parentNode ) {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> Handle the case where IE and Opera return items</span>
+            <span style="color: #008000;">//</span><span style="color: #008000;"> by name instead of ID</span>
+            <span style="color: #0000ff;">if</span> ( elem.id !== match[2<span style="color: #000000;">] ) {
+              </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> rootjQuery.find( selector );
+            }
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> Otherwise, we inject the element directly into the jQuery object</span>
+            <span style="color: #0000ff;">this</span>.length = 1<span style="color: #000000;">;
+            </span><span style="color: #0000ff;">this</span>[0] =<span style="color: #000000;"> elem;
+          }
+
+          </span><span style="color: #0000ff;">this</span>.context =<span style="color: #000000;"> document;
+          </span><span style="color: #0000ff;">this</span>.selector =<span style="color: #000000;"> selector;
+          </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+        }
+
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> HANDLE: $(expr, $(...))</span>
+      } <span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> ( !context ||<span style="color: #000000;"> context.jquery ) {
+        </span><span style="color: #0000ff;">return</span> ( context ||<span style="color: #000000;"> rootjQuery ).find( selector );
+
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> HANDLE: $(expr, context)</span>
+      <span style="color: #008000;">//</span><span style="color: #008000;"> (which is just equivalent to: $(context).find(expr)</span>
+      } <span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">.constructor( context ).find( selector );
+      }
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> HANDLE: $(function)</span>
+    <span style="color: #008000;">//</span><span style="color: #008000;"> Shortcut for document ready</span>
+    } <span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> ( jQuery.isFunction( selector ) ) {                           <span style="color: #008000;">//</span><span style="color: #008000;">如果参数selector是函数，则认为是绑定ready事件,从这里可以看出$(function) 是$(document).ready(function)的简写，<span style="color: #ff0000;">这里对应上面的第五个jQuery实例</span></span>
+      <span style="color: #0000ff;">return</span><span style="color: #000000;"> rootjQuery.ready( selector );
+    }
+
+    </span><span style="color: #0000ff;">if</span> ( selector.selector !==<span style="color: #000000;"> undefined ) {
+      </span><span style="color: #0000ff;">this</span>.selector =<span style="color: #000000;"> selector.selector;
+      </span><span style="color: #0000ff;">this</span>.context =<span style="color: #000000;"> selector.context;
+    }
+
+    </span><span style="color: #0000ff;">return</span> jQuery.makeArray( selector, <span style="color: #0000ff;">this</span><span style="color: #000000;"> );
+  },</span></pre>
+</div>
+<p>这样jQuery实例就获取到了对应的DOM节点的引用，之后就可以用底层模块或功能模块进行操作了。</p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

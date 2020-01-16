@@ -1,0 +1,505 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修探究 C# 中的 char 、 string（一）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>探究 C# 中的 char 、 string（一）</center></div><div class='banquan'>原文出处:本文由博客园博主痴者工良提供。<br/>
+原文连接:https://www.cnblogs.com/whuanle/p/11967014.html</div><br>
+    <div class="toc">
+    <p class="toc-title">目录</p>
+    <div class="toc-list">
+        <ul>
+        <li><a href="#探究-c-中的-char-string一">探究 C# 中的 char 、 string（一）</a><ul>
+        <li><a href="#system.char-字符">1. System.Char 字符</a></li>
+        <li><a href="#字符处理">2. 字符处理</a></li>
+        <li><a href="#全球化">3. 全球化</a></li>
+        <li><a href="#system.string-字符串">4. System.String 字符串</a><ul>
+        <li><a href="#字符串搜索">4.1 字符串搜索</a></li>
+        <li><a href="#字符串提取插入删除替换">4.2 字符串提取、插入、删除、替换</a></li>
+        </ul></li>
+        <li><a href="#字符串驻留池">5. 字符串驻留池</a></li>
+        </ul></li>
+        </ul>
+    </div>
+</div>
+<h1 id="探究-c-中的-char-string一">探究 C# 中的 char 、 string（一）</h1>
+<h2 id="system.char-字符">1. System.Char 字符</h2>
+<p>char 是 System.Char 的别名。</p>
+<p>System.Char 占两个字节，16个二进制位。</p>
+<p>System.Char 用来表示、存储一个 Unicode 字符。</p>
+<p>System.Char 的表示范围是 <code>U+0000</code> 到<code>U+FFFF</code>，char 默认值是 <code>\0</code>，即 <code>U+0000</code>。</p>
+<p>Unicode 的表示，通常以 <code>U+____</code>形式表示，即 <code>U</code> 和 一组16进制的数字组成。</p>
+<p>char 有四种赋值方法</p>
+<pre><code><code>            char a = &#39;j&#39;;
+            char b = &#39;\u006A&#39;;
+            char c = &#39;\x006A&#39;;
+            char d = (char) 106;
+            Console.WriteLine($&quot;{a} | {b} | {c} | {d}&quot;);</code></pre>
+<p>输出</p>
+<pre><code><code>j | j | j | j</code></pre>
+<p><code>\u</code> 开头是 Unicode 转义序列（编码）；使用 Unicode 转义序列，后面必须是4个十六进制的数字。</p>
+<pre><code><code>\u006A    有效
+\u06A     无效
+\u6A      无效</code></pre>
+<p><code>\x</code> 开头是 十六进制转义序列，也是由4个十六进制数字组成。如果前面是N个0的话，则可以省略0。下面的示例都是表示同一个字符。</p>
+<pre><code><code>\x006A
+\x06A
+\x6A</code></pre>
+<p>char 可以隐式转为其他数值类型，整型有可以转为<code>ushort</code>，<code>int</code>，<code>uint</code>，<code>long</code>，和<code>ulong</code>，浮点型 可以转为 <code>float</code>，<code>double</code>，和<code>decimal</code>。</p>
+<p>char 可以显式转为 <code>sbyte</code>，<code>byte</code>和<code>short</code>。</p>
+<p>其他类型无法隐式转为 char 类型，但是任何整型和浮点型都可以显式转为 char。</p>
+<h2 id="字符处理">2. 字符处理</h2>
+<p>System.Char 中，具有很多就态方法，能够有助于识别、处理字符。</p>
+<p>有一个非常重要的 UnicodeCategory 枚举</p>
+<pre><code><code>  public enum UnicodeCategory
+  {
+    UppercaseLetter,
+    LowercaseLetter,
+    TitlecaseLetter,
+    ModifierLetter,
+    OtherLetter,
+    NonSpacingMark,
+    SpacingCombiningMark,
+    EnclosingMark,
+    DecimalDigitNumber,
+    LetterNumber,
+    OtherNumber,
+    SpaceSeparator,
+    LineSeparator,
+    ParagraphSeparator,
+    Control,
+    Format,
+    Surrogate,
+    PrivateUse,
+    ConnectorPunctuation,
+    DashPunctuation,
+    OpenPunctuation,
+    ClosePunctuation,
+    InitialQuotePunctuation,
+    FinalQuotePunctuation,
+    OtherPunctuation,
+    MathSymbol,
+    CurrencySymbol,
+    ModifierSymbol,
+    OtherSymbol,
+    OtherNotAssigned,
+  }</code></pre>
+<p>System.Char 中， 有一个 <code>GetUnicodeCategory()</code> 静态方法，可以返回字符的类型，即上面的枚举值。</p>
+<p>除了 <code>GetUnicodeCategory()</code> ，我们还可以通过具体的静态方法判断字符的类别。</p>
+<p>下面列出静态方法的使用说明的枚举类别。</p>
+<table>
+<thead>
+<tr class="header">
+<th>静态方法</th>
+<th>说明</th>
+<th>枚举表示</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>IsControl</td>
+<td>值小于<code>0x20</code> 的不可打印字符。例如 \r、\n、\t、\0等。</td>
+<td>无</td>
+</tr>
+<tr class="even">
+<td>IsDigit</td>
+<td>0-9和其他字母表中的数字</td>
+<td>DecimalDigitNumber</td>
+</tr>
+<tr class="odd">
+<td>IsLetter</td>
+<td>A-Z、a-z 和其他字母字符</td>
+<td>UppercaseLetter,<br/>LowercaseLetter,<br/>TitlecaseLetter,<br/>ModifierLetter,<br/>OtherLetter</td>
+</tr>
+<tr class="even">
+<td>IsLetterOrDigit</td>
+<td>字母和数字</td>
+<td>参考 IsLetter 和 IsDigit</td>
+</tr>
+<tr class="odd">
+<td>IsLower</td>
+<td>小写字母</td>
+<td>LowercaseLetter</td>
+</tr>
+<tr class="even">
+<td>IsNumber</td>
+<td>数字、Unicode中的分数、罗马数字</td>
+<td>DecimalDigitNumber,<br/>LetterNumber,<br/>OtherNumber</td>
+</tr>
+<tr class="odd">
+<td>IsPunctuation</td>
+<td>西方和其他字母表中的标点符号</td>
+<td>ConnectorPunctuation,<br/>DashPunctuation,<br/>InitialQuotePunctuation,<br/>FinalQuotePunctuation,<br/>OtherPunctuation</td>
+</tr>
+<tr class="even">
+<td>IsSeparator</td>
+<td>空格和所有的 Unicode 分隔符</td>
+<td>SpaceSeparator,<br/>ParagraphSeparator</td>
+</tr>
+<tr class="odd">
+<td>IsSurrogate</td>
+<td>0x10000到0x10FFF之间的Unicode值</td>
+<td>Surrogate</td>
+</tr>
+<tr class="even">
+<td>IsSymbol</td>
+<td>大部分可打印字符</td>
+<td>MathSymbol,<br/>ModifierSymbol,<br/>OtherSymbol</td>
+</tr>
+<tr class="odd">
+<td>IsUpper</td>
+<td>大小字母</td>
+<td>UppercaseLetter</td>
+</tr>
+<tr class="even">
+<td>IsWhiteSpace</td>
+<td>所有的分隔符以及 \t、\n、\r、\v、\f</td>
+<td>SpaceSeparator,<br/>ParagraphSeparator</td>
+</tr>
+</tbody>
+</table>
+<p>示例</p>
+<pre><code><code>        char chA = &#39;A&#39;;
+        char ch1 = &#39;1&#39;;
+        string str = &quot;test string&quot;; 
+
+        Console.WriteLine(chA.CompareTo(&#39;B&#39;));          //-----------  Output: &quot;-1
+                                                        //(meaning &#39;A&#39; is 1 less than &#39;B&#39;)
+        Console.WriteLine(chA.Equals(&#39;A&#39;));             //-----------  Output: &quot;True&quot;
+        Console.WriteLine(Char.GetNumericValue(ch1));   //-----------  Output: &quot;1&quot;
+        Console.WriteLine(Char.IsControl(&#39;\t&#39;));        //-----------  Output: &quot;True&quot;
+        Console.WriteLine(Char.IsDigit(ch1));           //-----------  Output: &quot;True&quot;
+        Console.WriteLine(Char.IsLetter(&#39;,&#39;));          //-----------  Output: &quot;False&quot;
+        Console.WriteLine(Char.IsLower(&#39;u&#39;));           //-----------  Output: &quot;True&quot;
+        Console.WriteLine(Char.IsNumber(ch1));          //-----------  Output: &quot;True&quot;
+        Console.WriteLine(Char.IsPunctuation(&#39;.&#39;));     //-----------  Output: &quot;True&quot;
+        Console.WriteLine(Char.IsSeparator(str, 4));    //-----------  Output: &quot;True&quot;
+        Console.WriteLine(Char.IsSymbol(&#39;+&#39;));          //-----------  Output: &quot;True&quot;
+        Console.WriteLine(Char.IsWhiteSpace(str, 4));   //-----------  Output: &quot;True&quot;
+        Console.WriteLine(Char.Parse(&quot;S&quot;));             //-----------  Output: &quot;S&quot;
+        Console.WriteLine(Char.ToLower(&#39;M&#39;));           //-----------  Output: &quot;m&quot;
+        Console.WriteLine(&#39;x&#39;.ToString());              //-----------  Output: &quot;x&quot;
+        Console.WriteLine(Char.IsSurrogate(&#39;\U00010F00&#39;));      // Output: &quot;False&quot;
+        char test = &#39;\xDFFF&#39;;
+        Console.WriteLine(test);                        //-----------   Output：&#39;?&#39;
+        Console.WriteLine( Char.GetUnicodeCategory(test));//----------- Output：&quot;Surrogate&quot;
+</code></pre>
+<p>如果想满足你的好奇心，可以点击 <a href="http://www1.cs.columbia.edu/~lok/csharp/refdocs/System/types/Char.html" class="uri">http://www1.cs.columbia.edu/~lok/csharp/refdocs/System/types/Char.html</a></p>
+<h2 id="全球化">3. 全球化</h2>
+<p>C# 中 System.Char 有很丰富的方法去处理字符，例如常用的 <code>ToUpper</code>、<code>ToLower</code> 。</p>
+<p>但是字符的处理，会受到用户语言环境的影响。</p>
+<p>使用 System.Char 中的方法处理字符时，可以调用带有 <code>Invariant</code> 后缀的方法或使用 <code>CultureInfo.InvariantCulture</code>，以进行与语言环境无关的字符处理。</p>
+<p>示例</p>
+<pre><code><code>            Console.WriteLine(Char.ToUpper(&#39;i&#39;,CultureInfo.InvariantCulture));
+            Console.WriteLine(Char.ToUpperInvariant(&#39;i&#39;));</code></pre>
+<p>对于字符和字符串处理，可能用到的重载参数和处理方式，请看下面的说明。</p>
+<p><strong>StringComparison</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>枚举</th>
+<th>枚举值</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>CurrentCulture</td>
+<td>0</td>
+<td>使用区分文化的排序规则和当前区域性来比较字符串</td>
+</tr>
+<tr class="even">
+<td>CurrentCultureIgnoreCase</td>
+<td>1</td>
+<td>使用对区域性敏感的排序规则，当前区域性来比较字符串，而忽略要比较的字符串的大小写</td>
+</tr>
+<tr class="odd">
+<td>InvariantCulture</td>
+<td>2</td>
+<td>使用区分文化的排序规则和不变区域性比较字符串</td>
+</tr>
+<tr class="even">
+<td>InvariantCultureIgnoreCase</td>
+<td>3</td>
+<td>使用区分区域性的排序规则，不变区域性来比较字符串，而忽略要比较的字符串的大小写</td>
+</tr>
+<tr class="odd">
+<td>Ordinal</td>
+<td>4</td>
+<td>使用序数（二进制）排序规则比较字符串</td>
+</tr>
+<tr class="even">
+<td>OrdinalIgnoreCase</td>
+<td>5</td>
+<td>使用序数（二进制）排序规则比较字符串，而忽略要比较的字符串的大小写</td>
+</tr>
+</tbody>
+</table>
+<p><strong>CultureInfo</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>枚举</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>CurrentCulture</td>
+<td>获取表示当前线程使用的区域性的 CultureInfo对象</td>
+</tr>
+<tr class="even">
+<td>CurrentUICulture</td>
+<td>获取或设置 CultureInfo对象，该对象表示资源管理器在运行时查找区域性特定资源时所用的当前用户接口区域性</td>
+</tr>
+<tr class="odd">
+<td>InstalledUICulture</td>
+<td>获取表示操作系统中安装的区域性的 CultureInfo</td>
+</tr>
+<tr class="even">
+<td>InvariantCulture</td>
+<td>获取不依赖于区域性（固定）的 CultureInfo 对象</td>
+</tr>
+<tr class="odd">
+<td>IsNeutralCulture</td>
+<td>获取一个值，该值指示当前 CultureInfo 是否表示非特定区域性</td>
+</tr>
+</tbody>
+</table>
+<h2 id="system.string-字符串">4. System.String 字符串</h2>
+<h3 id="字符串搜索">4.1 字符串搜索</h3>
+<p>字符串有多个搜索方法：<code>StartsWith()</code>、<code>EndsWith()</code>、<code>Contains()</code>、<code>IndexOf</code>。</p>
+<p><code>StartsWith()</code> 和 <code>EndsWith()</code> 可以使用 StringComparison 比较方式、CultureInfo 控制文化相关规则。</p>
+<p><code>StartsWith()</code> ：字符串开头是否存在符合区配字符串</p>
+<p><code>EndsWith()</code>： 字符串结尾是否存在符合区配字符串</p>
+<p><code>Contains()</code>： 字符串任意位置是否存在区配字符串</p>
+<p><code>IndexOf</code>： 字符串或字符首次出现的索引位置，如果返回值为 <code>-1</code> 则表示无区配结果。</p>
+<p>使用示例</p>
+<pre><code><code>            string a = &quot;痴者工良(高级程序员劝退师)&quot;;
+            Console.WriteLine(a.StartsWith(&quot;高级&quot;));
+            Console.WriteLine(a.StartsWith(&quot;高级&quot;,StringComparison.CurrentCulture));
+            Console.WriteLine(a.StartsWith(&quot;高级&quot;,true, CultureInfo.CurrentCulture));
+            Console.WriteLine(a.StartsWith(&quot;痴者&quot;,StringComparison.CurrentCulture));
+            Console.WriteLine(a.EndsWith(&quot;劝退师)&quot;,true, CultureInfo.CurrentCulture));
+            Console.WriteLine(a.IndexOf(&quot;高级&quot;,StringComparison.CurrentCulture));</code></pre>
+<p>输出</p>
+<pre><code><code>False
+False
+False
+True
+True
+5</code></pre>
+<p>除了 <code>Contains()</code>，其它三种方法都有多个重载方法，例如</p>
+<table>
+<thead>
+<tr class="header">
+<th>重载</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>(String)</td>
+<td>是否与指定字符串区配</td>
+</tr>
+<tr class="even">
+<td>(String, StringComparison)</td>
+<td>以何种方式指定字符串区配</td>
+</tr>
+<tr class="odd">
+<td>(String, Boolean, CultureInfo)</td>
+<td>控制大小写和文化规则指定字符串区配</td>
+</tr>
+</tbody>
+</table>
+<p>这些与全球化和大小写区配的规则，在后面章节中会说到。</p>
+<h3 id="字符串提取插入删除替换">4.2 字符串提取、插入、删除、替换</h3>
+<h4 id="提取">4.2.1 提取</h4>
+<p><code>SubString()</code> 方法可以在提取字符串指定索开始的N个长度或余下的所有的字符。</p>
+<pre><code><code>            string a = &quot;痴者工良(高级程序员劝退师)&quot;;
+            string a = &quot;痴者工良(高级程序员劝退师)&quot;;
+            Console.WriteLine(a.Substring(startIndex: 1, length: 3));
+            // 者工良
+            Console.WriteLine(a.Substring(startIndex: 5));
+            // 高级程序员劝退师)</code></pre>
+<h4 id="插入删除替换">4.2.2 插入、删除、替换</h4>
+<p><code>Insert()</code> ：指定索引位置后插入字符或字符串</p>
+<p><code>Remove()</code> ：指定索引位置后插入字符或字符串</p>
+<p><code>PadLeft()</code> ：在字符串左侧将使用某个字符串扩展到N个字符长度</p>
+<p><code>PadRight()</code>：在字符串右侧将使用某个字符串扩展到N个字符长度</p>
+<p><code>TrimStart()</code> ：从字符串左侧开始删除某个字符，碰到不符合条件的字符即停止。</p>
+<p><code>TrimEnd()</code> ：从字符串右侧开始删除某个字符，碰到不符合条件的字符即停止。</p>
+<p><code>Replace()</code>：将字符串中的N连续个字符组替换为新的M个字符组。</p>
+<p>示例</p>
+<pre><code><code>            string a = &quot;痴者工良(高级程序员劝退师)&quot;; // length = 14
+
+            Console.WriteLine(&quot;\n  -  Remove Insert   - \n&quot;);
+
+            Console.WriteLine(a.Insert(startIndex: 4, value: &quot;我是&quot;));
+            Console.WriteLine(a.Remove(startIndex: 5));
+            Console.WriteLine(a.Remove(startIndex: 5, count: 3));
+
+            Console.WriteLine(&quot;\n  -  PadLeft PadRight  -  \n&quot;);
+
+            Console.WriteLine(a.PadLeft(totalWidth: 20, paddingChar: &#39;*&#39;));
+            Console.WriteLine(a.PadRight(totalWidth: 20, paddingChar: &#39;#&#39;));
+            Console.WriteLine(a.PadLeft(totalWidth: 20, paddingChar: &#39;\u0023&#39;));
+            Console.WriteLine(a.PadRight(totalWidth: 20, paddingChar: &#39;\u002a&#39;));
+            Console.WriteLine(a.PadLeft(totalWidth: 18, paddingChar: &#39;.&#39;));
+            Console.WriteLine(a.PadRight(totalWidth: 18, paddingChar: &#39;.&#39;));
+
+            Console.WriteLine(&quot;\n  -  Trim  -  \n&quot;);
+
+            Console.WriteLine(&quot;|Hello | World|&quot;.Trim(&#39;|&#39;));
+            Console.WriteLine(&quot;|||Hello | World|||&quot;.Trim(&#39;|&#39;));
+            Console.WriteLine(&quot;|Hello | World!|&quot;.TrimStart(&#39;|&#39;));
+            Console.WriteLine(&quot;|||Hello | World!|||&quot;.TrimStart(&#39;|&#39;));
+            Console.WriteLine(&quot;|Hello | World!|&quot;.TrimEnd(&#39;|&#39;));
+            Console.WriteLine(&quot;|||Hello | World!|||&quot;.TrimEnd(&#39;|&#39;));
+            Console.WriteLine(&quot;||||||||||||||||||||||||&quot;.TrimEnd(&#39;|&#39;));
+            
+
+            Console.WriteLine(&quot;*#&amp;abc ABC&amp;#*&quot;.TrimStart(new char[] {&#39;*&#39;, &#39;#&#39;, &#39;&amp;&#39;}));
+            Console.WriteLine(&quot;*#&amp;abc ABC&amp;#*&quot;.TrimStart(new char[] {&#39;#&#39;, &#39;*&#39;, &#39;&amp;&#39;}));
+
+            Console.WriteLine(&quot;\n  -  Replace  -  \n&quot;);
+
+            Console.WriteLine(&quot;abcdABCDabcdABCD&quot;.Replace(oldChar: &#39;a&#39;, newChar: &#39;A&#39;));</code></pre>
+<p>输出</p>
+<pre><code><code>  -  Remove Insert   -
+
+痴者工良我是(高级程序员劝退师)
+痴者工良(
+痴者工良(序员劝退师)
+
+  -  PadLeft PadRight  -
+
+******痴者工良(高级程序员劝退师)
+痴者工良(高级程序员劝退师)######
+######痴者工良(高级程序员劝退师)
+痴者工良(高级程序员劝退师)******
+....痴者工良(高级程序员劝退师)
+痴者工良(高级程序员劝退师)....
+
+  -  Trim  -
+
+Hello | World
+Hello | World
+Hello | World!|
+Hello | World!|||
+|Hello | World!
+|||Hello | World!
+
+abc ABC&amp;#*
+abc ABC&amp;#*
+
+  -  Replace  -
+
+AbcdABCDAbcdABCD</code></pre>
+<h2 id="字符串驻留池">5. 字符串驻留池</h2>
+<p>以下为笔者个人总结，限于水平，如若有错，望各位加以批评指正。</p>
+<p><img src="./images/探究 C# 中的 char 、 string（一）0.png" alt="images" /></p>
+<p>字符串 驻留池是在域(Domain)级别完成的，而字符串驻留池可以在域中的所有程序集之间共享。</p>
+<p>CLR 中维护着一个叫做驻留池（Intern Pool）的表。</p>
+<p>这个表记录了所有在代码中使用字面量声明的字符串实例的引用。</p>
+<p>拼接方式操作字面量时，新的字符串又会进入字符串驻留池。</p>
+<p>只有使用使用<strong>字面量声明</strong>的字符串实例，实例才会对字符串驻留池字符串引用。</p>
+<p>而无论是字段属性或者是方法内是声明的 string 变量、甚至是方法参数的默认值，都会进入字符串驻留池。</p>
+<p>例如</p>
+<pre><code><code>        static string test = &quot;一个测试&quot;;
+
+        static void Main(string[] args)
+        {
+            string a = &quot;a&quot;;
+
+            Console.WriteLine(&quot;test:&quot; + test.GetHashCode());
+            
+            TestOne(test);
+            TestTwo(test);
+            TestThree(&quot;一个测试&quot;);
+        }
+
+        public static void TestOne(string a)
+        {
+            Console.WriteLine(&quot;----TestOne-----&quot;);
+            Console.WriteLine(&quot;a:&quot; + a.GetHashCode());
+            string b = a;
+            Console.WriteLine(&quot;b:&quot; + b.GetHashCode());
+            Console.WriteLine(&quot;test - a :&quot; + Object.ReferenceEquals(test, a));
+        }
+
+        public static void TestTwo(string a = &quot;一个测试&quot;)
+        {
+            Console.WriteLine(&quot;----TestTwo-----&quot;);
+            Console.WriteLine(&quot;a:&quot; + a.GetHashCode());
+            string b = a;
+            Console.WriteLine(&quot;b:&quot; + b.GetHashCode());
+            Console.WriteLine(&quot;test - a :&quot; + Object.ReferenceEquals(test, a));
+        }
+
+        public static void TestThree(string a)
+        {
+            Console.WriteLine(&quot;----TestThree-----&quot;);
+            Console.WriteLine(&quot;a:&quot; + a.GetHashCode());
+            string b = a;
+            Console.WriteLine(&quot;b:&quot; + b.GetHashCode());
+            Console.WriteLine(&quot;test - a :&quot; + Object.ReferenceEquals(test, a));
+        }</code></pre>
+<p>输出结果</p>
+<pre><code><code>test:-407145577
+----TestOne-----
+a:-407145577
+b:-407145577
+test - a :True
+----TestTwo-----
+a:-407145577
+b:-407145577
+test - a :True
+----TestThree-----
+a:-407145577
+b:-407145577
+test - a :True</code></pre>
+<p>可以通过静态方法 <code>Object.ReferenceEquals(s1, s2);</code> 或者 实例的 <code>.GetHashCode()</code> 来对比两个字符串是否为同一个引用。</p>
+<p>可以使用不安全代码，直接修改内存中的字符串</p>
+<p>参考 <a href="https://blog.benoitblanchon.fr/modify-intern-pool/" class="uri">https://blog.benoitblanchon.fr/modify-intern-pool/</a></p>
+<pre><code><code>string a = &quot;Test&quot;;
+
+fixed (char* p = a)
+{
+    p[1] = &#39;3&#39;;
+}
+
+Console.WriteLine(a);</code></pre>
+<p>使用 <code>*Microsoft.Diagnostics.Runtime*</code> 可以获取 CLR 的信息。</p>
+<p>结果笔者查阅大量资料发现，.NET 不提供 API 去查看字符串常量池里面的哈希表。</p>
+<p>关于 C# 字符串的使用和驻留池等原理，请参考</p>
+<p><a href="http://community.bartdesmet.net/blogs/bart/archive/2006/09/27/4472.aspx" class="uri">http://community.bartdesmet.net/blogs/bart/archive/2006/09/27/4472.aspx</a></p>
+<p>通过设法在程序集中获取字符串文字的列表</p>
+<p><a href="https://stackoverflow.com/questions/22172175/read-the-content-of-the-string-intern-pool" class="uri">https://stackoverflow.com/questions/22172175/read-the-content-of-the-string-intern-pool</a></p>
+<p>.NET 底层 Profiling API说明</p>
+<p><a href="https://docs.microsoft.com/en-us/dotnet/framework/unmanaged-api/profiling/profiling-overview?redirectedfrom=MSDN" class="uri">https://docs.microsoft.com/en-us/dotnet/framework/unmanaged-api/profiling/profiling-overview?redirectedfrom=MSDN</a></p>
+<p>.NET字符串驻留池和提高字符串比较性能</p>
+<p><a href="http://benhall.io/net-string-interning-to-improve-performance/" class="uri">http://benhall.io/net-string-interning-to-improve-performance/</a></p>
+<p>关于 C# 字符串驻留池的学习文章</p>
+<p><a href="https://www.cnblogs.com/mingxuantongxue/p/3782391.html" class="uri">https://www.cnblogs.com/mingxuantongxue/p/3782391.html</a></p>
+<p><a href="https://www.xuebuyuan.com/189297.html" class="uri">https://www.xuebuyuan.com/189297.html</a></p>
+<p><a href="https://www.xuebuyuan.com/189297.html" class="uri">https://www.xuebuyuan.com/189297.html</a></p>
+<p>如果总结或知识有错，麻烦大佬们斧正哈。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,153 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C# Queue与RabbitMQ的爱恨情仇（文末附源码）：Q与MQ消息队列简单应用（一）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C# Queue与RabbitMQ的爱恨情仇（文末附源码）：Q与MQ消息队列简单应用（一）</center></div><div class='banquan'>原文出处:本文由博客园博主熊泽-学习中的苦与乐提供。<br/>
+原文连接:https://www.cnblogs.com/xiongze520/p/10967270.html</div><br>
+    <p><span style="font-size: 16px;">首先我们简单了解一下什么堆、栈、队列。</span></p>
+<p><span style="font-size: 16px;"><strong>堆</strong>是在程序运行时，而不是在程序编译时，申请某个大小的内存空间。即动态分配内存，对其访问和对一般内存的访问没有区别。</span></p>
+<p><span style="font-size: 16px;"><strong>栈</strong>就是一个容器，后放进去的先拿出来，它下面本来有的东西要等它出来之后才能出来。（先进后出or后进先出）</span></p>
+<p><span style="font-size: 16px;"><strong>队列</strong>只能在队头做删除操作,在队尾做插入操作.而栈只能在栈顶做插入和删除操作。（先进先出）</span></p>
+<hr />
+<p>&nbsp;</p>
+<p><span style="color: #ff0000; font-size: 16px;">注意：当前展示的是队列（Queue），下一章展示消息队列MQ（Message Queue）</span></p>
+<p><span style="font-size: 16px;">队列（Queue）代表了一个<strong>先进先出</strong>的对象集合。当您需要对各项进行先进先出的访问时，则使用队列。</span></p>
+<p><span style="font-size: 16px;">当您在列表中添加一项，称为<strong>入队</strong>，当您从列表中移除一项时，称为<strong>出队</strong>。</span></p>
+<ol>
+<li><span style="font-size: 16px;"><strong>入队</strong>就是在队列的尾部添加数据，队列数据个数加一，尾指针后移；&nbsp;</span></li>
+<li><span style="font-size: 16px;"><strong>出队</strong>就是在队列的头部取数据，然后删除该数据，头指针后移。</span></li>
+</ol><hr />
+<p>&nbsp;</p>
+<p><span style="font-size: 18px;"><strong>常用的属性&amp;描述</strong></span></p>
+<ol>
+<li><span style="font-size: 16px;">Count：Count属性返回队列中元素个数。</span></li>
+<li><span style="font-size: 16px;">Enqueue：Enqueue()方法在队列一端添加一个元素。</span></li>
+<li><span style="font-size: 16px;">Dequeue：Dequeue()方法在队列的头部读取和删除元素。如果在调用Dequeue()方法时，队列中不再有元素，就抛出一个InvalidOperationException类型的异常。</span></li>
+<li><span style="font-size: 16px;">Peek：Peek()方法从队列的头部读取一个元素，但不删除它。</span></li>
+<li><span style="font-size: 16px;">TrimExcess：TrimExcess()方法重新设置队列的容量。Dequeue()方法从队列中删除元素，但它不会重新设置队列的容量。要从队列的头部去除空元素，应使用TrimExcess()方法。</span></li>
+<li><span style="font-size: 16px;">Clear：Clear()方法从队列中移除所有的元素。</span></li>
+<li><span style="font-size: 16px;">ToArray：ToArray()复制队列到一个新的数组中。</span></li>
+</ol><hr />
+<p>&nbsp;</p>
+<p><span style="font-size: 16px;">下面我们结合一个实例进行简单讲解：</span></p>
+<p><span style="color: #000000; font-size: 18px;"><strong>实例：将用户下单信息加入到队列中并读取队列。</strong></span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">using</span><span style="color: #000000;"> System;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Collections.Generic;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Linq;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Text;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Threading.Tasks;
+
+</span><span style="color: #0000ff;">namespace</span><span style="color: #000000;"> QueueConsoleApplication
+{
+   
+   </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">实例：将用户下单信息加入到队列中并读取队列。</span>
+       <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+       {
+           </span><span style="color: #008000;">//</span><span style="color: #008000;">创建一个队列</span>
+           Queue&lt;UserInfo&gt; queue = <span style="color: #0000ff;">new</span> Queue&lt;UserInfo&gt;<span style="color: #000000;">();
+
+           </span><span style="color: #008000;">//</span><span style="color: #008000;">获取用户下单列表</span>
+           List&lt;UserInfo&gt; userList =<span style="color: #000000;"> GetUserList();
+
+           </span><span style="color: #008000;">//</span><span style="color: #008000;">使用Enqueue()方法将用户下单信息加入到队列中（入列）</span>
+           <span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">var</span> user <span style="color: #0000ff;">in</span><span style="color: #000000;"> userList)
+           {
+               queue.Enqueue(user);
+           }
+
+           </span><span style="color: #008000;">//</span><span style="color: #008000;">使用Count属性获取队列中元素个数</span>
+           <span style="color: #0000ff;">int</span> queueCount =<span style="color: #000000;"> queue.Count;
+           Console.WriteLine(</span><span style="color: #0000ff;">string</span>.Format(<span style="color: #800000;">"</span><span style="color: #800000;">队列中有{0}个用户下单信息。</span><span style="color: #800000;">"</span>, queueCount));  <span style="color: #008000;">//</span><span style="color: #008000;">输出
+
+           </span><span style="color: #008000;">//</span><span style="color: #008000;">使用Dequeue()方法从队列的头部读取和删除元素（出列）</span>
+           <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; queueCount; i++<span style="color: #000000;">)
+           {
+               UserInfo user </span>=<span style="color: #000000;"> queue.Dequeue();
+               Console.WriteLine(</span><span style="color: #0000ff;">string</span>.Format(<span style="color: #800000;">"</span><span style="color: #800000;">\n单号：{0}；用户名称：{1}；手机号：{2}；收货地址：{3}；商品名称：{4}；价格：{5}</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+                   user.ID, user.Name, user.Phone, user.Address, user.Commodity, user.Price));
+           }
+
+           </span><span style="color: #008000;">//</span><span style="color: #008000;">使用Count属性获取队列中元素的格式</span>
+           queueCount =<span style="color: #000000;"> queue.Count;
+           Console.WriteLine(</span><span style="color: #0000ff;">string</span>.Format(<span style="color: #800000;">"</span><span style="color: #800000;">\n队列中有{0}个用户下单信息。</span><span style="color: #800000;">"</span>, queueCount));  <span style="color: #008000;">//</span><span style="color: #008000;">输出</span>
+<span style="color: #000000;">
+       }
+
+       </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+       <span style="color: #808080;">///</span><span style="color: #008000;"> 获取用户列表
+       </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+       <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> List&lt;UserInfo&gt;<span style="color: #000000;"> GetUserList()
+        {
+            List</span>&lt;UserInfo&gt; userList = <span style="color: #0000ff;">new</span> List&lt;UserInfo&gt;<span style="color: #000000;">();
+            userList.Add(</span><span style="color: #0000ff;">new</span> UserInfo(<span style="color: #800000;">"</span><span style="color: #800000;">201906031010</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">王母</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">1821234****</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">昆仑山玉虚宫</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">9万年蟠桃</span><span style="color: #800000;">"</span>, <span style="color: #800080;">136.00</span><span style="color: #000000;">));
+            userList.Add(</span><span style="color: #0000ff;">new</span> UserInfo(<span style="color: #800000;">"</span><span style="color: #800000;">201906031011</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">喜洋洋</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">1821235****</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">青青草原羊村</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">狼堡牌无毒除虫剂</span><span style="color: #800000;">"</span>, <span style="color: #800080;">198.00</span><span style="color: #000000;">));
+            userList.Add(</span><span style="color: #0000ff;">new</span> UserInfo(<span style="color: #800000;">"</span><span style="color: #800000;">201906031012</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">光头强</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">1821236****</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">狗熊岭光头强家</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">捕兽夹</span><span style="color: #800000;">"</span>, <span style="color: #800080;">346.00</span><span style="color: #000000;">));
+            userList.Add(</span><span style="color: #0000ff;">new</span> UserInfo(<span style="color: #800000;">"</span><span style="color: #800000;">201906031013</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">孙悟空</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">1821237****</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">花果山</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">去虱粉</span><span style="color: #800000;">"</span>, <span style="color: #800080;">245.00</span><span style="color: #000000;">));
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> userList;
+        }
+    }
+
+    </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+    <span style="color: #808080;">///</span><span style="color: #008000;"> 用户下单信息实体类
+    </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> UserInfo
+    {
+        </span><span style="color: #0000ff;">public</span> UserInfo(<span style="color: #0000ff;">string</span> id, <span style="color: #0000ff;">string</span> name, <span style="color: #0000ff;">string</span> phone, <span style="color: #0000ff;">string</span> address, <span style="color: #0000ff;">string</span> commodity, <span style="color: #0000ff;">double</span><span style="color: #000000;"> price)
+        {
+            </span><span style="color: #0000ff;">this</span>.ID =<span style="color: #000000;"> id;  
+            </span><span style="color: #0000ff;">this</span>.Name =<span style="color: #000000;"> name;
+            </span><span style="color: #0000ff;">this</span>.Phone =<span style="color: #000000;"> phone;
+            </span><span style="color: #0000ff;">this</span>.Address =<span style="color: #000000;"> address;
+            </span><span style="color: #0000ff;">this</span>.Commodity =<span style="color: #000000;"> commodity;
+            </span><span style="color: #0000ff;">this</span>.Price =<span style="color: #000000;"> price;
+                
+        }
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> ID { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span>; }   <span style="color: #008000;">//</span><span style="color: #008000;">单号</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> Name { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span>; }  <span style="color: #008000;">//</span><span style="color: #008000;">姓名</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> Phone { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span>; }  <span style="color: #008000;">//</span><span style="color: #008000;">手机号</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> Address { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span>; }  <span style="color: #008000;">//</span><span style="color: #008000;">收货地址</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> Commodity { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span>; }  <span style="color: #008000;">//</span><span style="color: #008000;">商品名称</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">double</span> Price { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span>; }  <span style="color: #008000;">//</span><span style="color: #008000;">价格</span>
+<span style="color: #000000;">    }
+
+    
+}</span></pre>
+</div>
+<p>&nbsp;</p>
+<p><span style="font-size: 16px;">首先准备一个有内容的队列，</span><span style="font-size: 16px;">结合先进先出的原则，我们读取队列里面的消息进行打印。</span></p>
+<p><span style="font-size: 16px;">入队的信息可以动态插入，我们这里演示就写入指定数据。</span></p>
+<p><span style="font-size: 16px;">运行代码后我们在控制台打印相关信息，如下图：</span></p>
+<p><span style="font-size: 16px;"><img src="./images/C# Queue与RabbitMQ的爱恨情仇（文末附源码）：Q与MQ消息队列简单应用（一）0.png" alt="" /></span></p>
+<p>&nbsp;</p>
+<p><span style="font-size: 18px;"><strong><span style="color: #000000;">总结：</span></strong></span></p>
+<p><span style="font-size: 16px;">C#中提供了队列类，用Queue类来表示，该类表示表示对象的先进先出集合，其位于System.Collections命名空间下。</span></p>
+<p><span style="font-size: 16px;">队列在按接收顺序存储消息方面非常有用，以便于进行顺序处理。Queue类将队列作为循环数组实现，存储在Queue类中的对象在一端插入，从另一端移除。</span></p>
+<p><span style="font-size: 16px;">这种方式不需其他花里胡哨的东西，新建好项目直接编写代码即可。</span></p>
+<p><span style="font-size: 16px;">&nbsp;这个的源码已经在上的代码里面了，直接拷贝运行就可以的，</span></p>
+<p><span style="font-size: 16px;">下面我们讲解消息队列MQ（Message Queue），</span></p>
+<p><span style="font-size: 16px;">这个就需要下载RabbitMQ、Erlang环境并安装，下载RabbitMQ.Client客户端进行引用，附带源码。</span></p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,137 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修ZedGraph怎样在生成曲线时随机生成不一样的颜色' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>ZedGraph怎样在生成曲线时随机生成不一样的颜色</center></div><div class='banquan'>原文出处:本文由博客园博主霸道流氓提供。<br/>
+原文连接:https://www.cnblogs.com/badaoliumangqizhi/p/12095432.html</div><br>
+    <h1>场景</h1>
+<p>在使用ZedGraph生成多条曲线时为了能区分曲线颜色，要求随机设置曲线颜色。</p>
+<p>首先从System.Drawing.Color中获取所有颜色的对象的数组，然后将其顺序打乱随机排序，然后在生成曲线时从Color数组中取Color并赋值。</p>
+<h2>效果</h2>
+<p><img src="./images/ZedGraph怎样在生成曲线时随机生成不一样的颜色0.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>注：</p>
+<p>博客主页： <br /><a href="https://blog.csdn.net/badao_liumang_qizhi">https://blog.csdn.net/badao_liumang_qizhi 
+</a><br />关注公众号 <br />霸道的程序猿 <br />获取编程相关电子书、教程推送与免费下载。 </p>
+<h1>实现</h1>
+<p>单纯生成曲线的代码</p>
+<div class="cnblogs_code">
+<pre><code>LineItem myCurve = myPane.AddCurve(yList[i].Title, list, curveColor, SymbolType.None);</pre>
+</div>
+<p>第一个参数：图例标题</p>
+<p>第二个参数：坐标点的list</p>
+<p>第三个参数：颜色Color对象</p>
+<p>第四个参数：曲线节点符号</p>
+<p>所以在生成曲线时就要在第三个参数上进行修改</p>
+<p>首先获取Color的所有颜色对象</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;">用于存取取出的颜色对象 </span>
+List&lt;Color&gt; colorList = <span style="color: #0000ff;">new</span> List&lt;Color&gt;<span style="color: #000000;">(); 
+</span><span style="color: #008000;">//</span><span style="color: #008000;">通过GetMember获取所有的公共成员 </span>
+<span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">var</span> item <span style="color: #0000ff;">in</span> <span style="color: #0000ff;">typeof</span><span style="color: #000000;">(Color).GetMembers()) 
+      { 
+       </span><span style="color: #008000;">//</span><span style="color: #008000;">只取属性且为属性中的已知Color，剔除byte属性以及一些布尔属性等（A B G R IsKnownColor Name等） </span>
+          <span style="color: #0000ff;">if</span> (item.MemberType == System.Reflection.MemberTypes.Property &amp;&amp;<span style="color: #000000;"> System.Drawing.Color.FromName
+
+(item.Name).IsKnownColor </span>== <span style="color: #0000ff;">true</span><span style="color: #000000;">) 
+              { 
+                  Color color </span>=<span style="color: #000000;"> System.Drawing.Color.FromName(item.Name); 
+                  colorList.Add(color); 
+               } 
+        } 
+</span><span style="color: #008000;">//</span><span style="color: #008000;">转成数组 </span>
+Color[] colors = colorList.ToArray();</pre>
+</div>
+<p>&nbsp;</p>
+<p>然后将Color数组的顺序进行打乱</p>
+<div class="cnblogs_code">
+<pre><code>colors = GetDisruptedItems(colors);</pre>
+</div>
+<p>&nbsp;</p>
+<p>调用乱序方法 </p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span><span style="color: #000000;"> Color[] GetDisruptedItems(Color[] colors) 
+        { 
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">生成一个新数组：用于在之上计算和返回 </span>
+<span style="color: #000000;">            Color[] temp; 
+            temp </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Color[colors.Length]; 
+            </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; temp.Length; i++<span style="color: #000000;">) 
+            { 
+                temp[i] </span>=<span style="color: #000000;"> colors[i]; 
+            }
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">打乱数组中元素顺序 </span>
+            Random rand = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Random(DateTime.Now.Millisecond); 
+            </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; temp.Length; i++<span style="color: #000000;">) 
+            { 
+                </span><span style="color: #0000ff;">int</span><span style="color: #000000;"> x, y; Color t; 
+                x </span>= rand.Next(<span style="color: #800080;">0</span><span style="color: #000000;">, temp.Length); 
+                </span><span style="color: #0000ff;">do</span><span style="color: #000000;"> 
+                { 
+                    y </span>= rand.Next(<span style="color: #800080;">0</span><span style="color: #000000;">, temp.Length); 
+                } </span><span style="color: #0000ff;">while</span> (y ==<span style="color: #000000;"> x);
+
+                t </span>=<span style="color: #000000;"> temp[x]; 
+                temp[x] </span>=<span style="color: #000000;"> temp[y];
+                temp[y] </span>=<span style="color: #000000;"> t; 
+            }
+
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> temp;
+
+        }</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>然后在循环生成曲线时，循环条件为要生成的曲线数量与颜色数组的长度进行对比判断。 
+</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">int</span> index = <span style="color: #800080;">0</span><span style="color: #000000;">;
+</span><span style="color: #008000;">//</span><span style="color: #008000;">循环添加曲线</span>
+<span style="color: #0000ff;">foreach</span>(DataTreeNode node <span style="color: #0000ff;">in</span><span style="color: #000000;"> Global.Instance.PrepareCompareDataInOne)
+      {
+          
+           list </span>=<span style="color: #000000;"> SetCurveTextInOne(yList[i].TitleKey,record);
+           </span><span style="color: #008000;">//</span><span style="color: #008000;">如果要生成的曲线数量 &lt; 颜色数组长度 那么就从颜色数组中去按索引取</span>
+           Color curveColor = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Color();
+           </span><span style="color: #0000ff;">if</span> (Global.Instance.PrepareCompareDataInOne.Count &lt;<span style="color: #000000;"> colors.Length)
+               {
+                    curveColor </span>=<span style="color: #000000;"> colors[index];
+                }
+           </span><span style="color: #008000;">//</span><span style="color: #008000;">否则要生成的曲线数量 &gt; 颜色数组长度</span>
+           <span style="color: #0000ff;">else</span><span style="color: #000000;">
+                {
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">当索引达到颜色数组的长度时 索引置0</span>
+                    <span style="color: #0000ff;">if</span> (index &gt;=<span style="color: #000000;"> colors.Length)
+                       {
+                           index </span>= <span style="color: #800080;">0</span><span style="color: #000000;">;
+                        }
+                    curveColor </span>=<span style="color: #000000;"> colors[index];
+                }
+            LineItem myCurve </span>=<span style="color: #000000;"> myPane.AddCurve(yList[i].Title, list, curveColor, SymbolType.None);
+            index</span>++<span style="color: #000000;">;
+ }</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>其中Global.Instance.PrepareCompareDataInOne就是要生成的曲线的数据，其Count就是要生成的曲线数量。 
+
+</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,255 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Dalsa 8K彩色相机Camera link C#采图' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Dalsa 8K彩色相机Camera link C#采图</center></div><div class='banquan'>原文出处:本文由博客园博主爱打瞌睡的Yang提供。<br/>
+原文连接:https://www.cnblogs.com/SSRYang/p/12082107.html</div><br>
+    <p><img src="./images/Dalsa 8K彩色相机Camera link C#采图0.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;一个采图工具，所以界面做的很简单。</p>
+<p>&nbsp;</p>
+<div class="cnblogs_Highlighter">
+<pre><code>        private SapAcquisition m_Acquisition;
+        private SapBuffer m_Buffers;
+        private SapAcqToBuf m_Xfer;
+        private SapView m_View;
+        private SapColorConversion m_ColorConv;
+        private SapProcessing m_Pro;
+        private SapLocation m_ServerLocation;
+        private String m_ConfigFileName;
+        private String m_Executetime;
+        private bool m_IsSignalDetected;
+        private bool m_online;<br />
+        public bool CreateNewObjects()
+        {
+            m_ServerLocation = new SapLocation("Xtium-CL_MX4_1", 2);//第一位是显卡名称，第二位是选择模式的第几项
+            m_ConfigFileName = "22N_No_Name_Default_Default.ccf";//配置文件路径
+            m_Acquisition = new SapAcquisition(m_ServerLocation, m_ConfigFileName);
+            if (SapBuffer.IsBufferTypeSupported(m_ServerLocation, SapBuffer.MemoryType.ScatterGather))
+                m_Buffers = new SapBufferWithTrash(2, m_Acquisition, SapBuffer.MemoryType.ScatterGather);
+            else
+                m_Buffers = new SapBufferWithTrash(2, m_Acquisition, SapBuffer.MemoryType.ScatterGatherPhysical);
+            m_Xfer = new SapAcqToBuf(m_Acquisition, m_Buffers);
+            m_ColorConv = new SapColorConversion(m_Acquisition, m_Buffers);
+            m_Xfer.Pairs[0].EventType = SapXferPair.XferEventType.EndOfFrame;
+
+            m_Xfer.XferNotify += new SapXferNotifyHandler(xfer_XferNotify);
+            m_Xfer.XferNotifyContext = this;
+
+            m_Pro = new SapMyProcessing(m_Buffers, m_ColorConv, new SapProcessingDoneHandler(ProCallback), this);
+
+
+
+            if (!CreateObjects())
+            {
+                DestroyObjects();
+                DisposeObjects();
+
+                return false;
+            }
+            EnableSignalStatus();
+            return true;
+        }
+
+       //这项函数官方demo是用来显示帧率的，但是我这里不需要所以就没写功能，但是要加这个函数，否则连续采集的时候就只会拍两张照片。
+        static void ProCallback(object sender, SapProcessingDoneEventArgs pInfo)
+        {
+            Form1 demo = pInfo.Context as Form1;
+
+        }
+        private bool CreateObjects()
+        {
+            // Create acquisition object
+            if (m_Acquisition != null &amp;&amp; !m_Acquisition.Initialized)
+            {
+                if (m_Acquisition.Create() == false)
+                {
+                    DestroyObjects();
+                    return false;
+                }
+            }
+            // Create buffer object
+            if (m_Buffers != null &amp;&amp; !m_Buffers.Initialized)
+            {
+                if (m_Buffers.Create() == false)
+                {
+                    DestroyObjects();
+                    return false;
+                }
+                m_Buffers.Clear();
+            }
+
+            // Create color conversion object
+            if (m_ColorConv != null &amp;&amp; !m_ColorConv.Initialized)
+            {
+                if (m_ColorConv.Create() == false)
+                {
+                    DestroyObjects();
+                    return false;
+                }
+            }
+
+            // Create view object
+            if (m_View != null &amp;&amp; !m_View.Initialized)
+            {
+                if (m_ColorConv != null &amp;&amp; m_ColorConv.Initialized)
+                {
+                    // Set buffer to be viewed
+                    // When using hardware color decoder, view the acquired RGB buffer,
+                    // otherwise, for software color conversion, view the converted RGB buffer.
+                    SapBuffer convBuffer = m_ColorConv.OutputBuffer;
+                    if (convBuffer != null &amp;&amp; convBuffer.Initialized)
+                        m_View.Buffer = convBuffer;
+                    else
+                        m_View.Buffer = m_Buffers;
+                }
+
+                if (m_View.Create() == false)
+                {
+                    DestroyObjects();
+                    return false;
+                }
+            }
+            // Create Xfer object
+            if (m_Xfer != null &amp;&amp; !m_Xfer.Initialized)
+            {
+                if (m_Xfer.Create() == false)
+                {
+                    DestroyObjects();
+                    return false;
+                }
+                m_Xfer.AutoEmpty = false;
+            }
+
+            // Create processing object
+            if (m_Pro != null &amp;&amp; !m_Pro.Initialized)
+            {
+                if (!m_Pro.Create())
+                {
+                    DestroyObjects();
+                    return false;
+                }
+
+                m_Pro.AutoEmpty = true;
+            }
+            return true;
+
+        }
+        private void DestroyObjects()
+        {
+            if (m_Xfer != null &amp;&amp; m_Xfer.Initialized)
+                m_Xfer.Destroy();
+            if (m_Pro != null &amp;&amp; m_Pro.Initialized)
+                m_Pro.Destroy();
+            if (m_View != null &amp;&amp; m_View.Initialized)
+                m_View.Destroy();
+            if (m_ColorConv != null &amp;&amp; m_ColorConv.Initialized)
+                m_ColorConv.Destroy();
+            if (m_Buffers != null &amp;&amp; m_Buffers.Initialized)
+                m_Buffers.Destroy();
+            if (m_Acquisition != null &amp;&amp; m_Acquisition.Initialized)
+                m_Acquisition.Destroy();
+        }
+        private void DisposeObjects()
+        {
+            if (m_Xfer != null)
+            { m_Xfer.Dispose(); m_Xfer = null; }
+            if (m_Pro != null)
+            { m_Pro.Dispose(); m_Pro = null; }
+            if (m_View != null)
+            { m_View.Dispose(); m_View = null; }
+            if (m_ColorConv != null)
+            { m_ColorConv.Dispose(); m_ColorConv = null; }
+            if (m_Buffers != null)
+            { m_Buffers.Dispose(); m_Buffers = null; }
+            if (m_Acquisition != null)
+            { m_Acquisition.Dispose(); m_Acquisition = null; }
+        }
+        private void EnableSignalStatus()
+        {
+            if (m_Acquisition != null)
+            {
+                m_IsSignalDetected = (m_Acquisition.SignalStatus != SapAcquisition.AcqSignalStatus.None);
+                // if (m_IsSignalDetected == false) 
+                //  StatusLabelInfo.Text = "Online... No camera signal detected";
+                //  else
+                //   StatusLabelInfo.Text = "Online... Camera signal detected";
+                m_Acquisition.SignalNotifyEnable = true;
+
+            }
+        }
+
+    
+        static void xfer_XferNotify(object sender, SapXferNotifyEventArgs argsNotify)
+        {
+            Form1 demo = argsNotify.Context as Form1;
+            // If grabbing in trash buffer, do not display the image, update the
+            // appropriate number of frames on the status bar instead
+            if (argsNotify.Trash)
+                return;
+            // Refresh view
+            else
+            {
+                demo.TakeImage();
+                demo.m_Pro.ExecuteNext();
+            }
+        }</pre>
+<pre><code>        private void button1_Click(object sender, EventArgs e)
+        {
+            m_Xfer.Grab();
+        }</pre>
+<pre><code>        private void button2_Click(object sender, EventArgs e)
+        {
+            m_Xfer.Freeze();
+        }</pre>
+<pre><code>　　　　　private void TakeImage()
+        {
+            try
+            {
+                SapBuffer m_pBuffer;
+                int m_StartFrame;
+             //   SapBuffer.FileFormat[] m_StandardTypes;
+                m_pBuffer = m_Buffers;
+                m_StartFrame = m_pBuffer.Index; string m_Option = "-format jpeg -quality 30";
+                m_Buffers.Save(textBox2.Text, m_Option, m_StartFrame,0);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message.ToString());
+            }
+        }</pre>
+<pre><code><br /><br /></pre>
+<p>　</p>
+</div>
+<p>关于采图，上面用的是官方的SDK方式，因为我采集的图片像素是8K*8K，原图BMP格式有256MB，压缩成30%质量的JPG也还有2.3MB左右。</p>
+<p>还有一种方式是用Bitmap来获取图片地址，但是需要注意的一点。</p>
+<div class="cnblogs_Highlighter">
+<pre><code>    IntPtr addr;
+    int Height = m_Buffers.Height;
+    int Width = m_Buffers.Width;
+    m_Buffers.GetAddress(out addr);       
+    bitmap = new Bitmap(Width, Height, Width * 4, System.Drawing.Imaging.PixelFormat.Format32bppRgb, addr);
+                        
+</pre>
+</div>
+<p>　　这里的宽度是*4，原因是我的BMP原图图像位深度是32位的。所以保存用Bitmap的方式需要先确定原图的位深度，否则保存图片会出现重影。</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

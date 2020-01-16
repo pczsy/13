@@ -1,0 +1,464 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修[开源]Dapper Repository 一种实现方式' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>[开源]Dapper Repository 一种实现方式</center></div><div class='banquan'>原文出处:本文由博客园博主MeetYan提供。<br/>
+原文连接:https://www.cnblogs.com/MeetYan/p/10681353.html</div><br>
+    <blockquote>
+<ol>
+<li>接着上篇<a href="https://www.cnblogs.com/MeetYan/p/10679158.html">[开源]Entity Framework 6 Repository 一种实现方式</a></li>
+<li>由于Dapper 本身就是轻量级Orm特性，这里参考<a href="www.bradoncode.com/blog/2012/12/creating-data-repository-using-dapper.html"><strong>Creating a Data Repository using Dapper</strong></a> <a href="https://stackoverflow.com/questions/33484295/dynamic-queries-in-dapper">dynamic queries in dapper</a> 代码，来解决实体类与Expression&lt;Func&lt;T, bool&gt;&gt; predicate问题；</li>
+<li>您可以通过Nuget：Install-Package MasterChief.DotNet.Core.Dapper；</li>
+<li>您可以通过GitHub：<a href="https://github.com/YanZhiwei/MasterChief">MasterChief</a> 查看具体源码以及单元测试；</li>
+<li>欢迎Star，欢迎Issues；</li>
+</ol>
+</blockquote>
+<hr />
+<h3 id="插播一条求职">插播一条求职</h3>
+<blockquote>
+<ol>
+<li><strong>小弟拥有多年C#开发经验，从事过路灯，消防平台物联网平台开发，坐标上海；</strong></li>
+</ol>
+</blockquote>
+<blockquote>
+<ol>
+<li><strong>如果贵司在招聘，烦请大佬考虑下，联系邮箱:MeetYan@outlook.com</strong>；</li>
+</ol>
+</blockquote>
+<h3 id="基于dapper-的repository实现">基于Dapper 的Repository实现</h3>
+<pre><code><code>public abstract class DapperDbContextBase : IDbContext
+{
+    #region Constructors
+ 
+    /// &lt;summary&gt;
+    ///     构造函数
+    /// &lt;/summary&gt;
+    /// &lt;param name=&quot;connectString&quot;&gt;连接字符串&lt;/param&gt;
+    protected DapperDbContextBase(string connectString)
+    {
+        ConnectString = connectString;
+    }
+ 
+    #endregion Constructors
+ 
+    #region Properties
+ 
+    /// &lt;summary&gt;
+    ///     获取 是否开启事务提交
+    /// &lt;/summary&gt;
+    public IDbTransaction CurrentTransaction { get; private set; }
+ 
+    #endregion Properties
+ 
+    #region Fields
+ 
+    /// &lt;summary&gt;
+    ///     当前数据库连接
+    /// &lt;/summary&gt;
+    public IDbConnection CurrentConnection =&gt;
+        TransactionEnabled ? CurrentTransaction.Connection : CreateConnection();
+ 
+    /// &lt;summary&gt;
+    ///     获取 是否开启事务提交
+    /// &lt;/summary&gt;
+    public bool TransactionEnabled =&gt; CurrentTransaction != null;
+ 
+    /// &lt;summary&gt;
+    ///     连接字符串
+    /// &lt;/summary&gt;
+    protected readonly string ConnectString;
+ 
+    #endregion Fields
+ 
+    #region Methods
+ 
+    /// &lt;summary&gt;
+    ///     显式开启数据上下文事务
+    /// &lt;/summary&gt;
+    /// &lt;param name=&quot;isolationLevel&quot;&gt;指定连接的事务锁定行为&lt;/param&gt;
+    public void BeginTransaction(IsolationLevel isolationLevel = IsolationLevel.Unspecified)
+    {
+        if (!TransactionEnabled) CurrentTransaction = CreateConnection().BeginTransaction(isolationLevel);
+    }
+ 
+    /// &lt;summary&gt;
+    ///     提交当前上下文的事务更改
+    /// &lt;/summary&gt;
+    /// &lt;exception cref=&quot;DataAccessException&quot;&gt;提交数据更新时发生异常：&quot; + msg&lt;/exception&gt;
+    public void Commit()
+    {
+        if (TransactionEnabled)
+            try
+            {
+                CurrentTransaction.Commit();
+            }
+            catch (Exception ex)
+            {
+                if (ex.InnerException?.InnerException is SqlException sqlEx)
+                {
+                    var msg = DataBaseHelper.GetSqlExceptionMessage(sqlEx.Number);
+                    throw new DataAccessException(&quot;提交数据更新时发生异常：&quot; + msg, sqlEx);
+                }
+ 
+                throw;
+            }
+    }
+ 
+    /// &lt;summary&gt;
+    ///     创建记录
+    /// &lt;/summary&gt;
+    /// &lt;param name=&quot;entity&quot;&gt;需要操作的实体类&lt;/param&gt;
+    /// &lt;returns&gt;操作是否成功&lt;/returns&gt;
+    public bool Create&lt;T&gt;(T entity)
+        where T : ModelBase
+    {
+        ValidateOperator.Begin().NotNull(entity, &quot;需要新增的数据记录&quot;);
+        // insert single data always return 0 but the data is inserted in database successfully
+        //https://github.com/StackExchange/Dapper/issues/587
+        //List&lt;T&gt; data = new List&lt;T&gt;() { entity };
+ 
+        return CurrentConnection.Insert(new List&lt;T&gt; {entity}, CurrentTransaction) &gt; 0;
+ 
+        #region 测试代码
+ 
+        //string sql = @&quot;INSERT INTO [dbo].[EFSample]
+        //      ([ID]
+        //      ,[CreateTime]
+        //      ,[ModifyTime]
+        //      ,[Available]
+        //      ,[UserName])
+        //VALUES
+        //      (@ID
+        //      ,@CreateTime
+        //      ,@ModifyTime
+        //      ,@Available
+        //      ,@UserName)&quot;;
+ 
+        //return CurrentConnection.Execute(sql, entity) &gt; 0;
+ 
+        #endregion 测试代码
+    }
+ 
+    /// &lt;summary&gt;
+    ///     创建数据库连接IDbConnection
+    /// &lt;/summary&gt;
+    /// &lt;returns&gt;&lt;/returns&gt;
+    public abstract IDbConnection CreateConnection();
+ 
+    /// &lt;summary&gt;
+    ///     删除记录
+    /// &lt;/summary&gt;
+    /// &lt;returns&gt;操作是否成功&lt;/returns&gt;
+    /// &lt;param name=&quot;entity&quot;&gt;需要操作的实体类.&lt;/param&gt;
+    public bool Delete&lt;T&gt;(T entity)
+        where T : ModelBase
+    {
+        ValidateOperator.Begin().NotNull(entity, &quot;需要删除的数据记录&quot;);
+        return CurrentConnection.Delete(entity);
+    }
+ 
+    /// &lt;summary&gt;
+    ///     执行与释放或重置非托管资源关联的应用程序定义的任务。
+    /// &lt;/summary&gt;
+    public void Dispose()
+    {
+        if (CurrentTransaction != null)
+        {
+            CurrentTransaction.Dispose();
+            CurrentTransaction = null;
+        }
+ 
+        CurrentConnection?.Dispose();
+    }
+ 
+    /// &lt;summary&gt;
+    ///     条件判断是否存在
+    /// &lt;/summary&gt;
+    /// &lt;returns&gt;是否存在&lt;/returns&gt;
+    /// &lt;param name=&quot;predicate&quot;&gt;判断条件委托&lt;/param&gt;
+    public bool Exist&lt;T&gt;(Expression&lt;Func&lt;T, bool&gt;&gt; predicate = null)
+        where T : ModelBase
+    {
+        var tableName = GetTableName&lt;T&gt;();
+        var queryResult = DynamicQuery.GetDynamicQuery(tableName, predicate);
+ 
+        var result =
+            CurrentConnection.ExecuteScalar(queryResult.Sql, (object) queryResult.Param, CurrentTransaction);
+        return result != null;
+    }
+ 
+    /// &lt;summary&gt;
+    ///     根据id获取记录
+    /// &lt;/summary&gt;
+    /// &lt;returns&gt;记录&lt;/returns&gt;
+    /// &lt;param name=&quot;id&quot;&gt;id.&lt;/param&gt;
+    public T GetByKeyId&lt;T&gt;(object id)
+        where T : ModelBase
+    {
+        ValidateOperator.Begin().NotNull(id, &quot;Id&quot;);
+        return CurrentConnection.Get&lt;T&gt;(id, CurrentTransaction);
+    }
+ 
+    /// &lt;summary&gt;
+    ///     条件获取记录集合
+    /// &lt;/summary&gt;
+    /// &lt;returns&gt;集合&lt;/returns&gt;
+    /// &lt;param name=&quot;predicate&quot;&gt;筛选条件.&lt;/param&gt;
+    public List&lt;T&gt; GetList&lt;T&gt;(Expression&lt;Func&lt;T, bool&gt;&gt; predicate = null)
+        where T : ModelBase
+    {
+        var tableName = GetTableName&lt;T&gt;();
+        var queryResult = DynamicQuery.GetDynamicQuery(tableName, predicate);
+ 
+        return CurrentConnection.Query&lt;T&gt;(queryResult.Sql, (object) queryResult.Param, CurrentTransaction).ToList();
+    }
+ 
+    /// &lt;summary&gt;
+    ///     条件获取记录第一条或者默认
+    /// &lt;/summary&gt;
+    /// &lt;returns&gt;记录&lt;/returns&gt;
+    /// &lt;param name=&quot;predicate&quot;&gt;筛选条件.&lt;/param&gt;
+    public T GetFirstOrDefault&lt;T&gt;(Expression&lt;Func&lt;T, bool&gt;&gt; predicate = null)
+        where T : ModelBase
+    {
+        var tableName = GetTableName&lt;T&gt;();
+        var queryResult = DynamicQuery.GetDynamicQuery(tableName, predicate);
+ 
+        return CurrentConnection.QueryFirst&lt;T&gt;(queryResult.Sql, (object) queryResult.Param, CurrentTransaction);
+    }
+ 
+    /// &lt;summary&gt;
+    ///     条件查询
+    /// &lt;/summary&gt;
+    /// &lt;returns&gt;IQueryable&lt;/returns&gt;
+    /// &lt;param name=&quot;predicate&quot;&gt;筛选条件.&lt;/param&gt;
+    public IQueryable&lt;T&gt; Query&lt;T&gt;(Expression&lt;Func&lt;T, bool&gt;&gt; predicate = null)
+        where T : ModelBase
+    {
+        throw new NotImplementedException();
+    }
+ 
+    /// &lt;summary&gt;
+    ///     显式回滚事务，仅在显式开启事务后有用
+    /// &lt;/summary&gt;
+    public void Rollback()
+    {
+        if (TransactionEnabled) CurrentTransaction.Rollback();
+    }
+ 
+    /// &lt;summary&gt;
+    ///     执行Sql 脚本查询
+    /// &lt;/summary&gt;
+    /// &lt;param name=&quot;sql&quot;&gt;Sql语句&lt;/param&gt;
+    /// &lt;param name=&quot;parameters&quot;&gt;参数&lt;/param&gt;
+    /// &lt;returns&gt;集合&lt;/returns&gt;
+    public IEnumerable&lt;T&gt; SqlQuery&lt;T&gt;(string sql, IDbDataParameter[] parameters)
+    {
+        ValidateOperator.Begin()
+            .NotNullOrEmpty(sql, &quot;Sql语句&quot;);
+        var dataParameters = CreateParameter(parameters);
+        return CurrentConnection.Query&lt;T&gt;(sql, dataParameters, CurrentTransaction);
+    }
+ 
+    /// &lt;summary&gt;
+    ///     根据记录
+    /// &lt;/summary&gt;
+    /// &lt;returns&gt;操作是否成功.&lt;/returns&gt;
+    /// &lt;param name=&quot;entity&quot;&gt;实体类记录.&lt;/param&gt;
+    public bool Update&lt;T&gt;(T entity)
+        where T : ModelBase
+    {
+        ValidateOperator.Begin().NotNull(entity, &quot;需要更新的数据记录&quot;);
+        return CurrentConnection.Update(entity, CurrentTransaction);
+    }
+ 
+    private DapperParameter CreateParameter(IDbDataParameter[] parameters)
+    {
+        if (!(parameters?.Any() ?? false)) return null;
+ 
+        var dataParameters = new DapperParameter();
+        foreach (var parameter in parameters) dataParameters.Add(parameter);
+        return dataParameters;
+    }
+ 
+    private string GetTableName&lt;T&gt;()
+        where T : ModelBase
+    {
+        var tableCfgInfo = AttributeHelper.Get&lt;T, TableAttribute&gt;();
+        return tableCfgInfo != null ? tableCfgInfo.Name.Trim() : typeof(T).Name;
+    }
+ 
+    #endregion Methods
+}</code></pre>
+<h3 id="使用方法">使用方法</h3>
+<pre><code><code>public class SampleService : ISampleService
+{
+    private readonly IDatabaseContextFactory _contextFactory;
+ 
+    public SampleService(IDatabaseContextFactory contextFactory)
+    {
+        _contextFactory = contextFactory;
+    }
+ 
+    /// &lt;summary&gt;
+    /// 创建
+    /// &lt;/summary&gt;
+    /// &lt;param name=&quot;sample&quot;&gt;EFSample&lt;/param&gt;
+    /// &lt;returns&gt;&lt;/returns&gt;
+    public bool Create(EfSample sample)
+    {
+        using (IDbContext context = _contextFactory.Create())
+        {
+            return context.Create(sample);
+        }
+    }
+ 
+    /// &lt;summary&gt;
+    /// 条件查询
+    /// &lt;/summary&gt;
+    /// &lt;param name=&quot;predicate&quot;&gt;The predicate.&lt;/param&gt;
+    /// &lt;returns&gt;&lt;/returns&gt;
+    /// &lt;exception cref=&quot;NotImplementedException&quot;&gt;&lt;/exception&gt;
+    public EfSample GetFirstOrDefault(Expression&lt;Func&lt;EfSample, bool&gt;&gt; predicate = null)
+    {
+        using (IDbContext context = _contextFactory.Create())
+        {
+            return context.GetFirstOrDefault(predicate);
+        }
+    }
+ 
+    /// &lt;summary&gt;
+    /// 根据主键查询
+    /// &lt;/summary&gt;
+    /// &lt;param name=&quot;id&quot;&gt;The identifier.&lt;/param&gt;
+    /// &lt;returns&gt;&lt;/returns&gt;
+    /// &lt;exception cref=&quot;NotImplementedException&quot;&gt;&lt;/exception&gt;
+    public EfSample GetByKeyId(Guid id)
+    {
+        using (IDbContext context = _contextFactory.Create())
+        {
+            return context.GetByKeyId&lt;EfSample&gt;(id);
+        }
+    }
+ 
+    /// &lt;summary&gt;
+    /// 条件查询集合
+    /// &lt;/summary&gt;
+    /// &lt;param name=&quot;predicate&quot;&gt;The predicate.&lt;/param&gt;
+    /// &lt;returns&gt;&lt;/returns&gt;
+    public List&lt;EfSample&gt; GetList(Expression&lt;Func&lt;EfSample, bool&gt;&gt; predicate = null)
+    {
+        using (IDbContext context = _contextFactory.Create())
+        {
+            return context.GetList(predicate);
+        }
+    }
+ 
+    /// &lt;summary&gt;
+    /// 添加判断是否存在
+    /// &lt;/summary&gt;
+    /// &lt;param name=&quot;predicate&quot;&gt;The predicate.&lt;/param&gt;
+    /// &lt;returns&gt;&lt;/returns&gt;
+    public bool Exist(Expression&lt;Func&lt;EfSample, bool&gt;&gt; predicate = null)
+    {
+        using (IDbContext context = _contextFactory.Create())
+        {
+            return context.Exist(predicate);
+        }
+    }
+ 
+    /// &lt;summary&gt;
+    /// 脚本查询
+    /// &lt;/summary&gt;
+    /// &lt;param name=&quot;sql&quot;&gt;The SQL.&lt;/param&gt;
+    /// &lt;param name=&quot;parameter&quot;&gt;DbParameter[]&lt;/param&gt;
+    /// &lt;returns&gt;&lt;/returns&gt;
+    public List&lt;EfSample&gt; SqlQuery(string sql, DbParameter[] parameter)
+    {
+        using (IDbContext context = _contextFactory.Create())
+        {
+            return context.SqlQuery&lt;EfSample&gt;(sql, parameter)?.ToList();
+        }
+    }
+ 
+    /// &lt;summary&gt;
+    /// 更新
+    /// &lt;/summary&gt;
+    /// &lt;param name=&quot;sample&quot;&gt;The sample.&lt;/param&gt;
+    /// &lt;returns&gt;&lt;/returns&gt;
+    public bool Update(EfSample sample)
+    {
+        using (IDbContext context = _contextFactory.Create())
+        {
+            return context.Update(sample);
+        }
+    }
+ 
+    /// &lt;summary&gt;
+    /// 事务
+    /// &lt;/summary&gt;
+    /// &lt;param name=&quot;sample&quot;&gt;The sample.&lt;/param&gt;
+    /// &lt;param name=&quot;sample2&quot;&gt;The sample2.&lt;/param&gt;
+    /// &lt;returns&gt;&lt;/returns&gt;
+    public bool CreateWithTransaction(EfSample sample, EfSample sample2)
+    {
+        bool result;
+        using (IDbContext context = _contextFactory.Create())
+        {
+            try
+            {
+                context.BeginTransaction();//开启事务
+                context.Create(sample);
+                context.Create(sample2);
+                context.Commit();
+                result = true;
+            }
+            catch (Exception)
+            {
+                context.Rollback();
+                result = false;
+            }
+        }
+ 
+        return result;
+    }
+ 
+    /// &lt;summary&gt;
+    /// 删除
+    /// &lt;/summary&gt;
+    /// &lt;param name=&quot;sample&quot;&gt;&lt;/param&gt;
+    /// &lt;returns&gt;&lt;/returns&gt;
+    public bool Delete(EfSample sample)
+    {
+        using (IDbContext context = _contextFactory.Create())
+        {
+            return context.Delete(sample);
+        }
+    }
+}</code></pre>
+<h3 id="结语">结语</h3>
+<ol>
+<li>Dapper与Entity Framework都是通过IRepository实现，所以您可以通过Ioc切换；</li>
+<li>该篇的单元测试写法与上篇一致；</li>
+<li>小弟不才，大佬轻拍；</li>
+</ol>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

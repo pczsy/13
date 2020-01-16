@@ -1,0 +1,264 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修# pc端个性化日历实现' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center># pc端个性化日历实现</center></div><div class='banquan'>原文出处:本文由博客园博主AikenZhang提供。<br/>
+原文连接:https://www.cnblogs.com/status404/p/10711053.html</div><br>
+    <h1 id="pc端个性化日历实现">pc端个性化日历实现</h1>
+<pre><code><code>技术：vue =&gt; v-for、slot-scop 插槽域
+需求：需要实现日历上每一天动态显示不同的信息
+思路:运用vue 中 slot-scop 插槽域的知识点,将个性化的代码样式放到slot中 再通过slot-scop 获取这个插槽中的所需数据</code></pre>
+<h2 id="一实现日历组件">一、实现日历组件</h2>
+<pre><code><code>思路:布局上就是一个7列，行数不确定的表格。只不过，日历的表格是宽和高相等，随着浏览器的大小变化，表格大大小也要变化，所以要用padding布局，难点在日期数组的生成上面。
+1.布局的实现
+&lt;div class=&quot;calendar&quot;&gt;
+    &lt;div class=&quot;calendar-operation&quot;&gt;
+        &lt;span class=&quot;calendar-title&quot;&gt;{{title}}&lt;/span&gt;
+        &lt;div class=&quot;calendar-YearMonth&quot;&gt;
+           &lt;Icon type=&quot;ios-arrow-back&quot; style=&quot;margin-right:30px;&quot; @click=&quot;prev&quot; /&gt;
+           &lt;div class=&quot;calendar-YearMonth-content&quot;&gt;{{YearMonth}}&lt;/div&gt;
+           &lt;Icon type=&quot;ios-arrow-forward&quot; style=&quot;margin-left:30px;color:&quot; @click=&quot;next&quot; /&gt;
+        &lt;/div&gt;****
+    &lt;/div&gt;
+    &lt;div class=&quot;calendar-head&quot;&gt;
+        &lt;div class=&quot;calendar-head-item&quot;&gt;星期日&lt;/div&gt;
+        &lt;div class=&quot;calendar-head-item&quot;&gt;星期一&lt;/div&gt;
+        &lt;div class=&quot;calendar-head-item&quot;&gt;星期二&lt;/div&gt;
+        &lt;div class=&quot;calendar-head-item&quot;&gt;星期三&lt;/div&gt;
+        &lt;div class=&quot;calendar-head-item&quot;&gt;星期四&lt;/div&gt;
+        &lt;div class=&quot;calendar-head-item&quot;&gt;星期五&lt;/div&gt;
+        &lt;div class=&quot;calendar-head-item&quot;&gt;星期六&lt;/div&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;calendar-content&quot;&gt;
+        &lt;div v-for=&quot;(item,index) in dateArray&quot; :key=&quot;index&quot; class=&quot;calendar-row&quot;&gt;
+            &lt;div v-for=&quot;(val,key) in item&quot; :key=&quot;key&quot; :class=&quot;{&#39;calendar-cols&#39;:true,&#39;calendar-enable&#39;:!val.enable}&quot;&gt;
+                &lt;span class=&quot;calendar-cols-content&quot;&gt;{{val.value}}&lt;/span&gt;
+                &lt;div class=&quot;calendar-cols-opera&quot; &gt;
+                    &lt;div style=&quot;height:100%;&quot;&gt;
+                        &lt;slot :oper = &#39;val.oper&#39;&gt;&lt;/slot&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+&lt;/div&gt;
+&lt;style scoped lang=&quot;less&quot;&gt;
+.calendar{
+    width:100%;
+    border:1px solid #e8eaec;
+    border-left: 0;
+    border-radius: 8px;
+    background: #fff;
+    .calendar-operation {
+        height: 60px;
+        border-bottom: 1px solid #e8eaec;
+        border-left:1px solid #e8eaec;
+        .calendar-title{
+            display:block;
+            font-size:12px;
+            color:#fb9153;
+            float: left;
+            height: 100%;
+            line-height:60px;
+            padding-left: 40px;
+        }
+        .calendar-YearMonth{
+            display: flex;
+            height: 100%;
+            justify-content: center;
+            align-items: center;
+            font-size:17px;
+            color: #fb9153;
+        }
+    }
+    .calendar-head {
+        display: flex;
+        height:40px;
+        border-bottom: 1px solid #e8eaec;
+        border-left:1px solid #e8eaec;
+        .calendar-head-item {
+            flex: 1;
+            height:100%;
+            line-height:40px;
+            font-size: 12px;
+            text-align: center;
+            border-left: 1px solid #e8eaec;
+        }
+    }
+    .calendar-content {
+        width: 100%;
+        .calendar-row{
+            width:100%;
+            display: flex;
+            .calendar-cols {
+                position: relative;
+                flex: 1;
+                height: 0;
+                padding-bottom: 14%;
+                border-bottom: 1px solid #e8eaec;
+                border-left: 1px solid #e8eaec;
+                .calendar-cols-content{
+                    display:block;
+                    text-align: right;
+                    height:0;
+                    padding-bottom: 15%;
+                    box-sizing: border-box;
+                    padding: 0 10px;
+                    margin-bottom: 15%;
+                }
+                .calendar-cols-opera{
+                    width:100%;
+                    height: 0;
+                    padding-bottom: 84%;
+                    box-sizing: border-box;
+                    overflow-y: auto;
+                }
+            }  
+        }
+        .calendar-enable{
+            color: #e8eaec;
+        }
+    }
+}
+&lt;/style&gt;
+2.日历数组的实现
+ 思路：获取当前月有多少天，当月第一天对应的星期。
+ 实现：如何获取这个月的天数，通过下一个月的第一天 减去一天时间就是这个月的最后一天，进而能知道这个月的天数
+ //获取当月最后一天
+ function getLastDate(year,month) {
+    let currentMonth = month - 1
+    let nextMonth = currentMonth + 1
+    if(nextMonth &gt; 11 ) {
+        nextMonth = 0
+        year++
+    }
+    //let nextMonthFisrtDate = new Date(year,nextMonth,1).getDate()
+    let lastDate = new Date(new Date(year,nextMonth,1).getTime() - 1000*60*60*24).getDate()
+    return lastDate
+}
+//获取当月第一天对应的星期
+function getFirstDay(year,month) {
+    let currentMonth = month - 1
+    return new Date(year,currentMonth,1).getDay()
+}
+//获取最后一天的星期
+function getLastDay(year,month) {
+    let currentMonth = month - 1
+    return new Date(year,currentMonth,getLastDate(year,month)).getDay()
+}
+//获取当月 日期数据 
+function getDateArray(yearMonth) {
+    let year = parseInt(yearMonth.split(&#39;-&#39;)[0])
+    let month = parseInt(yearMonth.split(&#39;-&#39;)[1])
+    let dateArray = []
+    let firstDay =  getFirstDay(year,month,1)
+    let lastDate = getLastDate(year,month)
+    let lastDateDay = getLastDay(year,month)
+    let prevLastDate = getLastDate(year,month - 1)
+    //缓存每一行数据
+    let newArr = []
+    //获取第一行数据
+    for(let i=1;i&lt;=7;i++){
+        if(i&lt;=firstDay){
+            newArr.push({
+                date:&#39;&#39;,
+                value: prevLastDate - (firstDay-i),
+                enable: false,
+                oper:{}
+            })
+            
+        }
+        else{
+            newArr.push({
+                date:new Date(year,month-1,i-firstDay).getTime(),
+                value:i-firstDay,
+                enable: true,
+                oper:{}
+            })
+        }
+    }
+    dateArray.push(newArr) 
+    newArr = [] //清空
+    let count = 0
+    for (let i=(7-firstDay+1);i&lt;=lastDate;i++){
+        if ( count &lt; 7){
+            newArr.push({
+                date:new Date(year,month-1,i).getTime(),
+                value:i,
+                enable:true,
+                oper:[]
+            })
+        }
+        else{
+            dateArray.push(newArr)
+            newArr = []
+            newArr.push({
+                date:new Date(year,month-1,i).getTime(),
+                value:i,
+                enable:true,
+                oper:[]
+            })
+            count = 0
+        }
+        if (i == lastDate &amp;&amp; count == 6) {
+            dateArray.push(newArr)
+        }
+        count++
+    }
+    //获取最后一行
+    newArr = []
+    if(lastDateDay&lt;6){
+        for(let i=0;i&lt;=6;i++){
+            if(i&lt;=lastDateDay){
+                newArr.push({
+                    date:new Date(year,month-1,lastDate-(lastDateDay-i)).getTime(),
+                    value:lastDate-(lastDateDay-i),
+                    enable:true,
+                    oper:[]
+                })
+            }
+            else{
+                newArr.push({
+                    date:&#39;&#39;,
+                    value:i-lastDateDay,
+                    enable:false,
+                    oper:[]
+                })
+            }
+        }
+        dateArray.push(newArr) 
+    }
+    return dateArray;
+}</code></pre>
+<h2 id="二个性化日历使用">二、个性化日历使用</h2>
+<pre><code><code>&lt;Calendar :operData=&quot;operData&quot; @change=&quot;calendarChange&quot; :title=&quot;title&quot;&gt;
+        &lt;template slot-scope=&quot;slotScope&quot;&gt;
+            &lt;div v-for=&quot;(item,index) in slotScope.oper &quot; :key=&quot;index&quot; class=&quot;calendar-oper&quot;&gt;
+               &lt;div class=&quot;calendar-oper-tag&quot; :style=&quot;{background:tagType[item.type].color}&quot;&gt;
+                   &lt;span&gt;{{item.visitTypeCode}}&lt;/span&gt;
+               &lt;/div&gt;
+               &lt;div class=&quot;calendar-oper-time&quot;&gt;{{item.time}}&lt;/div&gt;
+               &lt;div class=&quot;calendar-oper-content&quot;&gt;{{item.content}}&lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/template&gt;
+    &lt;/Calendar&gt;</code></pre>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,197 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修jQuery（三）之 选择器(基础版)' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>jQuery（三）之 选择器(基础版)</center></div><div class='banquan'>原文出处:本文由博客园博主xy2370提供。<br/>
+原文连接:https://www.cnblogs.com/xya-b/p/11492181.html</div><br>
+    <p>对于jQuery的调用，我们一般都会传入参数</p>
+<pre><code><code>  html: &lt;div&gt;&lt;/div&gt;
+  js: console.log($(&#39;&lt;a /&gt;&#39;));
+    console.log($(&#39;div&#39;));</code></pre>
+<p><img src="./images/jQuery（三）之 选择器(基础版)0.png" alt="Image text" /></p>
+<h4 id="一前置dom对象和jquery对象">一、前置（DOM对象和jQuery对象）</h4>
+<ol>
+<li>DOM对象，<br />
+关于这个，应该是前端的基础知识了，在文档对象模型中，每个部分都是节点。</li>
+<li>jQuery对象<br />
+这个是指通过jQuery构造函数创建出来的对象，可以通过jQuery选择器获取到，并以类数组的形式保存在jQuery中</li>
+</ol>
+<h4 id="二实践">二、实践</h4>
+<p>仔细观察返回的jQuery对象，感觉像是对DOM节点进行封装，并将其保存在jQuery上</p>
+<h5 id="一实现一个基本的创建选择器">一、实现一个基本的创建选择器</h5>
+<ol>
+<li>获取到传入参数，判断是创建一个jquery节点，还是查询节点，<br />
+</li>
+<li>创建新节点，传入的是一个html标签，以此进行判断</li>
+</ol>
+<pre><code><code>     //获取到传入的参数
+     var jQuery = function(selector, content) {
+       return new jQuery.prototype.init(selector, content);
+     }
+     jQuery.prototype = {
+         length: 0,
+         init: function(selector, content) {
+           content = content || document;
+           var match; //match 用来保存selector;
+           if(typeof selector === &#39;string&#39;) {
+             // 判断selector传入的是一个html标签；
+             if(selector.charAt(0) === &#39;&lt;&#39; &amp;&amp; selector.charAt(selector.length-1) === &#39;&gt;&#39; &amp;&amp; selector.length &gt;= 3 ) {
+               match = [selector];
+             }
+             if (match) {
+               //创建一个jQuery对象。
+             }
+           }
+         }
+       } </code></pre>
+<ol>
+<li>确定好是需要创建一个节点之后，我们就需要思考需要进行什么操作。需要将标签名解析出来，然后利用createElement创建节点，并保存。
+<ul>
+<li>定义一个html解析函数</li>
+</ul>
+<pre><code><code>var reg = /^&lt;(\w+)\s*\/?&gt;(?:&lt;\/\1&gt;|)$/;
+jQuery.extend({
+     parseHtml: function(data, content) {
+       if (!data &amp;&amp; typeof data != &#39;string&#39;) {
+         return null;
+       }
+       var parse = reg.exec(data);
+       return [content.createElement(parse[1])] //ok,这里是将创建的一整个DOM节点保存在了数组中。
+     }
+})</code></pre>
+<ul>
+<li>已经可以获取到创建的节点了，下面将节点挂载在jQuery上就可以了。</li>
+</ul>
+<pre><code><code>if(match) {
+     for(; i &lt; match.length; i++) {
+       var opt = match[i]
+       this[i]=jQuery.parseHtml(opt, content)[i]
+     }
+}</code></pre>
+<p>好了，现在我们就可以看下代码的执行结果了。<br />
+<img src="./images/jQuery（三）之 选择器(基础版)1.png" alt="image text" /><br />
+ok,勉强可以实现，但好像还是有点不对的样子， 让我们来看下jQuery的源码。<br />
+<img src="./images/jQuery（三）之 选择器(基础版)2.png" alt="image text" /><br />
+可以看出是调用了merge方法。跳转到merge方法查看一下,一般来说，merge用于合并两个数组, 也可以用于将数组合并在<font color="#e06c60">有length属性的对象</font>上。</p>
+<pre><code><code>// push.apply(_, arraylike) throws on ancient WebKit
+
+merge: function (first, second) {
+    var len = +second.length,
+      j = 0,
+      i = first.length;
+    for (; j &lt; len; j++) {
+      first[i++] = second[j];
+    }
+    first.length = i;   
+    return first;
+}</code></pre>
+了解的区别后，我们来优化代码吧，</li>
+<li><p>优化</p></li>
+</ol>
+<h5 id="二实现一个基本的标签选择器">二、实现一个基本的标签选择器</h5>
+<ol>
+<li>DOM原生节点查询
+<ul>
+<li>document.querySelector</li>
+<li>document.querySelectorAll //返回一个NodeList</li>
+</ul></li>
+<li>实践<br />
+利用document原生查取节点的方式，获得结果，再将其每一个放在jQuery上</li>
+</ol>
+<pre><code><code>     var ele, i = 0;
+     if(match) {}
+     else {
+         ele = document.querySelectorALL(selector);
+         for(; i &lt; ele.length; i++) {
+           this[i] = ele[i]
+         }
+         this.length = ele.length;
+     }</code></pre>
+<h5 id="三关于传入一个方法的选择器">三、关于传入一个方法的选择器</h5>
+<ol>
+<li>首先看下init中是如何处理的：</li>
+</ol>
+<pre><code><code>  var rootjQuery;
+  init = jQuery.fn.init = function(selector, context, root) {
+    ...
+    root = root || rootjQuery;
+    if(typeof selector === &#39;string&#39;) {
+      ...
+    } else if (isFunction(selector)) {
+      return root.ready !== undefined ? root.ready(selector) : selector(jQuery);
+    }
+  }
+  rootjQuery = jQuery(document);</code></pre>
+<p>代码可以看出，其实js是可以传递三个参数的，且root默认为document，如果root.ready没有初始话的话就立刻执行传入的方法，否则调用root.ready方法。关于root,从代码可以看出，是个全局，那么root.ready == jQuery.ready。</p>
+<ol>
+<li>在看ready方法前，需要明确一个问题，jquery传入方法的处理是在文档加载之后执行，所以首先应该对文档是否加载完毕进行判断。</li>
+</ol>
+<pre><code><code>    function completed() {
+      document.removeEventListener(&#39;DOMContentLoaded&#39;,completed);
+      window.removeEventListener(&#39;load&#39;, completed);
+      jQuery.ready();
+    }
+    
+    if(document.readyState === &#39;complete&#39; || (document.readyState !== &quot;loading&quot; &amp;&amp; !document.documentElement.doScroll)) {
+      window.setTimeout(jQuery.ready);
+    } else {
+      //dom加载完毕后，调用complate移除监听事件。
+      document.addEventListener(&#39;DOMContentLoaded&#39;, complete);
+      window.addEventListener(&#39;load&#39;, completed);
+    }</code></pre>
+<ol>
+<li>可以看下jQuery.ready方法了。</li>
+</ol>
+<pre><code><code>  jQuery.extend({
+    // DOM是否已经准备好要使用了，发生更改，则修改为true;
+    isReady: false,
+    //跟踪就绪事件触发前要等待的项目数计数器
+    readyWait: 1,
+    ready: function(wait) {
+      if(wait === true ? --jQuery.readyWait : jQuery.isReady) {
+        return ;
+      }
+      //DOM节点已经准备好了
+      jQuery.isReady = true;
+      
+      if(wait !== true &amp;&amp; --jQuery.readyWait &gt; 0) {
+        return 
+      }
+      //如果有函数绑定，立即执行。
+      readyList.resolveWidth(document, [jQuery])
+    }
+  })</code></pre>
+<p>从2.的时候可以看出，在DOM节点加载完的时候，调用了一次ready,此时没有传入wait,ready中第一个判断直接跳过，记录jQuery.isReady = true,然后再看下一句执行，调用readyList.resolveWidth方法，此时DOM节点已经加载完毕，可以执行绑定的函数了，<br />
+关于这个readyList是什么，我们在代码中找一下看下，</p>
+<pre><code><code>   var readyList = jQuery.Deferred();
+
+   jQuery.fn.ready = function(fn) {
+     ready.then(fn).catch(error) {
+       jQuery.readyException(error);
+     }
+     return this;
+   }</code></pre>
+<p>从以上代码可以看出，readyList是Deferred函数的返回值，且从下面的调用，可以推测Defferred函数应该是个promise对象。对于Defferred函数，下次再仔细研究一下。<br />
+现在让我们来回顾整个函数流程：<br />
+<img src="./images/jQuery（三）之 选择器(基础版)3.png" alt="Image text" /><br />
+上面的内容只是我自己的理解，如果有什么不对的地方，希望大家帮忙指出啊！</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

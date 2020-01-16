@@ -1,0 +1,158 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修jQuery 源码分析(十四) 数据操作模块 类样式操作 详解' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>jQuery 源码分析(十四) 数据操作模块 类样式操作 详解</center></div><div class='banquan'>原文出处:本文由博客园博主大沙漠提供。<br/>
+原文连接:https://www.cnblogs.com/greatdesert/p/11672871.html</div><br>
+    <p>jQuery的属性操作模块总共有4个部分，本篇说一下第3个部分:类样式操作部分，用于修改DOM元素的class特性的，对于类样式操作来说，jQuery并没有定义静态方法，而只定义了实例方法，如下:</p>
+<ul>
+<li>addClass(value)　　　　　　;为匹配元素集合中的每个元素添加一个或多个类样式，通过修改DOM属性className来修改类样式，value可以是个以空格分隔的类样式或者一个函数(返回一个或多个以空格分隔的类样式)</li>
+<li>hasClass(selector)　　 &nbsp; 　　;检测匹配元素中的任意元素是否含有指定的类样式，只要其中一个元素含有就返回true,selector是一个类样式。</li>
+<li>removeClass(value)　　　　;从匹配元素集合中的每个元素上移除一个或多个或全部类样式,value可以为空(全部移除)、以空格分隔的类样式(移除多个样式)，或者是个函数(该函数返回一个或多个以空格分隔的类样式)</li>
+<li>toggleClass(value,stateVal)　;对设置或移除被选元素的一个或多个类进行切换，有五种用法</li>
+</ul>
+<p class="hwi">&nbsp;writer by:大沙漠 QQ:22969969</p>
+<p>　　　　&middot;toggleClass()&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;　　　　&nbsp;&nbsp;&nbsp; ;未传入参数&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; 　　　　　　　　　　 &nbsp; ;这时如果当前元素含有样式则移除所有类，如果没有则尝试恢复。<br />　　　　&middot;toggleClass(stateVal)&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;　　;只传入一个布尔值类型&nbsp;&nbsp; 　　　　　　&nbsp;&nbsp;&nbsp;&nbsp; ;如果stateVal是true,则等同于toggleClass();如果是false则总是移除所有类。<br />　　　　&middot;toggleClass(value)&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;　　　;参数1是字符串或函数，未传入参数2&nbsp;&nbsp; &nbsp; &nbsp;&nbsp; ;value是字符串时表示一个或多个样式，用空格分隔，下同;value是函数时返回字符串格式。如果匹配元素含有指定的类样式，则移除，否则添加该样式。<br />　　　　&middot;toggleClass(value,stateVal)&nbsp;&nbsp; &nbsp; ;参数1是字符串或函数，参数2是布尔值&nbsp;&nbsp; &nbsp;;当stateVal是true时总是添加，是false时则总是移除</p>
+<p>对于toggleClass切换样式时,jQuery内部实现会将所有类暂时保存在数据缓存对象的__className__数据中，等下次恢复时尝试读取。</p>
+<p>举个栗子吧:</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;!</span><span style="color: #ff00ff;">DOCTYPE html</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">html </span><span style="color: #ff0000;">lang</span><span style="color: #0000ff;">="en"</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">head</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">meta </span><span style="color: #ff0000;">charset</span><span style="color: #0000ff;">="UTF-8"</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">title</span><span style="color: #0000ff;">&gt;</span>Document<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">title</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script </span><span style="color: #ff0000;">src</span><span style="color: #0000ff;">="http://libs.baidu.com/jquery/1.7.1/jquery.min.js"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">style</span><span style="color: #0000ff;">&gt;</span><span style="background-color: #f5f5f5; color: #800000;">
+        .color</span><span style="background-color: #f5f5f5; color: #000000;">{</span><span style="background-color: #f5f5f5; color: #ff0000;">color</span><span style="background-color: #f5f5f5; color: #000000;">:</span><span style="background-color: #f5f5f5; color: #0000ff;"> #f00</span><span style="background-color: #f5f5f5; color: #000000;">;</span><span style="background-color: #f5f5f5; color: #000000;">}</span><span style="background-color: #f5f5f5; color: #800000;">
+        .back</span><span style="background-color: #f5f5f5; color: #000000;">{</span><span style="background-color: #f5f5f5; color: #ff0000;">background</span><span style="background-color: #f5f5f5; color: #000000;">:</span><span style="background-color: #f5f5f5; color: #0000ff;"> #ccc</span><span style="background-color: #f5f5f5; color: #000000;">;</span><span style="background-color: #f5f5f5; color: #000000;">}</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">style</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">head</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">body</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">p</span><span style="color: #0000ff;">&gt;</span>Hello World!<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">p</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">button </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="b1"</span><span style="color: #0000ff;">&gt;</span>设置所有样式<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">button</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">button </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="b2"</span><span style="color: #0000ff;">&gt;</span>切换color样式<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">button</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">button </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="b3"</span><span style="color: #0000ff;">&gt;</span>取消所有样式<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">button</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span><span style="background-color: #f5f5f5; color: #000000;">
+        let b1 </span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #000000;"> document.getElementById(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">b1</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">),
+            b2 </span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #000000;"> document.getElementById(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">b2</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">),
+            b3 </span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #000000;"> document.getElementById(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">b3</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">);
+        b1.onclick </span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #000000;"> ()</span><span style="background-color: #f5f5f5; color: #000000;">=&gt;</span><span style="background-color: #f5f5f5; color: #000000;">{
+            $(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">p</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">).addClass(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">color back</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">);           </span><span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;">添加所有样式</span>
+<span style="background-color: #f5f5f5; color: #000000;">        }
+        b2.onclick </span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #000000;"> ()</span><span style="background-color: #f5f5f5; color: #000000;">=&gt;</span><span style="background-color: #f5f5f5; color: #000000;">{
+            $(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">p</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">).toggleClass(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">color</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">);             </span><span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;">切换color样式</span>
+<span style="background-color: #f5f5f5; color: #000000;">        }
+        b3.onclick </span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #000000;"> ()</span><span style="background-color: #f5f5f5; color: #000000;">=&gt;</span><span style="background-color: #f5f5f5; color: #000000;">{
+            $(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">p</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">).removeClass();                    </span><span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;">取消所有样式</span>
+<span style="background-color: #f5f5f5; color: #000000;">        }        
+    </span><span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span>    
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">body</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">html</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<p>这里我们在style自定义了两个class:color和back，前者修改字体的颜色，后者修改字体的背景色，然后定义了三个按钮分别用于操作样式，渲染如下:</p>
+<p><img src="./images/jQuery 源码分析(十四) 数据操作模块 类样式操作 详解0.png" alt="" /></p>
+<p>点击设置所有样式，将在p这个DOM元素上添加color和back两个class,如下:</p>
+<p><img src="./images/jQuery 源码分析(十四) 数据操作模块 类样式操作 详解1.png" alt="" /></p>
+<p>&nbsp;当点击切换color样式时，由于p元素上的color这个class已经存在了，因此会取消掉:</p>
+<p><img src="./images/jQuery 源码分析(十四) 数据操作模块 类样式操作 详解2.png" alt="" /></p>
+<p>当再次点击切换color样式这个按钮时，由于p元素上的color这个class已经取消了，因此此时会显示出来，如下:</p>
+<p><img src="./images/jQuery 源码分析(十四) 数据操作模块 类样式操作 详解3.png" alt="" /></p>
+<p>&nbsp;当我们点击取消所有样式时将会把p元素上的所有class给删掉，又回到初始状态，如下:</p>
+<p><img src="./images/jQuery 源码分析(十四) 数据操作模块 类样式操作 详解4.png" alt="" /></p>
+<p>&nbsp;</p>
+<p><strong><span style="font-size: 18pt;">源码分析</span></strong></p>
+<hr />
+<p>&nbsp;jQuery内部对于样式的操作是修改对应DOM元素的className属性来实现的，中间通过字符串的indexOf和replace操作实现查找和替换，对于添加样式和删除样式的逻辑如下:</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">jQuery.fn.extend({
+    addClass: </span><span style="color: #0000ff;">function</span>( value ) {        <span style="color: #008000;">//</span><span style="color: #008000;">添加类样式</span>
+        <span style="color: #0000ff;">var</span><span style="color: #000000;"> classNames, i, l, elem,
+            setClass, c, cl;
+
+        </span><span style="color: #0000ff;">if</span> ( jQuery.isFunction( value ) ) {        <span style="color: #008000;">//</span><span style="color: #008000;">如果value是函数</span>
+            <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span>.each(<span style="color: #0000ff;">function</span><span style="color: #000000;">( j ) {
+                jQuery( </span><span style="color: #0000ff;">this</span> ).addClass( value.call(<span style="color: #0000ff;">this</span>, j, <span style="color: #0000ff;">this</span>.className) );        <span style="color: #008000;">//</span><span style="color: #008000;">在每个匹配元素上执行该函数并且取其返回值作为待添加的类样式，然后调用.addClass(className)添加类样式。执行函数时，传入两个参数，分别是元素在集合中的下标位置和当前样式值。</span>
+<span style="color: #000000;">            });
+        }
+
+        </span><span style="color: #0000ff;">if</span> ( value &amp;&amp; <span style="color: #0000ff;">typeof</span> value === "string" ) {                <span style="color: #008000;">//</span><span style="color: #008000;">如果value是字符串，可以是空格分隔的多个样式</span>
+            classNames = value.split( rspace );                        <span style="color: #008000;">//</span><span style="color: #008000;">用/\s+/对value进行分隔</span>
+
+            <span style="color: #0000ff;">for</span> ( i = 0, l = <span style="color: #0000ff;">this</span>.length; i &lt; l; i++ ) {            <span style="color: #008000;">//</span><span style="color: #008000;">遍历匹配元素</span>
+                elem = <span style="color: #0000ff;">this</span><span style="color: #000000;">[ i ];
+
+                </span><span style="color: #0000ff;">if</span> ( elem.nodeType === 1 ) {                            <span style="color: #008000;">//</span><span style="color: #008000;">只针对元素节点</span>
+                    <span style="color: #0000ff;">if</span> ( !elem.className &amp;&amp; classNames.length === 1 ) {        <span style="color: #008000;">//</span><span style="color: #008000;">如果elem.className不存在，且待添加的样式个数为1，则直接设置elem.className</span>
+                        elem.className =<span style="color: #000000;"> value;
+
+                    } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {    
+                        setClass </span>= " " + elem.className + " ";                <span style="color: #008000;">//</span><span style="color: #008000;">在待添加的类样式className前后加空格</span>
+
+                        <span style="color: #0000ff;">for</span> ( c = 0, cl = classNames.length; c &lt; cl; c++ ) {    <span style="color: #008000;">//</span><span style="color: #008000;">历要添加的类样式value</span>
+                            <span style="color: #0000ff;">if</span> ( !~setClass.indexOf( " " + classNames[ c ] + " " ) ) {    <span style="color: #008000;">//</span><span style="color: #008000;">如果classNames中的某个样式不存在setClass中</span>
+                                setClass += classNames[ c ] + " ";                            <span style="color: #008000;">//</span><span style="color: #008000;">则添加该样式</span>
+<span style="color: #000000;">                            }
+                        }
+                        elem.className </span>= jQuery.trim( setClass );                <span style="color: #008000;">//</span><span style="color: #008000;">最后去除类样式两边的空格，再设置到elem.className中</span>
+<span style="color: #000000;">                    }
+                }
+            }
+        }
+
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+    },
+    removeClass: </span><span style="color: #0000ff;">function</span>( value ) {            <span style="color: #008000;">//</span><span style="color: #008000;">从匹配元素集合中的每个元素上移除一个或多个或全部类样式。通过修改DOM属性className来移除类样式。</span>
+        <span style="color: #0000ff;">var</span><span style="color: #000000;"> classNames, i, l, elem, className, c, cl;
+
+        </span><span style="color: #0000ff;">if</span> ( jQuery.isFunction( value ) ) {            <span style="color: #008000;">//</span><span style="color: #008000;">如果value是一个函数</span>
+            <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span>.each(<span style="color: #0000ff;">function</span>( j ) {            <span style="color: #008000;">//</span><span style="color: #008000;">遍历匹配元素</span>
+                jQuery( <span style="color: #0000ff;">this</span> ).removeClass( value.call(<span style="color: #0000ff;">this</span>, j, <span style="color: #0000ff;">this</span>.className) );    <span style="color: #008000;">//</span><span style="color: #008000;">调用每个匹配元素的removeClass()函数，参数是value函数的返回值</span>
+<span style="color: #000000;">            });
+        }
+
+        </span><span style="color: #0000ff;">if</span> ( (value &amp;&amp; <span style="color: #0000ff;">typeof</span> value === "string") || value === undefined ) {    <span style="color: #008000;">//</span><span style="color: #008000;">如果value存在且是一个字符串  或者 value未定义</span>
+            classNames = ( value || "" ).split( rspace );                            <span style="color: #008000;">//</span><span style="color: #008000;">用空白符分隔value以支持一次移除多个类样式。这里如果value是空的，那么结果是[""]，该数组的length等于1</span>
+
+            <span style="color: #0000ff;">for</span> ( i = 0, l = <span style="color: #0000ff;">this</span>.length; i &lt; l; i++ ) {                            <span style="color: #008000;">//</span><span style="color: #008000;">遍历匹配元素</span>
+                elem = <span style="color: #0000ff;">this</span>[ i ];                                                        <span style="color: #008000;">//</span><span style="color: #008000;">elem是匹配的元素</span>
+
+                <span style="color: #0000ff;">if</span> ( elem.nodeType === 1 &amp;&amp; elem.className ) {                            <span style="color: #008000;">//</span><span style="color: #008000;">只支持已经设置了className的元素节点。</span>
+                    <span style="color: #0000ff;">if</span> ( value ) {                                                            <span style="color: #008000;">//</span><span style="color: #008000;">如果传入了value值,则表示是设置样式</span>
+                        className = (" " + elem.className + " ").replace( rclass, " " );    <span style="color: #008000;">//</span><span style="color: #008000;">classNames是当前元素的类样式，两边加个空格，再去除出换行、制表、回车符。var rclass = /[\n\t\r]/g,</span>
+                        <span style="color: #0000ff;">for</span> ( c = 0, cl = classNames.length; c &lt; cl; c++ ) {                <span style="color: #008000;">//</span><span style="color: #008000;">遍历要移除的类样式数组classNames</span>
+                            className = className.replace(" " + classNames[ c ] + " ", " ");    <span style="color: #008000;">//</span><span style="color: #008000;">调用字符串方法replace()逐个从当前类样式中移除</span>
+<span style="color: #000000;">                        }
+                        elem.className </span>= jQuery.trim( className );                            <span style="color: #008000;">//</span><span style="color: #008000;">去掉空白字符，在设置elem.className属性</span>
+<span style="color: #000000;">
+                    } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+                        elem.className </span>= ""<span style="color: #000000;">;
+                    }
+                }
+            }
+        }
+
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+    },
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">略</span><span style="color: #008000;">*/</span><span style="color: #000000;">
+})</span></pre>
+</div>
+<p>当我们在页面里做各种动画效果时还是会用到这个API的，挺方便的，配合css可以实现各种的动画效果。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

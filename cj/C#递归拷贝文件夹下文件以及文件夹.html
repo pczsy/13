@@ -1,0 +1,199 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C#递归拷贝文件夹下文件以及文件夹' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C#递归拷贝文件夹下文件以及文件夹</center></div><div class='banquan'>原文出处:本文由博客园博主VueDi提供。<br/>
+原文连接:https://www.cnblogs.com/DiKingVue/p/11311783.html</div><br>
+    <p>演示用递归的方法复制指定文件夹下所有文件(包括子文件夹)到指定位置，比较简单，主要是递归调用，以及字节流读取写入字节操作。直接上代码！</p>
+<p>界面设计（WPF设计）</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> &lt;Window x:Class=<span style="color: #800000;">"</span><span style="color: #800000;">LDDECryption.MainWindow</span><span style="color: #800000;">"</span>
+<span style="color: #008080;"> 2</span>         xmlns=<span style="color: #800000;">"</span><span style="color: #800000;">http://schemas.microsoft.com/winfx/2006/xaml/presentation</span><span style="color: #800000;">"</span>
+<span style="color: #008080;"> 3</span>         xmlns:x=<span style="color: #800000;">"</span><span style="color: #800000;">http://schemas.microsoft.com/winfx/2006/xaml</span><span style="color: #800000;">"</span>
+<span style="color: #008080;"> 4</span>         xmlns:d=<span style="color: #800000;">"</span><span style="color: #800000;">http://schemas.microsoft.com/expression/blend/2008</span><span style="color: #800000;">"</span>
+<span style="color: #008080;"> 5</span>         xmlns:mc=<span style="color: #800000;">"</span><span style="color: #800000;">http://schemas.openxmlformats.org/markup-compatibility/2006</span><span style="color: #800000;">"</span>
+<span style="color: #008080;"> 6</span>         xmlns:local=<span style="color: #800000;">"</span><span style="color: #800000;">clr-namespace:LDDECryption</span><span style="color: #800000;">"</span>
+<span style="color: #008080;"> 7</span>         mc:Ignorable=<span style="color: #800000;">"</span><span style="color: #800000;">d</span><span style="color: #800000;">"</span>
+<span style="color: #008080;"> 8</span>         Title=<span style="color: #800000;">"</span><span style="color: #800000;">MainWindow</span><span style="color: #800000;">"</span> Height=<span style="color: #800000;">"</span><span style="color: #800000;">200</span><span style="color: #800000;">"</span> Width=<span style="color: #800000;">"</span><span style="color: #800000;">600</span><span style="color: #800000;">"</span>&gt;
+<span style="color: #008080;"> 9</span>     &lt;Grid&gt;
+<span style="color: #008080;">10</span>         &lt;Grid.RowDefinitions&gt;
+<span style="color: #008080;">11</span>             &lt;RowDefinition/&gt;
+<span style="color: #008080;">12</span>             &lt;RowDefinition/&gt;
+<span style="color: #008080;">13</span>             &lt;RowDefinition Height=<span style="color: #800000;">"</span><span style="color: #800000;">auto</span><span style="color: #800000;">"</span>/&gt;
+<span style="color: #008080;">14</span>         &lt;/Grid.RowDefinitions&gt;
+<span style="color: #008080;">15</span>         &lt;DockPanel Grid.Row=<span style="color: #800000;">"</span><span style="color: #800000;">0</span><span style="color: #800000;">"</span> VerticalAlignment=<span style="color: #800000;">"</span><span style="color: #800000;">Center</span><span style="color: #800000;">"</span>&gt;
+<span style="color: #008080;">16</span>             &lt;TextBlock Text=<span style="color: #800000;">"</span><span style="color: #800000;">源路径</span><span style="color: #800000;">"</span>/&gt;
+<span style="color: #008080;">17</span>             &lt;Button Content=<span style="color: #800000;">"</span><span style="color: #800000;">...</span><span style="color: #800000;">"</span> Name=<span style="color: #800000;">"</span><span style="color: #800000;">btnSourceUrl</span><span style="color: #800000;">"</span> DockPanel.Dock=<span style="color: #800000;">"</span><span style="color: #800000;">Right</span><span style="color: #800000;">"</span> Width=<span style="color: #800000;">"</span><span style="color: #800000;">60</span><span style="color: #800000;">"</span> Click=<span style="color: #800000;">"</span><span style="color: #800000;">BtnSourceUrl_Click</span><span style="color: #800000;">"</span>/&gt;
+<span style="color: #008080;">18</span>             &lt;TextBox Name=<span style="color: #800000;">"</span><span style="color: #800000;">txtSourceUrl</span><span style="color: #800000;">"</span>/&gt;
+<span style="color: #008080;">19</span>         &lt;/DockPanel&gt;
+<span style="color: #008080;">20</span>         &lt;DockPanel Grid.Row=<span style="color: #800000;">"</span><span style="color: #800000;">1</span><span style="color: #800000;">"</span> VerticalAlignment=<span style="color: #800000;">"</span><span style="color: #800000;">Center</span><span style="color: #800000;">"</span>&gt;
+<span style="color: #008080;">21</span>             &lt;TextBlock Text=<span style="color: #800000;">"</span><span style="color: #800000;">目的路径</span><span style="color: #800000;">"</span>/&gt;
+<span style="color: #008080;">22</span>             &lt;Button Content=<span style="color: #800000;">"</span><span style="color: #800000;">...</span><span style="color: #800000;">"</span> Name=<span style="color: #800000;">"</span><span style="color: #800000;">btnDesUrl</span><span style="color: #800000;">"</span> DockPanel.Dock=<span style="color: #800000;">"</span><span style="color: #800000;">Right</span><span style="color: #800000;">"</span> Width=<span style="color: #800000;">"</span><span style="color: #800000;">60</span><span style="color: #800000;">"</span> Click=<span style="color: #800000;">"</span><span style="color: #800000;">BtnDesUrl_Click</span><span style="color: #800000;">"</span>/&gt;
+<span style="color: #008080;">23</span>             &lt;TextBox Name=<span style="color: #800000;">"</span><span style="color: #800000;">txtDesUrl</span><span style="color: #800000;">"</span>/&gt;
+<span style="color: #008080;">24</span>         &lt;/DockPanel&gt;
+<span style="color: #008080;">25</span>         &lt;DockPanel Grid.Row=<span style="color: #800000;">"</span><span style="color: #800000;">3</span><span style="color: #800000;">"</span>&gt;
+<span style="color: #008080;">26</span>             &lt;Button Content=<span style="color: #800000;">"</span><span style="color: #800000;">确定</span><span style="color: #800000;">"</span> Name=<span style="color: #800000;">"</span><span style="color: #800000;">btnOk</span><span style="color: #800000;">"</span> Width=<span style="color: #800000;">"</span><span style="color: #800000;">60</span><span style="color: #800000;">"</span> Click=<span style="color: #800000;">"</span><span style="color: #800000;">BtnOk_Click</span><span style="color: #800000;">"</span>/&gt;
+<span style="color: #008080;">27</span>         &lt;/DockPanel&gt;
+<span style="color: #008080;">28</span>     &lt;/Grid&gt;
+<span style="color: #008080;">29</span> &lt;/Window&gt;</pre>
+</div>
+<p>后台代码</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">  1</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> Microsoft.Win32;
+</span><span style="color: #008080;">  2</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System;
+</span><span style="color: #008080;">  3</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Collections.Generic;
+</span><span style="color: #008080;">  4</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.IO;
+</span><span style="color: #008080;">  5</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Linq;
+</span><span style="color: #008080;">  6</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Text;
+</span><span style="color: #008080;">  7</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Threading.Tasks;
+</span><span style="color: #008080;">  8</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Windows;
+</span><span style="color: #008080;">  9</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Windows.Controls;
+</span><span style="color: #008080;"> 10</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Windows.Data;
+</span><span style="color: #008080;"> 11</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Windows.Documents;
+</span><span style="color: #008080;"> 12</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Windows.Forms;
+</span><span style="color: #008080;"> 13</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Windows.Input;
+</span><span style="color: #008080;"> 14</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Windows.Media;
+</span><span style="color: #008080;"> 15</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Windows.Media.Imaging;
+</span><span style="color: #008080;"> 16</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Windows.Navigation;
+</span><span style="color: #008080;"> 17</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Windows.Shapes;
+</span><span style="color: #008080;"> 18</span> 
+<span style="color: #008080;"> 19</span> <span style="color: #0000ff;">namespace</span><span style="color: #000000;"> LDDECryption
+</span><span style="color: #008080;"> 20</span> <span style="color: #000000;">{
+</span><span style="color: #008080;"> 21</span>     <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;"> 22</span>     <span style="color: #808080;">///</span><span style="color: #008000;"> MainWindow.xaml 的交互逻辑
+</span><span style="color: #008080;"> 23</span>     <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;"> 24</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">partial</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> MainWindow : Window
+</span><span style="color: #008080;"> 25</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;"> 26</span>         <span style="color: #0000ff;">public</span><span style="color: #000000;"> MainWindow()
+</span><span style="color: #008080;"> 27</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 28</span> <span style="color: #000000;">            InitializeComponent();
+</span><span style="color: #008080;"> 29</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 30</span> 
+<span style="color: #008080;"> 31</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> BtnSourceUrl_Click(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, RoutedEventArgs e)
+</span><span style="color: #008080;"> 32</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 33</span>             <span style="color: #008000;">//</span><span style="color: #008000;">OpenFileDialog openFileDialog = new OpenFileDialog();
+</span><span style="color: #008080;"> 34</span>             <span style="color: #008000;">//</span><span style="color: #008000;">openFileDialog.ShowDialog();</span>
+<span style="color: #008080;"> 35</span>             FolderBrowserDialog folderBrowser = <span style="color: #0000ff;">new</span><span style="color: #000000;"> FolderBrowserDialog();
+</span><span style="color: #008080;"> 36</span>             folderBrowser.Description = <span style="color: #800000;">"</span><span style="color: #800000;">选择源路径</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 37</span>             folderBrowser.ShowNewFolderButton = <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 38</span>             folderBrowser.RootFolder =<span style="color: #000000;"> Environment.SpecialFolder.MyComputer;
+</span><span style="color: #008080;"> 39</span>             <span style="color: #0000ff;">if</span> (folderBrowser.ShowDialog() ==<span style="color: #000000;"> System.Windows.Forms.DialogResult.OK)
+</span><span style="color: #008080;"> 40</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 41</span>                 <span style="color: #0000ff;">this</span>.txtSourceUrl.Text =<span style="color: #000000;"> folderBrowser.SelectedPath;
+</span><span style="color: #008080;"> 42</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 43</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 44</span> 
+<span style="color: #008080;"> 45</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> BtnDesUrl_Click(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, RoutedEventArgs e)
+</span><span style="color: #008080;"> 46</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 47</span>             FolderBrowserDialog folderBrowser = <span style="color: #0000ff;">new</span><span style="color: #000000;"> FolderBrowserDialog();
+</span><span style="color: #008080;"> 48</span>             folderBrowser.Description = <span style="color: #800000;">"</span><span style="color: #800000;">选择目的路径</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 49</span>             folderBrowser.ShowNewFolderButton = <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 50</span>             folderBrowser.RootFolder =<span style="color: #000000;"> Environment.SpecialFolder.MyComputer;
+</span><span style="color: #008080;"> 51</span>             <span style="color: #0000ff;">if</span> (folderBrowser.ShowDialog() ==<span style="color: #000000;"> System.Windows.Forms.DialogResult.OK)
+</span><span style="color: #008080;"> 52</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 53</span>                 <span style="color: #0000ff;">this</span>.txtDesUrl.Text =<span style="color: #000000;"> folderBrowser.SelectedPath;
+</span><span style="color: #008080;"> 54</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 55</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 56</span> 
+<span style="color: #008080;"> 57</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> BtnOk_Click(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, RoutedEventArgs e)
+</span><span style="color: #008080;"> 58</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 59</span>             <span style="color: #0000ff;">var</span> sour = <span style="color: #0000ff;">this</span><span style="color: #000000;">.txtSourceUrl.Text.Trim();
+</span><span style="color: #008080;"> 60</span>             <span style="color: #0000ff;">if</span> (!<span style="color: #000000;">Directory.Exists(sour))
+</span><span style="color: #008080;"> 61</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 62</span>                 System.Windows.MessageBox.Show(<span style="color: #800000;">"</span><span style="color: #800000;">源路径不存在</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 63</span>                 <span style="color: #0000ff;">return</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 64</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 65</span>             <span style="color: #0000ff;">var</span> des =<span style="color: #000000;"> txtDesUrl.Text.Trim();
+</span><span style="color: #008080;"> 66</span>             <span style="color: #0000ff;">if</span> (!<span style="color: #000000;">Directory.Exists(des))
+</span><span style="color: #008080;"> 67</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 68</span> <span style="color: #000000;">                Directory.CreateDirectory(des);
+</span><span style="color: #008080;"> 69</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 70</span> <span style="color: #000000;">            DescryptionCopy(sour, des);
+</span><span style="color: #008080;"> 71</span>             System.Windows.MessageBox.Show(<span style="color: #800000;">"</span><span style="color: #800000;">OK!</span><span style="color: #800000;">"</span>, <span style="color: #800000;">""</span><span style="color: #000000;">, MessageBoxButton.OK);
+</span><span style="color: #008080;"> 72</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 73</span> 
+<span style="color: #008080;"> 74</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;"> 75</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 复制文件夹==递归方法
+</span><span style="color: #008080;"> 76</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;"> 77</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="strSource"&gt;</span><span style="color: #008000;">源文件夹</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;"> 78</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="strDes"&gt;</span><span style="color: #008000;">目标文件夹</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;"> 79</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> DescryptionCopy(<span style="color: #0000ff;">string</span> strSource, <span style="color: #0000ff;">string</span><span style="color: #000000;"> strDes)
+</span><span style="color: #008080;"> 80</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 81</span>             <span style="color: #0000ff;">if</span> (!<span style="color: #000000;">Directory.Exists(strSource))
+</span><span style="color: #008080;"> 82</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 83</span>                 <span style="color: #0000ff;">return</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 84</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 85</span>             <span style="color: #008000;">//
+</span><span style="color: #008080;"> 86</span>             <span style="color: #0000ff;">var</span> strDesNew =<span style="color: #000000;"> System.IO.Path.Combine(strDes, System.IO.Path.GetFileName(strSource));
+</span><span style="color: #008080;"> 87</span>             <span style="color: #0000ff;">if</span> (!<span style="color: #000000;">Directory.Exists(strDesNew))
+</span><span style="color: #008080;"> 88</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 89</span> <span style="color: #000000;">                Directory.CreateDirectory(strDesNew);
+</span><span style="color: #008080;"> 90</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 91</span>             <span style="color: #0000ff;">var</span> fileList =<span style="color: #000000;"> Directory.GetFileSystemEntries(strSource);
+</span><span style="color: #008080;"> 92</span>             <span style="color: #0000ff;">if</span> (fileList == <span style="color: #0000ff;">null</span> || fileList.Length == <span style="color: #800080;">0</span><span style="color: #000000;">)
+</span><span style="color: #008080;"> 93</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 94</span>                 <span style="color: #0000ff;">return</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 95</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 96</span>             <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; fileList.Length; i++<span style="color: #000000;">)
+</span><span style="color: #008080;"> 97</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 98</span>                 <span style="color: #0000ff;">var</span> file =<span style="color: #000000;"> fileList[i];
+</span><span style="color: #008080;"> 99</span>                 <span style="color: #0000ff;">if</span><span style="color: #000000;"> (Directory.Exists(file))
+</span><span style="color: #008080;">100</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">101</span>                     <span style="color: #0000ff;">var</span> des =<span style="color: #000000;"> System.IO.Path.Combine(strDesNew, System.IO.Path.GetFileName(file));
+</span><span style="color: #008080;">102</span> <span style="color: #000000;">                    DescryptionCopy(file, strDesNew);
+</span><span style="color: #008080;">103</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">104</span>                 <span style="color: #0000ff;">else</span>
+<span style="color: #008080;">105</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">106</span>                     <span style="color: #0000ff;">var</span> des =<span style="color: #000000;"> System.IO.Path.Combine(strDesNew, System.IO.Path.GetFileName(file));
+</span><span style="color: #008080;">107</span> <span style="color: #000000;">                    FileCopy(file, des);
+</span><span style="color: #008080;">108</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">109</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">110</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">111</span> 
+<span style="color: #008080;">112</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">113</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 文件拷贝
+</span><span style="color: #008080;">114</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">115</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="fileSource"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;">116</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="fileDestination"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;">117</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> FileCopy(<span style="color: #0000ff;">string</span> fileSource, <span style="color: #0000ff;">string</span><span style="color: #000000;"> fileDestination)
+</span><span style="color: #008080;">118</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">119</span>             FileStream readStream = <span style="color: #0000ff;">new</span><span style="color: #000000;"> FileStream(fileSource, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+</span><span style="color: #008080;">120</span>             <span style="color: #0000ff;">var</span> buff = <span style="color: #0000ff;">new</span> Byte[<span style="color: #800080;">1024</span> * <span style="color: #800080;">1024</span> * <span style="color: #800080;">10</span>];<span style="color: #008000;">//</span><span style="color: #008000;">10M</span>
+<span style="color: #008080;">121</span>             FileStream writStream = <span style="color: #0000ff;">new</span><span style="color: #000000;"> FileStream(fileDestination, FileMode.OpenOrCreate, FileAccess.Write, FileShare.Read);
+</span><span style="color: #008080;">122</span>             <span style="color: #008000;">//
+</span><span style="color: #008080;">123</span>             <span style="color: #0000ff;">int</span><span style="color: #000000;"> off;
+</span><span style="color: #008080;">124</span>             <span style="color: #0000ff;">do</span>
+<span style="color: #008080;">125</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">126</span>                 off = readStream.Read(buff, <span style="color: #800080;">0</span><span style="color: #000000;">, buff.Length);
+</span><span style="color: #008080;">127</span>                 writStream.Write(buff, <span style="color: #800080;">0</span><span style="color: #000000;">, off);
+</span><span style="color: #008080;">128</span>             } <span style="color: #0000ff;">while</span> (off &gt; <span style="color: #800080;">0</span><span style="color: #000000;">);
+</span><span style="color: #008080;">129</span> <span style="color: #000000;">            readStream.Close();
+</span><span style="color: #008080;">130</span> <span style="color: #000000;">            writStream.Flush();
+</span><span style="color: #008080;">131</span> <span style="color: #000000;">            writStream.Close();
+</span><span style="color: #008080;">132</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">133</span> 
+<span style="color: #008080;">134</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">135</span> }</pre>
+</div>
+<p>//</p>
+<p>System.IO.File.Copy(file,&nbsp;path, true);此方法即可复制指定文件到指定目录。</p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

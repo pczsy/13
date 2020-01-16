@@ -1,0 +1,227 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修用 C# 来守护 Python 进程' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>用 C# 来守护 Python 进程</center></div><div class='banquan'>原文出处:本文由博客园博主hippieZhou提供。<br/>
+原文连接:https://www.cnblogs.com/hippieZhou/p/11504552.html</div><br>
+    <p><img src="./images/用 C# 来守护 Python 进程0.png" /></p>
+<h2 id="背景">背景</h2>
+<p>目前我主要负责的一个项目是一个 <strong>C/S</strong> 架构的客户端开发，前端主要是通过 <code>WPF</code> 相关技术来实现，后端是通过 <code>Python</code> 来实现，前后端的数据通信则是通过 <code>MQ</code> 的方式来进行处理。由于 <code>Python</code> 进程是需要依赖客户端进程来运行，为了保证后端业务进程的稳定性，就需要通过一个 <code>守护进程</code> 来守护 Python 进程，防止其由于未知原因而出现进程退出的情况。这里简单记录一下我的一种实现方式。</p>
+<h2 id="实现">实现</h2>
+<p>对于我们的系统而言，我们的 Python 进程只允许存在一个，因此，对应的服务类型要采用单例模式，这一部分代码相对简单，就直接贴出来了，示例代码如下所示：</p>
+<pre><code><code>public partial class PythonService
+{
+    private static readonly object _locker = new object();
+
+    private static PythonService _instance;
+    public static PythonService Current
+    {
+        get
+        {
+            if (_instance == null)
+            {
+                lock (_locker)
+                {
+                    if (_instance == null)
+                    {
+                        _instance = new PythonService();
+                    }
+                }
+            }
+            return _instance;
+        }
+    }
+
+    private PythonService()
+    {
+
+    }
+}</code></pre>
+<h3 id="创建独立进程">创建独立进程</h3>
+<p>由于后端的 Python 代码运行需要安装一些第三方的扩展库，所以为了方便，我们采用的方式是总结将 python 安装文件及扩展包和他们的代码一并打包到我们的项目目录中，然后创建一个 Python 进程，在该进程中通过设置环境变量的方式来为 Python 进程进行一些环境配置。示例代码如下所示：</p>
+<pre><code><code>public partial class PythonService
+{
+    private string _workPath =&gt; Path.Combine(AppDomain.CurrentDomain.BaseDirectory, &quot;scripts&quot;);
+    private string _pythonPath =&gt; Path.Combine(_workPath, &quot;python27&quot;);
+
+    private bool isRunning = false;
+    private int taskPID = -1;
+
+    public void Start()
+    {
+        taskPID = CreateProcess();
+        isRunning = taskPID != -1;
+
+        var msg = isRunning ? &quot;服务启动成功...&quot; : &quot;服务启动失败...&quot;;
+        Trace.WriteLine(msg);
+    }
+
+    public void Stop()
+    {
+        KillProcessAndChildren(taskPID);
+
+        isRunning = false;
+        taskPID = -1;
+    }
+
+    private int CreateProcess()
+    {
+        KillProcessAndChildren(taskPID);
+
+        int pid = -1;
+        var psi = new ProcessStartInfo(Path.Combine(_pythonPath, &quot;python.exe&quot;))
+        {
+            UseShellExecute = false,
+            WorkingDirectory = _workPath,
+            ErrorDialog = false
+        };
+
+        psi.CreateNoWindow = true;
+
+        var path = psi.EnvironmentVariables[&quot;PATH&quot;];
+        if (path != null)
+        {
+            var array = path.Split(new[] { &#39;;&#39; }).Where(p =&gt; !p.ToLower().Contains(&quot;python&quot;)).ToList();
+            array.AddRange(new[] { _pythonPath, Path.Combine(_pythonPath, &quot;Scripts&quot;), _workPath });
+            psi.EnvironmentVariables[&quot;PATH&quot;] = string.Join(&quot;;&quot;, array);
+        }
+        var ps = new Process { StartInfo = psi };
+        if (ps.Start())
+        {
+            pid = ps.Id;
+        }
+        return pid;
+    }
+
+    private static void KillProcessAndChildren(int pid)
+    {
+        // Cannot close &#39;system idle process&#39;.
+        if (pid &lt;= 0)
+        {
+            return;
+        }
+
+        ManagementObjectSearcher searcher = new ManagementObjectSearcher(&quot;Select * From Win32_Process Where ParentProcessID=&quot; + pid);
+        ManagementObjectCollection moc = searcher.Get();
+        foreach (ManagementObject mo in moc)
+        {
+            KillProcessAndChildren(Convert.ToInt32(mo[&quot;ProcessID&quot;]));
+        }
+        try
+        {
+            Process proc = Process.GetProcessById(pid);
+            proc.Kill();
+        }
+        catch (ArgumentException)
+        {
+            // Process already exited.
+        }
+        catch (Win32Exception)
+        {
+            // Access denied
+        }
+    }
+}</code></pre>
+<blockquote>
+<p>这里有一点需要注意一下，建议使用 <strong>PID</strong> 来标识我们的 Python 进程，因为如果你使用进程实例或其它方式来对当前运行的进程设置一个引用，当该进程出现一些未知退出，这个时候你通过哪个引用来进行相关操作是会出问题的。</p>
+</blockquote>
+<h3 id="创建守护进程">创建守护进程</h3>
+<p>上面我们的通过记录当前正在运行的进程的 <strong>PID</strong> 来标识我们的进程，那对应守护进程，我们就可以通过进程列表查询的方式来进行创建，在轮询的过程中，如果未找到对应 PID 的进程则表明该进程已经退出，需要重新创建该进程，否则就不执行任何操作，示例代码如下所示：</p>
+<pre><code><code>public partial class PythonService
+{
+    private CancellationTokenSource cts;
+
+    private void StartWatch(CancellationToken token)
+    {
+        Task.Factory.StartNew(() =&gt;
+        {
+            while (!token.IsCancellationRequested)
+            {
+                var has = Process.GetProcesses().Any(p =&gt; p.Id == taskPID);
+                Trace.WriteLine($&quot;MQ状态：{DateTime.Now}-{has}&quot;);
+                if (!has)
+                {
+                    taskPID = CreateProcess(_reqhost, _subhost, _debug);
+                    isRunning = taskPID &gt; 0;
+
+                    var msg = isRunning ? &quot;MQ重启成功&quot; : &quot;MQ重启失败，等待下次重启&quot;;
+                    Trace.WriteLine($&quot;MQ状态：{DateTime.Now}-{msg}&quot;);
+                }
+
+                Thread.Sleep(2000);
+            }
+        }, token);
+    }
+}</code></pre>
+<blockquote>
+<p>这里我使用的是 <code>Thread.Sleep(2000)</code> 方式来继续线程等待，你也可以使用 <code>await Task.Delay(2000,token)</code>，但是使用这种方式在发送取消请求时会产生一个 <code>TaskCanceledException</code> 的异常。所以为了不产生不必要的异常信息，我采用第一种解决方案。</p>
+</blockquote>
+<p>接着，完善我们的 <code>Start</code> 和 <code>Stop</code> 方法，示例代码如下所示：</p>
+<pre><code><code>public void Start()
+{
+    taskPID = CreateProcess();
+    isRunning = taskPID != -1;
+
+    if (isRunning)
+    {
+        cts = new CancellationTokenSource();
+        StartWatch(cts.Token);
+    }
+
+    var msg = isRunning ? &quot;服务启动成功...&quot; : &quot;服务启动失败...&quot;;
+    Trace.WriteLine(msg);
+}
+
+public void Stop()
+{
+    cts?.Cancel(false);
+    cts?.Dispose();
+
+    KillProcessAndChildren(taskPID);
+    taskPID = -1;
+
+    isRunning = false;
+}</code></pre>
+<p>最后，上层调用就相对简单一下，直接调用 <code>Start</code> 方法和 <code>Stop</code> 方法即可。</p>
+<h2 id="总结">总结</h2>
+<p>在我们的实际项目代码中，<code>PythonService</code> 的代码要比上面的代码稍微复杂一些，我们内部还添加了一个 MQ 的 消息队列。所以为了演示方便，我这里只列出了和本文相关的核心代码，在具体的使用过程中，可以依据本文提供的一种实现方法来进行加工处理。</p>
+<h2 id="相关参考">相关参考</h2>
+<ul>
+<li><a href="https://mariomucalo.com/kill-a-one-file-python-process-in-c/">Kill a one-file Python process in C#</a></li>
+<li><a href="https://www.cnblogs.com/tianzhiliang/archive/2011/02/12/1952221.html">用c#实现通用守护进程</a></li>
+</ul>
+<h2 id="补充">补充</h2>
+<p>这篇文章很荣幸能被 <strong>张队</strong> 转载到他的公众号上面让更多的技术爱好者看到了。我看到文章的评论区里有朋友说了为什么不用 <code>pythonnet</code> 这种第三方集成框架以及为什么需要守护进程，这里我对这两个问题解答一下</p>
+<ul>
+<li>为什么不使用 <code>pythonnet</code> 这种第三方的成熟框架？</li>
+</ul>
+<blockquote>
+<p>这里我需要说明一下，我们的客户端对应的后端服务是 <code>python</code> 写的，并且脚本数量巨多无比，每个脚本之间又是相互独立的模块，相关的依赖库都不一样，所以这就导致一个问题，如果使 <code>pythonnet</code> 或 <code>ironpython</code> 这种集成框架，那么每个模块需要使用到的依赖包就需要放到我们客户端来维护管理安装。从工程设计的角度来讲，这个工作由我们客户端组来做是不太合适的，虽然技术上是可行的，但是这无疑是一个坑。</p>
+</blockquote>
+<ul>
+<li>为什么需要一个守护进程？</li>
+</ul>
+<blockquote>
+<p>因为我们的 <code>python</code> 后端服务调用的很多第三方组件（部分是非自研）是多种类型的，后端服务无法保证能稳定调用每一个第三方组件不崩溃，这就要求我们客户端必须要做一个守护进程来监测后端服务进程的状态，当其崩溃后要能重新启动。</p>
+</blockquote>
+<p>我很能理解为什么有很多朋友会有上面两个疑惑，其实做技术的很多都会陷入一个误区：<strong>单纯的考虑技术实现，而不关注业务解耦</strong>。这个怎么说呢，有好处也有不好的地方，但是我个人觉得，如果只是关注技术，而不切入业务，最后即使每个技术细节实现的很完美，但是业务紧耦合，这个项目依旧难以 <strong>可持续发展</strong>。</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,475 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C#编写了一个基于Lucene.Net的搜索引擎查询通用工具类：SearchEngineUtil' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C#编写了一个基于Lucene.Net的搜索引擎查询通用工具类：SearchEngineUtil</center></div><div class='banquan'>原文出处:本文由博客园博主梦在旅途提供。<br/>
+原文连接:https://www.cnblogs.com/zuowj/p/11689563.html</div><br>
+    <p>　　最近由于工作原因，一直忙于公司的各种项目（大部份都是基于spring cloud的微服务项目），故有一段时间没有与大家分享总结最近的技术研究成果的，其实最近我一直在不断的深入研究学习Spring、Spring Boot、Spring Cloud的各种框架原理，同时也随时关注着.NET CORE的发展情况及最新技术点，也在极客时间上订阅相关的专栏，只要下班有空我都会去认真阅读观看，纸质书箱也买了一些，总之近一年都是在通过：微信技术公众号（.NET、JAVA、算法、前端等技术方向）、极客时间、技术书箱 不断的吸取、借鉴他人之精华，从而不断的充实提高自己的技术水平，所谓：学如逆水行舟，不进则退，工作中学习，学习后工作中运用，当然写文章分享是一种总结，同时也是&ldquo;温故而知新&rdquo;的最佳应用。</p>
+<p>　　前面废话说得有点多了，就直奔本文的主题内容，编写一个基于Lucene.Net的搜索引擎查询通用工具类：SearchEngineUtil，Lucene是什么，见<a href="https://baike.baidu.com/item/Lucene" target="_blank">百度百科</a>&nbsp;,重点是:Lucene是一个全文检索引擎的架构，提供了完整的查询引擎和索引引擎，Lucene.NET是C#及.NET运行时下的另一种语言的实现，官网地址：<a href="http://lucenenet.apache.org/" target="_blank">http://lucenenet.apache.org/</a>&nbsp; ，具体用法就不多说了，官网以及网上都有很多，但由于Lucene.Net的原生SDK中的API比较复杂，用起来不太方便，故我进行了适当的封装，把常用的增、删、改、查（分页查）在保证灵活度的情况下进行了封装，使得操作Lucene.Net变得相对简单一些，代码本身也不复杂，贴出完整的SearchEngineUtil代码如下：</p>
+<div class="cnblogs_Highlighter">
+<pre><code>using Lucene.Net.Analysis.PanGu;
+using Lucene.Net.Documents;
+using Lucene.Net.Index;
+using Lucene.Net.QueryParsers;
+using Lucene.Net.Search;
+using Lucene.Net.Store;
+using NLog;
+using PanGu;
+using PanGu.HighLight;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Text;
+
+namespace CN.Zuowenjun.Blog.Common
+{
+    /// &lt;summary&gt;
+    /// Lucene 搜索引擎实用工具类
+    /// Author:zuowenjun
+    /// &lt;/summary&gt;
+    public class SearchEngineUtil
+    {
+
+        /// &lt;summary&gt;
+        /// 创建并添加索引记录
+        /// &lt;/summary&gt;
+        /// &lt;typeparam name="TIndex"&gt;&lt;/typeparam&gt;
+        /// &lt;param name="indexDir"&gt;&lt;/param&gt;
+        /// &lt;param name="indexData"&gt;&lt;/param&gt;
+        /// &lt;param name="setDocFiledsAction"&gt;&lt;/param&gt;
+        public static void AddIndex&lt;TIndex&gt;(string indexDir, TIndex indexData, Action&lt;Document, TIndex&gt; setDocFiledsAction)
+        {
+            //创建索引目录
+            if (!System.IO.Directory.Exists(indexDir))
+            {
+                System.IO.Directory.CreateDirectory(indexDir);
+            }
+            FSDirectory directory = FSDirectory.Open(new DirectoryInfo(indexDir), new NativeFSLockFactory());
+            bool isUpdate = IndexReader.IndexExists(directory);
+            if (isUpdate)
+            {
+                //如果索引目录被锁定（比如索引过程中程序异常退出），则首先解锁
+                if (IndexWriter.IsLocked(directory))
+                {
+                    IndexWriter.Unlock(directory);
+                }
+            }
+            using (IndexWriter writer = new IndexWriter(directory, new PanGuAnalyzer(), !isUpdate, IndexWriter.MaxFieldLength.UNLIMITED))
+            {
+                Document document = new Document();
+
+                setDocFiledsAction(document, indexData);
+
+                writer.AddDocument(document);
+
+                writer.Optimize();//优化索引
+            }
+        }
+
+        /// &lt;summary&gt;
+        /// 删除索引记录
+        /// &lt;/summary&gt;
+        /// &lt;param name="indexDir"&gt;&lt;/param&gt;
+        /// &lt;param name="keyFiledName"&gt;&lt;/param&gt;
+        /// &lt;param name="keyFileValue"&gt;&lt;/param&gt;
+        public static void DeleteIndex(string indexDir, string keyFiledName, object keyFileValue)
+        {
+            FSDirectory directory = FSDirectory.Open(new DirectoryInfo(indexDir), new NativeFSLockFactory());
+            if (!IndexReader.IndexExists(directory))
+            {
+                return;
+            }
+
+            using (IndexWriter iw = new IndexWriter(directory, new PanGuAnalyzer(), IndexWriter.MaxFieldLength.UNLIMITED))
+            {
+                iw.DeleteDocuments(new Term(keyFiledName, keyFileValue.ToString()));
+                iw.Optimize();//删除文件后并非从磁盘中移除，而是生成一个.del的文件，需要调用Optimize方法来清除。在清除文件前可以使用UndeleteAll方法恢复
+            }
+        }
+
+        /// &lt;summary&gt;
+        /// 更新索引记录
+        /// &lt;/summary&gt;
+        /// &lt;param name="indexDir"&gt;&lt;/param&gt;
+        /// &lt;param name="keyFiledName"&gt;&lt;/param&gt;
+        /// &lt;param name="keyFileValue"&gt;&lt;/param&gt;
+        /// &lt;param name="doc"&gt;&lt;/param&gt;
+        public static void UpdateIndex(string indexDir, string keyFiledName, object keyFileValue, Document doc)
+        {
+            FSDirectory directory = FSDirectory.Open(new DirectoryInfo(indexDir), new NativeFSLockFactory());
+            if (!IndexReader.IndexExists(directory))
+            {
+                return;
+            }
+
+            using (IndexWriter iw = new IndexWriter(directory, new PanGuAnalyzer(), IndexWriter.MaxFieldLength.UNLIMITED))
+            {
+                iw.UpdateDocument(new Term(keyFiledName, keyFileValue.ToString()), doc);
+                iw.Optimize();
+            }
+        }
+
+        /// &lt;summary&gt;
+        /// 是否存在指定的索引文档
+        /// &lt;/summary&gt;
+        /// &lt;param name="indexDir"&gt;&lt;/param&gt;
+        /// &lt;param name="keyFiledName"&gt;&lt;/param&gt;
+        /// &lt;param name="keyFileValue"&gt;&lt;/param&gt;
+        /// &lt;returns&gt;&lt;/returns&gt;
+        public static bool ExistsDocument(string indexDir, string keyFiledName, object keyFileValue)
+        {
+            FSDirectory directory = FSDirectory.Open(new DirectoryInfo(indexDir), new NativeFSLockFactory());
+            if (!IndexReader.IndexExists(directory))
+            {
+                return false;
+            }
+
+            var reader = IndexReader.Open(directory, true);
+
+            return reader.DocFreq(new Term(keyFiledName, keyFileValue.ToString())) &gt; 0;
+        }
+
+        /// &lt;summary&gt;
+        /// 查询索引匹配到的记录
+        /// &lt;/summary&gt;
+        /// &lt;typeparam name="TResult"&gt;&lt;/typeparam&gt;
+        /// &lt;param name="indexDir"&gt;&lt;/param&gt;
+        /// &lt;param name="buildQueryAction"&gt;&lt;/param&gt;
+        /// &lt;param name="getSortFieldsFunc"&gt;&lt;/param&gt;
+        /// &lt;param name="buildResultFunc"&gt;&lt;/param&gt;
+        /// &lt;param name="topCount"&gt;&lt;/param&gt;
+        /// &lt;param name="needHighlight"&gt;&lt;/param&gt;
+        /// &lt;returns&gt;&lt;/returns&gt;
+        public static List&lt;TResult&gt; SearchIndex&lt;TResult&gt;(string indexDir, Func&lt;BooleanQuery, IDictionary&lt;string, string&gt;&gt; buildQueryAction,
+            Func&lt;IEnumerable&lt;SortField&gt;&gt; getSortFieldsFunc, Func&lt;Document, TResult&gt; buildResultFunc, bool needHighlight = true, int topCount = 0)
+        {
+            FSDirectory directory = FSDirectory.Open(new DirectoryInfo(indexDir), new NoLockFactory());
+
+            if (!IndexReader.IndexExists(directory))
+            {
+                return new List&lt;TResult&gt;();
+            }
+
+            IndexReader reader = IndexReader.Open(directory, true);
+            IndexSearcher searcher = new IndexSearcher(reader);
+
+            BooleanQuery bQuery = new BooleanQuery();
+            var keyWords = buildQueryAction(bQuery);
+
+            Sort sort = null;
+            var sortFields = getSortFieldsFunc();
+            if (sortFields != null)
+            {
+                sort = new Sort();
+                sort.SetSort(sortFields.ToArray());
+            }
+
+            topCount = topCount &gt; 0 ? topCount : int.MaxValue;//当未指定TOP值，则设置最大值以表示获取全部
+            TopDocs resultDocs = null;
+            if (sort != null)
+            {
+                resultDocs = searcher.Search(bQuery, null, topCount, sort);
+            }
+            else
+            {
+                resultDocs = searcher.Search(bQuery, null, topCount);
+            }
+
+            if (topCount &gt; resultDocs.TotalHits)
+            {
+                topCount = resultDocs.TotalHits;
+            }
+
+            Dictionary&lt;string, PropertyInfo&gt; highlightProps = null;
+            List&lt;TResult&gt; results = new List&lt;TResult&gt;();
+            if (resultDocs != null)
+            {
+                for (int i = 0; i &lt; topCount; i++)
+                {
+                    Document doc = searcher.Doc(resultDocs.ScoreDocs[i].Doc);
+                    var model = buildResultFunc(doc);
+                    if (needHighlight)
+                    {
+                        model = SetHighlighter(keyWords, model, ref highlightProps);
+                    }
+
+                    results.Add(model);
+                }
+            }
+
+            return results;
+
+        }
+
+        /// &lt;summary&gt;
+        /// 分页查询索引匹配到的记录
+        /// &lt;/summary&gt;
+        /// &lt;typeparam name="TResult"&gt;&lt;/typeparam&gt;
+        /// &lt;param name="indexDir"&gt;&lt;/param&gt;
+        /// &lt;param name="buildQueryAction"&gt;&lt;/param&gt;
+        /// &lt;param name="getSortFieldsFunc"&gt;&lt;/param&gt;
+        /// &lt;param name="buildResultFunc"&gt;&lt;/param&gt;
+        /// &lt;param name="pageSize"&gt;&lt;/param&gt;
+        /// &lt;param name="page"&gt;&lt;/param&gt;
+        /// &lt;param name="totalCount"&gt;&lt;/param&gt;
+        /// &lt;param name="needHighlight"&gt;&lt;/param&gt;
+        /// &lt;returns&gt;&lt;/returns&gt;
+        public static List&lt;TResult&gt; SearchIndexByPage&lt;TResult&gt;(string indexDir, Func&lt;BooleanQuery, IDictionary&lt;string, string&gt;&gt; buildQueryAction,
+            Func&lt;IEnumerable&lt;SortField&gt;&gt; getSortFieldsFunc, Func&lt;Document, TResult&gt; buildResultFunc, int pageSize, int page, out int totalCount, bool needHighlight = true)
+        {
+            FSDirectory directory = FSDirectory.Open(new DirectoryInfo(indexDir), new NoLockFactory());
+
+            if (!IndexReader.IndexExists(directory))
+            {
+                totalCount = 0;
+                return new List&lt;TResult&gt;();
+            }
+
+            IndexReader reader = IndexReader.Open(directory, true);
+            IndexSearcher searcher = new IndexSearcher(reader);
+
+            BooleanQuery bQuery = new BooleanQuery();
+            var keyWords = buildQueryAction(bQuery);
+
+            Sort sort = null;
+            var sortFields = getSortFieldsFunc();
+            if (sortFields != null)
+            {
+                sort = new Sort();
+                sort.SetSort(sortFields.ToArray());
+            }
+
+            TopScoreDocCollector docCollector = TopScoreDocCollector.Create(1, true);
+            searcher.Search(bQuery, docCollector);
+            totalCount = docCollector.TotalHits;
+
+            if (totalCount &lt;= 0) return null;
+
+            TopDocs resultDocs = searcher.Search(bQuery, null, pageSize * page, sort);
+
+            Dictionary&lt;string, PropertyInfo&gt; highlightProps = null;
+            List&lt;TResult&gt; results = new List&lt;TResult&gt;();
+            int indexStart = (page - 1) * pageSize;
+            int indexEnd = indexStart + pageSize;
+            if (totalCount &lt; indexEnd) indexEnd = totalCount;
+
+            if (resultDocs != null)
+            {
+                for (int i = indexStart; i &lt; indexEnd; i++)
+                {
+                    Document doc = searcher.Doc(resultDocs.ScoreDocs[i].Doc);
+                    var model = buildResultFunc(doc);
+                    if (needHighlight)
+                    {
+                        model = SetHighlighter(keyWords, model, ref highlightProps);
+                    }
+
+                    results.Add(model);
+                }
+            }
+
+            return results;
+        }
+
+
+
+        /// &lt;summary&gt;
+        /// 设置结果高亮
+        /// &lt;/summary&gt;
+        /// &lt;typeparam name="T"&gt;&lt;/typeparam&gt;
+        /// &lt;param name="dicKeywords"&gt;&lt;/param&gt;
+        /// &lt;param name="model"&gt;&lt;/param&gt;
+        /// &lt;param name="props"&gt;&lt;/param&gt;
+        /// &lt;returns&gt;&lt;/returns&gt;
+        private static T SetHighlighter&lt;T&gt;(IDictionary&lt;string, string&gt; dicKeywords, T model, ref Dictionary&lt;string, PropertyInfo&gt; props)
+        {
+            SimpleHTMLFormatter simpleHTMLFormatter = new SimpleHTMLFormatter("&lt;font color=\"red\"&gt;", "&lt;/font&gt;");
+            Highlighter highlighter = new Highlighter(simpleHTMLFormatter, new Segment());
+            highlighter.FragmentSize = 250;
+
+            Type modelType = typeof(T);
+            foreach (var item in dicKeywords)
+            {
+                if (!string.IsNullOrWhiteSpace(item.Value))
+                {
+                    if (props == null)
+                    {
+                        props = new Dictionary&lt;string, PropertyInfo&gt;();
+                    }
+
+                    if (!props.ContainsKey(item.Key))
+                    {
+                        props[item.Key] = modelType.GetProperty(item.Key, BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance);
+                    }
+
+                    var modelProp = props[item.Key];
+                    if (modelProp.PropertyType == typeof(string))
+                    {
+                        string newValue = highlighter.GetBestFragment(item.Value, modelProp.GetValue(model).ToString());
+                        if (!string.IsNullOrEmpty(newValue))
+                        {
+                            modelProp.SetValue(model, newValue);
+                        }
+                    }
+                }
+            }
+
+            return model;
+        }
+
+
+        /// &lt;summary&gt;
+        /// 拆分关键词
+        /// &lt;/summary&gt;
+        /// &lt;param name="keywords"&gt;&lt;/param&gt;
+        /// &lt;returns&gt;&lt;/returns&gt;
+        public static string GetKeyWordsSplitBySpace(string keyword)
+        {
+            PanGuTokenizer ktTokenizer = new PanGuTokenizer();
+            StringBuilder result = new StringBuilder();
+            ICollection&lt;WordInfo&gt; words = ktTokenizer.SegmentToWordInfos(keyword);
+            foreach (WordInfo word in words)
+            {
+                if (word == null)
+                {
+                    continue;
+                }
+                result.AppendFormat("{0}^{1}.0 ", word.Word, (int)Math.Pow(3, word.Rank));
+            }
+            return result.ToString().Trim();
+        }
+
+        /// &lt;summary&gt;
+        /// 【辅助方法】创建盘古查询对象
+        /// &lt;/summary&gt;
+        /// &lt;param name="field"&gt;&lt;/param&gt;
+        /// &lt;param name="keyword"&gt;&lt;/param&gt;
+        /// &lt;returns&gt;&lt;/returns&gt;
+        public static Query CreatePanGuQuery(string field, string keyword, bool needSplit = true)
+        {
+            if (needSplit)
+            {
+                keyword = GetKeyWordsSplitBySpace(keyword);
+            }
+
+            QueryParser parse = new QueryParser(Lucene.Net.Util.Version.LUCENE_30, field, new PanGuAnalyzer());
+            parse.DefaultOperator = QueryParser.Operator.OR;
+            Query query = parse.Parse(keyword);
+            return query;
+        }
+
+        /// &lt;summary&gt;
+        /// 【辅助方法】创建盘古多字段查询对象
+        /// &lt;/summary&gt;
+        /// &lt;param name="keyword"&gt;&lt;/param&gt;
+        /// &lt;param name="fields"&gt;&lt;/param&gt;
+        /// &lt;returns&gt;&lt;/returns&gt;
+        public static Query CreatePanGuMultiFieldQuery(string keyword, bool needSplit, params string[] fields)
+        {
+            if (needSplit)
+            {
+                keyword = GetKeyWordsSplitBySpace(keyword);
+            }
+
+            QueryParser parse = new MultiFieldQueryParser(Lucene.Net.Util.Version.LUCENE_30, fields, new PanGuAnalyzer());
+            parse.DefaultOperator = QueryParser.Operator.OR;
+            Query query = parse.Parse(keyword);
+            return query;
+        }
+
+    }
+}
+</pre>
+</div>
+<p>　里面除了使用了Lucene.Net nuget包，还单独引用了PanGu分词器及其相关组件，因为大多数情况下我们的内容会包含中文。如上代码就不再细讲了，注释得比较清楚了。下面贴出一些实际的用法：</p>
+<p>创建索引：</p>
+<div class="cnblogs_Highlighter">
+<pre><code> SearchEngineUtil.AddIndex(GetSearchIndexDir(), post, (doc, data) =&gt; BuildPostSearchDocument(data, doc));
+
+
+        private Document BuildPostSearchDocument(Post post, Document doc = null)
+        {
+
+            if (doc == null)
+            {
+                doc = new Document();//创建Document
+            }
+
+            doc.Add(new Field("Id", post.Id.ToString(), Field.Store.YES, Field.Index.NOT_ANALYZED));
+            doc.Add(new Field("Title", post.Title, Field.Store.YES, Field.Index.ANALYZED));
+            doc.Add(new Field("Summary", post.Summary, Field.Store.YES, Field.Index.ANALYZED));
+            doc.Add(new Field("CreateTime", post.CreateTime.ToString("yyyy/MM/dd HH:mm"), Field.Store.YES, Field.Index.NO));
+            doc.Add(new Field("Author", post.IsOriginal ? (post.Creator ?? userQueryService.FindByName(post.CreateBy)).NickName : post.SourceBy, Field.Store.YES, Field.Index.NO));
+
+            return doc;
+        }
+</pre>
+</div>
+<p>　删除索引：</p>
+<div class="cnblogs_Highlighter">
+<pre><code> SearchEngineUtil.DeleteIndex(GetSearchIndexDir(), "Id", post.Id);
+</pre>
+</div>
+<p>　更新索引：</p>
+<div class="cnblogs_Highlighter">
+<pre><code>SearchEngineUtil.UpdateIndex(GetSearchIndexDir(), "Id", post.Id, BuildPostSearchDocument(post));
+</pre>
+</div>
+<p>　分页查询：</p>
+<div class="cnblogs_Highlighter">
+<pre><code>               var keyword = SearchEngineUtil.GetKeyWordsSplitBySpace("梦在旅途 中国梦");
+                var searchResult = SearchEngineUtil.SearchIndexByPage(indexDir, (bQuery) =&gt;
+                {
+                    var query = SearchEngineUtil.CreatePanGuMultiFieldQuery(keyword, false, "Title", "Summary");
+                    bQuery.Add(query, Occur.SHOULD);
+                    return new Dictionary&lt;string, string&gt; {
+                    { "Title",keyword},{"Summary",keyword}
+                    };
+                }, () =&gt;
+                {
+                    return new[] { new SortField("Id", SortField.INT, true) };
+                }, doc =&gt;
+                {
+                    return new PostSearchInfoDto
+                    {
+                        Id = doc.Get("Id"),
+                        Title = doc.Get("Title"),
+                        Summary = doc.Get("Summary"),
+                        Author = doc.Get("Author"),
+                        CreateTime = doc.Get("CreateTime")
+                    };
+
+                }, pageSize, pageNo, out totalCount);
+</pre>
+</div>
+<p>其它的还有：判断索引中的指定文档记录存不存在、查询符合条件的索引文档等在此没有列出，大家有兴趣的可以COPY到自己的项目中测试一下。</p>
+<p>这里可以看一下我在自己的项目中(个人全新改版的自己博客，还在开发中)应用搜索场景的效果：</p>
+<p>&nbsp;<img src="./images/C#编写了一个基于Lucene.Net的搜索引擎查询通用工具类：SearchEngineUtil0.png" alt="" /></p>
+<p>最后说明的是：Lucene并不是一个完整的全文检索引擎，但了解它对于学习elasticsearch、solr还是有一定的帮助，目前一般应用于实际的生产项目中，多半是使用更高层的elasticsearch、solr。</p>
+<p>&nbsp;(本文中的代码我是今年很早前就写好了，只是今天才分享出来)</p>
+<p>&nbsp;</p>
+<p>我喜欢对一些常用的组件进行封装，比如过往封装有：</p>
+<p><a href="https://www.cnblogs.com/zuowj/p/8242532.html" target="_blank">基于MongoDb官方C#驱动封装MongoDbCsharpHelper类（CRUD类）</a></p>
+<p><a href="https://www.cnblogs.com/zuowj/p/8901191.html" target="_blank">基于RabbitMQ.Client组件实现RabbitMQ可复用的 ConnectionPool（连接池）</a></p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

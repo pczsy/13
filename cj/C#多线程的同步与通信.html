@@ -1,0 +1,179 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C#多线程的同步与通信' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C#多线程的同步与通信</center></div><div class='banquan'>原文出处:本文由博客园博主IT混子提供。<br/>
+原文连接:https://www.cnblogs.com/dazix/p/11087841.html</div><br>
+    <p>C#中使用lock和Monitor控制多线程对资源的使用，最常见的生产者和消费者问题就是多线程同步和通信的经典例子。了解C#多线程的同步与通信。</p>
+<p><strong>一、关于lock和Monitor</strong></p>
+<p>lock可以把一段代码定义为互斥段（critical section），互斥段在一个时刻内只允许一个线程进入执行，而其它线程必须等待。格式定义如下：</p>
+<div class="cnblogs_code">
+<pre><code>lock(expression) statement_block</pre>
+</div>
+<p>&nbsp;expression代表要跟踪的对象，通常是引用。一般地，如果想保护一个类的实例，使用this；如果保护一个静态变量（如互斥代码段在一个静态方法内部），使用类名就可以了。而statement_block就是互斥段的代码。</p>
+<p>Monitor用于多线程公用一个对象时使线程共享资源的方案。Monitor必须和一个具体的对象相关联。</p>
+<p><strong>二、生产者和消费者问题</strong></p>
+<p>假设两个线程同时维护一个队列，如果一个线程对队列中更新元素，而另外一个线程从队列中获取元素，那么我们称更新元素的线程为生产者，称获取元素的线程为消费者。</p>
+<p><strong>1、被操作对象</strong></p>
+<div class="cnblogs_code">
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#多线程的同步与通信0.png" alt="复制代码" /></a></span></div>
+<pre><code>　　 /// &lt;summary&gt;;
+    /// 被操作对象
+    /// &lt;/summary&gt;;
+    public class Counter
+    {
+        //更新和读取的数字
+        private int numberOfCounter;
+        //读操作可执行标记，可以防止死锁的发生
+        private bool readFlag = false;
+ 
+        public void Read()
+        {
+            //锁定后，其它读操作等待这一次读操作完成
+            lock (this)
+            {
+                //第一次之行为flase，进入等待
+                if (!readFlag)
+                {
+                    try
+                    {
+                        //进入等待读，另一个线程写
+                        Monitor.Wait(this);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine(ex);
+                    }
+                }
+ 
+                Console.WriteLine("消费（获取）: {0}", numberOfCounter);
+ 
+                //重置，消费已经完成
+                readFlag = false;
+                Monitor.Pulse(this);
+            }
+        }
+ 
+        public void Write(int number)
+        {
+            //锁定后，其它写操作等待这一次写操作完成
+            lock (this)
+            {
+                //第一次readFlag为flase,跳过执行下边的写
+                //如果当前正在读，等待读操作执行Monitor.Pulse
+                if (readFlag)
+                {
+                    try
+                    {
+                        Monitor.Wait(this);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine(ex);
+                    }
+                }
+                numberOfCounter = number;
+                Console.WriteLine("生产（更新）: {0}", numberOfCounter);
+ 
+                //重置，生产已经完成
+                readFlag = true;
+ 
+                //同步通过等待Pulse来完成
+                Monitor.Pulse(this);
+            }
+        }
+    }</pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#多线程的同步与通信0.png" alt="复制代码" /></a></span></div>
+</div>
+<p><strong>2、生产者和消费者</strong></p>
+<div class="cnblogs_code">
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#多线程的同步与通信0.png" alt="复制代码" /></a></span></div>
+<pre><code>　　 /// &lt;summary&gt;;
+    /// 生产者
+    /// &lt;/summary&gt;
+    public class CounterWrite
+    {
+        Counter counter;
+        //生产者生产次数
+        int quantity = 1;
+ 
+        public CounterWrite(Counter box, int request)
+        {
+            //构造函数
+            counter = box;
+            quantity = request;
+        }
+ 
+        //生产者向操作对象更新信息
+        public void Write()
+        {
+            for (int i = 1; i &amp;lt;= quantity; i++)
+                counter.Write(i);
+        }
+    }
+ 
+    /// &lt;summary&gt;
+    /// 消费者
+    /// &lt;/summary&gt;
+    public class CounterRead
+    {
+        Counter counter;
+        //生产者生产次数
+        int quantity = 1;
+ 
+        public CounterRead(Counter box, int request)
+        {
+            //构造函数
+            counter = box;
+            quantity = request;
+        }
+ 
+        //消费者从操作对象中获取信息
+        public void Read()
+        {
+            for (int i = 1; i &amp;lt;= quantity; i++)
+                counter.Read();
+        }
+    }</pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#多线程的同步与通信0.png" alt="复制代码" /></a></span></div>
+</div>
+<p><strong>3、线程操作</strong></p>
+<div class="cnblogs_code">
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#多线程的同步与通信0.png" alt="复制代码" /></a></span></div>
+<pre><code>　　　　　　　Counter counter = new Counter();
+ 
+            CounterRead read = new CounterRead(counter, 10);
+            CounterWrite write = new CounterWrite(counter, 10);
+ 
+            Thread th1 = new Thread(new ThreadStart(read.Read));
+            Thread th2 = new Thread(new ThreadStart(write.Write));
+ 
+            th1.Start();
+            th2.Start();
+ 
+            th1.Join();
+            th2.Join();
+ 
+            Console.ReadLine();</pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#多线程的同步与通信0.png" alt="复制代码" /></a></span></div>
+</div>
+<p>通过lock锁定Counter对象的引用，初始readFlag为false控制线程1等待读取：Monitor.Wait(this)，<br />线程2写入，然后更改readFlag，然后执行：Monitor.Pulse(this)，通知等待队列中的线程请求对象状态已发生改变，<br />线程1锁定this，执行读操作，然后更改readFlag，线程1和线程2交互执行写读的操作。<br />同时因为readFlag的存在和交替更新，避免了死锁情况的发生。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,97 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修.net core使用ocelot---第五篇 服务质量' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>.net core使用ocelot---第五篇 服务质量</center></div><div class='banquan'>原文出处:本文由博客园博主一截生长提供。<br/>
+原文连接:https://www.cnblogs.com/xlxr45/p/11321481.html</div><br>
+    <p><strong>简介</strong></p>
+<p>　　<a href="https://www.cnblogs.com/xlxr45/p/11320988.html%20" target="_blank">.net core使用ocelot---第一篇 简单使用</a>&nbsp;<br />　　<a href="https://www.cnblogs.com/xlxr45/p/11321134.html" target="_blank">.net core使用ocelot---第二篇 身份验证使用&nbsp;</a><br />　　<a href="https://www.cnblogs.com/xlxr45/p/11321201.html" target="_blank">.net core使用ocelot---第三篇 日志记录</a>&nbsp;<br />　　<a href="https://www.cnblogs.com/xlxr45/p/11321385.html" target="_blank">.net core使用ocelot---第四篇 限流熔断</a>&nbsp;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 本文介绍Ocelot的Qos（服务质量）模块。</p>
+<p><strong>什么是QoS</strong></p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 服务质量是指能够为不同的应用程序、用户或数据流提供不同的优先级，或者保证数据流具有一定的性能级别。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Ocelot利用Polly实现服务质量控制。我们用Ocelot 4.0.0创建我们的例子。</p>
+<p><strong>准备</strong></p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 创建两个可以运行的项目。大致和上篇文章一致。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 运行后，我们会在<a href="http://localhost:9000/customers">http://localhost:9000/customers</a>这个路由添加QoS。</p>
+<p><strong>在configuration.json添加QoS</strong></p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 我们只是需要添加QoSOptions节点即可。</p>
+<p><strong>QoSOptions包含3个重要的属性。</strong></p>
+<ol>
+<li>ExceptionAllowedBeforeBreaking</li>
+
+</ol>
+<p>该值必须大于0，该值是指当异常发生达到此值断路器会中断。</p>
+<p>　　 2. DurationOfBreak</p>
+<p>该值指定断路器中断后会保持多久。该值的单位是毫秒。</p>
+<p>　　 3. TimeoutValue</p>
+<p>该值指定当请求超过此值会被自动设置为超时。同样该值的单位是毫秒。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 下面是一个配置样例。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">{  
+    </span><span style="color: #800000;">"</span><span style="color: #800000;">DownstreamPathTemplate</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">/api/values</span><span style="color: #800000;">"</span><span style="color: #000000;">,  
+    </span><span style="color: #800000;">"</span><span style="color: #800000;">DownstreamScheme</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">http</span><span style="color: #800000;">"</span><span style="color: #000000;">,  
+    </span><span style="color: #800000;">"</span><span style="color: #800000;">DownstreamHostAndPorts</span><span style="color: #800000;">"</span><span style="color: #000000;">: [  
+        {  
+        </span><span style="color: #800000;">"</span><span style="color: #800000;">Host</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">localhost</span><span style="color: #800000;">"</span><span style="color: #000000;">,  
+        </span><span style="color: #800000;">"</span><span style="color: #800000;">Port</span><span style="color: #800000;">"</span>: <span style="color: #800080;">9001</span><span style="color: #000000;">  
+        }  
+    ],  
+    </span><span style="color: #800000;">"</span><span style="color: #800000;">UpstreamPathTemplate</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">/customers</span><span style="color: #800000;">"</span><span style="color: #000000;">,  
+    </span><span style="color: #800000;">"</span><span style="color: #800000;">UpstreamHttpMethod</span><span style="color: #800000;">"</span>: [ <span style="color: #800000;">"</span><span style="color: #800000;">Get</span><span style="color: #800000;">"</span><span style="color: #000000;"> ],  
+    </span><span style="color: #800000;">"</span><span style="color: #800000;">QoSOptions</span><span style="color: #800000;">"</span><span style="color: #000000;">: {  
+        </span><span style="color: #800000;">"</span><span style="color: #800000;">ExceptionsAllowedBeforeBreaking</span><span style="color: #800000;">"</span>:<span style="color: #800080;">2</span><span style="color: #000000;">,  
+        </span><span style="color: #800000;">"</span><span style="color: #800000;">DurationOfBreak</span><span style="color: #800000;">"</span>:<span style="color: #800080;">5000</span><span style="color: #000000;">,  
+        </span><span style="color: #800000;">"</span><span style="color: #800000;">TimeoutValue</span><span style="color: #800000;">"</span>:<span style="color: #800080;">2000</span><span style="color: #000000;">  
+    }  
+}  </span></pre>
+</div>
+<p>　　上面的配置意味着，当我们访问<a href="http://localhost:9000/customers">http://localhost:9000/customers</a>，如果超过两秒未回应，会报超时错误。如果服务抛出第二个异常，则服务器将在5秒内无法访问。</p>
+<p><strong>注意</strong></p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; QoSOptions还有一个属性TimeoutStrategy，该属性的默认值是TimeoutStrategy.Pessimistic 然而在此项目，还是不要改变这个值。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 为了查看效果，我改一下APIService</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">int</span> _count = <span style="color: #800080;">0</span><span style="color: #000000;">;  
+  
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> GET api/values  </span>
+<span style="color: #000000;">[HttpGet]  
+</span><span style="color: #0000ff;">public</span> IEnumerable&lt;<span style="color: #0000ff;">string</span>&gt;<span style="color: #000000;"> Get()  
+{  
+    _count</span>++<span style="color: #000000;">;  
+    System.Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">get...{_count}</span><span style="color: #800000;">"</span><span style="color: #000000;">);  
+    </span><span style="color: #0000ff;">if</span>(_count &lt;= <span style="color: #800080;">3</span><span style="color: #000000;">)  
+    {  
+        Thread.Sleep(</span><span style="color: #800080;">5000</span><span style="color: #000000;">);  
+    }              
+    </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">string</span>[] { <span style="color: #800000;">"</span><span style="color: #800000;">value1</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">value2</span><span style="color: #800000;">"</span><span style="color: #000000;"> };  
+}   </span></pre>
+</div>
+<p>&nbsp;</p>
+<p>　　效果如下</p>
+<p><img src="./images/.net core使用ocelot---第五篇 服务质量0.png" alt="" width="903" height="654" /></p>
+<p>　　当我们第一次访问时，断路器中断5秒。</p>
+<p><img src="./images/.net core使用ocelot---第五篇 服务质量1.png" alt="" width="780" height="351" /></p>
+<p>　　</p>
+<p>　　第二次访问它告诉我们断路器打开，我们五秒内不能访问服务。</p>
+<p>　　五秒后，服务可以访问。</p>
+<p>　　好了，就到这。</p>
+<p>　　源码<a href="https://github.com/catcherwong-archive/APIGatewayDemo/tree/master/APIGatewayQoSDemo">在此</a>。</p>
+<p>　　网盘链接：https://pan.baidu.com/s/17sqfGcYx8yEHRL_LwKAUlA <br />　　提取码：p3d0 </p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

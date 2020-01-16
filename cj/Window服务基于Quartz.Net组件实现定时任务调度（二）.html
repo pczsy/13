@@ -1,0 +1,174 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Window服务基于Quartz.Net组件实现定时任务调度（二）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Window服务基于Quartz.Net组件实现定时任务调度（二）</center></div><div class='banquan'>原文出处:本文由博客园博主艾三元提供。<br/>
+原文连接:https://www.cnblogs.com/i3yuan/p/11373527.html</div><br>
+    <p><span style="color: #2d94de; font-size: 18pt;">前言</span>：</p>
+<p>&nbsp; &nbsp;在<a href="https://i3yuan.cnblogs.com/p/11332931.html" target="_blank">上一章</a>中，我们通过利用控制台实现定时任务调度，已经大致了解了如何基于Quartz.Net组件实现任务，至少包括三部分：job(作业），trigger（触发器），scheduler（调度器）。其中job是需要在一个定时任务中具体执行的业务逻辑，trigger通过规定job何时并按照何种指定的规则进行执行，最后job和trigger会被注册到scheduler中，利用scheduler（调度器）来负责协调job和trigger的搭配运行。</p>
+<p>&nbsp; 你是否在工作中会遇到需要软件具有自动执行任务的功能，但是又不希望直接启动软件来手动执行任务？&nbsp;</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;<img src="./images/Window服务基于Quartz.Net组件实现定时任务调度（二）0.png" alt="" /></p>
+<p>&nbsp; 这个时候，我们可以考虑用到window服务，基于Quartz.Net组件定时轮询数据库同步，定时邮件通知，定时处理数据等功能。</p>
+<p><span style="color: #2d94de; font-size: 18pt;">开始</span>：</p>
+<p><strong>首先创建一个windows服务项目</strong></p>
+<p><strong><img src="./images/Window服务基于Quartz.Net组件实现定时任务调度（二）1.png" alt="" /></strong></p>
+<p><strong>在创建好的项目中，Service1.cs文件中点击&ldquo;单击此处切换到代码视图&rdquo;切换到代码</strong></p>
+<p><strong><img src="./images/Window服务基于Quartz.Net组件实现定时任务调度（二）2.png" alt="" width="834" height="328" /></strong></p>
+<p>这个时候我们可以注意到两个方法：<strong>OnStart</strong>&nbsp; <strong>（服务启动）</strong>和&nbsp;<strong>OnStop（服务停止）</strong></p>
+<div class="cnblogs_code">
+<pre><code>        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 服务启动
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="args"&gt;&lt;/param&gt;</span>
+        <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">override</span> <span style="color: #0000ff;">void</span> OnStart(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+        }</span></pre>
+</div>
+<div class="cnblogs_code">
+<pre><code>        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 服务停止
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">override</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> OnStop()
+        {
+        }</span></pre>
+</div>
+<p><span style="font-size: 14pt; font-family: 楷体;">一、创建一个scheduler的引用</span>：</p>
+<div class="cnblogs_code">
+<pre><code>            ISchedulerFactory schedFact = <span style="color: #0000ff;">new</span><span style="color: #000000;"> StdSchedulerFactory();
+            IScheduler sched </span>= <span style="color: #0000ff;">await</span> schedFact.GetScheduler();</pre>
+</div>
+<p><span style="font-size: 14pt; font-family: 楷体;">二、启动 scheduler：</span></p>
+<div class="cnblogs_code">
+<pre><code>            <span style="color: #0000ff;">await</span> sched.Start();</pre>
+</div>
+<p><span style="font-family: 楷体; font-size: 14pt;">三、实现IJob:</span></p>
+<p>SyncJob.cs 实现IJob，在Execute方法里编写要处理的业务逻辑，系统就会按照Quartz的配置，定时处理</p>
+<div class="cnblogs_code">
+<pre><code>    [Invoke(Name = <span style="color: #800000;">"</span><span style="color: #800000;">SyncJob</span><span style="color: #800000;">"</span>, Remark = <span style="color: #800000;">"</span><span style="color: #800000;">Quartz服务</span><span style="color: #800000;">"</span>, Group = <span style="color: #800000;">"</span><span style="color: #800000;">Quartz服务管理</span><span style="color: #800000;">"</span>, Begin = <span style="color: #800000;">"</span><span style="color: #800000;">2018-05-01 12:00:00</span><span style="color: #800000;">"</span>, Interval = <span style="color: #800080;">5</span><span style="color: #000000;">)]
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> SyncJob : IJob
+    {
+        </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> Task Execute(IJobExecutionContext context)
+        {
+            </span><span style="color: #0000ff;">try</span><span style="color: #000000;">
+            {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">每次执行 获取当前时间 输出当前时间
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">可以在这里编写每次定时执行需要的方法</span>
+                LogHelper.SaveLog(<span style="color: #800000;">"</span><span style="color: #800000;">输出日志</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">在当前时间:</span><span style="color: #800000;">"</span> + DateTime.Now + <span style="color: #800000;">"</span><span style="color: #800000;">--上一次执行时间：</span><span style="color: #800000;">"</span> + DateTime.Now.AddSeconds(-<span style="color: #800080;">5</span><span style="color: #000000;">));
+            }
+            </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception ex)
+            {
+                LogHelper.SaveLog(ex);
+            }
+
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+        }
+    }</span></pre>
+</div>
+<p><span style="font-size: 14pt; font-family: 楷体;">四、创建trigger：</span>（建立一个某个时间点的触发器，并且每5秒执行一次）</p>
+<div class="cnblogs_code">
+<pre><code>            ITrigger trigger =<span style="color: #000000;"> TriggerBuilder.Create()
+                .WithIdentity(</span><span style="color: #800000;">"</span><span style="color: #800000;">trigger1</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">group1</span><span style="color: #800000;">"</span>)  <span style="color: #008000;">//</span><span style="color: #008000;">触发器 组</span>
+                .WithSimpleSchedule(x =&gt; x.WithIntervalInSeconds(<span style="color: #800080;">5</span><span style="color: #000000;">).RepeatForever())
+                .Build();</span></pre>
+</div>
+<p><span style="font-family: 楷体; font-size: 14pt;">五、触发器执行任务：</span></p>
+<div class="cnblogs_code">
+<pre><code>            <span style="color: #0000ff;">await</span> sched.ScheduleJob(job, trigger);</pre>
+</div>
+<p><strong>将几个步骤整合后代码如下：</strong></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #808080;">        ///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 服务启动
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="args"&gt;&lt;/param&gt;</span>
+        <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">override</span> <span style="color: #0000ff;">void</span> OnStart(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            Run().GetAwaiter().GetResult();
+            LogHelper.SaveLog(</span><span style="color: #800000;">"</span><span style="color: #800000;">服务</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">开始</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+        }
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 服务停止
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">override</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> OnStop()
+        {
+            </span><span style="color: #0000ff;">try</span><span style="color: #000000;">
+            {
+                </span><span style="color: #0000ff;">if</span> (scheduler != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+                {
+                    scheduler.Shutdown();
+                }
+            }
+            </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception ex)
+            {
+                LogHelper.SaveLog(ex);
+            }
+            LogHelper.SaveLog(</span><span style="color: #800000;">"</span><span style="color: #800000;">服务</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">结束</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+        }
+
+        IScheduler scheduler;
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">async</span><span style="color: #000000;"> Task Run()
+        {
+            </span><span style="color: #0000ff;">try</span><span style="color: #000000;">
+            {
+                NameValueCollection props </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> NameValueCollection
+                {
+                    { </span><span style="color: #800000;">"</span><span style="color: #800000;">quartz.serializer.type</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">binary</span><span style="color: #800000;">"</span><span style="color: #000000;"> }
+                };
+                StdSchedulerFactory factory </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> StdSchedulerFactory(props);
+                scheduler </span>= <span style="color: #0000ff;">await</span><span style="color: #000000;"> factory.GetScheduler();
+
+                </span><span style="color: #0000ff;">await</span><span style="color: #000000;"> scheduler.Start();
+                Jobs.Jobs.Config(scheduler);
+            }
+            </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (SchedulerException ex)
+            {
+                LogHelper.SaveLog(ex);
+            }
+
+        }</span></pre>
+</div>
+<p><span style="color: #2d94de; font-size: 18pt;">安装</span></p>
+<p><strong>以管理员的身份打开cmd</strong></p>
+<p>&nbsp;<img src="./images/Window服务基于Quartz.Net组件实现定时任务调度（二）3.png" alt="" /></p>
+<p><span style="color: #2d94de; font-size: 18pt;"><img src="./images/Window服务基于Quartz.Net组件实现定时任务调度（二）4.png" alt="" /></span></p>
+<p><span style="color: #2d94de; font-size: 18pt;">运行</span>：</p>
+<p>间隔5秒执行一次后的效果：</p>
+<p>通过日志的方式输出数据，查看效果</p>
+<p><img src="./images/Window服务基于Quartz.Net组件实现定时任务调度（二）5.png" alt="" width="771" height="528" /></p>
+<p><span style="font-size: 18pt; color: #2d94de;">附加</span>：</p>
+<p><span style="font-family: 楷体; font-size: 14pt;">&nbsp;一、删除服务</span></p>
+<p><strong>以管理员的身份打开cmd</strong></p>
+<p>&nbsp;<img src="./images/Window服务基于Quartz.Net组件实现定时任务调度（二）6.png" alt="" /></p>
+<p><span style="font-family: 楷体; font-size: 14pt;">二、调试window服务</span></p>
+<p><strong>1</strong><strong>）安装并运行服务</strong></p>
+<p><strong><img src="./images/Window服务基于Quartz.Net组件实现定时任务调度（二）4.png" alt="" /></strong></p>
+<p>&nbsp;</p>
+<p><strong>2</strong><strong>）附加进程</strong></p>
+<p><img src="./images/Window服务基于Quartz.Net组件实现定时任务调度（二）8.png" alt="" /></p>
+<p><img src="./images/Window服务基于Quartz.Net组件实现定时任务调度（二）9.png" alt="" /></p>
+<p><strong>3</strong><strong>）在代码中加入断点进行调试</strong></p>
+<p><img src="./images/Window服务基于Quartz.Net组件实现定时任务调度（二）10.png" alt="" width="846" height="489" /></p>
+<p><span style="color: #2d94de; font-size: 18pt;">总结</span>：</p>
+<p>1.当我们在需要用到定时执行任务的时候，可以考虑使用通过window服务加上quartz组件结合的方式，实现对任务的定时执行，这也是在很多场景中可以实现的方法，比如：定时轮询数据库同步，定时邮件通知，定时处理数据等</p>
+<p>2.通过管理工具显示当前执行的任务和执行情况，也利用调试工具调试Window服务中遇到的问题。</p>
+<p>3.quartz还有更多的用法，可以参考资料：<a href="https://www.quartz-scheduler.net/" target="_blank">Quartz.Net官方文档</a>&nbsp; &nbsp;和&nbsp;&nbsp;<a href="https://github.com/quartznet/quartznet" target="_blank">Quartz.Net开源地址</a></p>
+<p>4.搜索关注公众号【杂学谷】--回复【定时服务】，可获取源码下载地址内容</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

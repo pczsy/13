@@ -1,0 +1,97 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Dapper 一对多查询 one to many' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Dapper 一对多查询 one to many</center></div><div class='banquan'>原文出处:本文由博客园博主StoneLeee提供。<br/>
+原文连接:https://www.cnblogs.com/leestone/p/11566858.html</div><br>
+    <p><a href='https://riptutorial.com/dapper/example/1197/one-to-many-mapping'>参考文档:Dapper one to many</a></p>
+<p><h2>Table</h2></p>
+<pre><code><code>public class Person
+{
+    public int Id { get; set; }
+    public string Name { get; set; }
+    public int Born { get; set; }
+    public Country Residience { get; set; }
+    public ICollection&lt;Book&gt; Books { get; set; }
+}
+
+public class Country
+{
+    public int CountryId { get; set; }
+    public string CountryName { get; set; }
+}
+
+public class Book
+{
+    public int BookId { get; set; }
+    public string BookName { get; set; }
+}</code></pre>
+<h2>C# Code</h2>
+<pre><code><code>pulic List&lt;Person&gt; GetPersons(){
+ var sql = @&quot;SELECT 1 AS Id, &#39;Daniel Dennett&#39; AS Name, 1942 AS Born, 1 AS CountryId, &#39;United States of America&#39; AS CountryName, 1 AS BookId, &#39;Brainstorms&#39; AS BookName
+UNION ALL SELECT 1 AS Id, &#39;Daniel Dennett&#39; AS Name, 1942 AS Born, 1 AS CountryId, &#39;United States of America&#39; AS CountryName, 2 AS BookId, &#39;Elbow Room&#39; AS BookName
+UNION ALL SELECT 2 AS Id, &#39;Sam Harris&#39; AS Name, 1967 AS Born, 1 AS CountryId,  &#39;United States of America&#39; AS CountryName, 3 AS BookId, &#39;The Moral Landscape&#39; AS BookName
+UNION ALL SELECT 2 AS Id, &#39;Sam Harris&#39; AS Name, 1967 AS Born, 1 AS CountryId,  &#39;United States of America&#39; AS CountryName, 4 AS BookId, &#39;Waking Up: A Guide to Spirituality Without Religion&#39; AS BookName
+UNION ALL SELECT 3 AS Id, &#39;Richard Dawkins&#39; AS Name, 1941 AS Born, 2 AS CountryId,  &#39;United Kingdom&#39; AS CountryName, 5 AS BookId, &#39;The Magic of Reality: How We Know What`s Really True&#39; AS BookName
+UNION ALL SELECT 3 AS Id, &#39;Richard Dawkins&#39; AS Name, 1941 AS Born, 2 AS CountryId,  &#39;United Kingdom&#39; AS CountryName, 6 AS BookId, &#39;An Appetite for Wonder: The Making of a Scientist&#39; AS BookName&quot;;
+
+var remainingHorsemen = new Dictionary&lt;int, Person&gt;();
+connection.Query&lt;Person, Country, Book, Person&gt;(sql, (person, country, book) =&gt; {
+    //person
+    Person personEntity;
+    //trip
+    if (!remainingHorsemen.TryGetValue(person.Id, out personEntity))
+    {
+        remainingHorsemen.Add(person.Id, personEntity = person);
+    }
+
+    //country
+    if(personEntity.Residience == null)
+    {
+        if (country == null)
+        {
+            country = new Country { CountryName = &quot;&quot; };
+        }
+        personEntity.Residience = country;
+    }                    
+
+    //books
+    if(personEntity.Books == null)
+    {
+        personEntity.Books = new List&lt;Book&gt;();
+    }
+
+    if (book != null)
+    {
+        if (!personEntity.Books.Any(x =&gt; x.BookId == book.BookId))
+        {
+            personEntity.Books.Add(book);
+        }
+    }
+
+    return personEntity;
+}, 
+splitOn: &quot;CountryId,BookId&quot;);
+
+return remainingHorsemen.Value.ToList(); 
+}</code></pre>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

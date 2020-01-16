@@ -1,0 +1,425 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C#之BackgroundWorker从简单入门到深入精通的用法总结' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C#之BackgroundWorker从简单入门到深入精通的用法总结</center></div><div class='banquan'>原文出处:本文由博客园博主Dsw提供。<br/>
+原文连接:https://www.cnblogs.com/netserver/p/11363080.html</div><br>
+    <div style="font-size: 16px; text-indent: 2em; font-family: 'Microsoft YaHei';">
+<p><span style="color: #0000ff;"><strong><span style="font-size: 20px;">需求分析</span></strong></span></p>
+<p style="text-indent: 2em;">经常用到的耗时操作，例如：</p>
+<p style="margin-left: 30px;">1、文件下载和上载（包括点对点应用程序传输文件，从网络下载文件、图像等）<br />2、数据库事务（从数据库读到大量的数据到WinForm界面中的DataGridview里呈现）<br />3、复杂的本地计算<br />4、本地磁盘文件访问（读写文件，磁盘文件列表）<br />&hellip;&hellip;</p>
+<p style="text-indent: 2em;">这些操作在长时间运行时会导致用户界面 (UI) 处于停止响应状态，用户在这操作期间无法进行其他的操作，造成非常差的用户体验，为了不使UI层处于停止响应状态，则可以使用 BackgroundWorker 类方便地解决这类问题。这个后台的线程处理，可以很好的实现常规操作的同时，还可以及时通知UI当前处理信息的进度等。</p>
+<p><br /><strong><span style="color: #008000;">MSDN的介绍</span></strong></p>
+<p style="text-indent: 2em;">BackgroundWorker是.NET Framework 里用来执行多线程任务的控件，它允许开发人员在一个单独的线程上执行一些操作。耗时的操作（如下载和数据库事务）在长时间运行时可能会导致用户界面 (UI) 似乎处于停止响应状态。 如果您需要能进行响应的用户界面，而且面临与这类操作相关的长时间延迟，则可以使用 BackgroundWorker 类方便地解决问题。</p>
+<p style="text-indent: 2em;">若要在后台执行耗时的操作，请创建一个 BackgroundWorker，侦听那些报告操作进度并在操作完成时发出信号的事件。 可以通过编程方式创建 BackgroundWorker，也可以将它从&ldquo;工具箱&rdquo;的&ldquo;组件&rdquo;选项卡中拖到窗体上。 如果在 Windows 窗体设计器中创建 BackgroundWorker，则它会出现在组件栏中，而且它的属性会显示在&ldquo;属性&rdquo;窗口中。</p>
+<p style="text-indent: 2em;">若要为后台操作做好准备，请添加 DoWork 事件的事件处理程序。 在此事件处理程序中调用耗时的操作。 若要开始此操作，请调用 RunWorkerAsync。 若要收到进度更新的通知，请处理 ProgressChanged 事件。 若要在操作完成时收到通知，请处理 RunWorkerCompleted 事件。</p>
+<p>有2点需要注意的：</p>
+<p style="margin-left: 30px;"><span style="color: #ff0000;">1、由于DoWork事件内部的代码运行在非UI线程之上,确保在 DoWork 事件处理程序中不操作任何用户界面对象。 而应该通过 ProgressChanged 和 RunWorkerCompleted 事件与用户界面进行通信。</span><br /><span style="color: #ff0000;"> 2、BackgroundWorker 事件不跨 AppDomain 边界进行封送处理。 请不要使用 BackgroundWorker 组件在多个 AppDomain 中执行多线程操作。</span></p>
+<p>&nbsp;</p>
+<p><span style="color: #0000ff;"><strong><span style="font-size: 20px;">最简单示例</span></strong></span></p>
+<p>准备材料:一个耗时的操作</p>
+<p>&nbsp;代码如下，这个就不多解释了：</p>
+<div class="cnblogs_Highlighter">
+<pre><code>int iSum = 0; 
+private void button1_Click(object sender, EventArgs e)
+ { 　　
+　　for (int i = 0; i &lt;= 100; i++)
+ 　　{ 
+　　　　　iSum+=i; 
+　　　　　System.Threading.Thread.Sleep(300); 　　
+ 　　}
+}
+</pre>
+</div>
+<p>&nbsp;运行一下，拖动程序界面看看，直接卡死了，假死，一会儿，运算完了，就又可以拖动了。现在用BackgroundWorker来解决这个问题。</p>
+<p>&nbsp;为此，我们新建一个WindowsForm命名为bgwA，拖入一个Label命名为lblPercent，一个ProgressBar命名为pgbPercent，一个Button命名为btnStart。</p>
+<p>&nbsp;<img src="./images/C#之BackgroundWorker从简单入门到深入精通的用法总结0.png" alt="" /></p>
+<p>然后，代码：</p>
+<div class="cnblogs_Highlighter">
+<pre><code>using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+namespace bgwA
+{
+    public partial class Form1 : Form
+    {
+        public Form1()
+        {
+            InitializeComponent();
+        }
+
+        private void BtnStart_Click(object sender, EventArgs e)
+        {
+            BackgroundWorker bgwA = new BackgroundWorker();
+            bgwA.WorkerReportsProgress = true;
+            bgwA.DoWork += bgwA_DoWork;
+            bgwA.ProgressChanged += bgwA_ProgressChanged;
+            bgwA.RunWorkerCompleted += bgwA_Completed;
+            bgwA.RunWorkerAsync();
+        }
+
+        private void bgwA_DoWork(object sender, DoWorkEventArgs e)
+        {
+            var bgworker = sender as BackgroundWorker;
+            for (int i = 0; i &lt;= 100; i++)
+            {
+                bgworker.ReportProgress(i);
+                System.Threading.Thread.Sleep(200);
+            }
+        }
+
+        private void bgwA_ProgressChanged(object sender, ProgressChangedEventArgs e)
+        {
+            this.pgbPercent.Value = e.ProgressPercentage;
+            this.lblPercent.Text = @"已完成：" + e.ProgressPercentage.ToString() + @"%";
+        }
+        private void bgwA_Completed(object sender, RunWorkerCompletedEventArgs e)
+        {
+            this.lblPercent.Text = "后台操作结束(可能是程序100%完成，也可能是用户取消或程序异常导致结束)。";
+        }
+    }
+}
+</pre>
+</div>
+<p>　　现在运行一下，点击btnStart，进度条跑起来了，再拖动一下程序界面，这下不会没有响应了，不卡，不假死了吧。good.</p>
+<p>&nbsp;<img src="./images/C#之BackgroundWorker从简单入门到深入精通的用法总结1.png" alt="" /></p>
+<p><span style="color: #0000ff;"><strong><span style="font-size: 20px;">进阶一：</span></strong></span></p>
+<p>&nbsp;重复上面说到的注意点：由于DoWork事件内部的代码运行在非UI线程之上,确保在 DoWork 事件处理程序中不操作任何用户界面对象。 而应该通过 ProgressChanged 和 RunWorkerCompleted 事件与用户界面进行通信。</p>
+<p>&nbsp;</p>
+<p>如何在程序运行途中取消正在进行的运算？</p>
+<p>要实现在这个功能，我们首先在程序界面上添加一个可以随时中止后台进程的按钮BtnCancel，允许用户在执行过程中取消当前的操作：</p>
+<p>与WorkerReportsProgress属性一样，如果要支持取消操作我们需要设置 WorkerSupportsCancellation属性为 true，还要在DoWork方法中进行支持。</p>
+<p>接下来对上面的程序进行扩展一下，我们再新建一个WindowsForm命名为bgwB，这次，我们不再通过代码来写BackgroundWorker实例，我们通过从VS的工具箱中直接拉一个BackgroundWorker出来，然后从属性窗口中命名为bgWorker，然后再拖入一个Label命名为lblPercent，一个ProgressBar命名为pgbPercent，一个Button命名为btnStart。</p>
+<p>&nbsp;</p>
+<p>&nbsp;<img src="./images/C#之BackgroundWorker从简单入门到深入精通的用法总结2.png" alt="" /></p>
+<p>&nbsp;DoWork，ProgressChanged，RunWorkerCompleted三个事件都是通过在bgWorker1属性窗口中双击出来的，下面看代码：</p>
+<p>&nbsp;</p>
+<div class="cnblogs_Highlighter">
+<pre class="brush:csharp;collapse:true;;gutter:true;">using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+namespace bgwB
+{
+    public partial class Form1 : Form
+    {
+        public Form1()
+        {
+            InitializeComponent();
+        }
+
+        private void Form1_Load(object sender, EventArgs e)
+        {
+            bgWorker1.WorkerReportsProgress = true;
+            bgWorker1.WorkerSupportsCancellation = true;
+        }
+
+        private void BgWorker1_DoWork(object sender, DoWorkEventArgs e)
+        {
+            for (int i = 0; i &lt;= 100; i++)
+            {
+                if (bgWorker1.CancellationPending == true)
+                {
+                    e.Cancel = true;
+                    break;
+                }
+                else
+                {
+                    bgWorker1.ReportProgress(i);
+                    System.Threading.Thread.Sleep(100);
+                }
+            }
+        }
+
+        private void BgWorker1_ProgressChanged(object sender, ProgressChangedEventArgs e)
+        {
+            this.pgbPercent.Value = e.ProgressPercentage;
+            this.lblPercent.Text = @"已完成：" + e.ProgressPercentage.ToString() + @"%";
+        }
+
+        private void BgWorker1_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+        {
+            this.lblPercent.Text = "后台操作结束(可能是程序100%完成，也可能是用户取消或程序异常导致结束)。";
+        }
+
+        private void BtnStart_Click(object sender, EventArgs e)
+        {
+            bgWorker1.RunWorkerAsync();
+        }
+
+        private void BtnCancel_Click(object sender, EventArgs e)
+        {
+            bgWorker1.CancelAsync();
+        }
+    }
+}
+</pre>
+</div>
+<p>　　现在，我们可以按BtnStart启动后台任务，也可以随时按BtnCancel随时中止后台任务。</p>
+<p>&nbsp;<img src="./images/C#之BackgroundWorker从简单入门到深入精通的用法总结3.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>发现一个问题没有？在进度条还没跑完100%时，再次按btnStart会怎么样，前后两个例子是不一样，第一个例子中，再次按btnStart，会感觉有两个重叠的进度条在跑，而第二个例子中，则直接抛出了异常：</p>
+<p><img src="./images/C#之BackgroundWorker从简单入门到深入精通的用法总结4.png" alt="" /></p>
+<p>为什么会这样？第一个例子中，每次按btnStart，都是BackgroundWorker bgwA = new BackgroundWorker();而第二个例子中每次按btnStart，还是那个bgWorker1，只是再次RunWorkerAsync()，解决的方法是先判断一下后台操作是否还在运行中：<span style="color: #ff0000;"><strong>IsBusy</strong></span></p>
+<p>代码：</p>
+<div class="cnblogs_Highlighter">
+<pre><code>        private void BtnStart_Click(object sender, EventArgs e)
+        {
+            if (!bgWorker1.IsBusy)
+            {
+                bgWorker1.RunWorkerAsync();
+            }
+        }
+</pre>
+</div>
+<p>小结一下：</p>
+<p><span style="color: #3366ff;"><strong>BackgroundWorker的属性</strong></span>：</p>
+<p>IsBusy:获取一个值(true/false)，指示 BackgroundWorker 是否正在运行异步操作。</p>
+<p>WorkerReportsProgress:获取或设置一个值(true/false)，该值指示 BackgroundWorker 能否报告进度更新。</p>
+<p>WorkerSupportsCancellation:获取或设置一个值(true/false)，该值指示 BackgroundWorker 是否支持异步取消。</p>
+<p><strong><span style="color: #3366ff;">BackgroundWorker事件</span></strong>：</p>
+<p>DoWork：调用 RunWorkerAsync 时发生。（要在后台进行的耗时操作，不能操作任何用户界面对象。）</p>
+<p>ProgressChanged：调用 ReportProgress 时发生。（后台操作进行时，随时向用户界面报告进度，可以操作用户界面对象，如进度条显示，文本显示等。）</p>
+<p>RunWorkerCompleted：当后台操作已完成、被取消或引发异常时发生。（可以操作用户界面对象，如显示完成的结果报告。）</p>
+<p>&nbsp;</p>
+<p>&nbsp;&nbsp;</p>
+<p><span style="color: #0000ff;"><strong><span style="font-size: 20px;">进阶二：前后台交互，参数传递</span></strong></span></p>
+</div>
+<div style="font-size: 16px; text-indent: 2em; font-family: 'Microsoft YaHei';">&nbsp;</div>
+<div style="font-size: 16px; text-indent: 2em; font-family: 'Microsoft YaHei';">先来看两个问题，再来处理</div>
+<div style="font-size: 16px; text-indent: 2em; font-family: 'Microsoft YaHei';">1、BackgroundWorker的ProgressChanged向用户界面报告的ProgressPercentage，只是一个百分比，这个百分比数只能是 int 0-100 ，我们前面的例子中是从0循环到100，到100是刚好100%完成，如果我们要循环的是从0-50，或0-200，或其它不确定的数呢？把DoWork中for (int i = 0; i &lt;= 100; i++)的100，改成50或200试试？</div>
+<div style="font-size: 16px; text-indent: 2em; font-family: 'Microsoft YaHei';">
+<div class="cnblogs_Highlighter">
+<pre><code>        private void BgWorker1_DoWork(object sender, DoWorkEventArgs e)
+        {
+            for (int i = 0; i &lt;= 50; i++)
+            {
+                if (bgWorker1.CancellationPending == true)
+                {
+                    e.Cancel = true;
+                    break; 
+                }
+                else
+                {
+                    bgWorker1.ReportProgress(i*2);
+                    System.Threading.Thread.Sleep(100);
+                }
+            }
+        }
+</pre>
+</div>
+<p>　　看for (int i = 0; i &lt;= 50; i++)以及bgWorker1.ReportProgress(i*2);&nbsp;原因就自己琢磨一下了。</p>
+</div>
+<div style="font-size: 16px; text-indent: 2em; font-family: 'Microsoft YaHei';">&nbsp;</div>
+<div style="font-size: 16px; text-indent: 2em; font-family: 'Microsoft YaHei';">2、把参数传递给后台异步操作，以及在后台运算过程中实时的把信息在前台用户界面UI上显示出来。</div>
+<div style="font-size: 16px; text-indent: 2em; font-family: 'Microsoft YaHei';">为方便展示，我们在上面的示例中加入一个名为txtStatus的TextBox。</div>
+<div style="font-size: 16px; text-indent: 2em; font-family: 'Microsoft YaHei';">&nbsp;</div>
+<div style="font-size: 16px; text-indent: 2em; font-family: 'Microsoft YaHei';">&nbsp;先来看看MSDN的说法：&nbsp;RunWorkerAsync方法可以接受一个 object 类型的参数。</div>
+<div style="font-size: 16px; text-indent: 2em; font-family: 'Microsoft YaHei';">使用的方法：</div>
+<div style="font-size: 16px; text-indent: 2em; font-family: 'Microsoft YaHei';">BtnStart启动后台异步操作时让RunWorkerAsync方法带一个参数进去。</div>
+<div style="font-size: 16px; text-indent: 2em; font-family: 'Microsoft YaHei';">
+<div class="cnblogs_Highlighter">
+<pre><code>        private void BtnStart_Click(object sender, EventArgs e)
+        {
+            if (!bgWorker1.IsBusy)
+            {
+                int intStart = 1000000;
+                bgWorker1.RunWorkerAsync(intStart);
+            }
+        }
+</pre>
+</div>
+<p>　　&nbsp;DoWork事件通过参数 e 的Argument属性来获取传递过来的参数。</p>
+</div>
+<div style="font-size: 16px; text-indent: 2em; font-family: 'Microsoft YaHei';">
+<div class="cnblogs_Highlighter">
+<pre><code>private void BgWorker1_DoWork(object sender, DoWorkEventArgs e)
+{
+            int intStart = 0;
+            if (e.Argument != null)
+            {
+                intStart = (int)e.Argument;
+            }
+}
+</pre>
+</div>
+<p>　　记得传过来的是个object类型的参数，使用时一定不要忘记了转换一下。</p>
+</div>
+<div style="font-size: 16px; text-indent: 2em; font-family: 'Microsoft YaHei';">&nbsp;</div>
+<div style="font-size: 16px; text-indent: 2em; font-family: 'Microsoft YaHei';">现在我们把这个传过来的参数，在后台DoWork中处理一下，再把处理的实时的结果反馈到用户界面上来。</div>
+<div style="font-size: 16px; text-indent: 2em; font-family: 'Microsoft YaHei';">这里要记得：由于DoWork事件内部的代码运行在非UI线程之上,确保在 DoWork 事件处理程序中不操作任何用户界面对象。</div>
+<div style="font-size: 16px; text-indent: 2em; font-family: 'Microsoft YaHei';">所以分两个地方处理：</div>
+<div style="font-size: 16px; text-indent: 2em; font-family: 'Microsoft YaHei';">
+<div class="cnblogs_Highlighter">
+<pre><code>        private void BgWorker1_DoWork(object sender, DoWorkEventArgs e)
+        {
+            int intStart = 0;
+            if (e.Argument != null)
+            {
+                intStart = (int)e.Argument;
+            }
+            int intSum = intStart;
+            for (int i = 0; i &lt;= 50; i++)
+            {
+                if (bgWorker1.CancellationPending == true)
+                {
+                    e.Cancel = true;
+                    break; 
+                }
+                else
+                {
+                    intSum += i;
+                    bgWorker1.ReportProgress(i*2,"循环求和结果："+intSum.ToString());
+                    System.Threading.Thread.Sleep(100);
+                }
+            }
+        }
+
+        private void BgWorker1_ProgressChanged(object sender, ProgressChangedEventArgs e)
+        {
+            this.pgbPercent.Value = e.ProgressPercentage;
+            this.lblPercent.Text = @"已完成：" + e.ProgressPercentage.ToString() + @"%";
+            this.txtStatus.Text += e.UserState.ToString() + System.Environment.NewLine;
+        }
+</pre>
+</div>
+<p>　　BackgroundWorker的DoWork中ReportProgress加一参数，把需要传出去的参数通过 bgWorker1.ReportProgress(完成百分比,&nbsp;传出参数) 报告出去，ProgressChanged中把这个传出来的参数显示到UI上：this.txtStatus.Text += e.UserState.ToString() ...。</p>
+<p>&nbsp;现在运行一下程序试试看。</p>
+<p>&nbsp;<img src="./images/C#之BackgroundWorker从简单入门到深入精通的用法总结5.png" alt="" /></p>
+</div>
+<div style="font-size: 16px; text-indent: 2em; font-family: 'Microsoft YaHei';">&nbsp;MSDN上说&ldquo;由于DoWork事件内部的代码运行在非UI线程之上,确保在 DoWork 事件处理程序中不操作任何用户界面对象。而应该通过 ProgressChanged 和 RunWorkerCompleted 事件与用户界面进行通信。&rdquo;上面例子也是按MSDN的套路来的，但我个人对这句话的理解是：DoWork不能操作UI，DoWork操作会引发ProgressChanged，ProgressChanged中可以操作UI。那么，我可以在DoWork的外面定义一个变量，从外面传进去给它作为DoWork初始用，DoWork过程中操作修改它，然后ProgressChanged再把这个变量传出来，呈现到UI上。</div>
+<div style="font-size: 16px; text-indent: 2em; font-family: 'Microsoft YaHei';">下面来看看，代码如下：</div>
+<div style="font-size: 16px; text-indent: 2em; font-family: 'Microsoft YaHei';">&nbsp;
+<div class="cnblogs_Highlighter">
+<pre class="brush:csharp;collapse:true;;gutter:true;">using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+namespace bgwB
+{
+    public partial class Form1 : Form
+    {
+        public Form1()
+        {
+            InitializeComponent();
+        }
+
+        string strBgw = "";
+        private void Form1_Load(object sender, EventArgs e)
+        {
+            bgWorker1.WorkerReportsProgress = true;
+            bgWorker1.WorkerSupportsCancellation = true;
+        }
+
+        private void BgWorker1_DoWork(object sender, DoWorkEventArgs e)
+        {
+            int intStart = 0;
+            if (e.Argument != null)
+            {
+                intStart = (int)e.Argument;
+            }
+            int intSum = intStart;
+            for (int i = 0; i &lt;= 50; i++)
+            {
+                if (bgWorker1.CancellationPending == true)
+                {
+                    e.Cancel = true;
+                    break; 
+                }
+                else
+                {
+                    strBgw = "times:" + i.ToString() + "  " + DateTime.Now.ToString();
+                    intSum += i;
+                    bgWorker1.ReportProgress(i*2,"循环求和结果："+intSum.ToString());
+                    System.Threading.Thread.Sleep(100);
+
+                }
+            }
+        }
+
+        private void BgWorker1_ProgressChanged(object sender, ProgressChangedEventArgs e)
+        {
+            this.pgbPercent.Value = e.ProgressPercentage;
+            this.lblPercent.Text = @"已完成：" + e.ProgressPercentage.ToString() + @"%";
+            this.txtStatus.Text += e.UserState.ToString() + System.Environment.NewLine;
+            this.txtStatus.Text += strBgw + System.Environment.NewLine;
+        }
+
+        private void BgWorker1_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+        {
+            this.lblPercent.Text = "后台操作结束(可能是程序100%完成，也可能是用户取消或程序异常导致结束)。";
+        }
+
+        private void BtnStart_Click(object sender, EventArgs e)
+        {            
+            if (!bgWorker1.IsBusy)
+            {
+                this.txtStatus.Text = "";
+                int intStart = 1000000;
+                bgWorker1.RunWorkerAsync(intStart);
+            }
+        }
+
+        private void BtnCancel_Click(object sender, EventArgs e)
+        {
+            bgWorker1.CancelAsync();
+        }
+    }
+}
+</pre>
+</div>
+<p>　　结果如图：</p>
+<p><img src="./images/C#之BackgroundWorker从简单入门到深入精通的用法总结6.png" alt="" /></p>
+</div>
+<div style="font-size: 16px; text-indent: 2em; font-family: 'Microsoft YaHei';">&nbsp;个人感觉用这个方法传参数更为灵活。</div>
+<div style="font-size: 16px; text-indent: 2em; font-family: 'Microsoft YaHei';">&nbsp;</div>
+<p><span style="color: #0000ff;"><strong><span style="font-size: 20px;">总结</span></strong></span></p>
+<div style="font-size: 16px; text-indent: 2em; font-family: 'Microsoft YaHei';">至此，BackgroundWorker就基本介绍完了，总的来说，BackgroundWorker用来处理异步处理耗时操作是非常方便快捷的。</div>
+<div style="font-size: 16px; text-indent: 2em; font-family: 'Microsoft YaHei';">&nbsp;</div>
+<div style="font-size: 16px; text-indent: 2em; font-family: 'Microsoft YaHei';">&nbsp;</div>
+<div style="font-size: 16px; text-indent: 2em; font-family: 'Microsoft YaHei';">&nbsp;</div>
+<div style="font-size: 16px; text-indent: 2em; font-family: 'Microsoft YaHei';">&nbsp;附上这两个源码：</div>
+<div style="font-size: 16px; text-indent: 2em; font-family: 'Microsoft YaHei';"><a title="https://files.cnblogs.com/files/netserver/bgwA.rar" href="https://files.cnblogs.com/files/netserver/bgwA.rar" target="_blank">https://files.cnblogs.com/files/netserver/bgwA.rar</a></div>
+<div style="font-size: 16px; text-indent: 2em; font-family: 'Microsoft YaHei';"><a title="https://files.cnblogs.com/files/netserver/bgwB.rar" href="https://files.cnblogs.com/files/netserver/bgwB.rar" target="_blank">https://files.cnblogs.com/files/netserver/bgwB.rar</a></div>
+<div style="font-size: 16px; text-indent: 2em; font-family: 'Microsoft YaHei';">&nbsp;</div>
+<div style="font-size: 16px; text-indent: 2em; font-family: 'Microsoft YaHei';">
+<p>&nbsp;</p>
+</div>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

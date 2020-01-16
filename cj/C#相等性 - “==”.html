@@ -1,0 +1,201 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C#相等性 - “==”' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C#相等性 - “==”</center></div><div class='banquan'>原文出处:本文由博客园博主solenovex提供。<br/>
+原文连接:https://www.cnblogs.com/cgzl/p/10659745.html</div><br>
+    <p>今天写一下C#里的&ldquo;==&rdquo;这个操作符。</p>
+<h1>原始类型</h1>
+<h2>假象</h2>
+<p>在刚学C#的时候，我以为C#里的==和.NET里的object.Equals()方法是一样的，就是一个语法糖而已。其实它们的底层机制是不一样的，只不过它们给出的结果在大多数情况下恰好相同。</p>
+<p>看个例子：</p>
+<p><img src="./images/C#相等性 - “==”0.png" alt="" /></p>
+<p>这俩方法给出的结果都是True。</p>
+<p>看起来这两种方式做了同样的动作，就是比较两个值。</p>
+<p>&nbsp;</p>
+<h2>底层原理</h2>
+<p>Build项目，然后使用ildasm看一下生成的il语言（ildasm位置大致在：C:\Program Files (x86)\Microsoft SDKs\Windows\v10.0A\bin\NETFX 4.7.2 Tools）。</p>
+<p>使用ildasm打开生成的dll，首先查看Program类里面的ByEqualMethod方法：</p>
+<p><img src="./images/C#相等性 - “==”1.png" alt="" /></p>
+<p>可以看到C#源码里调用Equals()的地方直接被翻译成il语言里相应的Equals()方法了。。。。</p>
+<p>&nbsp;</p>
+<p>然后看一下ByEqualOperator这个方法：</p>
+<p><img src="./images/C#相等性 - “==”2.png" alt="" /></p>
+<p>在C#里该方法使用了==操作符，而在il语言里，我们只看到了一个叫做ceq的指令。ceq的意思是compare for equality，就是比较两个值是否相等，在运行时，它将会被转换为硬件上的比较，也许用的是CPU的寄存器。</p>
+<p><span style="color: #ff0000;"><strong>针对原始类型，C#的==操作符并没有使用.NET里提供的那些Equals方法，这时==操作符使用专用的汇编语言指令来进行判断相等性的</strong></span>。</p>
+<p>&nbsp;</p>
+<h1>使用 == 判断引用类型的相等性</h1>
+<p>这里的引用类型不包含string。</p>
+<p>看例子，这里我使用==来比较自定义类MyClass的两个实例是否相等：</p>
+<p><img src="./images/C#相等性 - “==”3.png" alt="" /></p>
+<p>而结果是两个False：</p>
+<p><img src="./images/C#相等性 - “==”4.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>使用ildasm看一下ByEqualMethod()这个方法：</p>
+<p><img src="./images/C#相等性 - “==”5.png" alt="" /></p>
+<p>可以看到，a.Equals(b)调用的是virtual的object.Equals()方法，参数类型是object，这个应该都能理解。</p>
+<p>&nbsp;</p>
+<p>再看一下ByEqualOperator()方法：</p>
+<p><img src="./images/C#相等性 - “==”6.png" alt="" /></p>
+<p>== 操作符翻译过来还是使用ceq对两个参数进行的比较，和之前int类型的例子一样，除了参数类型不同。</p>
+<p>所以这应该也是使用CPU的硬件来进行判断相等性的，那么像这种引用类型是怎么通过CPU硬件来比较的呢？因为这两个类型是引用类型，所以c1，c2两个变量里面保存的是它们对应的实例在托管堆中的内存地址，也就是两个数字而已，所以当然可以进行比较了。</p>
+<p>&nbsp;</p>
+<h2>string</h2>
+<p>我们都知道，==用来判断string相等性的时候，比较的是string值，而不是引用地址。</p>
+<p>看例子：</p>
+<p><img src="./images/C#相等性 - “==”7.png" alt="" /></p>
+<p>结果是两个True：</p>
+<p><img src="./images/C#相等性 - “==”8.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>首先，使用string.Copy()方法可以保证str1和str2是两个不同的引用。</p>
+<p>&nbsp;</p>
+<p>使用ildasm，先看ByEqualMethod()：</p>
+<p><img src="./images/C#相等性 - “==”9.png" alt="" /></p>
+<p>可以看到，这里a.Equals(b)实际调用的是string实现的IEquatable&lt;T&gt;接口的Equals方法，它的参数是string。</p>
+<p>&nbsp;</p>
+<p>再看一下ByEqualOperator():</p>
+<p><img src="./images/C#相等性 - “==”10.png" alt="" /></p>
+<p>这次没有使用ceq指令，而是调用了一个叫做op_Equality()的方法，这是个什么方法？</p>
+<p>其实它是C#里 == 操作符的一个重载：static bool op_Equality(string, string)。</p>
+<p>&nbsp;</p>
+<p>在C#里，当你定义一个类型的时候，你可以对==操作符进行重载，格式大概如下：</p>
+<p><img src="./images/C#相等性 - “==”11.png" alt="" /></p>
+<p>因为il语言里没有操作符的概念，而只有方法才能作为操作符的重载而存在于il里，所以这里使用的是静态方法，它会被翻译为一个特殊的静态方法叫做op_Equality()。</p>
+<p>&nbsp;</p>
+<p>我们也可以直接看一下string类的源码，里面也是这样对==进行重载的：</p>
+<p><img src="./images/C#相等性 - “==”12.png" alt="" /></p>
+<p>当然，重载了==，也需要重载 !=。</p>
+<p>&nbsp;</p>
+<h2>小结</h2>
+<p>总结一下，使用==来判断引用类型的相等性，需要按下面的思路顺序进行考虑：</p>
+<p><strong>1. 该类型是否对 == 进行了重载？如果是，那就是用该重载方法；否则看2</strong></p>
+<p><strong>2. 使用ceq指令来比较引用指向的内存地址</strong>。</p>
+<p>&nbsp;</p>
+<p>另外还需要再提醒一下的是，string类的==和Equals()方法永远都会给出一样的结果。</p>
+<p>还有一个原则就是，当你改变某个类型的相等性判断方法是，要确保==和Equals()方法做的是同样的事情。</p>
+<p>&nbsp;</p>
+<h1>值类型</h1>
+<h2>非原始类型</h2>
+<p>看例子，这里有两个值类型：</p>
+<p><img src="./images/C#相等性 - “==”13.png" alt="" /></p>
+<p>当我使用==对它们进行比较的时候，直接报错了。</p>
+<p>因为默认情况下，不可以使用==来对非原始类型的值类型进行相等性判断。要想使用==，就必须提供重载方法。</p>
+<p>&nbsp;</p>
+<h1>Tuple</h1>
+<p>直接看例子：</p>
+<div class="image-package">
+<div class="image-container">
+<div class="image-container-fill"><img src="./images/C#相等性 - “==”14.png" alt="" /></div>
+<div class="image-container-fill">结果如下：</div>
+</div>
+</div>
+<div class="image-package">
+<div class="image-container">
+<div class="image-container-fill">&nbsp;</div>
+<div class="image-view" data-width="119" data-height="59"><img src="./images/C#相等性 - “==”15.png" alt="" /></div>
+</div>
+</div>
+<p>针对这两个tuple，我做了三个相等性判断，通过第一个ReferenceEquals方法我们可以知道这两个tuple变量指向不同的实例。</p>
+<p>而tp1.Equals(tp2)返回的是True，这是因为Tuple类（引用类型）重写了object.Equals()方法，从而比较的是Tuple里面的值。</p>
+<p>尽管微软为Tuple把object.Equals()方法重写了，但是它并没有处理==操作符，所以==还是在比较引用的相等性，所以会返回False。</p>
+<p>这样做确实挺让人迷惑的。。。</p>
+<p>&nbsp;</p>
+<h1>比较==和object.Equals()方法</h1>
+<div class="image-container" style="display: inline !important;">
+<div class="image-container-fill" style="display: inline !important;">&nbsp;</div>
+</div>
+<div class="image-package">
+<div class="image-container">
+<div class="image-view" data-width="655" data-height="179"><img src="./images/C#相等性 - “==”16.png" alt="" /></div>
+</div>
+</div>
+<p>通常情况下，尽量使用==操作符，但是有时候==不行，需要使用object.Equals()方法，例如涉及到继承或者泛型的时候。</p>
+<p>&nbsp;</p>
+<h1>继承</h1>
+<p>直接看例子：</p>
+<div class="image-package">
+<div class="image-container">
+<div class="image-container-fill">&nbsp;</div>
+<div class="image-view" data-width="444" data-height="153"><img src="./images/C#相等性 - “==”17.png" alt="" /></div>
+</div>
+</div>
+<p>这两个字符串我做了4个相等性判断，其结果为：</p>
+<div class="image-package">
+<div class="image-container">
+<div class="image-container-fill">&nbsp;<img src="./images/C#相等性 - “==”18.png" alt="" /></div>
+</div>
+</div>
+<p>无论是object的virtual Equals()方法，还是==操作符，还是object的static Equals()方法，都会返回True。</p>
+<p>但是我做一下小小的改动：</p>
+<div class="image-package">
+<div class="image-container">
+<div class="image-container-fill">&nbsp;</div>
+<div class="image-view" data-width="446" data-height="166"><img src="./images/C#相等性 - “==”19.png" alt="" /></div>
+</div>
+</div>
+<p>我们看看结果会不会变：</p>
+<div class="image-package">
+<div class="image-container">
+<div class="image-container-fill">&nbsp;</div>
+<div class="image-view" data-width="165" data-height="79"><img src="./images/C#相等性 - “==”20.png" alt="" /></div>
+</div>
+</div>
+<p>结果发生了变化，str1==str2这次返回了False。</p>
+<p>这是因为==操作符不是virtual的，它相当于是static的，而static的是无法virtual的。</p>
+<p>现在 str1 == str2 这句话，我们比较的是两个类型为object的变量，尽管我们知道它们都是string，但是编译器并不知道。而针对于非virtual的方法或操作符，到底调用哪个方法是在编译时决定的，因为这两个变量的类型是object，所以编译器会选择用来比较object的代码，而object又没有==操作符的重载，所以==做的就是比较引用的相等性，而这两个string是不同的实例，所以结果会返回False。</p>
+<p>所以(object)x == (object)y和ReferenceEquals(x, y)的结果总是一样的。</p>
+<p>针对涉及继承的相等性判断，最好还是使用object.Equals()方法，而不是==操作符。</p>
+<p>&nbsp;</p>
+<h1>泛型</h1>
+<p>另一种不适合使用==操作符的情景是涉及泛型的时候，直接看例子：</p>
+<div class="image-package">
+<div class="image-container">
+<div class="image-view" data-width="374" data-height="87"><img src="./images/C#相等性 - “==”21.png" alt="" /></div>
+</div>
+</div>
+<p>这个泛型方法直接报错了，因为==操作符无法应用于这两个操作数T，T可以是任何类型，例如T是非原始类型的struct，那么==就不可用。我们无法为泛型指定约束让其实现某个操作符。针对这个例子，我可以这样做，来保证可以编译：</p>
+<div class="image-package">
+<div class="image-container">
+<div class="image-view" data-width="381" data-height="130"><img src="./images/C#相等性 - “==”22.png" alt="" /></div>
+</div>
+</div>
+<p>现在T是引用类型了，代码可以编译了。我们使用以下该方法：</p>
+<div class="image-package">
+<div class="image-container">
+<div class="image-view" data-width="548" data-height="100"><img src="./images/C#相等性 - “==”23.png" alt="" /></div>
+</div>
+</div>
+<p>按理说这就相当于调用了Equals()方法，结果应该返回True。而实际结果是：</p>
+<div class="image-package">
+<div class="image-container">
+<div class="image-container-fill"><img src="./images/C#相等性 - “==”24.png" alt="" /></div>
+</div>
+</div>
+<p>之所以返回了False，是因为泛型方法里的==操作符比较的是引用，而这又是因为尽管编译器知道可以把==操作符应用于类型T，但是它仍然不知道具体是哪个类型T会重载该操作符，所以它会假设T不会重载==操作符，从而对待这两个操作数如同object类型一样并编译，所以判断的是引用相等性。</p>
+<p>所以泛型方法不会选择任何的操作符重载，它对待泛型类就像对待object类型一样。</p>
+<p>综上，针对泛型方法，应该使用Equals()方法，而不是==操作符。</p>
+<div class="image-package">
+<div class="image-container">
+<div class="image-container-fill"><img src="./images/C#相等性 - “==”25.png" alt="" /></div>
+</div>
+</div>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

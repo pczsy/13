@@ -1,0 +1,394 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修[LINQ2Dapper]最完整Dapper To Linq框架(一)---基础查询' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>[LINQ2Dapper]最完整Dapper To Linq框架(一)---基础查询</center></div><div class='banquan'>原文出处:本文由博客园博主Kogel提供。<br/>
+原文连接:https://www.cnblogs.com/kogel/p/10805696.html</div><br>
+    <h1 id="此例子是使用linq2dapper封装">此框架是Dapper的扩展，效率优于EntityFramwork，并且支持.NetFramework和.NetCore框架</h1>
+<p>支持.net framework4.5.1,.net core2.0及以上,更低版本适配如.netFramework4.0及以下请加群下载</p>
+<p>支持Mssql,Oracle,Mysql等数据库</p>
+<p>&nbsp; &nbsp; &nbsp;应用层需要引用包Kogel.Dapper.Extension.MsSql(如果数据库是Oracle则引用Kogel.Dapper.Extension.Oracle),Nuget上可以下载安装。</p>
+<p>或者使用Nuget命令添加包</p>
+<div class="cnblogs_Highlighter">
+<pre><code>dotnet add package Kogel.Dapper.Extension.MsSql
+</pre>
+</div>
+<p>　</p>
+<ul>
+<li>
+<h1>目录</h1>
+<ul>
+<li><a href="https://www.cnblogs.com/kogel/p/10805696.html" target="_blank">[LINQ2Dapper]最完整Dapper To Linq框架(一)---基础查询</a></li>
+<li><a href="https://www.cnblogs.com/kogel/p/10867597.html" target="_blank" data-cke-saved-href="https://blog.csdn.net/weixin_39349390/article/details/90207696">[LINQ2Dapper]最完整Dapper To Linq框架(二)---动态化查询</a></li>
+<li><a href="https://www.cnblogs.com/kogel/p/11077932.html" target="_blank" data-cke-saved-href="https://blog.csdn.net/weixin_39349390/article/details/91796566">[LINQ2Dapper]最完整Dapper To Linq框架(三)---实体类关系映射</a></li>
+<li><a href="https://www.cnblogs.com/kogel/p/11077940.html" target="_blank" data-cke-saved-href="https://blog.csdn.net/weixin_39349390/article/details/93469117">[LINQ2Dapper]最完整Dapper To Linq框架(四)---Linq和SQL并行使用</a></li>
+<li><a href="https://www.cnblogs.com/kogel/p/11112417.html" target="_blank" data-cke-saved-href="https://blog.csdn.net/weixin_39349390/article/details/94379564">[LINQ2Dapper]最完整Dapper To Linq框架(五)---查看Linq实际执行的SQL</a></li>
+<li><a href="https://www.cnblogs.com/kogel/p/11859102.html" data-cke-saved-href="https://blog.csdn.net/weixin_39349390/article/details/98207608">[LINQ2Dapper]最完整Dapper To Linq框架(六)---多表联合与匿名类型返回</a></li>
+<li><a class="entry" href="https://www.cnblogs.com/kogel/p/11859239.html" target="_blank">[LINQ2Dapper]最完整Dapper To Linq框架(七)---仓储模式</a></li>
+<li><a href="https://www.cnblogs.com/kogel/p/12143895.html" target="_blank">[LINQ2Dapper]最完整Dapper To Linq框架(八)---导航属性</a></li>
+</ul>
+</li>
+</ul>
+<h2>&nbsp;</h2>
+<h2 id="model实体类">(一)Model实体类&nbsp;</h2>
+<p>&nbsp;实体类层需要安装Kogel.Dapper.Extension表名字段特性。<a href="https://blog.csdn.net/weixin_39349390/article/details/91796566" data-cke-saved-href="https://blog.csdn.net/weixin_39349390/article/details/91796566">[更多特性详情请点击]</a></p>
+<div class="cke_widget_wrapper cke_widget_block cke_widget_codeSnippet cke_widget_wrapper_has cke_widget_selected" data-cke-widget-wrapper="1" data-cke-filter="off" data-cke-display-name="代码段" data-cke-widget-id="11">
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">using</span><span style="color: #000000;"> Kogel.Dapper.Extension.Attributes;
+
+ </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> users
+    {
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 用户id(特性Identity标识该字段为主键)
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>    
+<span style="color: #000000;">        [Identity]
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span> id { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> code
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>    
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> code { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 用户名称
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>    
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> name { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 创建方式(1自定义角色 2通用角色)
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>    
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span> createWay { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 创建时间
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>    
+        <span style="color: #0000ff;">public</span> DateTime createDate { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 创建人
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>    
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> createUsers { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 角色id
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>    
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span> roleId { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+}</span></pre>
+</div>
+<p>&nbsp;</p>
+</div>
+<h2>（二）使用实例</h2>
+<p>首先添加命名空间</p>
+<p>using Kogel.Dapper.Extension.MsSql;</p>
+<p>可以通过<strong>数据库连接对象</strong>点出扩展方法,例如</p>
+<div class="cke_widget_wrapper cke_widget_block cke_widget_codeSnippet cke_widget_wrapper_has cke_widget_selected" data-cke-widget-wrapper="1" data-cke-filter="off" data-cke-display-name="代码段" data-cke-widget-id="10">
+<div class="cnblogs_Highlighter">
+<pre><code>var conn = new SqlConnection("数据库连接字符串");
+</pre>
+</div>
+<p>　</p>
+</div>
+<p>使用完记得释放连接对象，可以通过<strong>using</strong>或者 <strong>conn.Dispose();</strong></p>
+<p><br /><strong>查询</strong></p>
+<div class="cke_widget_wrapper cke_widget_block cke_widget_codeSnippet cke_widget_wrapper_has cke_widget_selected" data-cke-widget-wrapper="1" data-cke-filter="off" data-cke-display-name="代码段" data-cke-widget-id="9">
+<div class="cnblogs_Highlighter">
+<pre><code>var users = conn.QuerySet&lt;users&gt;().Where(x =&gt; x.code != "1").Get();</pre>
+</div>
+</div>
+<p>&nbsp;</p>
+<p><strong>模糊查询</strong></p>
+<div class="cke_widget_wrapper cke_widget_block cke_widget_codeSnippet cke_widget_wrapper_has cke_widget_selected" data-cke-widget-wrapper="1" data-cke-filter="off" data-cke-display-name="代码段" data-cke-widget-id="8">
+<div class="cnblogs_Highlighter">
+<pre><code>var users1 = conn.QuerySet&lt;users&gt;().Where(x =&gt; x.name.Contains("Y")).Get();</pre>
+</div>
+</div>
+<p>&nbsp;</p>
+<p><strong>查询一个数组条件</strong></p>
+<div class="cnblogs_Highlighter">
+<pre><code>int[] array = new int[] { 1, 2, 3 };
+//使用In
+var comment = conn.QuerySet&lt;Comment&gt;().Where(x =&gt; x.Id.In(array)).ToList();
+//或者使用Contains
+var comment = conn.QuerySet&lt;Comment&gt;().Where(x =&gt; array.Contains(x.Id)).ToList();
+</pre>
+</div>
+<p>&nbsp;</p>
+<p><strong>使用sql查询</strong></p>
+<div class="cnblogs_Highlighter">
+<pre><code>DynamicParameters param = new DynamicParameters();
+				param.Add("Id", 1);
+var comment = conn.QuerySet&lt;Comment&gt;().Where("Id=@Id", param)
+					.ToList();</pre>
+</div>
+<p>&nbsp;</p>
+<p><strong>范围查找</strong>　</p>
+<div class="cnblogs_Highlighter">
+<pre><code>var comment = conn.QuerySet&lt;Comment&gt;().Where(x =&gt; x.Id.Between(1, 10)).ToList();
+</pre>
+</div>
+<p>　　</p>
+<p><strong>修改</strong></p>
+<div class="cke_widget_wrapper cke_widget_block cke_widget_codeSnippet cke_widget_wrapper_has cke_widget_selected" data-cke-widget-wrapper="1" data-cke-filter="off" data-cke-display-name="代码段" data-cke-widget-id="7">
+<div class="cnblogs_Highlighter">
+<pre><code>var users=new users();          
+users.name = Guid.NewGuid().ToString();
+users.createDate = DateTime.Now;
+int result = conn.CommandSet&lt;users&gt;().Where(x =&gt; x.id == 4).Update(users);</pre>
+</div>
+</div>
+<div class="cke_widget_wrapper cke_widget_block cke_widget_codeSnippet cke_widget_wrapper_has cke_widget_selected" data-cke-widget-wrapper="1" data-cke-filter="off" data-cke-display-name="代码段" data-cke-widget-id="6">&nbsp;</div>
+<p><strong>自定义修改(修改指定字段)</strong></p>
+<div class="cnblogs_Highlighter">
+<pre><code>int result = conn.CommandSet&lt;Comment&gt;()
+                    .Where(x =&gt; x.Content == "test")
+                    .Update(x =&gt; new Comment
+                    {
+                        Content = "test1"
+                    });</pre>
+</div>
+<p>&nbsp;</p>
+<p><strong>新增</strong><span style="font-family: 'Courier New'; font-size: 12px; background-color: #f8f8f8; font-style: italic;">&nbsp;&nbsp;</span></p>
+<div class="cnblogs_Highlighter">
+<pre><code>int result = conn.CommandSet&lt;users&gt;()
+                 .Insert(new users() { 
+                       code = Guid.NewGuid().ToString(), 
+                       name = "test", createWay = 1, 
+                       createDate = DateTime.Now, 
+                       roleId = 2 
+                 });　</pre>
+</div>
+<p>&nbsp;</p>
+<p>&nbsp;<strong>新增返回自增Id</strong></p>
+<div class="cnblogs_Highlighter">
+<pre><code>int result = conn.CommandSet&lt;users&gt;()
+                 .InsertIdentity(new users() { 
+                       code = Guid.NewGuid().ToString(), 
+                       name = "test", createWay = 1, 
+                       createDate = DateTime.Now, 
+                       roleId = 2 
+                 });
+</pre>
+</div>
+<p>　　</p>
+<p><strong>删除</strong></p>
+<div class="cke_widget_wrapper cke_widget_block cke_widget_codeSnippet cke_widget_wrapper_has cke_widget_selected" data-cke-widget-wrapper="1" data-cke-filter="off" data-cke-display-name="代码段" data-cke-widget-id="4">
+<div class="cnblogs_Highlighter">
+<pre><code>int result = conn.CommandSet&lt;users&gt;()
+              .Where(x =&gt; x.roleId == 2 &amp;&amp; x.name == users2.name)
+              .Delete();</pre>
+</div>
+</div>
+<p>&nbsp;</p>
+<p><strong>如果想使用事务</strong></p>
+<div class="cnblogs_Highlighter">
+<pre><code>using (var conn = new SqlConnection(mysqlConnection))
+{
+                //必须先打开数据库
+                conn.Open();
+                //创建事务对象
+                var transaction = conn.BeginTransaction();
+                //使用事务对象做修改
+                var result = conn.CommandSet&lt;Comment&gt;(transaction)
+                    .Where(x =&gt; x.Id.Equals(1))
+                    .Update(x =&gt; new Comment()
+                    {
+                        Content = "test"
+                    });
+                //提交事务，回滚使用  transaction.Rollback();
+                transaction.Commit();
+}
+</pre>
+</div>
+<p>　　</p>
+<p><strong>连表查询</strong></p>
+<p><strong>Join&lt;主表,副表&gt;(主表关联字段，副表关联字段)</strong></p>
+<div class="cke_widget_wrapper cke_widget_block cke_widget_codeSnippet cke_widget_wrapper_has cke_widget_selected" data-cke-widget-wrapper="1" data-cke-filter="off" data-cke-display-name="代码段" data-cke-widget-id="3">
+<div class="cnblogs_Highlighter">
+<pre><code>var list = conn.QuerySet&lt;users&gt;()
+           .Where(x =&gt; x.code != "1")
+           .Join&lt;users, project_Role&gt;(x =&gt; x.roleId, y =&gt; y.id)
+           .ToList();
+</pre>
+</div>
+<p>　　</p>
+<p><strong>任意条件连表<img class="cke_reset cke_widget_drag_handler" title="点击并拖拽以移动" src="data:image/gif;base64,R0lGODlhAQABAPABAP///wAAACH5BAEKAAAALAAAAAABAAEAAAICRAEAOw==" alt="" width="15" height="15" data-cke-widget-drag-handler="1" /></strong></p>
+<div class="cnblogs_Highlighter">
+<pre><code>var list = conn.QuerySet&lt;users&gt;()
+           .Where(x =&gt; x.code != "1")
+           .Join&lt;users, project_Role&gt;((x,y)=&gt;x.roleId==y.id)
+           .ToList();
+</pre>
+</div>
+<p>　　</p>
+<p><strong>还可以设置连表的方式(默认是Left Join)</strong></p>
+<div class="cnblogs_Highlighter">
+<pre><code>var list = conn.QuerySet&lt;users&gt;()
+           .Where(x =&gt; x.code != "1")
+           .Join&lt;users, project_Role&gt;((x,y)=&gt;x.roleId==y.id, JoinMode.LEFT)
+           .ToList();
+</pre>
+</div>
+<p>　　</p>
+</div>
+<p><strong>连表查询可以渲染成指定实体类,例如动态类型(dynamic)</strong></p>
+<div class="cke_widget_wrapper cke_widget_block cke_widget_codeSnippet cke_widget_wrapper_has cke_widget_selected" data-cke-widget-wrapper="1" data-cke-filter="off" data-cke-display-name="代码段" data-cke-widget-id="2">
+<div class="cnblogs_Highlighter">
+<pre><code>var list = conn.QuerySet&lt;users&gt;()
+           .Where(x =&gt; x.code != "1")
+           .Join&lt;users, project_Role&gt;(x =&gt; x.roleId, y =&gt; y.id)
+           .ToList&lt;dynamic&gt;();</pre>
+</div>
+</div>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><strong>翻页查询</strong></p>
+<div class="cke_widget_wrapper cke_widget_block cke_widget_codeSnippet cke_widget_wrapper_has cke_widget_selected" data-cke-widget-wrapper="1" data-cke-filter="off" data-cke-display-name="代码段" data-cke-widget-id="1">
+<div class="cnblogs_Highlighter">
+<pre><code>//翻页查询第一页，10条数据
+var list = conn.QuerySet&lt;users&gt;()
+           .OrderBy(x =&gt; x.createDate)
+           .PageList(1, 10);
+
+//翻页连表查询返回dynamic
+var list1 = conn.QuerySet&lt;users&gt;()
+            .Join&lt;users, project_Role&gt;(x =&gt; x.roleId, y =&gt; y.id)
+            .OrderBy(x =&gt; x.createDate)
+            .PageList&lt;dynamic&gt;(1, 10);</pre>
+</div>
+</div>
+<p>&nbsp;</p>
+<p><strong>多表任意联查</strong>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;</p>
+<div class="cke_widget_wrapper cke_widget_block cke_widget_codeSnippet cke_widget_wrapper_has cke_widget_selected" data-cke-widget-wrapper="1" data-cke-filter="off" data-cke-display-name="代码段" data-cke-widget-id="0">
+<div class="cnblogs_Highlighter">
+<pre><code> var users = conn.QuerySet&lt;users&gt;()
+                        .Join&lt;users, project_Role&gt;((a, b) =&gt; a.roleId == b.id)
+                        .Where&lt;users, project_Role&gt;((a, b) =&gt; a.id == 3 &amp;&amp; b.id == 3)
+                        .Get&lt;dynamic&gt;();</pre>
+</div>
+</div>
+<p><strong>&nbsp;</strong></p>
+<p><strong>3.14版本后Where函数和匿名返回类型支持比较复杂的函数判断</strong></p>
+<p><strong>例如</strong></p>
+<div class="cnblogs_Highlighter">
+<pre><code>var comment1 = conn.QuerySet&lt;Comment&gt;()
+                    .Join&lt;Comment, News&gt;((a, b) =&gt; a.ArticleId == b.Id)
+                    .Where(x =&gt; x.Id.Between(80, 100)
+                    &amp;&amp; x.SubTime.AddDays(-10) &lt; DateTime.Now &amp;&amp; x.Id &gt; 10
+                    &amp;&amp; x.Id &gt; new QuerySet&lt;News&gt;(conn, new MySqlProvider()).Where(y =&gt; y.Id &lt; 3 &amp;&amp; x.Id&lt;y.Id).Sum&lt;News&gt;(y =&gt; y.Id)
+                    )
+                    .From&lt;Comment, News&gt;()
+                    .OrderBy&lt;News&gt;(x =&gt; x.Id)
+                    .PageList(1, 1, (a, b) =&gt; new
+                    {
+                        test = new List&lt;int&gt;() { 3, 3, 1 }.FirstOrDefault(y =&gt; y == 1),
+                        aaa = "6666" + "777",
+                        Content = a.Content + "'test'" + b.Headlines + a.IdentityId,
+                        bbb = new QuerySet&lt;Comment&gt;(conn, new MySqlProvider())
+                                .Where(y =&gt; y.ArticleId == b.Id &amp;&amp; y.Content.Contains("test")).Sum&lt;Comment&gt;(x =&gt; x.Id),
+                        ccc = a.IdentityId,
+                        ddd = Convert.ToInt32("(select count(1) from Comment)"),
+                        a.Id
+                    });　　</pre>
+</div>
+<p>&nbsp;</p>
+<p><strong>需要读取数据库的支持Sum和Count函数</strong></p>
+<p><strong>不需要读取数据库的函数都支持，例如</strong></p>
+<div class="cnblogs_Highlighter">
+<pre><code> test = new List&lt;int&gt;() { 3, 3, 1 }.FirstOrDefault(y =&gt; y == 1)
+</pre>
+</div>
+<p>　　</p>
+<p><strong>批量新增</strong></p>
+<div class="cnblogs_Highlighter">
+<pre><code>int result = conn.CommandSet&lt;Comment&gt;().Insert(commentList);　　</pre>
+</div>
+<p><strong>以上操作都支持异步</strong></p>
+<p>&nbsp;</p>
+<p><strong>3.1.8版本支持自定义导航查询</strong></p>
+<div class="cnblogs_Highlighter">
+<pre><code>	var ContentList = conn.QuerySet&lt;Comment&gt;()
+					 .ToList(x =&gt; new CommentDto()
+					 {
+						 Id = x.Id,
+						 ArticleIds = x.ArticleId,
+						 count = new QuerySet&lt;News&gt;(conn, new MySqlProvider()).Where(y =&gt; y.Id == x.ArticleId).Count(),
+						 NewsList = new QuerySet&lt;News&gt;(conn, new MySqlProvider()).Where(y =&gt; y.Id == x.ArticleId).ToList(y =&gt; new NewsDto()
+						 {
+							 Id = y.Id,
+							 Contents = y.Content
+						 }).ToList()
+					 });</pre>
+</div>
+<p>（子属性返回暂时不支持匿名类）</p>
+<p>（Dto类需要继承&nbsp;<strong>IBaseEntity</strong>）</p>
+<p>&nbsp;</p>
+<h2>（三）扩展的一些函数处理</h2>
+<p>Kogel.Dapper支持一些基础的sql函数&nbsp;</p>
+<p>&nbsp;<img src="./images/[LINQ2Dapper]最完整Dapper To Linq框架(一)---基础查询1.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;以及时间函数在不同数据库中的处理</p>
+<p><img src="./images/[LINQ2Dapper]最完整Dapper To Linq框架(一)---基础查询2.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>还有字符的转换处理</p>
+<p><img src="./images/[LINQ2Dapper]最完整Dapper To Linq框架(一)---基础查询3.png" alt="" /></p>
+<p>&nbsp;</p>
+<p><span style="font-size: 18pt;">&nbsp;<strong>(四)分组聚合</strong></span></p>
+<p>3.1.9.3版本后支持分组聚合查询</p>
+<div class="cnblogs_code">
+<pre><code>        <span style="color: #0000ff;">var</span> commne = conn.QuerySet&lt;Comment&gt;<span style="color: #000000;">()
+                    .Where(x </span>=&gt; x.Id &gt; <span style="color: #800080;">0</span> &amp;&amp; array1.Contains(x.Id) &amp;&amp; x.Content.Replace(<span style="color: #800000;">"</span><span style="color: #800000;">1</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">2</span><span style="color: #800000;">"</span>) ==<span style="color: #000000;"> x.Content)
+                    .Where(x </span>=&gt;<span style="color: #000000;"> x.Id.In(array1))
+                    .GroupBy(x </span>=&gt; <span style="color: #0000ff;">new</span><span style="color: #000000;"> { x.ArticleId })
+                    .Having(x </span>=&gt; Function.Sum(x.Id) &gt;= <span style="color: #800080;">5</span><span style="color: #000000;">)
+                    .ToList(x </span>=&gt; <span style="color: #0000ff;">new</span><span style="color: #000000;">
+                    {
+                        x.ArticleId,
+                        test1 </span>=<span style="color: #000000;"> Function.Sum(x.Id)
+                    });</span></pre>
+</div>
+<p>通过<span style="font-size: 14px;"><strong><span style="font-size: 14pt;">Function</span></strong>类点出函数，例如</span><strong><span style="font-size: 16px;">Function.Sum(字段)</span></strong></p>
+<p><img src="./images/[LINQ2Dapper]最完整Dapper To Linq框架(一)---基础查询4.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;<strong><span style="font-size: 18pt;">(五)效率对比</span></strong></p>
+<p><strong><span style="font-size: 18pt;"><img src="./images/[LINQ2Dapper]最完整Dapper To Linq框架(一)---基础查询5.png" alt="" /></span></strong></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;这是Kogel.Dapper.Extension与Freesql和EFCore的性能对比，事先都有预热。</p>
+<p>&nbsp;效果显而易见，Kogel.Dapper.Extension最快，Freesql其次，EFCore最慢。</p>
+<p><strong>版本对应</strong></p>
+<p>&nbsp;Kogel.Dapper.Extension：3.1.9.2</p>
+<p>&nbsp;FreeSql：0.12.7</p>
+<p>&nbsp;EFCore：3.1.0</p>
+<p>&nbsp;</p>
+<p>&nbsp;更多扩展敬请期待</p>
+<p>&nbsp;</p>
+<p><strong>Kogel.Dapper还支持linq和sql同时使用</strong></p>
+<p>已完成更加复杂查询条件或者连表关系，<a href="https://blog.csdn.net/weixin_39349390/article/details/93469117" data-cke-saved-href="https://blog.csdn.net/weixin_39349390/article/details/93469117">[详情请点击此处]</a>。</p>
+<p>&nbsp;</p>
+<p>框架开源，完整框架源码可以去Github上下载：</p>
+<p><a href="https://github.com/a935368322/Kogel.Dapper.Extension">https://github.com/a935368322/Kogel.Dapper.Extension</a><a href="https://github.com/a935368322/Kogel.Dapper.Test" data-cke-saved-href="https://github.com/a935368322/Kogel.Dapper.Test"><br /></a></p>
+<p>如有问题也可以加QQ群讨论：</p>
+<p>技术群 710217654</p>
+<hr id="hr-toc" />
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

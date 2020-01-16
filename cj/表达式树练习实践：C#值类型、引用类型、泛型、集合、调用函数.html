@@ -1,0 +1,356 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修表达式树练习实践：C#值类型、引用类型、泛型、集合、调用函数' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>表达式树练习实践：C#值类型、引用类型、泛型、集合、调用函数</center></div><div class='banquan'>原文出处:本文由博客园博主痴者工良提供。<br/>
+原文连接:https://www.cnblogs.com/whuanle/p/11569083.html</div><br>
+    <div class="toc">
+    <p class="toc-title">目录</p>
+    <div class="toc-list">
+        <ul>
+        <li><a href="#表达式树练习实践c值类型引用类型泛型集合调用函数">表达式树练习实践：C#值类型、引用类型、泛型、集合、调用函数</a><ul>
+        <li><a href="#一定义变量">一，定义变量</a></li>
+        <li><a href="#二访问变量类型的属性字段和方法">二，访问变量/类型的属性字段和方法</a><ul>
+        <li><a href="#访问属性">1. 访问属性</a></li>
+        <li><a href="#调用函数">2. 调用函数</a></li>
+        </ul></li>
+        <li><a href="#三实例化引用类型">三，实例化引用类型</a></li>
+        <li><a href="#四实例化泛型类型于调用">四，实例化泛型类型于调用</a></li>
+        <li><a href="#五定义集合变量初始化添加元素">五，定义集合变量、初始化、添加元素</a></li>
+        </ul></li>
+        </ul>
+    </div>
+</div>
+<h1 id="表达式树练习实践c值类型引用类型泛型集合调用函数">表达式树练习实践：C#值类型、引用类型、泛型、集合、调用函数</h1>
+<p><img src="./images/表达式树练习实践：C#值类型、引用类型、泛型、集合、调用函数0.png" alt="img" /></p>
+<h2 id="一定义变量">一，定义变量</h2>
+<p>C# 表达式树中，定义一个变量，使用 <code>ParameterExpression</code>。</p>
+<p>创建变量结点的方法有两种，</p>
+<pre><code><code>Expression.Parameter()
+Expression.Variable()
+// 另外，定义一个常量可以使用 Expression.Constant()。</code></pre>
+<p>两种方式都是生成 <code>ParameterExpression</code> 类型 <code>Parameter()</code> 和 <code>Variable()</code> 都具有两个重载。他们创建一个 ParameterExpression节点，该节点可用于标识表达式树中的参数或变量。</p>
+<p>对于使用定义：</p>
+<p><code>Expression.Variable</code> 用于在块内声明局部变量。</p>
+<p><code>Expression.Parameter</code>用于声明输入值的参数。</p>
+<p>先看第一种</p>
+<pre class="c#"><code>        public static ParameterExpression Parameter(Type type)
+        {
+            return Parameter(type, name: null);
+        }
+        
+                public static ParameterExpression Variable(Type type)
+        {
+            return Variable(type, name: null);
+        }</code></pre>
+<p>从代码来看，没有区别。</p>
+<p>再看看具有两个参数的重载</p>
+<pre class="c#"><code>        public static ParameterExpression Parameter(Type type, string name)
+        {
+            Validate(type, allowByRef: true);
+            bool byref = type.IsByRef;
+            if (byref)
+            {
+                type = type.GetElementType();
+            }
+
+            return ParameterExpression.Make(type, name, byref);
+        }</code></pre>
+<pre class="c#"><code>        public static ParameterExpression Variable(Type type, string name)
+        {
+            Validate(type, allowByRef: false);
+            return ParameterExpression.Make(type, name, isByRef: false);
+        }</code></pre>
+<p>如你所见，两者只有一个 allowByRef 出现了区别，Paramter 允许 Ref， Variable 不允许。</p>
+<p>笔者在官方文档和其他作者文章上，都没有找到具体区别是啥，去 stackoverflow 搜索和查看源代码后，确定他们的区别在于 Variable 不能使用 ref 类型。</p>
+<p>从字面意思来看，声明一个变量，应该用<code>Expression.Variable</code>， 函数的传入参数应该使用<code>Expression.Parameter</code>。</p>
+<p>无论值类型还是引用类型，都是这样子定义。</p>
+<h2 id="二访问变量类型的属性字段和方法">二，访问变量/类型的属性字段和方法</h2>
+<p>访问变量或类型的属性，使用</p>
+<pre class="c#"><code>Expression.Property()</code></pre>
+<p>访问变量/类型的属性或字段，使用</p>
+<pre class="c#"><code>Expression.PropertyOrField()</code></pre>
+<p>访问变量或类型的方法，使用</p>
+<pre class="c#"><code>Expression.Call()</code></pre>
+<p>访问属性字段和方法</p>
+<pre class="c#"><code>Expression.MakeMemberAccess</code></pre>
+<p>他们都返回一个 MemberExpression类型。</p>
+<p>使用上，根据实例化/不实例化，有个小区别，上面说了变量或类型。</p>
+<p>意思是，已经定义的值类型或实例化的引用类型，是变量；</p>
+<p>类型，就是指引用类型，不需要实例化的静态类型或者静态属性字段/方法。</p>
+<p>上面的解释不太严谨，下面示例会慢慢解释。</p>
+<h3 id="访问属性">1. 访问属性</h3>
+<p>使用 <code>Expression.Property()</code> 或 <code>Expression.PropertyOrField()</code>调用属性。</p>
+<h4 id="调用静态类型属性">调用静态类型属性</h4>
+<p>Console 是一个静态类型，Console.Title 可以获取编译器程序的实际位置。</p>
+<pre class="c#"><code>            Console.WriteLine(Console.Title);</code></pre>
+<p>使用表达式树表达如下</p>
+<pre class="c#"><code>            MemberExpression member = Expression.Property(null, typeof(Console).GetProperty(&quot;Title&quot;));
+            Expression&lt;Func&lt;string&gt;&gt; lambda = Expression.Lambda&lt;Func&lt;string&gt;&gt;(member);
+
+            string result = lambda.Compile()();
+            Console.WriteLine(result);
+
+            Console.ReadKey();</code></pre>
+<p>因为调用的是静态类型的属性，所以第一个参数为空。</p>
+<p>第二个参数是一个 PropertyInfo 类型。</p>
+<h4 id="调用实例属性字段">调用实例属性/字段</h4>
+<p>C#代码如下</p>
+<pre class="c#"><code>            List&lt;int&gt; a = new List&lt;int&gt;() { 1, 2, 3 };
+            int result = a.Count;
+            Console.WriteLine(result);
+            Console.ReadKey();</code></pre>
+<p>在表达式树，调用实例的属性</p>
+<pre class="c#"><code>            ParameterExpression a = Expression.Parameter(typeof(List&lt;int&gt;), &quot;a&quot;);
+            MemberExpression member = Expression.Property(a, &quot;Count&quot;);
+
+            Expression&lt;Func&lt;List&lt;int&gt;, int&gt;&gt; lambda = Expression.Lambda&lt;Func&lt;List&lt;int&gt;, int&gt;&gt;(member, a);
+            int result = lambda.Compile()(new List&lt;int&gt; { 1, 2, 3 });
+            Console.WriteLine(result);
+
+            Console.ReadKey();</code></pre>
+<p>除了 Expression.Property() ，其他的方式请自行测试，这里不再赘述。</p>
+<h3 id="调用函数">2. 调用函数</h3>
+<p>使用 <code>Expression.Call()</code> 可以调用一个静态类型的函数或者实例的函数。</p>
+<h4 id="调用静态类型的函数">调用静态类型的函数</h4>
+<p>以 Console 为例，调用 WriteLine() 方法</p>
+<pre class="c#"><code>            Console.WriteLine(&quot;调用WriteLine方法&quot;);
+
+            MethodCallExpression method = Expression.Call(
+                null,
+                typeof(Console).GetMethod(&quot;WriteLine&quot;, new Type[] { typeof(string) }),
+                Expression.Constant(&quot;调用WriteLine方法&quot;));
+
+            Expression&lt;Action&gt; lambda = Expression.Lambda&lt;Action&gt;(method);
+            lambda.Compile()();
+            Console.ReadKey();</code></pre>
+<p>Expression.Call() 的重载方法比较多，常用的重载方法是</p>
+<pre class="c#"><code>public static MethodCallExpression Call(Expression instance, MethodInfo method, params Expression[] arguments)</code></pre>
+<p>因为要调用静态类型的函数，所以第一个 instance 为空(instance英文意思是实例)。</p>
+<p>第二个 method 是要调用的重载方法。</p>
+<p>最后一个 arguments 是传入的参数。</p>
+<h4 id="调用实例的函数">调用实例的函数</h4>
+<p>写一个类</p>
+<pre class="c#"><code>    public class Test
+    {
+        public void Print(string info)
+        {
+            Console.WriteLine(info);
+        }
+    }</code></pre>
+<p>调用实例的 Printf() 方法</p>
+<pre class="c#"><code>            Test test = new Test();
+            test.Print(&quot;打印出来&quot;);
+            Console.ReadKey();</code></pre>
+<p>表达式表达如下</p>
+<pre class="c#"><code>            ParameterExpression a = Expression.Variable(typeof(Test), &quot;test&quot;);
+
+            MethodCallExpression method = Expression.Call(
+                a,
+                typeof(Test).GetMethod(&quot;Print&quot;, new Type[] { typeof(string) }),
+                Expression.Constant(&quot;打印出来&quot;)
+                );
+
+            Expression&lt;Action&lt;Test&gt;&gt; lambda = Expression.Lambda&lt;Action&lt;Test&gt;&gt;(method,a);
+            lambda.Compile()(new Test());
+            Console.ReadKey();</code></pre>
+<p>注意的是，<code>Expression.Variable(typeof(Test), &quot;test&quot;);</code> 仅定义了一个变量，还没有初始化/赋值。对于引用类型来说，需要实例化。</p>
+<p>上面的方式，是通过外界实例化传入里面的，后面会说如何在表达式内实例化。</p>
+<h2 id="三实例化引用类型">三，实例化引用类型</h2>
+<p>引用类型的实例化，使用 new ，然后选择调用合适的构造函数、设置属性的值。</p>
+<p>那么，根据上面的步骤，我们分开讨论。</p>
+<h4 id="new">new</h4>
+<p>使用 <code>Expression.New()</code>来调用一个类型的构造函数。</p>
+<p>他有五个重载，有两种常用重载：</p>
+<pre class="c#"><code> public static NewExpression New(ConstructorInfo constructor);
+ public static NewExpression New(Type type);</code></pre>
+<p>依然使用上面的 Test 类型</p>
+<pre class="c#"><code>            NewExpression newA = Expression.New(typeof(Test));</code></pre>
+<p>默认没有参数的构造函数，或者只有一个构造函数，像上面这样调用。</p>
+<p>如果像指定一个构造函数，可以</p>
+<pre class="c#"><code>            NewExpression newA = Expression.New(typeof(Test).GetConstructor(xxxxxx));</code></pre>
+<p>这里就不详细说了。</p>
+<h4 id="给属性赋值">给属性赋值</h4>
+<p>实例化一个构造函数的同时，可以给属性赋值。</p>
+<pre class="c#"><code>        public static MemberInitExpression MemberInit(NewExpression newExpression, IEnumerable&lt;MemberBinding&gt; bindings);
+
+        public static MemberInitExpression MemberInit(NewExpression newExpression, params MemberBinding[] bindings);</code></pre>
+<p>两种重载是一样的。</p>
+<p>我们将 Test 类改成</p>
+<pre class="c#"><code>    public class Test
+    {
+        public int sample { get; set; }
+        public void Print(string info)
+        {
+            Console.WriteLine(info);
+        }
+    }</code></pre>
+<p>然后</p>
+<pre class="c#"><code>            var binding = Expression.Bind(
+                typeof(Test).GetMember(&quot;sample&quot;)[0],
+                Expression.Constant(10)
+            );
+</code></pre>
+<h4 id="创建引用类型">创建引用类型</h4>
+<pre class="c#"><code>Expression.MemberInit()</code></pre>
+<p>表示调用构造函数并初始化新对象的一个或多个成员。</p>
+<p>如果实例化一个类，可以使用</p>
+<pre class="c#"><code>            NewExpression newA = Expression.New(typeof(Test));
+            MemberInitExpression test = Expression.MemberInit(newA,
+                new List&lt;MemberBinding&gt;() { }
+                );</code></pre>
+<p>如果要在实例化时给成员赋值</p>
+<pre class="c#"><code>            NewExpression newA = Expression.New(typeof(Test));
+
+            // 给 Test 类型的一个成员赋值
+            var binding = Expression.Bind(
+                typeof(Test).GetMember(&quot;sample&quot;)[0],Expression.Constant(10));
+
+            MemberInitExpression test = Expression.MemberInit(newA,
+                new List&lt;MemberBinding&gt;() { binding}
+                );</code></pre>
+<h4 id="示例">示例</h4>
+<p>实例化一个类型，调用构造函数、给成员赋值，示例代码如下</p>
+<pre class="c#"><code>            // 调用构造函数
+            NewExpression newA = Expression.New(typeof(Test));
+
+            // 给 Test 类型的一个成员赋值
+            var binding = Expression.Bind(
+                typeof(Test).GetMember(&quot;sample&quot;)[0], Expression.Constant(10));
+
+            // 实例化一个类型
+            MemberInitExpression test = Expression.MemberInit(newA,
+                new List&lt;MemberBinding&gt;() { binding }
+                );
+
+            // 调用方法
+            MethodCallExpression method1 = Expression.Call(
+                test,
+                typeof(Test).GetMethod(&quot;Print&quot;, new Type[] { typeof(string) }),
+                Expression.Constant(&quot;打印出来&quot;)
+                );
+
+            // 调用属性
+            MemberExpression method2 = Expression.Property(test, &quot;sample&quot;);
+
+            Expression&lt;Action&gt; lambda1 = Expression.Lambda&lt;Action&gt;(method1);
+            lambda1.Compile()();
+
+            Expression&lt;Func&lt;int&gt;&gt; lambda2 = Expression.Lambda&lt;Func&lt;int&gt;&gt;(method2);
+            int sample = lambda2.Compile()();
+            Console.WriteLine(sample);
+
+            Console.ReadKey();</code></pre>
+<h2 id="四实例化泛型类型于调用">四，实例化泛型类型于调用</h2>
+<p>将 Test 类，改成这样</p>
+<pre class="c#"><code>    public class Test&lt;T&gt;
+    {
+        public void Print&lt;T&gt;(T info)
+        {
+            Console.WriteLine(info);
+        }
+    }</code></pre>
+<p>Test 类已经是一个泛型类，表达式实例化示例</p>
+<pre class="c#"><code>        static void Main(string[] args)
+        {
+            RunExpression&lt;string&gt;();
+            Console.ReadKey();
+        }
+        public static void RunExpression&lt;T&gt;()
+        {
+            // 调用构造函数
+            NewExpression newA = Expression.New(typeof(Test&lt;T&gt;));
+
+            // 实例化一个类型
+            MemberInitExpression test = Expression.MemberInit(newA,
+                new List&lt;MemberBinding&gt;() { }
+                );
+
+            // 调用方法
+            MethodCallExpression method = Expression.Call(
+                test,
+                typeof(Test&lt;T&gt;).GetMethod(&quot;Print&quot;).MakeGenericMethod(new Type[] { typeof(T) }),
+                Expression.Constant(&quot;打印出来&quot;)
+                );
+
+            Expression&lt;Action&gt; lambda1 = Expression.Lambda&lt;Action&gt;(method);
+            lambda1.Compile()();
+
+            Console.ReadKey();
+        }</code></pre>
+<h2 id="五定义集合变量初始化添加元素">五，定义集合变量、初始化、添加元素</h2>
+<p>集合类型使用 <code>ListInitExpression</code>表示。</p>
+<p>创建集合类型，需要使用到</p>
+<p>ElementInit 表示 IEnumerable集合的单个元素的初始值设定项。</p>
+<p>ListInit 初始化一个集合。</p>
+<p>C# 中，集合都实现了 IEnumerable，集合都具有 Add 扥方法或属性。</p>
+<p>使用 C# 初始化一个集合并且添加元素，可以这样</p>
+<pre class="c#"><code>            List&lt;string&gt; list = new List&lt;string&gt;()
+            {
+                &quot;a&quot;,
+                &quot;b&quot;
+            };
+            list.Add(&quot;666&quot;);</code></pre>
+<p>而在表达式树里面，是通过 ElementInit 调用 Add 方法初始化/添加元素的。</p>
+<p>示例</p>
+<pre class="c#"><code>            MethodInfo listAdd = typeof(List&lt;string&gt;).GetMethod(&quot;Add&quot;);
+
+            /*
+             * new List&lt;string&gt;()
+             * {
+             *     &quot;a&quot;,
+             *     &quot;b&quot;
+             * };
+             */
+            ElementInit add1 = Expression.ElementInit(
+                listAdd,
+                Expression.Constant(&quot;a&quot;),
+                Expression.Constant(&quot;b&quot;)
+                );
+            // Add(&quot;666&quot;)
+            ElementInit add2 = Expression.ElementInit(listAdd, Expression.Constant(&quot;666&quot;));</code></pre>
+<p>示例</p>
+<pre class="c#"><code>            MethodInfo listAdd = typeof(List&lt;string&gt;).GetMethod(&quot;Add&quot;);
+
+            ElementInit add1 = Expression.ElementInit(listAdd, Expression.Constant(&quot;a&quot;));
+            ElementInit add2 = Expression.ElementInit(listAdd, Expression.Constant(&quot;b&quot;));
+            ElementInit add3 = Expression.ElementInit(listAdd, Expression.Constant(&quot;666&quot;));
+
+            NewExpression list = Expression.New(typeof(List&lt;string&gt;));
+
+            // 初始化值
+            ListInitExpression setList = Expression.ListInit(
+                list,
+                add1,
+                add2,
+                add3
+                );
+            // 没啥执行的，就这样看看输出的信息
+            Console.WriteLine(setList.ToString());
+
+            MemberExpression member = Expression.Property(setList, &quot;Count&quot;);
+
+            Expression&lt;Func&lt;int&gt;&gt; lambda = Expression.Lambda&lt;Func&lt;int&gt;&gt;(member);
+            int result = lambda.Compile()();
+            Console.WriteLine(result);
+
+            Console.ReadKey();</code></pre>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

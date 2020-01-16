@@ -1,0 +1,187 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C# winform 获取鼠标点击位置' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C# winform 获取鼠标点击位置</center></div><div class='banquan'>原文出处:本文由博客园博主AC、搬运工提供。<br/>
+原文连接:https://www.cnblogs.com/ocean-wang/p/11855750.html</div><br>
+    <p>说明：该篇随笔的代码内容并非出自本人，是在其他网站搜寻的，出处已经不记得了，本次随笔只为记录，目的帮助自己，帮助他人。</p>
+<p>实现的原理也不做多的赘述，直接上代码。</p>
+<p>&nbsp;</p>
+<p>第一个类是需要用到的Windows API</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('4453ea10-60d6-417a-98cf-9247aa5f01aa')"><img id="code_img_closed_4453ea10-60d6-417a-98cf-9247aa5f01aa" class="code_img_closed" src="./images/C# winform 获取鼠标点击位置0.png" alt="" /><img id="code_img_opened_4453ea10-60d6-417a-98cf-9247aa5f01aa" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('4453ea10-60d6-417a-98cf-9247aa5f01aa',event)" src="./images/C# winform 获取鼠标点击位置1.png" alt="" />
+<div id="cnblogs_code_open_4453ea10-60d6-417a-98cf-9247aa5f01aa" class="cnblogs_code_hide">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Win32Api
+    {
+        [StructLayout(LayoutKind.Sequential)]
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> POINT
+        {
+            </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> x;
+            </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> y;
+        }
+        [StructLayout(LayoutKind.Sequential)]
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> MouseHookStruct
+        {
+            </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> POINT pt;
+            </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> hwnd;
+            </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> wHitTestCode;
+            </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> dwExtraInfo;
+        }
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">delegate</span> <span style="color: #0000ff;">int</span> HookProc(<span style="color: #0000ff;">int</span><span style="color: #000000;"> nCode, IntPtr wParam, IntPtr lParam);
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">安装钩子</span>
+        [DllImport(<span style="color: #800000;">"</span><span style="color: #800000;">user32.dll</span><span style="color: #800000;">"</span>, CharSet = CharSet.Auto, CallingConvention =<span style="color: #000000;"> CallingConvention.StdCall)]
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">extern</span> <span style="color: #0000ff;">int</span> SetWindowsHookEx(<span style="color: #0000ff;">int</span> idHook, HookProc lpfn, IntPtr hInstance, <span style="color: #0000ff;">int</span><span style="color: #000000;"> threadId);
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">卸载钩子</span>
+        [DllImport(<span style="color: #800000;">"</span><span style="color: #800000;">user32.dll</span><span style="color: #800000;">"</span>, CharSet = CharSet.Auto, CallingConvention =<span style="color: #000000;"> CallingConvention.StdCall)]
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">extern</span> <span style="color: #0000ff;">bool</span> UnhookWindowsHookEx(<span style="color: #0000ff;">int</span><span style="color: #000000;"> idHook);
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">调用下一个钩子</span>
+        [DllImport(<span style="color: #800000;">"</span><span style="color: #800000;">user32.dll</span><span style="color: #800000;">"</span>, CharSet = CharSet.Auto, CallingConvention =<span style="color: #000000;"> CallingConvention.StdCall)]
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">extern</span> <span style="color: #0000ff;">int</span> CallNextHookEx(<span style="color: #0000ff;">int</span> idHook, <span style="color: #0000ff;">int</span><span style="color: #000000;"> nCode, IntPtr wParam, IntPtr lParam);
+    }</span></pre>
+</div>
+<span class="cnblogs_code_collapse">Windows API</span></div>
+<p>第二个类是用于监控鼠标移动，鼠标点击的</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('4b5ca405-e13a-4410-8dae-ceb0229bb100')"><img id="code_img_closed_4b5ca405-e13a-4410-8dae-ceb0229bb100" class="code_img_closed" src="./images/C# winform 获取鼠标点击位置0.png" alt="" /><img id="code_img_opened_4b5ca405-e13a-4410-8dae-ceb0229bb100" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('4b5ca405-e13a-4410-8dae-ceb0229bb100',event)" src="./images/C# winform 获取鼠标点击位置1.png" alt="" />
+<div id="cnblogs_code_open_4b5ca405-e13a-4410-8dae-ceb0229bb100" class="cnblogs_code_hide">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> MouseHook
+    {
+        </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> Point point;
+        </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> Point Point
+        {
+            </span><span style="color: #0000ff;">get</span> { <span style="color: #0000ff;">return</span><span style="color: #000000;"> point; }
+            </span><span style="color: #0000ff;">set</span><span style="color: #000000;">
+            {
+                </span><span style="color: #0000ff;">if</span> (point !=<span style="color: #000000;"> value)
+                {
+                    point </span>=<span style="color: #000000;"> value;
+                    </span><span style="color: #0000ff;">if</span> (MouseMoveEvent != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+                    {
+                        </span><span style="color: #0000ff;">var</span> e = <span style="color: #0000ff;">new</span> MouseEventArgs(MouseButtons.None, <span style="color: #800080;">0</span>, point.X, point.Y, <span style="color: #800080;">0</span><span style="color: #000000;">);
+                        MouseMoveEvent(</span><span style="color: #0000ff;">this</span><span style="color: #000000;">, e);
+                    }
+                }
+            }
+        }
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> hHook;
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">int</span> WM_LBUTTONDOWN = <span style="color: #800080;">0x201</span><span style="color: #000000;">;
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">int</span> WM_RBUTTONDOWN = <span style="color: #800080;">0x204</span><span style="color: #000000;">;
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">int</span> WH_MOUSE_LL = <span style="color: #800080;">14</span><span style="color: #000000;">;
+        </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> Win32Api.HookProc hProc;
+        </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> MouseHook()
+        {
+            </span><span style="color: #0000ff;">this</span>.Point = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Point();
+        }
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> SetHook()
+        {
+            hProc </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Win32Api.HookProc(MouseHookProc);
+            hHook </span>= Win32Api.SetWindowsHookEx(WH_MOUSE_LL, hProc, IntPtr.Zero, <span style="color: #800080;">0</span><span style="color: #000000;">);
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> hHook;
+        }
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> UnHook()
+        {
+            Win32Api.UnhookWindowsHookEx(hHook);
+        }
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">int</span> MouseHookProc(<span style="color: #0000ff;">int</span><span style="color: #000000;"> nCode, IntPtr wParam, IntPtr lParam)
+        {
+            Win32Api.MouseHookStruct MyMouseHookStruct </span>= (Win32Api.MouseHookStruct)Marshal.PtrToStructure(lParam, <span style="color: #0000ff;">typeof</span><span style="color: #000000;">(Win32Api.MouseHookStruct));
+            </span><span style="color: #0000ff;">if</span> (nCode &lt; <span style="color: #800080;">0</span><span style="color: #000000;">)
+            {
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> Win32Api.CallNextHookEx(hHook, nCode, wParam, lParam);
+            }
+            </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+            {
+                </span><span style="color: #0000ff;">if</span> (MouseClickEvent != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+                {
+                    MouseButtons button </span>=<span style="color: #000000;"> MouseButtons.None;
+                    </span><span style="color: #0000ff;">int</span> clickCount = <span style="color: #800080;">0</span><span style="color: #000000;">;
+                    </span><span style="color: #0000ff;">switch</span><span style="color: #000000;"> ((Int32)wParam)
+                    {
+                        </span><span style="color: #0000ff;">case</span><span style="color: #000000;"> WM_LBUTTONDOWN:
+                            button </span>=<span style="color: #000000;"> MouseButtons.Left;
+                            clickCount </span>= <span style="color: #800080;">1</span><span style="color: #000000;">;
+                            </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+                        </span><span style="color: #0000ff;">case</span><span style="color: #000000;"> WM_RBUTTONDOWN:
+                            button </span>=<span style="color: #000000;"> MouseButtons.Right;
+                            clickCount </span>= <span style="color: #800080;">1</span><span style="color: #000000;">;
+                            </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+                    }
+
+                    </span><span style="color: #0000ff;">var</span> e = <span style="color: #0000ff;">new</span> MouseEventArgs(button, clickCount, point.X, point.Y, <span style="color: #800080;">0</span><span style="color: #000000;">);
+                    MouseClickEvent(</span><span style="color: #0000ff;">this</span><span style="color: #000000;">, e);
+                }
+                </span><span style="color: #0000ff;">this</span>.Point = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Point(MyMouseHookStruct.pt.x, MyMouseHookStruct.pt.y);
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> Win32Api.CallNextHookEx(hHook, nCode, wParam, lParam);
+            }
+        }
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">delegate</span> <span style="color: #0000ff;">void</span> MouseMoveHandler(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, MouseEventArgs e);
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">event</span><span style="color: #000000;"> MouseMoveHandler MouseMoveEvent;
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">delegate</span> <span style="color: #0000ff;">void</span> MouseClickHandler(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, MouseEventArgs e);
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">event</span><span style="color: #000000;"> MouseClickHandler MouseClickEvent;
+    }</span></pre>
+</div>
+<span class="cnblogs_code_collapse">MouseHook</span></div>
+<p>最后直接在窗体中调用重写的事件即可</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('6298415e-2476-4850-a325-67ecf9cac92a')"><img id="code_img_closed_6298415e-2476-4850-a325-67ecf9cac92a" class="code_img_closed" src="./images/C# winform 获取鼠标点击位置0.png" alt="" /><img id="code_img_opened_6298415e-2476-4850-a325-67ecf9cac92a" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('6298415e-2476-4850-a325-67ecf9cac92a',event)" src="./images/C# winform 获取鼠标点击位置1.png" alt="" />
+<div id="cnblogs_code_open_6298415e-2476-4850-a325-67ecf9cac92a" class="cnblogs_code_hide">
+<pre><code><span style="color: #0000ff;">public</span><span style="color: #000000;"> getLocationForm()
+        {
+            InitializeComponent();
+        }
+
+        MouseHook mh;
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> getLocationForm_Load(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)
+        {
+            mh </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> MouseHook();
+            mh.SetHook();
+            mh.MouseMoveEvent </span>+=<span style="color: #000000;"> mh_MouseMoveEvent;
+            mh.MouseClickEvent </span>+=<span style="color: #000000;"> mh_MouseClickEvent;
+
+        }
+
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> mh_MouseClickEvent(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, MouseEventArgs e)
+        {
+            </span><span style="color: #0000ff;">if</span> (e.Button ==<span style="color: #000000;"> MouseButtons.Right)
+            {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">MessageBox.Show(e.X + "-" + e.Y);</span>
+<span style="color: #000000;">
+                textBox1.Text </span>=<span style="color: #000000;"> e.X.ToString();
+                textBox2.Text </span>=<span style="color: #000000;"> e.Y.ToString();
+            }
+        }
+
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> mh_MouseMoveEvent(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, MouseEventArgs e)
+        {
+            </span><span style="color: #0000ff;">int</span> x =<span style="color: #000000;"> e.Location.X;
+            </span><span style="color: #0000ff;">int</span> y =<span style="color: #000000;"> e.Location.Y;
+            textBox1.Text </span>= x + <span style="color: #800000;">""</span><span style="color: #000000;">;
+            textBox2.Text </span>= y + <span style="color: #800000;">""</span><span style="color: #000000;">;
+        }
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> Form1_FormClosed(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, FormClosedEventArgs e)
+        {
+            mh.UnHook();
+        }</span></pre>
+</div>
+<span class="cnblogs_code_collapse">getLocationForm</span></div>
+<p>&nbsp;</p>
+<p><img src="./images/C# winform 获取鼠标点击位置6.png" alt="" /></p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

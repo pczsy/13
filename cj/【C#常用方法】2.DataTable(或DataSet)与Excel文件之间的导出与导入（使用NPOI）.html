@@ -1,0 +1,267 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修【C#常用方法】2.DataTable(或DataSet)与Excel文件之间的导出与导入（使用NPOI）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>【C#常用方法】2.DataTable(或DataSet)与Excel文件之间的导出与导入（使用NPOI）</center></div><div class='banquan'>原文出处:本文由博客园博主裤兜提供。<br/>
+原文连接:https://www.cnblogs.com/512kd/p/11791433.html</div><br>
+    <h1 style="text-align: center;">DataTable与Excel之间的互导</h1>
+<h2>1.项目添加NPOI的引用　</h2>
+<hr />
+<p>&nbsp;</p>
+<ul>
+<li><span style="font-size: 14px;"><strong>NPOI项目简介：</strong></span></li>
+</ul>
+<div class="para"><span style="font-size: 14px;">　　NPOI是一个开源的C#读写Excel、WORD等微软OLE2组件文档的项目，特点是可以在没有安装Office的情况下对Word或Excel文档进行读写操作。并且对老版本Office（2003-）与新版本Office(2007+)均有较好的支持。NPOI功能非常强大，可以操作Excel或Word文档的各个细节，如果你对NPOI想进行细致的学习，淘宝上有专门有书来讲NPOI，当然也可以访问NPOI的官方网站查看他们的文档与Demo。</span></div>
+<div class="para">
+<ul>
+<li><strong><span style="font-size: 14px;">关于Excel扩展名.xls与.xlsx简介：</span></strong></li>
+</ul>
+</div>
+<div class="para"><span style="font-size: 14px;">　　.xls是Excel2003及以前的版本所保存的文件格式，老版本及新版本的Excel对其均可兼容，.xlsx是Excel2007及以后的Excel版本所默认保存的文件格式，这种格式只能被Excel2007及以后的版本所兼容，老版本Excel无法打开。</span></div>
+<ul>
+<li><span style="font-size: 14px;"><strong>NPOI项目的引用：</strong></span></li>
+</ul>
+<p><span style="font-size: 14px;">　　使用VisualStudio，打开NuGet包管理器，搜索NPOI，并添加到当前项目。</span></p>
+<p>　　<img src="./images/【C#常用方法】2.DataTable(或DataSet)与Excel文件之间的导出与导入（使用NPOI）0.png" alt="" width="758" height="217" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h2>2.将Excel文件导入到DataSet（DataTable）中</h2>
+<hr />
+<p>&nbsp;</p>
+<p>　　因为一个Excel文件可以有多个sheet页，所以C#方法最好使用与Excel文档结构相对应的DataSet类，即将DataSet（可以包含多个DataTable）导出为Excel，DataSet中的每个DataTabel对应一个Excel中的Sheet页。</p>
+<p>　　<img src="./images/【C#常用方法】2.DataTable(或DataSet)与Excel文件之间的导出与导入（使用NPOI）1.png" alt="" width="465" height="287" /></p>
+<p>　　方法解释：此方法将一个Excel文件导入为一个DataSet，Excel中每个Sheet页都会生成一个DataTable存放在导入的DataSet中，并且每个DataTable的TableName与每个Sheet的SheetName一一对应。参数isFirstLineColumnName用来表示Excel文件各表第一行是否为表头。</p>
+<p>　　代码如下：</p>
+<div class="cnblogs_code">
+<pre><code><span style="font-size: 14px;">        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 读取Execl数据到DataTable(DataSet)中
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="filePath"&gt;</span><span style="color: #008000;">指定Execl文件路径</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="isFirstLineColumnName"&gt;</span><span style="color: #008000;">设置第一行是否是列名</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;</span><span style="color: #008000;">返回一个DataTable数据集</span><span style="color: #808080;">&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> DataSet ExcelToDataSet(<span style="color: #0000ff;">string</span> filePath, <span style="color: #0000ff;">bool</span><span style="color: #000000;"> isFirstLineColumnName)
+        {
+            DataSet dataSet </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> DataSet();
+            </span><span style="color: #0000ff;">int</span> startRow = <span style="color: #800080;">0</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">try</span><span style="color: #000000;">
+            {
+                </span><span style="color: #0000ff;">using</span> (FileStream fs =<span style="color: #000000;"> File.OpenRead(filePath))
+                {
+                    IWorkbook workbook </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 如果是2007+的Excel版本</span>
+                    <span style="color: #0000ff;">if</span> (filePath.IndexOf(<span style="color: #800000;">"</span><span style="color: #800000;">.xlsx</span><span style="color: #800000;">"</span>) &gt; <span style="color: #800080;">0</span><span style="color: #000000;">)
+                    {
+                        workbook </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> XSSFWorkbook(fs);
+                    }
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 如果是2003-的Excel版本</span>
+                    <span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (filePath.IndexOf(<span style="color: #800000;">"</span><span style="color: #800000;">.xls</span><span style="color: #800000;">"</span>) &gt; <span style="color: #800080;">0</span><span style="color: #000000;">)
+                    {
+                        workbook </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> HSSFWorkbook(fs);
+                    }
+                    </span><span style="color: #0000ff;">if</span> (workbook != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+                    {
+                        </span><span style="color: #008000;">//</span><span style="color: #008000;">循环读取Excel的每个sheet，每个sheet页都转换为一个DataTable，并放在DataSet中</span>
+                        <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> p = <span style="color: #800080;">0</span>; p &lt; workbook.NumberOfSheets; p++<span style="color: #000000;">)
+                        {
+                            ISheet sheet </span>=<span style="color: #000000;"> workbook.GetSheetAt(p);
+                            DataTable dataTable </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> DataTable();
+                            dataTable.TableName </span>=<span style="color: #000000;"> sheet.SheetName;
+                            </span><span style="color: #0000ff;">if</span> (sheet != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+                            {
+                                </span><span style="color: #0000ff;">int</span> rowCount = sheet.LastRowNum;<span style="color: #008000;">//</span><span style="color: #008000;">获取总行数</span>
+                                <span style="color: #0000ff;">if</span> (rowCount &gt; <span style="color: #800080;">0</span><span style="color: #000000;">)
+                                {
+                                    IRow firstRow </span>= sheet.GetRow(<span style="color: #800080;">0</span>);<span style="color: #008000;">//</span><span style="color: #008000;">获取第一行</span>
+                                    <span style="color: #0000ff;">int</span> cellCount = firstRow.LastCellNum;<span style="color: #008000;">//</span><span style="color: #008000;">获取总列数
+
+                                    </span><span style="color: #008000;">//</span><span style="color: #008000;">构建datatable的列</span>
+                                    <span style="color: #0000ff;">if</span><span style="color: #000000;"> (isFirstLineColumnName)
+                                    {
+                                        startRow </span>= <span style="color: #800080;">1</span>;<span style="color: #008000;">//</span><span style="color: #008000;">如果第一行是列名，则从第二行开始读取</span>
+                                        <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = firstRow.FirstCellNum; i &lt; cellCount; ++<span style="color: #000000;">i)
+                                        {
+                                            ICell cell </span>=<span style="color: #000000;"> firstRow.GetCell(i);
+                                            </span><span style="color: #0000ff;">if</span> (cell != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+                                            {
+                                                </span><span style="color: #0000ff;">if</span> (cell.StringCellValue != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+                                                {
+                                                    DataColumn column </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> DataColumn(cell.StringCellValue);
+                                                    dataTable.Columns.Add(column);
+                                                }
+                                            }
+                                        }
+                                    }
+                                    </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+                                    {
+                                        </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = firstRow.FirstCellNum; i &lt; cellCount; ++<span style="color: #000000;">i)
+                                        {
+                                            DataColumn column </span>= <span style="color: #0000ff;">new</span> DataColumn(<span style="color: #800000;">"</span><span style="color: #800000;">column</span><span style="color: #800000;">"</span> + (i + <span style="color: #800080;">1</span><span style="color: #000000;">));
+                                            dataTable.Columns.Add(column);
+                                        }
+                                    }
+
+                                    </span><span style="color: #008000;">//</span><span style="color: #008000;">填充行</span>
+                                    <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = startRow; i &lt;= rowCount; ++<span style="color: #000000;">i)
+                                    {
+                                        IRow row </span>=<span style="color: #000000;"> sheet.GetRow(i);
+                                        </span><span style="color: #0000ff;">if</span> (row == <span style="color: #0000ff;">null</span>) <span style="color: #0000ff;">continue</span><span style="color: #000000;">;
+
+                                        DataRow dataRow </span>=<span style="color: #000000;"> dataTable.NewRow();
+                                        </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> j = row.FirstCellNum; j &lt; cellCount; ++<span style="color: #000000;">j)
+                                        {
+                                            ICell cell </span>=<span style="color: #000000;"> row.GetCell(j);
+                                            </span><span style="color: #0000ff;">if</span> (cell == <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+                                            {
+                                                dataRow[j] </span>= <span style="color: #800000;">""</span><span style="color: #000000;">;
+                                            }
+                                            </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+                                            {
+                                                </span><span style="color: #008000;">//</span><span style="color: #008000;">CellType(Unknown = -1,Numeric = 0,String = 1,Formula = 2,Blank = 3,Boolean = 4,Error = 5,)</span>
+                                                <span style="color: #0000ff;">switch</span><span style="color: #000000;"> (cell.CellType)
+                                                {
+                                                    </span><span style="color: #0000ff;">case</span><span style="color: #000000;"> CellType.Blank:
+                                                        dataRow[j] </span>= <span style="color: #800000;">""</span><span style="color: #000000;">;
+                                                        </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+                                                    </span><span style="color: #0000ff;">case</span><span style="color: #000000;"> CellType.Numeric:
+                                                        </span><span style="color: #0000ff;">short</span> format =<span style="color: #000000;"> cell.CellStyle.DataFormat;
+                                                        </span><span style="color: #008000;">//</span><span style="color: #008000;">对时间格式（2015.12.5、2015/12/5、2015-12-5等）的处理</span>
+                                                        <span style="color: #0000ff;">if</span> (format == <span style="color: #800080;">14</span> || format == <span style="color: #800080;">31</span> || format == <span style="color: #800080;">57</span> || format == <span style="color: #800080;">58</span><span style="color: #000000;">)
+                                                            dataRow[j] </span>=<span style="color: #000000;"> cell.DateCellValue;
+                                                        </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+                                                            dataRow[j] </span>=<span style="color: #000000;"> cell.NumericCellValue;
+                                                        </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+                                                    </span><span style="color: #0000ff;">case</span><span style="color: #000000;"> CellType.String:
+                                                        dataRow[j] </span>=<span style="color: #000000;"> cell.StringCellValue;
+                                                        </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+                                                }
+                                            }
+                                        }
+                                        dataTable.Rows.Add(dataRow);
+                                    }
+                                }
+                            }
+                            dataSet.Tables.Add(dataTable);
+                        }
+
+                    }
+                }
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> dataSet;
+            }
+            </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception)
+            {
+                </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">null</span></span><span style="color: #000000;"><span style="font-size: 14px;">;
+            }
+        }   </span> </span></pre>
+</div>
+<p>&nbsp;</p>
+<h2>3.将DataSet（DataTable）导出为一个Excel文件</h2>
+<hr />
+<p>&nbsp;</p>
+<p>　　代码解释：我们可以将要导出的DataTable都放入一个DataSet中，将DataSet导出为Excel文件，方法参数OutPath用来传入导出Excel文件的路径，路径可以加Excel的扩展名（.xls或.xlsx），也可以不加，不加默认导出Excel文件扩展名为.xls。　　</p>
+<div class="cnblogs_code">
+<pre><code><span style="font-size: 14px;">        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 将DataTable(DataSet)导出到Execl文档
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="dataSet"&gt;</span><span style="color: #008000;">传入一个DataSet</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="Outpath"&gt;</span><span style="color: #008000;">导出路径（可以不加扩展名，不加默认为.xls）</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;</span><span style="color: #008000;">返回一个Bool类型的值，表示是否导出成功</span><span style="color: #808080;">&lt;/returns&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> True表示导出成功，Flase表示导出失败</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">bool</span> DataTableToExcel(DataSet dataSet, <span style="color: #0000ff;">string</span><span style="color: #000000;"> Outpath)
+        {
+            </span><span style="color: #0000ff;">bool</span> result = <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">try</span><span style="color: #000000;">
+            {
+                </span><span style="color: #0000ff;">if</span> (dataSet == <span style="color: #0000ff;">null</span> || dataSet.Tables == <span style="color: #0000ff;">null</span> || dataSet.Tables.Count == <span style="color: #800080;">0</span> || <span style="color: #0000ff;">string</span><span style="color: #000000;">.IsNullOrEmpty(Outpath))
+                    </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> Exception(<span style="color: #800000;">"</span><span style="color: #800000;">输入的DataSet或路径异常</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                </span><span style="color: #0000ff;">int</span> sheetIndex = <span style="color: #800080;">0</span><span style="color: #000000;">;
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">根据输出路径的扩展名判断workbook的实例类型</span>
+                IWorkbook workbook = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+                </span><span style="color: #0000ff;">string</span> pathExtensionName = Outpath.Trim().Substring(Outpath.Length - <span style="color: #800080;">5</span><span style="color: #000000;">);
+                </span><span style="color: #0000ff;">if</span> (pathExtensionName.Contains(<span style="color: #800000;">"</span><span style="color: #800000;">.xlsx</span><span style="color: #800000;">"</span><span style="color: #000000;">))
+                {
+                    workbook </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> XSSFWorkbook();
+                }
+                </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span>(pathExtensionName.Contains(<span style="color: #800000;">"</span><span style="color: #800000;">.xls</span><span style="color: #800000;">"</span><span style="color: #000000;">))
+                {
+                    workbook </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> HSSFWorkbook();
+                }
+                </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+                {
+                    Outpath </span>= Outpath.Trim() + <span style="color: #800000;">"</span><span style="color: #800000;">.xls</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+                    workbook </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> HSSFWorkbook();
+                }
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">将DataSet导出为Excel</span>
+                <span style="color: #0000ff;">foreach</span> (DataTable dt <span style="color: #0000ff;">in</span><span style="color: #000000;"> dataSet.Tables)
+                {
+                    sheetIndex</span>++<span style="color: #000000;">;
+                    </span><span style="color: #0000ff;">if</span> (dt != <span style="color: #0000ff;">null</span> &amp;&amp; dt.Rows.Count &gt; <span style="color: #800080;">0</span><span style="color: #000000;">)
+                    {
+                        ISheet sheet </span>= workbook.CreateSheet(<span style="color: #0000ff;">string</span>.IsNullOrEmpty(dt.TableName) ? (<span style="color: #800000;">"</span><span style="color: #800000;">sheet</span><span style="color: #800000;">"</span> + sheetIndex) : dt.TableName);<span style="color: #008000;">//</span><span style="color: #008000;">创建一个名称为Sheet0的表</span>
+                        <span style="color: #0000ff;">int</span> rowCount = dt.Rows.Count;<span style="color: #008000;">//</span><span style="color: #008000;">行数</span>
+                        <span style="color: #0000ff;">int</span> columnCount = dt.Columns.Count;<span style="color: #008000;">//</span><span style="color: #008000;">列数
+
+                        </span><span style="color: #008000;">//</span><span style="color: #008000;">设置列头</span>
+                        IRow row = sheet.CreateRow(<span style="color: #800080;">0</span>);<span style="color: #008000;">//</span><span style="color: #008000;">excel第一行设为列头</span>
+                        <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> c = <span style="color: #800080;">0</span>; c &lt; columnCount; c++<span style="color: #000000;">)
+                        {
+                            ICell cell </span>=<span style="color: #000000;"> row.CreateCell(c);
+                            cell.SetCellValue(dt.Columns[c].ColumnName);
+                        }
+
+                        </span><span style="color: #008000;">//</span><span style="color: #008000;">设置每行每列的单元格,</span>
+                        <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; rowCount; i++<span style="color: #000000;">)
+                        {
+                            row </span>= sheet.CreateRow(i + <span style="color: #800080;">1</span><span style="color: #000000;">);
+                            </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> j = <span style="color: #800080;">0</span>; j &lt; columnCount; j++<span style="color: #000000;">)
+                            {
+                                ICell cell </span>= row.CreateCell(j);<span style="color: #008000;">//</span><span style="color: #008000;">excel第二行开始写入数据</span>
+<span style="color: #000000;">                                cell.SetCellValue(dt.Rows[i][j].ToString());
+                            }
+                        }
+                    }
+                }
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">向outPath输出数据</span>
+                <span style="color: #0000ff;">using</span> (FileStream fs =<span style="color: #000000;"> File.OpenWrite(Outpath))
+                {
+                    workbook.Write(fs);</span><span style="color: #008000;">//</span><span style="color: #008000;">向打开的这个xls文件中写入数据</span>
+                    result = <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+                }
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> result;
+            }
+            </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception ex)
+            {
+                </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+            }
+        }
+    }</span></span></pre>
+</div>
+<p>&nbsp;</p>
+<h2>4.上面两个方法的使用方法　</h2>
+<hr />
+<p>&nbsp;</p>
+<p>　　将上面两个方法都定义在ExcelHelper类中，使用如下代码使用：</p>
+<div class="cnblogs_code">
+<pre><code><span style="font-size: 14px;">        DataSet <span style="color: #0000ff;">set</span> = ExcelHelper.ExcelToDataTable(<span style="color: #800000;">"</span><span style="color: #800000;">test.xlsx</span><span style="color: #800000;">"</span>, <span style="color: #0000ff;">true</span><span style="color: #000000;">);//Excel导入
+        </span><span style="color: #0000ff;">bool</span> b = ExcelHelper.DataTableToExcel(<span style="color: #0000ff;">set</span>, <span style="color: #800000;">"</span><span style="color: #800000;">test2.xlsx</span><span style="color: #800000;">"</span>);//导出Excel</span></pre>
+</div>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

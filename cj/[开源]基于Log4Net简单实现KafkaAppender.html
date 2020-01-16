@@ -1,0 +1,346 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修[开源]基于Log4Net简单实现KafkaAppender' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>[开源]基于Log4Net简单实现KafkaAppender</center></div><div class='banquan'>原文出处:本文由博客园博主MeetYan提供。<br/>
+原文连接:https://www.cnblogs.com/MeetYan/p/10693545.html</div><br>
+    <h2 id="背景">背景</h2>
+<ol>
+<li>基于之前<a href="https://www.cnblogs.com/MeetYan/p/10687029.html">基于Log4Net本地日志服务简单实现</a> 实现本地日志服务，但是随着项目开发演进，本地日志服务满足不了需求，譬如在预发布环境或者生产环境，不可能让开发人员登录查看本地日志文件分析。</li>
+<li>Kafka+ELK日志服务套件，可以在线日志服务可以解决上述问题，并且提供丰富报表分析等等；</li>
+<li>具体源码：<a href="https://github.com/YanZhiwei/MasterChief">MasterChief</a></li>
+<li>Nuget：Install-Package MasterChief.DotNet.Core.KafkaLog</li>
+<li>欢迎Star，欢迎Issues；</li>
+</ol>
+<h2 id="源码">源码</h2>
+<ol>
+<li><p>基于Log4Net来实现与kafka通讯Appender</p>
+<pre><code><code> public class KafkaAppender : AppenderSkeleton
+ {
+     #region Fields
+
+     /// &lt;summary&gt;
+     ///     Kafka 生产者
+     /// &lt;/summary&gt;
+     private Producer _kafkaProducer;
+
+     #endregion Fields
+
+     #region Properties
+
+     /// &lt;summary&gt;
+     ///     Brokers
+     /// &lt;/summary&gt;
+     public string Brokers { get; set; }
+
+     /// &lt;summary&gt;
+     ///     Topic
+     /// &lt;/summary&gt;
+     public string Topic { get; set; }
+
+     #endregion Properties
+
+     #region Methods
+
+     /// &lt;summary&gt;
+     ///     Initialize the appender based on the options set
+     /// &lt;/summary&gt;
+     /// &lt;remarks&gt;
+     ///     &lt;para&gt;
+     ///         This is part of the &lt;see cref=&quot;T:log4net.Core.IOptionHandler&quot; /&gt; delayed object
+     ///         activation scheme. The &lt;see cref=&quot;M:log4net.Appender.AppenderSkeleton.ActivateOptions&quot; /&gt; method must
+     ///         be called on this object after the configuration properties have
+     ///         been set. Until &lt;see cref=&quot;M:log4net.Appender.AppenderSkeleton.ActivateOptions&quot; /&gt; is called this
+     ///         object is in an undefined state and must not be used.
+     ///     &lt;/para&gt;
+     ///     &lt;para&gt;
+     ///         If any of the configuration properties are modified then
+     ///         &lt;see cref=&quot;M:log4net.Appender.AppenderSkeleton.ActivateOptions&quot; /&gt; must be called again.
+     ///     &lt;/para&gt;
+     /// &lt;/remarks&gt;
+     public override void ActivateOptions()
+     {
+         base.ActivateOptions();
+         InitKafkaProducer();
+     }
+
+     /// &lt;summary&gt;
+     ///     Subclasses of &lt;see cref=&quot;T:log4net.Appender.AppenderSkeleton&quot; /&gt; should implement this method
+     ///     to perform actual logging.
+     /// &lt;/summary&gt;
+     /// &lt;param name=&quot;loggingEvent&quot;&gt;The event to append.&lt;/param&gt;
+     /// &lt;remarks&gt;
+     ///     &lt;para&gt;
+     ///         A subclass must implement this method to perform
+     ///         logging of the &lt;paramref name=&quot;loggingEvent&quot; /&gt;.
+     ///     &lt;/para&gt;
+     ///     &lt;para&gt;
+     ///         This method will be called by &lt;see cref=&quot;M:DoAppend(LoggingEvent)&quot; /&gt;
+     ///         if all the conditions listed for that method are met.
+     ///     &lt;/para&gt;
+     ///     &lt;para&gt;
+     ///         To restrict the logging of events in the appender
+     ///         override the &lt;see cref=&quot;M:PreAppendCheck()&quot; /&gt; method.
+     ///     &lt;/para&gt;
+     /// &lt;/remarks&gt;
+     protected override void Append(LoggingEvent loggingEvent)
+     {
+         try
+         {
+             var message = GetLogMessage(loggingEvent);
+             var topic = GetTopic(loggingEvent);
+
+             _ = _kafkaProducer.SendMessageAsync(topic, new[] {new Message(message)});
+         }
+         catch (Exception ex)
+         {
+             ErrorHandler.Error(&quot;KafkaProducer SendMessageAsync&quot;, ex);
+         }
+     }
+
+     /// &lt;summary&gt;
+     ///     Raises the Close event.
+     /// &lt;/summary&gt;
+     /// &lt;remarks&gt;
+     ///     &lt;para&gt;
+     ///         Releases any resources allocated within the appender such as file handles,
+     ///         network connections, etc.
+     ///     &lt;/para&gt;
+     ///     &lt;para&gt;
+     ///         It is a programming error to append to a closed appender.
+     ///     &lt;/para&gt;
+     /// &lt;/remarks&gt;
+     protected override void OnClose()
+     {
+         base.OnClose();
+         StopKafkaProducer();
+     }
+
+     private string GetLogMessage(LoggingEvent loggingEvent)
+     {
+         var builder = new StringBuilder();
+         using (var writer = new StringWriter(builder))
+         {
+             Layout.Format(writer, loggingEvent);
+
+             if (Layout.IgnoresException &amp;&amp; loggingEvent.ExceptionObject != null)
+                 writer.Write(loggingEvent.GetExceptionString());
+
+             return writer.ToString();
+         }
+     }
+
+     private string GetTopic(LoggingEvent loggingEvent)
+     {
+         return string.IsNullOrEmpty(Topic) ? Path.GetFileNameWithoutExtension(loggingEvent.Domain) : Topic;
+     }
+
+     /// &lt;summary&gt;
+     ///     初始化Kafka 生产者
+     /// &lt;/summary&gt;
+     private void InitKafkaProducer()
+     {
+         try
+         {
+             if (string.IsNullOrEmpty(Brokers)) Brokers = &quot;http://localhost:9200&quot;;
+
+             if (_kafkaProducer == null)
+             {
+                 var brokers = new Uri(Brokers);
+                 var kafkaOptions = new KafkaOptions(brokers)
+                 {
+                     Log = new KafkaLog()
+                 };
+                 _kafkaProducer = new Producer(new BrokerRouter(kafkaOptions));
+             }
+         }
+         catch (Exception ex)
+         {
+             ErrorHandler.Error(&quot;InitKafkaProducer&quot;, ex);
+         }
+     }
+
+     /// &lt;summary&gt;
+     ///     停止生产者
+     /// &lt;/summary&gt;
+     private void StopKafkaProducer()
+     {
+         try
+         {
+             _kafkaProducer?.Stop();
+         }
+         catch (Exception ex)
+         {
+             ErrorHandler.Error(&quot;StopKafkaProducer&quot;, ex);
+         }
+     }
+
+     #endregion Methods
+ }
+</code></pre></li>
+<li><p>基于之前定义接口，来实现kafkaLogService</p>
+<pre><code><code>public sealed class KafkaLogService : ILogService
+{
+    #region Constructors
+
+    /// &lt;summary&gt;
+    ///     Initializes the &lt;see cref=&quot;FileLogService&quot; /&gt; class.
+    /// &lt;/summary&gt;
+    static KafkaLogService()
+    {
+        KafkaLogger = LogManager.GetLogger(KafkaLoggerName);
+    }
+
+    #endregion Constructors
+
+    #region Fields
+
+    /// &lt;summary&gt;
+    ///     Kafka logger name
+    /// &lt;/summary&gt;
+    public const string KafkaLoggerName = &quot;KafkaLogger&quot;;
+
+    /// &lt;summary&gt;
+    ///     Kafka logger
+    /// &lt;/summary&gt;
+    public static readonly ILog KafkaLogger;
+
+    #endregion Fields
+
+    #region Methods
+
+    /// &lt;summary&gt;
+    ///     Debug记录
+    /// &lt;/summary&gt;
+    /// &lt;param name=&quot;message&quot;&gt;日志信息&lt;/param&gt;
+    public void Debug(string message)
+    {
+        if (KafkaLogger.IsDebugEnabled) KafkaLogger.Debug(message);
+    }
+
+    /// &lt;summary&gt;
+    ///     Debug记录
+    /// &lt;/summary&gt;
+    /// &lt;param name=&quot;message&quot;&gt;日志信息&lt;/param&gt;
+    /// &lt;param name=&quot;ex&quot;&gt;异常信息&lt;/param&gt;
+    public void Debug(string message, Exception ex)
+    {
+        if (KafkaLogger.IsDebugEnabled) KafkaLogger.Debug(message, ex);
+    }
+
+    /// &lt;summary&gt;
+    ///     Error记录
+    /// &lt;/summary&gt;
+    /// &lt;param name=&quot;message&quot;&gt;日志信息&lt;/param&gt;
+    public void Error(string message)
+    {
+        if (KafkaLogger.IsErrorEnabled) KafkaLogger.Error(message);
+    }
+
+    /// &lt;summary&gt;
+    ///     Error记录
+    /// &lt;/summary&gt;
+    /// &lt;param name=&quot;message&quot;&gt;日志信息&lt;/param&gt;
+    /// &lt;param name=&quot;ex&quot;&gt;异常信息&lt;/param&gt;
+    public void Error(string message, Exception ex)
+    {
+        if (KafkaLogger.IsErrorEnabled) KafkaLogger.Error(message, ex);
+    }
+
+    /// &lt;summary&gt;
+    ///     Fatal记录
+    /// &lt;/summary&gt;
+    /// &lt;param name=&quot;message&quot;&gt;日志信息&lt;/param&gt;
+    public void Fatal(string message)
+    {
+        if (KafkaLogger.IsFatalEnabled) KafkaLogger.Fatal(message);
+    }
+
+    /// &lt;summary&gt;
+    ///     Fatal记录
+    /// &lt;/summary&gt;
+    /// &lt;param name=&quot;message&quot;&gt;日志信息&lt;/param&gt;
+    /// &lt;param name=&quot;ex&quot;&gt;异常信息&lt;/param&gt;
+    public void Fatal(string message, Exception ex)
+    {
+        if (KafkaLogger.IsFatalEnabled) KafkaLogger.Fatal(message, ex);
+    }
+
+    /// &lt;summary&gt;
+    ///     Info记录
+    /// &lt;/summary&gt;
+    /// &lt;param name=&quot;message&quot;&gt;日志信息&lt;/param&gt;
+    public void Info(string message)
+    {
+        if (KafkaLogger.IsInfoEnabled) KafkaLogger.Info(message);
+    }
+
+    /// &lt;summary&gt;
+    ///     Info记录
+    /// &lt;/summary&gt;
+    /// &lt;param name=&quot;message&quot;&gt;日志信息&lt;/param&gt;
+    /// &lt;param name=&quot;ex&quot;&gt;异常信息&lt;/param&gt;
+    public void Info(string message, Exception ex)
+    {
+        if (KafkaLogger.IsInfoEnabled) KafkaLogger.Info(message, ex);
+    }
+
+    /// &lt;summary&gt;
+    ///     Warn记录
+    /// &lt;/summary&gt;
+    /// &lt;param name=&quot;message&quot;&gt;日志信息&lt;/param&gt;
+    public void Warn(string message)
+    {
+        if (KafkaLogger.IsWarnEnabled) KafkaLogger.Warn(message);
+    }
+
+    /// &lt;summary&gt;
+    ///     Warn记录
+    /// &lt;/summary&gt;
+    /// &lt;param name=&quot;message&quot;&gt;日志信息&lt;/param&gt;
+    /// &lt;param name=&quot;ex&quot;&gt;异常信息&lt;/param&gt;
+    public void Warn(string message, Exception ex)
+    {
+        if (KafkaLogger.IsWarnEnabled) KafkaLogger.Warn(message, ex);
+    }
+
+    #endregion Methods
+}</code></pre></li>
+<li><p>修改Log4Net.Config，定义Kafka的Topic以及Brokers</p>
+<pre class="xml"><code>    &lt;appender name=&quot;KafkaAppender&quot; type=&quot;MasterChief.DotNet.Core.KafkaLog.KafkaAppender, MasterChief.DotNet.Core.KafkaLog&quot;&gt;
+        &lt;param name=&quot;Topic&quot; value=&quot;beats&quot; /&gt;
+        &lt;param name=&quot;Brokers&quot; value=&quot;http://localhost:9092&quot; /&gt;
+        &lt;layout type=&quot;log4net.Layout.PatternLayout&quot;&gt;
+            &lt;conversionPattern value=&quot;发生时间：%date %newline事件级别：%-5level %newline事件来源：%logger%newline日志内容：%message%newline&quot; /&gt;
+        &lt;/layout&gt;
+    &lt;/appender&gt;</code></pre></li>
+</ol>
+<h2 id="使用">使用</h2>
+<ol>
+<li>由于基于上篇说的日志接口，所以可以通过Ioc切换，而且不影响在业务代码调用；</li>
+<li>基于业务需求，您可以同时落地本地日志，保证网络抖动或者不正常的时候能够正常记录日志；</li>
+</ol>
+<h2 id="结语">结语</h2>
+<ol>
+<li>小弟不才，大佬轻拍；</li>
+</ol>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

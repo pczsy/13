@@ -1,0 +1,239 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C#程序编写高质量代码改善的157个建议【20-22】[泛型集合、选择集合、集合的安全]' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C#程序编写高质量代码改善的157个建议【20-22】[泛型集合、选择集合、集合的安全]</center></div><div class='banquan'>原文出处:本文由博客园博主不灬赖提供。<br/>
+原文连接:https://www.cnblogs.com/ljdong7/p/12014511.html</div><br>
+    <h1 class="postTitle">&nbsp;</h1>
+<p style="background: #339900; color: #ffffff; font-size: 18pt;">建议20、使用泛型集合来替代非泛型集合</p>
+<p><a href="http://www.cnblogs.com/aehyok/p/3384637.html">http://www.cnblogs.com/aehyok/p/3384637.html</a>&nbsp;这里有一篇文章，是我之前专门来介绍泛型的。我们应尽量的使用泛型集合。因为泛型的确有它的好处：</p>
+<p>1、提供了类型安全，在编译期间就可以检查错误</p>
+<p>2、更重要的是大部分情况下泛型集合的性能比非泛型集合的性能都高很多。</p>
+<p>下面我们来看一段简单的测试性能的代码：</p>
+<div class="cnblogs_code">
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#程序编写高质量代码改善的157个建议【20-22】[泛型集合、选择集合、集合的安全]0.png" alt="复制代码" /></a></span></div>
+<pre><code><span style="color: #0000ff;">class<span style="color: #000000;"> Program
+    {
+        <span style="color: #0000ff;">static <span style="color: #0000ff;">int collectionCount = <span style="color: #800080;">0<span style="color: #000000;">;
+        <span style="color: #0000ff;">static Stopwatch watch = <span style="color: #0000ff;">null<span style="color: #000000;">;
+        <span style="color: #0000ff;">static <span style="color: #0000ff;">int testCount = <span style="color: #800080;">10000000<span style="color: #000000;">;
+        <span style="color: #0000ff;">static <span style="color: #0000ff;">void<span style="color: #000000;"> TestBegin()
+        {
+            GC.Collect(); <span style="color: #808080;">///<span style="color: #008000;">/强制对所有代码进行即时垃圾回收
+            GC.WaitForPendingFinalizers();<span style="color: #808080;">///<span style="color: #008000;">/挂起线程，执行终结器队列中的终结器（即析构方法）
+            GC.Collect();<span style="color: #808080;">///<span style="color: #008000;">再次对所有代码进行垃圾回收，主要包括从终结器队列中出来的对象
+            collectionCount = GC.CollectionCount(<span style="color: #800080;">0);<span style="color: #808080;">///<span style="color: #008000;">返回在0代中执行的垃圾回收次数
+            watch = <span style="color: #0000ff;">new<span style="color: #000000;"> Stopwatch();
+            watch.Start();
+        }
+
+        <span style="color: #0000ff;">static <span style="color: #0000ff;">void<span style="color: #000000;"> TestEnd()
+        {
+            watch.Stop();
+            Console.WriteLine(<span style="color: #800000;">"<span style="color: #800000;">耗时：{0}<span style="color: #800000;">"<span style="color: #000000;">,watch.ElapsedMilliseconds.ToString());
+            Console.WriteLine(<span style="color: #800000;">"<span style="color: #800000;">垃圾回收次数：{0}<span style="color: #800000;">", GC.CollectionCount(<span style="color: #800080;">0) -<span style="color: #000000;"> collectionCount);
+        }
+        <span style="color: #0000ff;">static <span style="color: #0000ff;">void<span style="color: #000000;"> TestArrayList()
+        {
+            ArrayList arrayList = <span style="color: #0000ff;">new<span style="color: #000000;"> ArrayList();
+            <span style="color: #0000ff;">int temp = <span style="color: #800080;">0<span style="color: #000000;">;
+            <span style="color: #0000ff;">for (<span style="color: #0000ff;">int i = <span style="color: #800080;">0; i &lt; testCount; i++<span style="color: #000000;">)
+            {
+                arrayList.Add(i);
+                temp = (<span style="color: #0000ff;">int<span style="color: #000000;">)arrayList[i];
+            }
+            arrayList = <span style="color: #0000ff;">null<span style="color: #000000;">;
+        }
+
+        <span style="color: #0000ff;">static <span style="color: #0000ff;">void<span style="color: #000000;"> TestGenericList()
+        {
+            List&lt;<span style="color: #0000ff;">int&gt; list = <span style="color: #0000ff;">new List&lt;<span style="color: #0000ff;">int&gt;<span style="color: #000000;">();
+            <span style="color: #0000ff;">int temp = <span style="color: #800080;">0<span style="color: #000000;">;
+            <span style="color: #0000ff;">for (<span style="color: #0000ff;">int i = <span style="color: #800080;">0; i &lt; testCount; i++<span style="color: #000000;">)
+            {
+                list.Add(i);
+                temp =<span style="color: #000000;"> list[i];
+            }
+            list = <span style="color: #0000ff;">null<span style="color: #000000;">;
+        }
+        <span style="color: #0000ff;">static <span style="color: #0000ff;">void Main(<span style="color: #0000ff;">string<span style="color: #000000;">[] args)
+        {
+            Console.WriteLine(<span style="color: #800000;">"<span style="color: #800000;">开始测试ArrayList<span style="color: #800000;">"<span style="color: #000000;">);
+            TestBegin();
+            TestArrayList();
+            TestEnd();
+            Console.WriteLine(<span style="color: #800000;">"<span style="color: #800000;">开始测试List&lt;T&gt;<span style="color: #800000;">"<span style="color: #000000;">);
+            TestBegin();
+            TestGenericList();
+            TestEnd();
+            Console.ReadLine();
+        }
+    }</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#程序编写高质量代码改善的157个建议【20-22】[泛型集合、选择集合、集合的安全]0.png" alt="复制代码" /></a></span></div>
+</div>
+<p>执行结果如下</p>
+<p><img src="./images/C#程序编写高质量代码改善的157个建议【20-22】[泛型集合、选择集合、集合的安全]2.png" alt="" /></p>
+<p>&nbsp;　　我上面测试的次数是10000000，可以发现，两者在垃圾回收次数和耗时都差距比较大，所以泛型集合有着非泛型集合无法超越的优势。所以还是尽量在我们的程序中使用泛型集合吧。</p>
+<p style="background: #339900; color: #ffffff; font-size: 18pt;">建议21、选择正确的集合</p>
+<p>&nbsp;<a href="http://www.cnblogs.com/aehyok/p/3643928.html">http://www.cnblogs.com/aehyok/p/3643928.html</a>这里有一篇我刚写的关于集合的博文，主要是简单介绍了一下关于自己使用比较频繁的几个集合。</p>
+<p>如果集合的数目固定并且不涉及转型，使用数组效率高，否则就是使用List&lt;T&gt;。</p>
+<p>像使用数组、ArrayList、List&lt;T&gt;、Dictionary&lt;key,value&gt;这些集合的有点就是插入和删除数据效率比较高，缺点就是查找的效率相对来说低一些。</p>
+<p>关于队列可以参考<a href="http://msdn.microsoft.com/zh-cn/library/System.Collections.Queue(v=vs.80).aspx">http://msdn.microsoft.com/zh-cn/library/System.Collections.Queue(v=vs.80).aspx</a></p>
+<p>关于栈可以参考<a href="http://msdn.microsoft.com/zh-cn/library/System.Collections.Stack(v=vs.110).aspx">http://msdn.microsoft.com/zh-cn/library/System.Collections.Stack(v=vs.110).aspx</a></p>
+<p style="background: #339900; color: #ffffff; font-size: 18pt;">建议22、确保集合的线性安全</p>
+<p>　　&nbsp;建议18中提到，foreach循环不能代替for循环的一个原因是在迭代过程中对集合本身进行了增删操作。将此场景移植到多线程场景中，就是本建议要阐述的重点：确保集合的线程安全。集合线程安全是指在多个线程上添加活删除元素时，线程之间必须保持同步。</p>
+<p>　　下面我们来通过实例来更详细的查看一下，先简单定义一个实体类</p>
+<div class="cnblogs_code">
+<pre><code>    <span style="color: #0000ff;">public <span style="color: #0000ff;">class<span style="color: #000000;"> Person
+    {
+        <span style="color: #0000ff;">public <span style="color: #0000ff;">string Name { <span style="color: #0000ff;">get; <span style="color: #0000ff;">set<span style="color: #000000;">; }
+        <span style="color: #0000ff;">public <span style="color: #0000ff;">int Age { <span style="color: #0000ff;">get; <span style="color: #0000ff;">set<span style="color: #000000;">; }
+    }</span></span></span></span></span></span></span></span></span></span></span></span></span></pre>
+</div>
+<div class="cnblogs_code">
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#程序编写高质量代码改善的157个建议【20-22】[泛型集合、选择集合、集合的安全]0.png" alt="复制代码" /></a></span></div>
+<pre><code>       <span style="color: #0000ff;">static List&lt;Person&gt; list = <span style="color: #0000ff;">new List&lt;Person&gt;<span style="color: #000000;">() 
+        { 
+            <span style="color: #0000ff;">new Person(){ Name=<span style="color: #800000;">"<span style="color: #800000;">aehyok<span style="color: #800000;">",Age=<span style="color: #800080;">25<span style="color: #000000;">},
+            <span style="color: #0000ff;">new Person(){Name=<span style="color: #800000;">"<span style="color: #800000;">Kris<span style="color: #800000;">",Age=<span style="color: #800080;">23<span style="color: #000000;">},
+            <span style="color: #0000ff;">new Person(){Name=<span style="color: #800000;">"<span style="color: #800000;">Leo<span style="color: #800000;">",Age=<span style="color: #800080;">26<span style="color: #000000;">}
+        };
+        <span style="color: #0000ff;">static AutoResetEvent autoSet = <span style="color: #0000ff;">new AutoResetEvent(<span style="color: #0000ff;">false<span style="color: #000000;">);
+        <span style="color: #0000ff;">static <span style="color: #0000ff;">void Main(<span style="color: #0000ff;">string<span style="color: #000000;">[] args)
+        {
+            Thread t1 = <span style="color: #0000ff;">new Thread(() =&gt;<span style="color: #000000;"> 
+            {
+                <span style="color: #808080;">///<span style="color: #008000;">阻止当前线程
+<span style="color: #000000;">                autoSet.WaitOne();   
+                <span style="color: #0000ff;">foreach (<span style="color: #0000ff;">var item <span style="color: #0000ff;">in<span style="color: #000000;"> list)
+                {
+                    Console.WriteLine(<span style="color: #800000;">"<span style="color: #800000;">t1:<span style="color: #800000;">"+<span style="color: #000000;">item.Name);
+                    Thread.Sleep(<span style="color: #800080;">1000<span style="color: #000000;">);
+                }
+            });
+            t1.Start();
+
+            Thread t2 = <span style="color: #0000ff;">new Thread(() =&gt;<span style="color: #000000;"> 
+            { 
+                <span style="color: #808080;">///<span style="color: #008000;">通知t1可以执行代码
+<span style="color: #000000;">                autoSet.Set();
+                Thread.Sleep(<span style="color: #800080;">1000<span style="color: #000000;">);
+                list.RemoveAt(<span style="color: #800080;">2<span style="color: #000000;">);
+            });
+            t2.Start();
+
+            Console.ReadLine();
+        }</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#程序编写高质量代码改善的157个建议【20-22】[泛型集合、选择集合、集合的安全]0.png" alt="复制代码" /></a></span></div>
+</div>
+<p>再来简单分析一下这段代码，其实就是闲定义了一个List集合，然后又定义了一个 AutoRestEvent的实例，用于控制线程的。</p>
+<p><span style="line-height: 1.5;">接下来在Main函数中定义了两个线程，在线程一中将线程一暂停，然后当调用线程二的时候再来通知线程一继续运行。最终运行结果</span></p>
+<p><span style="line-height: 1.5;"><img src="./images/C#程序编写高质量代码改善的157个建议【20-22】[泛型集合、选择集合、集合的安全]5.png" alt="" />&nbsp;</span></p>
+<p><span style="line-height: 1.5;">主要是因为线程一在暂停之后，开始运行线程二随即线程一得到通知可以继续运行，通过代码可以发现都有Thread.Sleep(1000);也就是为了保证两个线程都还在运行期间，线程二移除了集合中的一个元素，那么当线程一再次循环的时候，导致了错误的发生。</span></p>
+<p><span style="line-height: 1.5;">早在泛型集合出现之前，非泛型集合一般会提供一个SyncRoot属性，要保证非泛型集合的线程安全，可以通过锁定该属性来实现。如果上面的集合用ArrayList代替，保证线程安全则应该在迭代和删除的时候都加上锁lock,代码如下所示：</span></p>
+<div class="cnblogs_code">
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#程序编写高质量代码改善的157个建议【20-22】[泛型集合、选择集合、集合的安全]0.png" alt="复制代码" /></a></span></div>
+<pre><code>        <span style="color: #0000ff;">static ArrayList list = <span style="color: #0000ff;">new<span style="color: #000000;"> ArrayList() 
+        { 
+            <span style="color: #0000ff;">new Person(){ Name=<span style="color: #800000;">"<span style="color: #800000;">aehyok<span style="color: #800000;">",Age=<span style="color: #800080;">25<span style="color: #000000;">},
+            <span style="color: #0000ff;">new Person(){Name=<span style="color: #800000;">"<span style="color: #800000;">Kris<span style="color: #800000;">",Age=<span style="color: #800080;">23<span style="color: #000000;">},
+            <span style="color: #0000ff;">new Person(){Name=<span style="color: #800000;">"<span style="color: #800000;">Leo<span style="color: #800000;">",Age=<span style="color: #800080;">26<span style="color: #000000;">}
+        };
+        <span style="color: #0000ff;">static AutoResetEvent autoSet = <span style="color: #0000ff;">new AutoResetEvent(<span style="color: #0000ff;">false<span style="color: #000000;">);
+        <span style="color: #0000ff;">static <span style="color: #0000ff;">void Main(<span style="color: #0000ff;">string<span style="color: #000000;">[] args)
+        {
+            Thread t1 = <span style="color: #0000ff;">new Thread(() =&gt;<span style="color: #000000;"> 
+            {
+                <span style="color: #808080;">///<span style="color: #008000;">阻止当前线程
+<span style="color: #000000;">                autoSet.WaitOne();
+                <span style="color: #0000ff;">lock<span style="color: #000000;"> (list.SyncRoot)
+                {
+                    <span style="color: #0000ff;">foreach (Person item <span style="color: #0000ff;">in<span style="color: #000000;"> list)
+                    {
+                        Console.WriteLine(<span style="color: #800000;">"<span style="color: #800000;">t1:<span style="color: #800000;">" +<span style="color: #000000;"> item.Name);
+                        Thread.Sleep(<span style="color: #800080;">1000<span style="color: #000000;">);
+                    }
+                }
+
+            });
+            t1.Start();
+
+            Thread t2 = <span style="color: #0000ff;">new Thread(() =&gt;<span style="color: #000000;"> 
+            { 
+                <span style="color: #808080;">///<span style="color: #008000;">通知t1可以执行代码
+<span style="color: #000000;">                autoSet.Set();
+                Thread.Sleep(<span style="color: #800080;">1000<span style="color: #000000;">);
+                <span style="color: #0000ff;">lock<span style="color: #000000;"> (list.SyncRoot)
+                {
+                    list.RemoveAt(<span style="color: #800080;">2<span style="color: #000000;">);
+                }
+                
+            });
+            t2.Start();
+
+            Console.ReadLine();
+        }</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#程序编写高质量代码改善的157个建议【20-22】[泛型集合、选择集合、集合的安全]0.png" alt="复制代码" /></a></span></div>
+</div>
+<p>运行结果就是线程一执行通过</p>
+<p><img src="./images/C#程序编写高质量代码改善的157个建议【20-22】[泛型集合、选择集合、集合的安全]8.png" alt="" /></p>
+<p>如果你试过，那么会发现泛型集合没有这样的属性来进行加锁，必须要自己创建一个锁定对象来完成同步的任务。</p>
+<p>所以第一个例子我们可以这样进行修改</p>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#程序编写高质量代码改善的157个建议【20-22】[泛型集合、选择集合、集合的安全]0.png" alt="复制代码" /></a></span></div>
+<pre><code> <span style="color: #0000ff;">static List&lt;Person&gt; list = <span style="color: #0000ff;">new List&lt;Person&gt;<span style="color: #000000;">() 
+        { 
+            <span style="color: #0000ff;">new Person(){ Name=<span style="color: #800000;">"<span style="color: #800000;">aehyok<span style="color: #800000;">",Age=<span style="color: #800080;">25<span style="color: #000000;">},
+            <span style="color: #0000ff;">new Person(){Name=<span style="color: #800000;">"<span style="color: #800000;">Kris<span style="color: #800000;">",Age=<span style="color: #800080;">23<span style="color: #000000;">},
+            <span style="color: #0000ff;">new Person(){Name=<span style="color: #800000;">"<span style="color: #800000;">Leo<span style="color: #800000;">",Age=<span style="color: #800080;">26<span style="color: #000000;">}
+        };
+        <span style="color: #0000ff;">static <span style="color: #0000ff;">object SyncObject = <span style="color: #0000ff;">new <span style="color: #0000ff;">object<span style="color: #000000;">();
+        <span style="color: #0000ff;">static AutoResetEvent autoSet = <span style="color: #0000ff;">new AutoResetEvent(<span style="color: #0000ff;">false<span style="color: #000000;">);
+        <span style="color: #0000ff;">static <span style="color: #0000ff;">void Main(<span style="color: #0000ff;">string<span style="color: #000000;">[] args)
+        {
+            Thread t1 = <span style="color: #0000ff;">new Thread(() =&gt;<span style="color: #000000;"> 
+            {
+                <span style="color: #808080;">///<span style="color: #008000;">阻止当前线程
+<span style="color: #000000;">                autoSet.WaitOne();
+                <span style="color: #0000ff;">lock<span style="color: #000000;"> (SyncObject)
+                {
+                    <span style="color: #0000ff;">foreach (<span style="color: #0000ff;">var item <span style="color: #0000ff;">in<span style="color: #000000;"> list)
+                    {
+                        Console.WriteLine(<span style="color: #800000;">"<span style="color: #800000;">t1:<span style="color: #800000;">" +<span style="color: #000000;"> item.Name);
+                        Thread.Sleep(<span style="color: #800080;">1000<span style="color: #000000;">);
+                    }
+                }
+            });
+            t1.Start();
+            Thread t2 = <span style="color: #0000ff;">new Thread(() =&gt;<span style="color: #000000;"> 
+            { 
+                <span style="color: #808080;">///<span style="color: #008000;">通知t1可以执行代码
+<span style="color: #000000;">                autoSet.Set();
+                Thread.Sleep(<span style="color: #800080;">1000<span style="color: #000000;">);
+                <span style="color: #0000ff;">lock<span style="color: #000000;"> (SyncObject)
+                {
+                    list.RemoveAt(<span style="color: #800080;">2<span style="color: #000000;">);
+                } 
+            });
+            t2.Start();
+
+            Console.ReadLine();
+        }</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></pre>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

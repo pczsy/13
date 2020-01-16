@@ -1,0 +1,126 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修一步步到IOC' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>一步步到IOC</center></div><div class='banquan'>原文出处:本文由博客园博主见风任然是风提供。<br/>
+原文连接:https://www.cnblogs.com/sunven/p/11558861.html</div><br>
+    <p>一段代码</p>
+<pre><code><code>class Program
+{
+    static void Main(string[] args)
+    {
+        var shop=new Shop();
+        shop.Add();
+        shop.Delete();
+        Console.ReadKey();
+    }
+}
+class Shop
+{
+    readonly Log4NetServices _logServices;
+
+    public Shop()
+    {
+        _logServices = new Log4NetServices();
+    }
+
+    public void Add()
+    {
+        _logServices.Write(&quot;增加商品&quot;);
+    }
+
+    public void Delete()
+    {
+        _logServices.Write(&quot;删除商品&quot;);
+    }
+}</code></pre>
+<p>问题</p>
+<ul>
+<li>依赖具体Log4NetServices，要换成FileLogServices就要改</li>
+</ul>
+<h2 id="依赖">依赖</h2>
+<p>依赖就是<code>依赖抽象</code></p>
+<p>变形:</p>
+<p><code>readonly ILogServices _logServices;</code></p>
+<p>这样在实际使用中，不用管ILogServices的实现，由Shop的构造函数负责给具体实现</p>
+<p>问题</p>
+<ul>
+<li>Shop本身也不知道是用Log4NetServices还是FileLogServices，但使用者肯定是知道的。</li>
+</ul>
+<h2 id="注入">注入</h2>
+<p>注入就是将你需要的东西传给你，不用你自己new</p>
+<p>变形：</p>
+<pre><code><code>class Program
+{
+    static void Main(string[] args)
+    {
+        var shop=new Shop(new Log4NetServices());
+        shop.Add();
+        shop.Delete();
+        shop=new Shop(new FileLogServices());
+        shop.Add();
+        shop.Delete();
+        Console.ReadKey();
+    }
+}
+class Shop
+{
+    readonly ILogServices _logServices;
+
+    public Shop(ILogServices logServices)
+    {
+        _logServices = logServices;
+    }
+
+    public void Add()
+    {
+        _logServices.Write(&quot;增加商品&quot;);
+    }
+
+    public void Delete()
+    {
+        _logServices.Write(&quot;删除商品&quot;);
+    }
+}</code></pre>
+<p>问题：</p>
+<ul>
+<li>需要的人多了，我一个个new?</li>
+<li>需要的种类多了，我一个个new?</li>
+<li>能不能把new的东西放一起，需要的人统一从里面拿。</li>
+</ul>
+<h2 id="ioc">IOC</h2>
+<p>dotnetcore 的ioc示例</p>
+<pre><code><code>class Program
+{
+    static void Main(string[] args)
+    {
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton&lt;ILogServices, Log4NetServices&gt;();
+        var serviceProvider = serviceCollection.BuildServiceProvider();
+        var logServices = serviceProvider.GetService&lt;ILogServices&gt;();
+        var shop = new Shop(logServices);
+        shop.Add();
+        shop.Delete();
+        Console.ReadKey();
+    }
+}</code></pre>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

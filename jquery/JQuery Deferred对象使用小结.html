@@ -1,0 +1,99 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修JQuery Deferred对象使用小结' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>JQuery Deferred对象使用小结</center></div><div class='banquan'>原文出处:本文由博客园博主授客提供。<br/>
+原文连接:https://www.cnblogs.com/shouke/p/11272498.html</div><br>
+    <p align="left"><span style="font-family: 'courier new', courier;"><strong>场景描述</strong></span></p>
+<p align="left"><span style="font-family: 'courier new', courier;">如下，打开页面时，获取默认选中的项目，同时也会初始化Combobox下拉框下拉列表数据</span></p>
+<p align="left"><span style="font-family: 'courier new', courier;">&nbsp;<img src="./images/JQuery Deferred对象使用小结0.png" alt="" /></span></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p align="left"><span style="font-family: 'courier new', courier;">&nbsp;</span></p>
+<p align="left"><span style="font-family: 'courier new', courier;"><strong>问题描述</strong></span></p>
+<p align="left"><span style="font-family: 'courier new', courier;">获取默认选中项目及下拉列表的js函数位于common.js文件,类似如下：</span></p>
+<p align="left"><span style="font-family: 'courier new', courier;">// 根据项目类型，获取对应的项目</span></p>
+<p align="left"><span style="font-family: 'courier new', courier;">function getProjects(projectType) {</span></p>
+<p align="left"><span style="font-family: 'courier new', courier;">&nbsp;&nbsp;&nbsp; // 请求已有已启用项目</span></p>
+<p align="left"><span style="font-family: 'courier new', courier;">&nbsp;&nbsp;&nbsp; $.get('/action/getProjects?projectType=' + projectType, function(data,status) {</span></p>
+<p align="left"><span style="font-family: 'courier new', courier;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; var jsonData = JSON.parse(data);</span></p>
+<p align="left"><span style="font-family: 'courier new', courier;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return jsonData;</span></p>
+<p align="left"><span style="font-family: 'courier new', courier;">&nbsp;&nbsp;&nbsp; });</span></p>
+<p align="left"><span style="font-family: 'courier new', courier;">}</span></p>
+<p align="left"><span style="font-family: 'courier new', courier;">&nbsp;</span></p>
+<p align="left"><span style="font-family: 'courier new', courier;">js函数调用代码位于另一个html文件--testTaskManager.html，&lt;script&gt;&lt;/script&gt;元素标签内。</span></p>
+<p align="left"><span style="font-family: 'courier new', courier;">如下</span></p>
+<p align="left"><span style="font-family: 'courier new', courier;">// 初始化项目combobox下拉列表</span></p>
+<p align="left"><span style="font-family: 'courier new', courier;">var jsonData = getProjects('TestProject');</span></p>
+<p align="left"><span style="font-family: 'courier new', courier;">console.log(jsonData);</span></p>
+<p align="left"><span style="font-family: 'courier new', courier;">if (jsonData['result'] == 'success') {</span></p>
+<p align="left"><span style="font-family: 'courier new', courier;">$('#projects').combobox('loadData', jsonData['data']);</span></p>
+<p align="left"><span style="font-family: 'courier new', courier;">} else {</span></p>
+<p align="left"><span style="font-family: 'courier new', courier;">&nbsp;&nbsp;&nbsp;&nbsp; $.messager.alert('错误信息', '获取项目失败：' + jsonData['data'], 'error');&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></p>
+<p align="left"><span style="font-family: 'courier new', courier;">}</span></p>
+<p align="left"><span style="font-family: 'courier new', courier;">&nbsp;</span></p>
+<p align="left"><span style="font-family: 'courier new', courier;">结果打开页面时，控制台提示如下：</span></p>
+<p align="left"><span style="font-family: 'courier new', courier;"><img src="./images/JQuery Deferred对象使用小结1.png" alt="" />&nbsp;</span></p>
+<p>&nbsp;</p>
+<p align="left"><span style="font-family: 'courier new', courier;">&nbsp;</span></p>
+<p align="left"><span style="font-family: 'courier new', courier;">原因很简单，</span></p>
+<p align="left"><span style="font-family: 'courier new', courier;">var jsonData = getProjects('TestProject');</span></p>
+<p align="left"><span style="font-family: 'courier new', courier;">以上代码getProjects函数调用，会引发get请求。</span></p>
+<p align="left"><span style="font-family: 'courier new', courier;">紧接着，开始执行后续的代码，涉及到jsonData的引用，但是此时，请求可能还没返回结果，也就是说getProjects 还没返回数据给jsonData，jsonData未定义。</span></p>
+<p align="left"><span style="font-family: 'courier new', courier;">&nbsp;</span></p>
+<p align="left"><span style="font-family: 'courier new', courier;"><strong>解决方案</strong></span></p>
+<p align="left"><span style="font-family: 'courier new', courier;">让这两个文件中的代码&ldquo;同步&rdquo;运行。</span></p>
+<p align="left"><span style="font-family: 'courier new', courier;">function getProjects(projectType) {</span></p>
+<p align="left"><span style="font-family: 'courier new', courier;">&nbsp;&nbsp;&nbsp; var defer = $.Deferred(); //<strong>返回</strong><strong>Deferred</strong><strong>对象</strong><strong>;</strong></span></p>
+<p align="left"><span style="font-family: 'courier new', courier;">&nbsp;&nbsp;&nbsp; // 请求已有已启用项目</span></p>
+<p align="left"><span style="font-family: 'courier new', courier;">&nbsp;&nbsp;&nbsp; $.get('/action/getProjects?projectType=' + projectType, function(data,status) {</span></p>
+<p align="left"><span style="font-family: 'courier new', courier;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; var jsonData = JSON.parse(data);</span></p>
+<p align="left"><span style="font-family: 'courier new', courier;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; defer.resolve(jsonData);</span></p>
+<p align="left"><span style="font-family: 'courier new', courier;">&nbsp;&nbsp;&nbsp; });</span></p>
+<p align="left"><span style="font-family: 'courier new', courier;">&nbsp;&nbsp;&nbsp; return defer;</span></p>
+<p align="left"><span style="font-family: 'courier new', courier;">}</span></p>
+<p align="left"><span style="font-family: 'courier new', courier;">&nbsp;</span></p>
+<p><span style="font-family: 'courier new', courier;">&nbsp;</span></p>
+<p><span style="font-family: 'courier new', courier;">// 初始化项目combobox下拉列表</span></p>
+<p><span style="font-family: 'courier new', courier;">getProjects('TestProject').then(function(jsonData) {</span></p>
+<p><span style="font-family: 'courier new', courier;">if (jsonData['result'] == 'success') {</span></p>
+<p><span style="font-family: 'courier new', courier;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; $('#projects').combobox('loadData', jsonData['data']);</span></p>
+<p><span style="font-family: 'courier new', courier;">&nbsp;&nbsp;&nbsp; } else {</span></p>
+<p><span style="font-family: 'courier new', courier;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; $.messager.alert('错误信息', '获取项目失败：' + jsonData['data'], 'error');&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></p>
+<p><span style="font-family: 'courier new', courier;">&nbsp;&nbsp;&nbsp; }</span></p>
+<p><span style="font-family: 'courier new', courier;">});</span></p>
+<p><span style="font-family: 'courier new', courier;">&nbsp;</span></p>
+<p><span style="font-family: 'courier new', courier;">&nbsp;</span></p>
+<p align="left"><span style="font-family: 'courier new', courier;"><strong>说明</strong></span></p>
+<p><span style="font-family: 'courier new', courier;">以上代码，大致意思就是先指定getProjects函数的的异步操作，执行完成后才执行then函数中指定的回调函数。</span></p>
+<p><span style="font-family: 'courier new', courier;">&nbsp;</span></p>
+<p><span style="font-family: 'courier new', courier;">done(fn)&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></p>
+<p><span style="font-family: 'courier new', courier;">fail(fn)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></p>
+<p><span style="font-family: 'courier new', courier;">then(done, fail)</span></p>
+<p><span style="font-family: 'courier new', courier;">done, fail这两个方法都用来绑定回调函数fn，fn可能是一个function，也有可能是多个以逗号分隔的function函数。</span></p>
+<p><span style="font-family: 'courier new', courier;">&nbsp;</span></p>
+<p><span style="font-family: 'courier new', courier;"><strong>resolve(arg) </strong></span></p>
+<p align="left"><span style="font-family: 'courier new', courier;">这个方法用来改变deferred对象的状态为resolved, 并告诉deferred对象执行done回调,arg是传递给回调函数的参数。</span></p>
+<p align="left"><span style="font-family: 'courier new', courier;">&nbsp;</span></p>
+<p><span style="font-family: 'courier new', courier;"><strong>reject(arg)</strong></span></p>
+<p align="left"><span style="font-family: 'courier new', courier;">这个方法用来改变deferred对象的状态为rejected，并告诉deferred对象执行done回调,arg是传递给回调函数的参数。</span></p>
+<p><span style="font-family: 'courier new', courier;">&nbsp;</span></p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

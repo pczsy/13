@@ -1,0 +1,225 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C# 结合 PInvoke 对接 IP 摄像头的笔记' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C# 结合 PInvoke 对接 IP 摄像头的笔记</center></div><div class='banquan'>原文出处:本文由博客园博主myzony提供。<br/>
+原文连接:https://www.cnblogs.com/myzony/p/11944867.html</div><br>
+    <p>最近做项目的时候，需要对接厂商提供的 IP 摄像头。但是他们只提供了 C++ 的 SDK，没办法，只能开始撸 C# 的 SDK Helper 类。本篇文章主要记录了对接 C++ DLL 需要注意的几个地方，以及常见类型的转换。</p>
+<p>要对接 C++ 的 DLL，首先得知道如何引用 DLL 内的方法。在 C# 当中，只需要编写符合 C++ 的函数签名，再使用 <code>[DllImport]</code> 特性指定 DLL 文件路径和入口点等参数即可。</p>
+<p>假如你需要使用 Win32 API 提供的方法，这里我以 <code>SetProcessDPIAware</code> 函数为例：</p>
+<pre><code><code>public static class Win32Helper
+{
+    [DllImport(&quot;user32.dll&quot;)]
+    public static extern bool SetProcessDPIAware();
+}</code></pre>
+<p>接下来你只需要像使用静态方法一样，调用 <code>Win32Helper.SetProcessDPIAware()</code> 方法即可。</p>
+<h2 id="对接-dll-时的问题记录">对接 DLL 时的问题记录</h2>
+<p>一般来说，提供 SDK 的厂商都会给你一份 DEMO 项目，或者是包含有函数定义的头文件 (<code>*.h</code>)。你只需要按照转换规则，将头文件里面的函数签名翻译成 C# 版本的即可。</p>
+<h3 id="函数签名不正确">函数签名不正确</h3>
+<p><img src="./images/C# 结合 PInvoke 对接 IP 摄像头的笔记0.png" /></p>
+<p>有的时候，你名字直接和头文件一样还不行，得手动指定 <code>EntryPoint</code> 参数。你可以使用 <strong>DLL Export Viewer</strong> 工具来查看 DLL 的所有开放函数签名，将其复制下来，填写到 <code>EntryPoint</code> 参数即可。</p>
+<p><img src="./images/C# 结合 PInvoke 对接 IP 摄像头的笔记1.png" /></p>
+<pre><code><code>[DllImport(@&quot;ThirdFiles\AlprSDK.dll&quot;, EntryPoint = &quot;AlprSDK_Startup@12&quot;, CharSet = CharSet.Ansi, CallingConvention = CallingConvention.Winapi)]
+public static extern int AlprSDK_Startup(IntPtr hNotifyWnd, uint nCommandId, string pLocalAddress);</code></pre>
+<h3 id="传递回调函数">传递回调函数</h3>
+<p>有时第三方 SDK 需要你传递回调函数，一般都只提供了一个 <code>void*</code> 定义，也就是一个函数指针。那我们在 C# 如何将委托传递给该参数作为回调函数呢？</p>
+<pre class="c++"><code>ALPRSDK_API OS_Error WINAPI AlprSDK_SearchAllCameras(unsigned int nTimeout,void* callback, char *pLocalAddr = NULL);</code></pre>
+<p>这个时候就需要使用到 <code>[UnmanagedFunctionPointer]</code> 特性来指定函数指针了，只需要将其标注到委托定义上，指定函数的调用方式即可。</p>
+<p>最后我在 C# 里面编写的方法签名如下：</p>
+<pre><code><code>[UnmanagedFunctionPointer(CallingConvention.Winapi, CharSet = CharSet.Ansi)]
+public delegate void SearchAllCamerasCallback(uint deviceType, string deviceName, string deviceIp,
+    byte[] macAddress, ushort wPortWeb, ushort wPortListen, string pSubMask, string pGateway,
+    string pMultiAddress, string pDnsAddress, ushort wMultiPort, int nChannelNum, int nFindCount,
+    uint dwDeviceId);
+
+[DllImport(@&quot;ThirdFiles\AlprSDK.dll&quot;, EntryPoint = &quot;_AlprSDK_SearchAllCameras@12&quot;, CharSet = CharSet.Ansi, CallingConvention = CallingConvention.Winapi)]
+public static extern int AlprSDK_SearchAllCameras(uint nTimeout, SearchAllCamerasCallback callback, string pLocalAddress);</code></pre>
+<h3 id="获取摄像头传递的位图">获取摄像头传递的位图</h3>
+<p>原始 C++ 的函数签名如下：</p>
+<pre class="cpp"><code>////////////////////////////////////////////////////////////////////////////////////////////
+//捕获一张bmp图片.
+//pBmpBuf:存放数据的缓冲区，传入参数时应该为NULL，内存由SDK自行管理.外面的应用程序不用去释放内存
+//len:    数据的长度
+ALPRSDK_API OS_Error WINAPI AlprSDK_CaptureBmp(int nHandleID, void **pBmpBuf, int *len);</code></pre>
+<p>主要的难点在于参数 <code>void** pbmp</code> 的翻译，这里参数 xx 就是指针的指针。因为这个位图是 SDK 来生成的，所以它会在内存空间开辟一段区域用于位图的存储。所以 <code>void*</code> 指向的是这个位图的起始地址，而我传递 <code>void**</code> 就是让 SDK 将这个起始地址传递给我。</p>
+<p>所以 <code>void*</code> 可以翻译为 <code>IntPtr</code>，而这个地址不是我赋值的，而是 SDK 给我的地址，所以我们需要加上按引用传递关键字 <code>ref</code> 。</p>
+<p>如此，我们便获得了位图在内存空间的起始地址，而且方法也将这个位图的大小给了我们。我们只需要从起始地址读取 N 个字节的数据，将其转储到 <code>byte[]</code> 即可。有了 <code>byte[]</code> 对象，你就可以进行其他的操作了，例如加载，保存等。</p>
+<p>在 C# 内部，我是这样定义方法签名，并进行使用的：</p>
+<pre><code><code>[DllImport(@&quot;ThirdFiles\AlprSDK.dll&quot;, EntryPoint = &quot;_AlprSDK_CaptureBmp@12&quot;, CharSet = CharSet.Ansi, CallingConvention = CallingConvention.Winapi)]
+public static extern uint AlprSDK_CaptureBmp(int nHandleId, ref IntPtr pBmpBuf, ref int len);</code></pre>
+<p>读取位图数据，并将其存储到磁盘当中。</p>
+<pre><code><code>var bitmapPtr = IntPtr.Zero;
+var length = 0;
+
+var result = AlprSdk.AlprSDK_CaptureBmp(0, ref bitmapPtr, ref length);
+ThrowIfResultNotZero(&quot;无法从摄像头获取位图&quot;,result);
+
+var bytes = new byte[length];
+Marshal.Copy(bitmapPtr, bytes, 0, length);
+using (var ms = File.Create(@&quot;D:\bitmap.bmp&quot;))
+{
+    using (var writer = new StreamWriter(ms))
+    {
+        writer.Write(bytes);
+    }
+}</code></pre>
+<h2 id="附录-1常用数据类型对照表">附录 1：常用数据类型对照表</h2>
+<table>
+<thead>
+<tr class="header">
+<th>C/C++</th>
+<th>C#</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>WORD</code></td>
+<td><code>ushort</code></td>
+<td></td>
+</tr>
+<tr class="even">
+<td><code>DWORD</code></td>
+<td><code>uint</code></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><code>UCHAR</code></td>
+<td><code>int</code> 或 <code>byte</code></td>
+<td></td>
+</tr>
+<tr class="even">
+<td><code>UCHAR*</code></td>
+<td><code>string</code> 或 <code>IntPtr</code></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><code>unsigned char*</code></td>
+<td><code>[MarshalAs(UnmanagedType.LPArray)]byte[]</code></td>
+<td></td>
+</tr>
+<tr class="even">
+<td><code>char*</code></td>
+<td><code>string</code></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><code>LPCTSTR</code></td>
+<td><code>string</code></td>
+<td></td>
+</tr>
+<tr class="even">
+<td><code>LPTSTR</code></td>
+<td><code>[MarshalAs(UnmanagedType.LPTStr)] string</code></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><code>long</code></td>
+<td><code>int</code></td>
+<td></td>
+</tr>
+<tr class="even">
+<td><code>ulong</code></td>
+<td><code>uint</code></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><code>HANDLE</code></td>
+<td><code>IntPtr</code></td>
+<td></td>
+</tr>
+<tr class="even">
+<td><code>HWND</code></td>
+<td><code>IntPtr</code></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><code>void*</code></td>
+<td><code>IntPtr</code></td>
+<td></td>
+</tr>
+<tr class="even">
+<td><code>int</code></td>
+<td><code>int</code></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><code>int*</code></td>
+<td><code>ref int</code></td>
+<td></td>
+</tr>
+<tr class="even">
+<td><code>*int</code></td>
+<td><code>IntPtr</code></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><code>unsigned int</code></td>
+<td><code>uint</code></td>
+<td></td>
+</tr>
+<tr class="even">
+<td><code>COLORREF</code></td>
+<td><code>uint</code></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><code>CHAR</code></td>
+<td><code>char</code></td>
+<td></td>
+</tr>
+<tr class="even">
+<td><code>HDC</code></td>
+<td><code>int</code></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><code>HGDIOBJ</code></td>
+<td><code>int</code></td>
+<td></td>
+</tr>
+<tr class="even">
+<td><code>BOOL</code></td>
+<td><code>bool</code></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><code>LPSTR</code></td>
+<td><code>string</code></td>
+<td></td>
+</tr>
+<tr class="even">
+<td><code>LPCSTR</code></td>
+<td><code>string</code></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><code>BYTE</code></td>
+<td><code>byte</code></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>参考文章：<a href="https://www.cnblogs.com/yiki/archive/2008/10/29/1321848.html">C# 与 C++ 数据类型对照</a></strong></p>
+<h2 id="附录-2相关工具软件下载">附录 2：相关工具软件下载</h2>
+<p>DLL Export Viewer v1.66：<a href="https://files.cnblogs.com/files/myzony/DLL_Export_Viewer_v1.66.zip" class="uri">https://files.cnblogs.com/files/myzony/DLL_Export_Viewer_v1.66.zip</a></p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

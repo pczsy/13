@@ -1,0 +1,137 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C#委托、事件、线程' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C#委托、事件、线程</center></div><div class='banquan'>原文出处:本文由博客园博主停车坐爱枫林晚提供。<br/>
+原文连接:https://www.cnblogs.com/zyskr/p/10751769.html</div><br>
+    <p>这是几个简单的例子，但是实际的开发中委托还还只在反射时用到过，事件的话只自己做了一次，并且还是特意去用的 ，实际上可以不用。线程的话，因为需要，所以用的会多点，这里主要是WS上的线程。</p>
+<p><strong>委托</strong></p>
+<p>在前面的反射实例中，也有用到委托执行方法。</p>
+<p>这个例子是将一个方法或者委托实例作为另外一个函数的入参传递。</p>
+<p>至于有什么用，我现在还没用上。</p>
+<div class="cnblogs_code">
+<pre><code> <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">delegate</span> <span style="color: #0000ff;">void</span> Dosth(<span style="color: #0000ff;">string</span><span style="color: #000000;"> s);//定义委托 无返回值 一个string参数
+ </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> button2_Click_1(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)
+  {
+         
+      Dosth dosth </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Dosth(Func);//实例化委托，
+      DoMain(dosth);</span><span style="color: #008000;">//</span><span style="color: #008000;">DoMain(Func) 调用函数方法DoMain，入参可以是对应的方法Func也可以是委托实例化的后的dosth</span>
+<span style="color: #000000;">   }
+   </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> Func(<span style="color: #0000ff;">string</span><span style="color: #000000;"> s)
+   {
+      MessageBox.Show(s);
+   }
+  </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> DoMain(Dosth fun) //方法DoMain 入参接收一个委托实例或者函数：返回值是空，入参是一个string
+   {
+      fun(</span><span style="color: #800000;">"</span><span style="color: #800000;">hello world!</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+   }</span></pre>
+</div>
+<p>&nbsp;</p>
+<p><strong>事件</strong></p>
+<p>事件使用发布-订阅模型，事件在类中申明且生成，通过使用同一个类或者其他类中的委托与事件处理程序关联。</p>
+<p>包含事件的类用于发布事件，被称为发布器，其他接收该事件的类称为订阅器。</p>
+<p>发布器中描述的是怎么调用事件，也就是触发事件，订阅器中实际是事件具体的执行，最终要做什么在订阅器中完成。</p>
+<p>这是一个实例。</p>
+<p>发布器类</p>
+<p>发布事件，定义触发事件执行的逻辑的设定。</p>
+<div class="cnblogs_code">
+<pre><code> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Publish {
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> value;
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">delegate</span> <span style="color: #0000ff;">void</span> MyDelegate(<span style="color: #0000ff;">string</span> s);<span style="color: #008000;">//</span><span style="color: #008000;">申明委托</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">event</span> MyDelegate MyEvent;<span style="color: #008000;">//</span><span style="color: #008000;">基于申明的委托定义事件</span>
+        <span style="color: #0000ff;">public</span><span style="color: #000000;"> Publish()
+        {
+            value </span>= <span style="color: #800080;">3</span><span style="color: #000000;">;
+        }
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> CompairValue(<span style="color: #0000ff;">int</span><span style="color: #000000;"> n)
+        {
+            </span><span style="color: #0000ff;">if</span> (n ==<span style="color: #000000;"> value)//满足条件
+            {
+                OnValueChanged();
+            }
+        }
+        </span><span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> OnValueChanged()
+        {
+            </span><span style="color: #0000ff;">if</span> (MyEvent != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+            {
+                MyEvent(</span><span style="color: #800000;">"</span><span style="color: #800000;">hello world!</span><span style="color: #800000;">"</span><span style="color: #000000;">);//触发订阅器中的方法执行
+            }
+        }
+    }</span></pre>
+</div>
+<p>订阅器类</p>
+<p>被触发时，做该做的事。</p>
+<div class="cnblogs_code">
+<pre><code> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Subscribe
+    {
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> ShowMessage(<span style="color: #0000ff;">string</span><span style="color: #000000;"> s)
+        {
+            MessageBox.Show(s);//事件触发，订阅器中执行指定操作，更多的的操作可以在这个类中完成
+        }
+    }</span></pre>
+</div>
+<p>&nbsp;触发器</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> button3_Click(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)
+{
+     Publish pub </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Publish();
+     Subscribe sub </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Subscribe();
+     pub.MyEvent </span>+= sub.ShowMessage<span style="color: #000000;">;//或者new Publish.MyDelegate(sub.ShowMessage);   把订阅器中的方法绑定到事件上，也就是注册发布器中的事件
+     pub.CompairValue(</span><span style="color: #800080;">3</span><span style="color: #000000;">);//当入参为3时，触发事件，订阅器中的方法则执行
+}</span></pre>
+</div>
+<p>&nbsp;</p>
+<p><strong>线程&nbsp;</strong></p>
+<p>这里的线程是WS上的线程</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public void DoMain(){<br />static</span> <span style="color: #0000ff;">object</span> ThreadLock = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">object</span><span style="color: #000000;">();
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span><span style="color: #000000;"> Thread thread;
+</span><span style="color: #0000ff;">lock</span><span style="color: #000000;"> (ThreadLock)
+    {</span>
+            <span style="color: #0000ff;">try</span><span style="color: #000000;">
+            {
+                Boolean ThreadIsExit </span>= thread.IsAlive;<span style="color: #008000;">//</span><span style="color: #008000;">如果报错说明线程不存在</span>
+                <span style="color: #0000ff;">if</span> (!<span style="color: #000000;">ThreadIsExit)
+                { thread.Start(); }
+            }
+            </span><span style="color: #0000ff;">catch</span><span style="color: #000000;">
+            {</span><span style="color: #0000ff;">try</span><span style="color: #000000;">
+                {
+                    thread </span>= <span style="color: #0000ff;">new</span> Thread(<span style="color: #0000ff;">new</span> ThreadStart(Dosth));<span style="color: #008000;">//</span><span style="color: #008000;">开启一个线程，回调函数Dosth</span>
+                    thread.IsBackground = <span style="color: #0000ff;">true</span>;<span style="color: #008000;">//</span><span style="color: #008000;">设置线程为后台线程</span><span style="color: #000000;">
+                    thread.Start();
+                }
+                </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception ex)
+                {</span><span style="color: #000000;">
+                }
+                </span><span style="color: #0000ff;">finally</span><span style="color: #000000;">
+                {
+
+                }
+
+            }
+            </span><span style="color: #0000ff;">finally</span><span style="color: #000000;"> { 
+            
+            }
+}<br /><br />}<br />public void Dosth(){<br /><br /><br />}</span></pre>
+</div>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,183 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C# 使用Emit实现动态AOP框架 (一)' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C# 使用Emit实现动态AOP框架 (一)</center></div><div class='banquan'>原文出处:本文由博客园博主Asccode提供。<br/>
+原文连接:https://www.cnblogs.com/accode/p/10900711.html</div><br>
+    <h1>&nbsp; &nbsp;<span style="color: #3366ff;"> &nbsp;目 &nbsp;录</span></h1>
+<p><a id="homepage1_HomePageDays_DaysList_ctl01_DayList_TitleUrl_2" class="postTitle2" href="https://www.cnblogs.com/accode/p/10900711.html">C# 使用Emit实现动态AOP框架 (一)</a></p>
+<p><a id="homepage1_HomePageDays_DaysList_ctl01_DayList_TitleUrl_1" class="postTitle2" href="https://www.cnblogs.com/accode/p/10901128.html">C# 使用Emit实现动态AOP框架 (二)</a></p>
+<p><a id="homepage1_HomePageDays_DaysList_ctl01_DayList_TitleUrl_0" class="postTitle2" href="https://www.cnblogs.com/accode/p/10903042.html">C# 使用Emit实现动态AOP框架 (三)</a></p>
+<p><a id="homepage1_HomePageDays_DaysList_ctl00_DayList_TitleUrl_1" class="postTitle2" href="https://www.cnblogs.com/accode/p/10906431.html">C# 使用Emit实现动态AOP框架 进阶篇之异常处理</a></p>
+<p><a id="homepage1_HomePageDays_DaysList_ctl00_DayList_TitleUrl_0" class="postTitle2" href="https://www.cnblogs.com/accode/p/10907202.html">C# 使用Emit实现动态AOP框架 进阶篇之优化</a></p>
+<p>&nbsp; 最近需要有一个完全自主的基于C#语言的Aop框架，查了一下资料实现方式主要分为：静态织入和动态代理，静态织入以Postshop为代表，而动态代理又分为：</p>
+<p style="margin-left: 30px;">1、普通反射</p>
+<p style="margin-left: 30px;">2、Emit反射</p>
+<p style="margin-left: 30px;">3、微软提供的.Net Remoting和RealProxy</p>
+<p style="margin-left: 30px;">（微软官方例子<a href="https://msdn.microsoft.com/zh-cn/library/dn574804.aspx">https://msdn.microsoft.com/zh-cn/library/dn574804.aspx</a>）</p>
+<p style="margin-left: 30px;">&nbsp; &nbsp; &nbsp; 总体来说静态织入速度最快，普通反射最慢，而.Net Remoting和RealProx实现起来又相对较复杂。而Emit速度居中，同时其一次生成后，将结果序列化，速度也并不慢，同时和原有类并没有紧密耦合，通过外部配置文件可以方便的控制要进行代理的类型、方法和属性，其缺点是被代理的方法、属性必须为virtual类型。</p>
+<p><span style="color: #0000ff; font-family: 'Microsoft YaHei'; font-size: 15px; background-color: #ffffff;">一、被代理类和代理类</span></p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp;被代理类，是我们正常使用的类，里边是原有的业务逻辑，只要在被代理方法上申明上相应的切面特性就行了，使用起来比较简单；如下</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span>   <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> AopTest
+</span><span style="color: #008080;"> 2</span> <span style="color: #000000;">  {
+</span><span style="color: #008080;"> 3</span>         
+<span style="color: #008080;"> 4</span>         <span style="color: #0000ff;">public</span><span style="color: #000000;"> AopTest()
+</span><span style="color: #008080;"> 5</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 6</span>             Name = <span style="color: #800000;">"</span><span style="color: #800000;">小明</span><span style="color: #800000;">"</span>; Age = <span style="color: #800080;">10</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 7</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 8</span> 
+<span style="color: #008080;"> 9</span>         <span style="color: #0000ff;">public</span> AopTest(<span style="color: #0000ff;">string</span> name, <span style="color: #0000ff;">int</span><span style="color: #000000;"> age)
+</span><span style="color: #008080;">10</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">11</span>             Name = name; Age =<span style="color: #000000;"> age;
+</span><span style="color: #008080;">12</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">13</span> 
+<span style="color: #008080;">14</span> <span style="color: #000000;">        [Log]
+</span><span style="color: #008080;">15</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">virtual</span> <span style="color: #0000ff;">string</span> Name { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+</span><span style="color: #008080;">16</span> 
+<span style="color: #008080;">17</span> <span style="color: #000000;">        [Log]
+</span><span style="color: #008080;">18</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">virtual</span> <span style="color: #0000ff;">int</span> Age { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+</span><span style="color: #008080;">19</span> 
+<span style="color: #008080;">20</span> <span style="color: #000000;">        [Log]
+</span><span style="color: #008080;">21</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">virtual</span> <span style="color: #0000ff;">int</span> NYearLater(<span style="color: #0000ff;">int</span><span style="color: #000000;"> a)
+</span><span style="color: #008080;">22</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">23</span>             <span style="color: #0000ff;">int</span> larter = Age +<span style="color: #000000;"> a;
+</span><span style="color: #008080;">24</span> 
+<span style="color: #008080;">25</span>             <span style="color: #0000ff;">return</span><span style="color: #000000;"> larter;
+</span><span style="color: #008080;">26</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">27</span>     }</pre>
+</div>
+<p>&nbsp;</p>
+<p style="margin-left: 30px;">&nbsp; &nbsp; &nbsp;代理类是Aop框架自动生成的类，使用反编译工具我们可以看到，它比被代理类多了切面上下文声明（AspectContent）和相应的切面特性对象声明，在被代理类的方法执行前后，相应切面特性调用OnEntry、OnExit执行相关操作，如日志、参数验证、权限验证等等Aop功能，其中AspectContext是OnEntry、OnExit调用参数，如下：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> AopTest_Proxy : AopTest
+{
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">override</span> <span style="color: #0000ff;">string</span><span style="color: #000000;"> Name
+    {
+        </span><span style="color: #0000ff;">get</span><span style="color: #000000;">
+        {
+            </span><span style="color: #0000ff;">object</span>[] args = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">object</span>[<span style="color: #800080;">0</span><span style="color: #000000;">];
+            AspectContext aspectContext </span>= <span style="color: #0000ff;">new</span> AspectContext(<span style="color: #0000ff;">this</span>, <span style="color: #800000;">"</span><span style="color: #800000;">get_Name</span><span style="color: #800000;">"</span><span style="color: #000000;">, args);
+            LogAttribute logAttribute </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> LogAttribute();
+            logAttribute.OnEntry(aspectContext);
+            </span><span style="color: #0000ff;">string</span> name = <span style="color: #0000ff;">base</span><span style="color: #000000;">.Name;
+            aspectContext.Result </span>=<span style="color: #000000;"> name;
+            logAttribute.OnExit(aspectContext);
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> name;
+        }
+        </span><span style="color: #0000ff;">set</span><span style="color: #000000;">
+        {
+            AspectContext context </span>= <span style="color: #0000ff;">new</span> AspectContext(<span style="color: #0000ff;">this</span>, <span style="color: #800000;">"</span><span style="color: #800000;">set_Name</span><span style="color: #800000;">"</span>, <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">object</span><span style="color: #000000;">[]
+            {
+                value
+            });
+            LogAttribute logAttribute </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> LogAttribute();
+            logAttribute.OnEntry(context);
+            </span><span style="color: #0000ff;">base</span>.Name =<span style="color: #000000;"> value;
+            logAttribute.OnExit(context);
+        }
+    }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">override</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> Age
+    {
+        </span><span style="color: #0000ff;">get</span><span style="color: #000000;">
+        {
+            </span><span style="color: #0000ff;">object</span>[] args = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">object</span>[<span style="color: #800080;">0</span><span style="color: #000000;">];
+            AspectContext aspectContext </span>= <span style="color: #0000ff;">new</span> AspectContext(<span style="color: #0000ff;">this</span>, <span style="color: #800000;">"</span><span style="color: #800000;">get_Age</span><span style="color: #800000;">"</span><span style="color: #000000;">, args);
+            LogAttribute logAttribute </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> LogAttribute();
+            logAttribute.OnEntry(aspectContext);
+            </span><span style="color: #0000ff;">int</span> age = <span style="color: #0000ff;">base</span><span style="color: #000000;">.Age;
+            aspectContext.Result </span>=<span style="color: #000000;"> age;
+            logAttribute.OnExit(aspectContext);
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> age;
+        }
+        </span><span style="color: #0000ff;">set</span><span style="color: #000000;">
+        {
+            AspectContext context </span>= <span style="color: #0000ff;">new</span> AspectContext(<span style="color: #0000ff;">this</span>, <span style="color: #800000;">"</span><span style="color: #800000;">set_Age</span><span style="color: #800000;">"</span>, <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">object</span><span style="color: #000000;">[]
+            {
+                value
+            });
+            LogAttribute logAttribute </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> LogAttribute();
+            logAttribute.OnEntry(context);
+            </span><span style="color: #0000ff;">base</span>.Age =<span style="color: #000000;"> value;
+            logAttribute.OnExit(context);
+        }
+    }
+
+    </span><span style="color: #0000ff;">public</span> AopTest_Proxy(<span style="color: #0000ff;">string</span> name, <span style="color: #0000ff;">int</span> age) : <span style="color: #0000ff;">base</span><span style="color: #000000;">(name, age)
+    {
+    }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">override</span> <span style="color: #0000ff;">int</span> NYearLater(<span style="color: #0000ff;">int</span><span style="color: #000000;"> num)
+    {
+        AspectContext aspectContext </span>= <span style="color: #0000ff;">new</span> AspectContext(<span style="color: #0000ff;">this</span>, <span style="color: #800000;">"</span><span style="color: #800000;">NYearLater</span><span style="color: #800000;">"</span>, <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">object</span><span style="color: #000000;">[]
+        {
+            num
+        });
+        LogAttribute logAttribute </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> LogAttribute();
+        logAttribute.OnEntry(aspectContext);
+        </span><span style="color: #0000ff;">int</span> num2 = <span style="color: #0000ff;">base</span><span style="color: #000000;">.NYearLater(num);
+        aspectContext.Result </span>=<span style="color: #000000;"> num2;
+        logAttribute.OnExit(aspectContext);
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> num2;
+    }
+}</span></pre>
+</div>
+<p>&nbsp;</p>
+<p><span style="font-size: 15px; font-family: 'Microsoft YaHei'; color: #3366ff;">二、测试方法</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> Test()
+{
+</span><span style="color: #0000ff;">  try</span><span style="color: #000000;">
+  {
+     AopTest WithPara </span>= DynamicProxy.Create&lt;AopTest&gt;(<span style="color: #800000;">"</span><span style="color: #800000;">lxl</span><span style="color: #800000;">"</span>, <span style="color: #800080;">10</span><span style="color: #000000;">); ;
+ 
+     WithPara.NYearLater(</span><span style="color: #800080;">10</span><span style="color: #000000;">);
+     Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">done...</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+   }
+   </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception ex)
+   {
+      Console.WriteLine(ex.Message);
+   }
+ }<br /></span></pre>
+</div>
+<p>&nbsp;</p>
+<p align="left">测试方法中：AopTest WithPara = DynamicProxy.Create&lt;AopTest&gt;("lxl", 10); ，生成一个代理对象，其他就正常使用就可以了。</p>
+<p align="left">调用测试方法执行结果如下：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">Log OnEntry:set_Name(lxl)
+Log OnExit: set_Name
+
+Log OnEntry:set_Age(</span><span style="color: #800080;">10</span><span style="color: #000000;">)
+Log OnExit: set_Age
+
+Log OnEntry:NYearLater(</span><span style="color: #800080;">10</span><span style="color: #000000;">)
+Log OnEntry:get_Age()
+Log OnExit: get_Age Result: </span><span style="color: #800080;">10</span><span style="color: #000000;">
+
+Log OnExit: NYearLater Result: </span><span style="color: #800080;">20</span><span style="color: #000000;">
+
+done...</span></pre>
+</div>
+<p>&nbsp;</p>
+<p align="left">&nbsp; &nbsp;通过结果可以看到 属性Name、Age的Set方法，NYearLater方法，以及Age属性的Get方法都实现了日志记录。下边将分几篇来详细介绍DynamicProxy类的实现。欢迎大家多多指正、交流。</p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

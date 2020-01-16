@@ -1,0 +1,309 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修练手WPF(四)——贪吃蛇小游戏的简易实现（下）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>练手WPF(四)——贪吃蛇小游戏的简易实现（下）</center></div><div class='banquan'>原文出处:本文由博客园博主sssion提供。<br/>
+原文连接:https://www.cnblogs.com/moonblogcore/p/11017857.html</div><br>
+    <p><strong>八、生成新的单节蛇身</strong><br />我们这里先说说游戏小原理好了，游戏运行后，通过计时器事件不断生成新的单节蛇身类SnakeNode，添加到List中的0位置，原来的蛇头变成了第二节。该节新蛇头的坐标通过蛇头前进方向Direct进行判断，即如果原蛇头往左运行，则新蛇头在原蛇头位置的左一格生成，其他方向以此类推。最后将该节添加到SnakeNodes列表中，并将相应图形添加到游戏区。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> GenNewSnakeNode()
+{
+    SnakeNode snakeNode </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+    </span><span style="color: #0000ff;">switch</span><span style="color: #000000;"> (Direct)
+    {
+        </span><span style="color: #0000ff;">case</span><span style="color: #000000;"> Direction.UP:
+            snakeNode </span>= <span style="color: #0000ff;">new</span> SnakeNode(<span style="color: #0000ff;">new</span><span style="color: #000000;"> Point(SnakeNodes[SnakeHead]._pos.X,
+                SnakeNodes[SnakeHead]._pos.Y </span>- <span style="color: #800080;">1</span><span style="color: #000000;">));
+            </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+
+        </span><span style="color: #0000ff;">case</span><span style="color: #000000;"> Direction.DOWN:
+            snakeNode </span>= <span style="color: #0000ff;">new</span> SnakeNode(<span style="color: #0000ff;">new</span><span style="color: #000000;"> Point(SnakeNodes[SnakeHead]._pos.X,
+                SnakeNodes[SnakeHead]._pos.Y </span>+ <span style="color: #800080;">1</span><span style="color: #000000;">));
+            </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+
+        </span><span style="color: #0000ff;">case</span><span style="color: #000000;"> Direction.LEFT:
+            snakeNode </span>= <span style="color: #0000ff;">new</span> SnakeNode(<span style="color: #0000ff;">new</span> Point(SnakeNodes[SnakeHead]._pos.X - <span style="color: #800080;">1</span><span style="color: #000000;">,
+                SnakeNodes[SnakeHead]._pos.Y));
+            </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+
+        </span><span style="color: #0000ff;">case</span><span style="color: #000000;"> Direction.RIGHT:
+            snakeNode </span>= <span style="color: #0000ff;">new</span> SnakeNode(<span style="color: #0000ff;">new</span> Point(SnakeNodes[SnakeHead]._pos.X + <span style="color: #800080;">1</span><span style="color: #000000;">,
+                SnakeNodes[SnakeHead]._pos.Y));
+            </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+    }
+
+    </span><span style="color: #0000ff;">if</span> (snakeNode != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+    {
+        SnakeNodes.Insert(</span><span style="color: #800080;">0</span><span style="color: #000000;">, snakeNode);
+        myCanvas.Children.Add(SnakeNodes[</span><span style="color: #800080;">0</span><span style="color: #000000;">]._rect);
+    }
+}</span></pre>
+</div>
+<p>&nbsp;</p>
+<p><strong>九、随机水果位置</strong><br />注意该新位置不得与蛇身任何一节重叠，如果重叠则另外生成新位置，直到成功为止。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">private</span><span style="color: #000000;"> Point SetFruitToRandomPos()
+{
+    </span><span style="color: #0000ff;">bool</span> flag = <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+    Point pos </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Point();
+    </span><span style="color: #0000ff;">while</span><span style="color: #000000;"> (flag)
+    {
+        flag </span>= <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+        pos </span>= <span style="color: #0000ff;">new</span> Point(rnd.Next(<span style="color: #800080;">0</span>, CellWidth), rnd.Next(<span style="color: #800080;">0</span>, CellHeight<span style="color: #000000;">));
+        </span><span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">var</span> node <span style="color: #0000ff;">in</span><span style="color: #000000;"> SnakeNodes)
+        {
+            </span><span style="color: #0000ff;">if</span> (pos.X == node._pos.X &amp;&amp; pos.Y ==<span style="color: #000000;"> node._pos.Y)
+            {
+                flag </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+                </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+            }
+        }
+    }
+
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> pos;
+}</span></pre>
+</div>
+<p>&nbsp;</p>
+<p><strong>十、碰撞检测（蛇头与水果）</strong><br />因为只有蛇头会最先触碰到水果，所以只需判断蛇头坐标与水果坐标是否相同即可。如果撞到水果，则将水果随机生成新位置；如果没有碰到，则删除蛇尾一节（因为之后会通过计时器会生成新一节蛇头，这样就会保存蛇身长度，感觉位置前进了一格）。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> CheckCollision()
+{
+    </span><span style="color: #0000ff;">if</span> (SnakeNodes[SnakeHead]._pos.X == fruit._pos.X &amp;&amp; SnakeNodes[SnakeHead]._pos.Y ==<span style="color: #000000;"> fruit._pos.Y)
+    {
+        fruit.SetPostion(SetFruitToRandomPos());
+    }
+    </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+    {
+        </span><span style="color: #0000ff;">if</span> (myCanvas.Children.Contains(SnakeNodes[SnakeNodes.Count - <span style="color: #800080;">1</span><span style="color: #000000;">]._rect))
+            myCanvas.Children.Remove(SnakeNodes[SnakeNodes.Count </span>- <span style="color: #800080;">1</span><span style="color: #000000;">]._rect);
+
+        SnakeNodes.RemoveAt(SnakeNodes.Count </span>- <span style="color: #800080;">1</span><span style="color: #000000;">);
+    }
+}</span></pre>
+</div>
+<p>&nbsp;</p>
+<p><strong>十一、判断是否游戏结束</strong><br />很简单，看看蛇头是否触碰游戏区四边或蛇身的任何一节，如果是则返回true。<br />注意蛇身循环是从1开始的，如果从0开始你知道会出现什么情况。</p>
+<div class="cnblogs_code">
+<pre><code>        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">bool</span><span style="color: #000000;"> IsGameOver()
+        {
+            </span><span style="color: #0000ff;">if</span> (SnakeNodes[SnakeHead]._pos.X == -<span style="color: #800080;">1</span> || SnakeNodes[SnakeHead]._pos.X ==<span style="color: #000000;"> CellWidth
+                </span>|| SnakeNodes[SnakeHead]._pos.Y == -<span style="color: #800080;">1</span> || SnakeNodes[SnakeHead]._pos.Y ==<span style="color: #000000;"> CellHeight)
+            {
+                </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+            }
+
+            </span><span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">var</span> node <span style="color: #0000ff;">in</span><span style="color: #000000;"> SnakeNodes)
+            {
+                </span><span style="color: #0000ff;">if</span> (node ==<span style="color: #000000;"> SnakeNodes[SnakeHead])
+                    </span><span style="color: #0000ff;">continue</span><span style="color: #000000;">;
+
+                </span><span style="color: #0000ff;">if</span> (node._pos.X == SnakeNodes[SnakeHead]._pos.X &amp;&amp; node._pos.Y ==<span style="color: #000000;"> SnakeNodes[SnakeHead]._pos.Y)
+                {
+                    </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+                }
+            }
+
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+        }</span></pre>
+</div>
+<p>&nbsp;</p>
+<p><strong>十三、删除游戏区的所有蛇身节</strong><br />这个会在重新开始游戏时使用到：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> RemoveSnakeNodeAll()
+{
+    </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; SnakeNodes.Count; i++<span style="color: #000000;">)
+    {
+        </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (myCanvas.Children.Contains(SnakeNodes[i]._rect))
+        {
+            myCanvas.Children.Remove(SnakeNodes[i]._rect);
+        }
+    }
+}</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>顺便再来一发删除游戏区的水果：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> RemoveFruit()
+{
+    </span><span style="color: #0000ff;">if</span> (fruit == <span style="color: #0000ff;">null</span><span style="color: #000000;">) 
+    {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;">;
+    }
+
+    </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (myCanvas.Children.Contains(fruit._ellipse))
+    {
+        myCanvas.Children.Remove(fruit._ellipse);
+    }
+}</span></pre>
+</div>
+<p>&nbsp;</p>
+<p><strong>十四、按键操作</strong><br />通过方向键，设置Direct值即可。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> MyCanvas_PreviewKeyDown(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, KeyEventArgs e)
+{
+    </span><span style="color: #0000ff;">switch</span><span style="color: #000000;"> (e.Key)
+    {
+        </span><span style="color: #0000ff;">case</span><span style="color: #000000;"> Key.Left:
+            </span><span style="color: #0000ff;">if</span> (Direct !=<span style="color: #000000;"> Direction.RIGHT)
+            {
+                Direct </span>=<span style="color: #000000;"> Direction.LEFT;
+            }
+            </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+
+        </span><span style="color: #0000ff;">case</span><span style="color: #000000;"> Key.Right:
+            </span><span style="color: #0000ff;">if</span> (Direct !=<span style="color: #000000;"> Direction.LEFT)
+            {
+                Direct </span>=<span style="color: #000000;"> Direction.RIGHT;
+            }
+            </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+
+        </span><span style="color: #0000ff;">case</span><span style="color: #000000;"> Key.Up:
+            </span><span style="color: #0000ff;">if</span> (Direct !=<span style="color: #000000;"> Direction.DOWN)
+            {
+                Direct </span>=<span style="color: #000000;"> Direction.UP;
+            }
+            </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+
+        </span><span style="color: #0000ff;">case</span><span style="color: #000000;"> Key.Down:
+            </span><span style="color: #0000ff;">if</span> (Direct !=<span style="color: #000000;"> Direction.UP)
+            {
+                Direct </span>=<span style="color: #000000;"> Direction.DOWN;
+            }
+            </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+
+        </span><span style="color: #0000ff;">case</span><span style="color: #000000;"> Key.Escape:
+            Application.Current.Shutdown();
+            </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+
+        </span><span style="color: #0000ff;">case</span><span style="color: #000000;"> Key.Space:
+            </span><span style="color: #0000ff;">if</span> (CurrGameState ==<span style="color: #000000;"> GameState.NONE)
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;">;
+
+            </span><span style="color: #0000ff;">if</span> (CurrGameState ==<span style="color: #000000;"> GameState.PAUSE)
+            {
+                CurrGameState </span>=<span style="color: #000000;"> GameState.GAMEING;
+                timer.Start();
+                MenuControl_Pause.Header </span>= <span style="color: #800000;">"</span><span style="color: #800000;">暂停</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            }
+            </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (CurrGameState ==<span style="color: #000000;"> GameState.GAMEING)
+            {
+                CurrGameState </span>=<span style="color: #000000;"> GameState.PAUSE;
+                timer.Stop();
+                MenuControl_Pause.Header </span>= <span style="color: #800000;">"</span><span style="color: #800000;">继续</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            }
+            </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+    }
+}</span></pre>
+</div>
+<p>&nbsp;</p>
+<p><strong>十四、定义开始游戏方法</strong><br />先删除界面中的蛇身和水果（保留底部暗格），随机位置生成水果和三节蛇身。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> StartGame()
+{
+    RemoveSnakeNodeAll();
+    RemoveFruit();
+
+    </span><span style="color: #0000ff;">int</span> startX = rnd.Next(<span style="color: #800080;">5</span>, CellWidth - <span style="color: #800080;">6</span><span style="color: #000000;">);
+    </span><span style="color: #0000ff;">int</span> startY = rnd.Next(<span style="color: #800080;">5</span>, CellHeight - <span style="color: #800080;">6</span><span style="color: #000000;">);
+    Direct </span>=<span style="color: #000000;"> Direction.RIGHT;
+
+    fruit </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Fruit(SetFruitToRandomPos(), myCanvas);
+
+    SnakeNodes </span>= <span style="color: #0000ff;">new</span> List&lt;SnakeNode&gt;<span style="color: #000000;">();
+    SnakeNodes.Add(</span><span style="color: #0000ff;">new</span> SnakeNode(<span style="color: #0000ff;">new</span><span style="color: #000000;"> Point(startX, startY)));
+    GenNewSnakeNode();
+    GenNewSnakeNode();
+}</span></pre>
+</div>
+<p>&nbsp;</p>
+<p><strong>十五、开始游戏菜单</strong></p>
+<p>调用StartGame()方法，并设定计时器开始。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> MenuFile_NewGame_Click(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, RoutedEventArgs e)
+{
+    StartGame();
+    timer.Start();
+    CurrGameState </span>=<span style="color: #000000;"> GameState.GAMEING;
+    MenuControl_Pause.Header </span>= <span style="color: #800000;">"</span><span style="color: #800000;">暂停</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+}</span></pre>
+</div>
+<p>&nbsp;</p>
+<p><strong>十六、暂停与继续</strong><br />直接上代码，没有要说的了。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> MenuControl_Pause_Click(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, RoutedEventArgs e)
+{
+    </span><span style="color: #0000ff;">if</span> (CurrGameState ==<span style="color: #000000;"> GameState.GAMEING)
+    {
+        CurrGameState </span>=<span style="color: #000000;"> GameState.PAUSE;
+        timer.Stop();
+        MenuControl_Pause.Header </span>= <span style="color: #800000;">"</span><span style="color: #800000;">继续</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+    }
+    </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (CurrGameState ==<span style="color: #000000;"> GameState.PAUSE)
+    {
+        CurrGameState </span>=<span style="color: #000000;"> GameState.GAMEING;
+        timer.Start();
+        MenuControl_Pause.Header </span>= <span style="color: #800000;">"</span><span style="color: #800000;">暂停</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+    }
+}</span></pre>
+</div>
+<p>&nbsp;</p>
+<p><strong>十七、退出游戏</strong></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> MenuFile_Exit_Click(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, RoutedEventArgs e)
+{
+    Application.Current.Shutdown();
+}</span></pre>
+</div>
+<p>&nbsp;</p>
+<p><strong>十八、其他菜单功能</strong><br />自己实现好了</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> MenuHelp_About_Click(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, RoutedEventArgs e)
+{
+}</span></pre>
+</div>
+<p><img src="./images/练手WPF(四)——贪吃蛇小游戏的简易实现（下）0.png" alt="" /></p>
+<p><img src="./images/练手WPF(四)——贪吃蛇小游戏的简易实现（下）1.png" alt="" /></p>
+<p>&nbsp;</p>
+<p><span style="color: #800000;">[2019.12.23]更新：添加计时器事件代码（我不知道这个方法上次没有贴出来）</span></p>
+<p><strong>十九、计时器事件</strong></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #808080;">///</span><span style="color: #008000;"> 计时器事件
+</span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="sender"&gt;&lt;/param&gt;</span>
+<span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="e"&gt;&lt;/param&gt;</span>
+<span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> Timer_Tick(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)
+{
+    CheckCollision();
+    GenNewSnakeNode();
+
+    </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (IsGameOver())
+    {</span><span style="color: #000000;">
+        CurrGameState </span>=<span style="color: #000000;"> GameState.STOP;
+        timer.Stop();
+        MessageBox.Show(</span><span style="color: #800000;">"</span><span style="color: #800000;">游戏结束</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">警告</span><span style="color: #800000;">"</span><span style="color: #000000;">, MessageBoxButton.OK);
+
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;">;
+    }
+}</span></pre>
+</div>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

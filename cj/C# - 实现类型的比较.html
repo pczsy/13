@@ -1,0 +1,153 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C# - 实现类型的比较' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C# - 实现类型的比较</center></div><div class='banquan'>原文出处:本文由博客园博主solenovex提供。<br/>
+原文连接:https://www.cnblogs.com/cgzl/p/10777541.html</div><br>
+    <h1>IComparable&lt;T&gt;</h1>
+<p>.NET 里，IComparable&lt;T&gt;是用来作比较的最常用接口。</p>
+<p>如果某个类型的实例需要与该类型的其它实例进行比较或者排序的话，那么该类型就可以通过实现IComparable&lt;T&gt;接口来达到此目的。</p>
+<p>IComparable&lt;T&gt;只提供了一个方法：</p>
+<p><img src="./images/C# - 实现类型的比较0.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>先看一个例子，这里使用了string，因为string实现了该接口：</p>
+<p><img src="./images/C# - 实现类型的比较1.png" alt="" /></p>
+<p>其结果是：</p>
+<p><img src="./images/C# - 实现类型的比较2.png" alt="" /></p>
+<p>string是通过按位字母进行比较的，&ldquo;a&rdquo;就小于&ldquo;b&rdquo;，所以上述str1应该是小于str2的。</p>
+<p>而CompareTo方法返回的是int类型，而比较的结果呢，可能有三种情况：</p>
+<ul>
+<li>x == y</li>
+<li>x &lt; y</li>
+<li>x &gt; y</li>
+</ul>
+<p>再通过上面的例子，我们可以看出来：</p>
+<p><span style="color: #ff0000;"><strong>针对x.CompareTo(y)，</strong></span></p>
+<ul>
+<li><span style="color: #ff0000;"><strong>如果 x == y，那么 结果 = 0</strong></span></li>
+<li><span style="color: #ff0000;"><strong>如果 x &lt; y，那么结果 &lt; 0</strong></span></li>
+<li><span style="color: #ff0000;"><strong>如果 x &gt; y，那么结果 &gt; 0</strong></span></li>
+</ul>
+<p>&nbsp;</p>
+<p>我们可以把代码重构一下，提取出一个低级别方法，便于逻辑复用：</p>
+<p><img src="./images/C# - 实现类型的比较3.png" alt="" /></p>
+<p><img src="./images/C# - 实现类型的比较4.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>顺便提一下，string并没有实现&gt; &lt; == 等等操作符。</p>
+<p>&nbsp;</p>
+<h2>int</h2>
+<p>所有的原始类型都实现了IComparable&lt;T&gt;。</p>
+<p>所以使用上面的方法，也可以比较原始数据类型：</p>
+<p><img src="./images/C# - 实现类型的比较5.png" alt="" /></p>
+<p><img src="./images/C# - 实现类型的比较6.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>当然这些类型也可以使用操作符，例如：</p>
+<p><img src="./images/C# - 实现类型的比较7.png" alt="" /></p>
+<p>而string没有实现这些操作符，所以这样写就是错误的：</p>
+<p><img src="./images/C# - 实现类型的比较8.png" alt="" /></p>
+<p>&nbsp;</p>
+<h1>相等性 vs 比较</h1>
+<p>直接看图：</p>
+<p><img src="./images/C# - 实现类型的比较9.png" alt="" width="800" /></p>
+<p>其中，针对比较性，System.object并没有支持，因为对于大多数类型而言，对它们的实例进行比较排序是没有意义的。</p>
+<p>例如3 &lt; 4，这样就是合理的；而提交按钮 &lt; 取消按钮，这就没有意义了；这个委托 &lt; 另一个委托，这也没有意义。</p>
+<p>针对相等性而言，IEquatable&lt;T&gt;仅仅就是对object里的那些Equals方法的补充。而针对比较性而言，IComparable&lt;T&gt;是主打的方式。</p>
+<p>其它的方式都有对应。</p>
+<p>下面两个黄色的通过&rdquo;插件的方式&ldquo;实现的，这里只提一下，不介绍了。</p>
+<p>&nbsp;</p>
+<h2>比较性 只比较值</h2>
+<p><img src="./images/C# - 实现类型的比较10.png" alt="" width="566" /></p>
+<p>判断相等性的时候，可能判断的是引用相等或者是值相等。</p>
+<p>而进行比较排序的时候，其比较的只能是值，因为对引用进行比较排序是没有意义的。</p>
+<p>&nbsp;</p>
+<p>而==和!=操作符可以为原始数据类型和引用类型来使用，而&gt;, &lt;, &gt;=, &lt;= 只能用于原始数据类型。</p>
+<p>&nbsp;</p>
+<h1>在自定义类型上实现比较</h1>
+<p>其实我通常不在我的类型上去实现IComparable&lt;T&gt;，包括引用类型和原始类型。</p>
+<p>因为是这样的，比如说有一个Person（人）这个类型，我想对它排序，按照年龄排序，可以；按照姓名排序，也可以；按照身高排序，也可以；但是没有任何一种排序对人来说是最理所当然的。</p>
+<p>更好的办法是实现某种比较器。</p>
+<p>但是有时候还是需要实现IComparable&lt;T&gt;，那么下面就讲一下怎么做。</p>
+<p>&nbsp;</p>
+<h1>值类型</h1>
+<p>Person Struct：</p>
+<p><img src="./images/C# - 实现类型的比较11.png" alt="" /></p>
+<p>如果直接使用我们之前的方法，则会报错：</p>
+<p><img src="./images/C# - 实现类型的比较12.png" alt="" /></p>
+<p>因为它没实现IComparable&lt;T&gt;接口。</p>
+<p>使用大于号小于号的话，也会报错：</p>
+<p><img src="./images/C# - 实现类型的比较13.png" alt="" /></p>
+<p>因为这个类型也没有实现比较操作符。</p>
+<p>&nbsp;</p>
+<h2>实现IComparable&lt;T&gt;接口</h2>
+<p><img src="./images/C# - 实现类型的比较14.png" alt="" /></p>
+<p>很简单，直接调用了字段Height的CompareTo方法，因为int类型实现了IComparable&lt;T&gt;接口。</p>
+<p>&nbsp;</p>
+<h2>实现比较操作符</h2>
+<p>一共四个操作符：&lt;, &gt;, &lt;=, &gt;=，必须都得实现。</p>
+<p>代码是：</p>
+<p><img src="./images/C# - 实现类型的比较15.png" alt="" /></p>
+<p>这个很简单就不解释了。</p>
+<p>&nbsp;</p>
+<p>现在代码不会报错了：</p>
+<p><img src="./images/C# - 实现类型的比较16.png" alt="" /></p>
+<p>其运行结果是：</p>
+<p><img src="./images/C# - 实现类型的比较17.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>运行OK了，看似没问题，然后，还有一个问题：</p>
+<p><img src="./images/C# - 实现类型的比较18.png" alt="" /></p>
+<p>使用等号判断相等性的代码会报错。</p>
+<p>&nbsp;</p>
+<p>如果你不是用==操作符的话，那么代码是没问题的，也是可以进行比较的，也没人强制要求实现==和!=操作符。但是这很奇怪！因为你说 p1 &gt; p2，这个成立，然后再说 p1 != p2这个就编译错误，那就不合理了。</p>
+<p>所以，<strong>如果你实现了比较操作符，那么相等性操作符也应该一同实现了：</strong></p>
+<p><img src="./images/C# - 实现类型的比较19.png" alt="" /></p>
+<p>那么既然==和!=都实现了，那么其它的相等性判断方法也应该一同实现：</p>
+<ul>
+<li>object.Equals()</li>
+<li>object.GetHashCode()</li>
+<li>IEquatable&lt;T&gt;</li>
+</ul>
+<p>看起来挺麻烦，但这只是一个struct，还是相对简单的。。。。</p>
+<p>&nbsp;</p>
+<p>但针对struct，其实还没完，还有一个非泛型的IComparable接口，泛型出现之前，一直都是用这个接口的。</p>
+<p>这个接口现在来说没什么用了，但是如果有其它遗留的老代码需要使用你这个struct，你可能还需要把这个接口实现一下。。。😂</p>
+<p>&nbsp;</p>
+<h1>引用类型</h1>
+<p>引用类型除了需要考虑上面struct考虑的那些东西外，还需要考虑更多的东西。</p>
+<p>首先，需要在CompareTo里面检查是否为null，和类型检查。</p>
+<p>而如果Person是一个没有seal的class，那问题就更大了，以前文章里提到的OOP继承问题、类型安全问题、相等性问题将全部出现。因为类型安全和比较性还是没法一起很愉快的工作。反正会很混乱。。。</p>
+<p>&nbsp;</p>
+<p>所以如果事seal的class，那么在其上实现比较性的话还勉强可以接受；否则的话，祝好运。。。</p>
+<p>&nbsp;</p>
+<h2>泛型</h2>
+<p>之前在相等性的文章里，提到过，针对泛型代码来说，==和!=操作符不能很好的工作，而object.Equals()却可以。</p>
+<p>这点在比较性里面也是一样的。针对泛型的比较，你需要使用IComparable&lt;T&gt;.CompareTo()方法，而不是比较的操作符&gt;, &lt;, &gt;=, &lt;=等（即使实现了比较操作符）。</p>
+<p>&nbsp;</p>
+<p>如果我把之前的方法代码改成使用比较操作符：</p>
+<p><img src="./images/C# - 实现类型的比较20.png" alt="" /></p>
+<p>那么就会报错，因为无法约束泛型实现了某些操作符。。。但可以考虑在接口里面实现比较操作符。。。</p>
+<p>&nbsp;</p>
+<p>但是实现比较性的话：</p>
+<ul>
+<li>实现IComparable&lt;T&gt;接口</li>
+<li>也可选去实现比较操作符。</li>
+</ul>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

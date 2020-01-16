@@ -1,0 +1,76 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C#中怎样跨窗体调用事件-从事件订阅实例入手' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C#中怎样跨窗体调用事件-从事件订阅实例入手</center></div><div class='banquan'>原文出处:本文由博客园博主霸道流氓提供。<br/>
+原文连接:https://www.cnblogs.com/badaoliumangqizhi/p/11676655.html</div><br>
+    <h1>场景</h1>
+<p>C#中委托与事件的使用-以Winform中跨窗体传值为例：</p>
+<p><a href="https://blog.csdn.net/BADAO_LIUMANG_QIZHI/article/details/100150700">https://blog.csdn.net/BADAO_LIUMANG_QIZHI/article/details/100150700</a></p>
+<p>参考上面的博客。</p>
+<p>需求是在图形选项窗体中刷新主窗体的图。</p>
+<p>注：</p>
+<p>博客主页： <br /><a href="https://blog.csdn.net/badao_liumang_qizhi">https://blog.csdn.net/badao_liumang_qizhi</a> 
+<br />关注公众号<br />霸道的程序猿 <br />获取编程相关电子书、教程推送与免费下载。</p>
+<h1>实现</h1>
+<p>首先是图形选项窗体，即发起方。</p>
+<p>先要声明刷新事件(此事件声明在图形选项工具类DataChartHelper中)：</p>
+<p>public static event EventHandler OnRefreshChart;</p>
+<p>然后图形选项窗体的保存按钮事件中要调用刷新事件时需要触发：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span>.Confirm(<span style="color: #800000;">"</span><span style="color: #800000;">保存成功</span><span style="color: #800000;">"</span>) ==<span style="color: #000000;"> DialogResult.OK)
+                {
+                    Common.DataChart.DataChartHelper.TriggerRefreshChart();     </span><span style="color: #008000;">//</span><span style="color: #008000;">触发图形刷新事件</span>
+                    <span style="color: #0000ff;">this</span><span style="color: #000000;">.Dispose();
+                }</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>此时会触发在图形选项工具类中的TriggerRefreshChart(),回到工具类中：</p>
+<div class="cnblogs_code">
+<pre><code> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> TriggerRefreshChart()
+        {
+            </span><span style="color: #0000ff;">if</span> (OnRefreshChart != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+            {
+                OnRefreshChart(</span><span style="color: #0000ff;">null</span><span style="color: #000000;">, System.EventArgs.Empty);
+            }
+        }</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>此时需要在主页面进行图的刷新。在主页面窗体的窗体加载事件中进行事件订阅：</p>
+<div class="cnblogs_code">
+<pre><code>Common.DataChart.DataChartHelper.OnRefreshChart -=<span style="color: #000000;"> DataChartHelper_OnRefreshChart;
+Common.DataChart.DataChartHelper.OnRefreshChart </span>+= DataChartHelper_OnRefreshChart;</pre>
+</div>
+<p>&nbsp;</p>
+<p>此时就会执行当前主页面的方法DataChartHelper_OnRefreshChart：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> DataChartHelper_OnRefreshChart(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)
+        {
+            DataChartHelper.RefreshPane(</span><span style="color: #0000ff;">this</span><span style="color: #000000;">.zedGraphControl1);
+        }</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>此方法会执行具体的操作，具体操作是调用工具类中的刷新方法。</p>
+<h2>具体流程图示</h2>
+<p><img alt="" /></p>
+<p>&nbsp;<img src="./images/C#中怎样跨窗体调用事件-从事件订阅实例入手1.png" alt="" /></p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

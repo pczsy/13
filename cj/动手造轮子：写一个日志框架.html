@@ -1,0 +1,451 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修动手造轮子：写一个日志框架' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>动手造轮子：写一个日志框架</center></div><div class='banquan'>原文出处:本文由博客园博主WeihanLi提供。<br/>
+原文连接:https://www.cnblogs.com/weihanli/p/12126503.html</div><br>
+    <h1 id="动手造轮子写一个日志框架">动手造轮子：写一个日志框架</h1>
+<h2 id="intro">Intro</h2>
+<p>日志框架有很多，比如 <code>log4net</code> / <code>nlog</code> / <code>serilog</code> / <code>microsoft.extensions.logging</code> 等，如何在切换日志框架的时候做到不用修改代码，只需要切换不同的 <code>loggingProvider</code> 就可以了，最低成本的降低切换日志框架的成本，处于这个考虑自己写了一个日志框架，为不同的日志框架写一个适配，需要用到什么日志框架，配置一下就可以了，业务代码无需变动。</p>
+<h2 id="v0">V0</h2>
+<p>最初的日志强依赖于 log4net，log4net 是我使用的第一个日志框架，所以很长一段时间都在使用它来做日志记录，但是由于是强依赖，在想换日志框架时就会很难受，大量代码要改动，不符合开放封闭的基本原则，于是就有了第一个版本的日志。</p>
+<h2 id="v1">V1</h2>
+<p>第一版的日志参考了微软的日志框架的实现，大概结构如下：</p>
+<pre><code><code>public interface ILogHelperLogFactory
+{
+    ILogger CreateLogger(string categoryName);
+    
+    bool AddProvider(ILogHelperProvider provider);
+}
+public interface ILogHelperLogger
+{
+    bool IsEnabled(LogHelperLogLevel logLevel);
+    void Log(LogHelperLogLevel logLevel, Exception exception, string message);
+}
+public enum LogHelperLogLevel
+{
+    /// &lt;summary&gt;
+    /// All logging levels
+    /// &lt;/summary&gt;
+    All = 0,
+
+    /// &lt;summary&gt;
+    /// A trace logging level
+    /// &lt;/summary&gt;
+    Trace = 1,
+
+    /// &lt;summary&gt;
+    /// A debug logging level
+    /// &lt;/summary&gt;
+    Debug = 2,
+
+    /// &lt;summary&gt;
+    /// A info logging level
+    /// &lt;/summary&gt;
+    Info = 4,
+
+    /// &lt;summary&gt;
+    /// A warn logging level
+    /// &lt;/summary&gt;
+    Warn = 8,
+
+    /// &lt;summary&gt;
+    /// An error logging level
+    /// &lt;/summary&gt;
+    Error = 16,
+
+    /// &lt;summary&gt;
+    /// A fatal logging level
+    /// &lt;/summary&gt;
+    Fatal = 32,
+
+    /// &lt;summary&gt;
+    /// None
+    /// &lt;/summary&gt;
+    None = 64
+}
+public interface ILogHelperProvider
+{
+    ILogHelperLogger CreateLogger(string categoryName);
+}</code></pre>
+<p>为了方便 Logger 的使用，定义了一些扩展方法，使得可以直接使用 <code>logger.Info</code>/<code>logger.Error</code> 等方法，扩展定义如下：</p>
+<pre><code><code>public static void Log(this ILogHelperLogger logger, LogHelperLevel loggerLevel, string msg) =&gt; logger.Log(loggerLevel, null, msg);
+
+#region Info
+
+    public static void Info(this ILogHelperLogger logger, string msg, params object[] parameters)
+{
+    if (parameters == null || parameters.Length == 0)
+    {
+        logger.Log(LogHelperLevel.Info, msg);
+    }
+    else
+    {
+        logger.Log(LogHelperLevel.Info, null, msg.FormatWith(parameters));
+    }
+}
+
+public static void Info(this ILogHelperLogger logger, Exception ex, string msg) =&gt; logger.Log(LogHelperLevel.Info, ex, msg);
+
+public static void Info(this ILogHelperLogger logger, Exception ex) =&gt; logger.Log(LogHelperLevel.Info, ex, ex?.Message);
+
+#endregion Info
+// ...其他的类似，这里就不详细展开了</code></pre>
+<p>如果要自定义的日志记录的话，就实现一个 <code>ILogHelperProvider</code> 即可，实现一个 <code>ILogHelperProvider</code> 就要实现一个 <code>ILogHelperLogger</code> ，原本强依赖的 log4net 可以实现一个 <code>Log4NetLogHelperProvider</code>，这样换别的日志框架的时候只需要实现对应的 <code>ILogHelperProvider</code> 即可，但是从功能性上来说还是很弱的</p>
+<p>如果想要某些日志不记录，比如说，Debug 级别的日志不记录，比如说某一个 Logger 下只记录 Error 级别的日志，现在是有些吃力，只能通过 log4net 的配置来限制了，于是就有了第二个版本，增加了 <code>LoggingFilter</code> 可以针对 Provider/Logger/LogLevel/Exception 来设置 filter，过滤不需要记录的日志，这也是参考了微软的日志框架的 Filter，但是实现不太一样，有兴趣的小伙伴可以自己深入研究一下。</p>
+<h2 id="v2">V2</h2>
+<p>V2 版，在 <code>ILogFactory</code> 的接口上增加了 <code>AddFilter</code> 的方法，定义如下：</p>
+<pre><code><code>/// &lt;summary&gt;   
+/// Add logs filter 
+/// &lt;/summary&gt;  
+/// &lt;param name=&quot;filterFunc&quot;&gt;filterFunc, logProviderType/categoryName/Exception, whether to write log&lt;/param&gt;   
+bool AddFilter(Func&lt;Type, string, LogHelperLogLevel, Exception, bool&gt; filterFunc);</code></pre>
+<p>然后定义了一些扩展方法来方便使用：</p>
+<pre><code><code>public static ILogHelperFactory WithMinimumLevel(this ILogHelperFactory logHelperFactory, LogHelperLevel logLevel)
+{
+    return logHelperFactory.WithFilter(level =&gt; level &gt;= logLevel);
+}
+
+public static ILogHelperFactory WithFilter(this ILogHelperFactory logHelperFactory, Func&lt;LogHelperLevel, bool&gt; filterFunc)
+{
+    logHelperFactory.AddFilter((type, categoryName, logLevel, exception) =&gt; filterFunc.Invoke(logLevel));
+    return logHelperFactory;
+}
+
+public static ILogHelperFactory WithFilter(this ILogHelperFactory logHelperFactory, Func&lt;string, LogHelperLevel, bool&gt; filterFunc)
+{
+    logHelperFactory.AddFilter((type, categoryName, logLevel, exception) =&gt; filterFunc.Invoke(categoryName, logLevel));
+    return logHelperFactory;
+}
+
+public static ILogHelperFactory WithFilter(this ILogHelperFactory logHelperFactory, Func&lt;Type, string, LogHelperLevel, bool&gt; filterFunc)
+{
+    logHelperFactory.AddFilter((type, categoryName, logLevel, exception) =&gt; filterFunc.Invoke(type, categoryName, logLevel));
+    return logHelperFactory;
+}
+
+public static ILogHelperFactory WithFilter(this ILogHelperFactory logHelperFactory, Func&lt;Type, string, LogHelperLevel, Exception, bool&gt; filterFunc)
+{
+    logHelperFactory.AddFilter(filterFunc);
+    return logHelperFactory;
+}
+</code></pre>
+<p>这样就方便了我们只想定义针对 Logger 的 Filter 以及 Provider 的 Filter，不必所有参数都用到，logging filter 现在已经实现了，此时已经使用了 <code>Serilog</code> 做日志记录有一段时间，感觉 <code>Serilog</code> 里的一些设计很优秀，很优雅，于是想把 <code>Serilog</code> 里的一些设计用在自己的日志框架里，比如说：</p>
+<ol>
+<li><p><code>Serilog</code> 的扩展叫做 <code>Sink</code>，日志输出的地方，<code>Serilog</code> 自定义一个 <code>Sink</code>，很简单只需要实现一个接口，不需要再实现一个 Logger，从这点来说，我觉得 <code>Serilog</code> 比微软的日志框架更加优秀，而且 <code>LogEvent</code> 使得日志更方便的进行批量操作，有需要的可以了解一下 <code>Serilog</code> 的 <code>PeriodBatching</code> <a href="https://github.com/serilog/serilog-sinks-periodicbatching" class="uri">https://github.com/serilog/serilog-sinks-periodicbatching</a></p>
+<pre><code><code>/// &lt;summary&gt;
+/// A destination for log events.
+/// &lt;/summary&gt;
+public interface ILogEventSink
+{
+    /// &lt;summary&gt;
+    /// Emit the provided log event to the sink.
+    /// &lt;/summary&gt;
+    /// &lt;param name=&quot;logEvent&quot;&gt;The log event to write.&lt;/param&gt;
+    void Emit(LogEvent logEvent);
+}</code></pre></li>
+<li><p><code>Serilog</code> 可以自定义一些 <code>Enricher</code>，以此来丰富记录的日志内容，比如日志的请求上下文，日志的环境等，也可以是一些固定的属性信息</p></li>
+<li><p><code>MessageTemplate</code>，其实微软的日志框架中也有类似的概念，只不过很不明显，用 <code>Serilog</code> 之前我也很少用，微软的日志框架可以这样用 <code>logger.LogInfo(&quot;hello {name}&quot;, &quot;world&quot;)</code> 这样的写法其实就可以把第一个参数当作是 <code>MessageTemplate</code> 或者它内部的叫法 <code>Format</code></p></li>
+</ol>
+<p>鉴于这么多好处，于是打算将这些功能引入到我的日志框架中</p>
+<h2 id="v3">V3</h2>
+<h3 id="引入-loggingevent">引入 LoggingEvent</h3>
+<p>说干就干，首先要引入一个 <code>LogHelperLoggingEvent</code>，对应的 <code>Serilog</code> 的 <code>LogEvent</code>，定义如下：</p>
+<pre><code><code>public class LogHelperLoggingEvent : ICloneable
+{
+    public string CategoryName { get; set; }
+
+    public DateTimeOffset DateTime { get; set; }
+
+    public string MessageTemplate { get; set; }
+
+    public string Message { get; set; }
+
+    public Exception Exception { get; set; }
+
+    public LogHelperLogLevel LogLevel { get; set; }
+
+    public Dictionary&lt;string, object&gt; Properties { get; set; }
+
+    public LogHelperLoggingEvent Copy =&gt; (LogHelperLoggingEvent)Clone();
+
+    public object Clone()
+    {
+        var newEvent = (LogHelperLoggingEvent)MemberwiseClone();
+        if (Properties != null)
+        {
+            newEvent.Properties = new Dictionary&lt;string, object&gt;();
+            foreach (var property in Properties)
+            {
+                newEvent.Properties[property.Key] = property.Value;
+            }
+        }
+        return newEvent;
+    }
+}</code></pre>
+<p>Event 里定义了一个 Properties 的字典用来丰富日志的内容，另外实现了 <code>ICloneable</code> 接口，方便对对象的拷贝，为了强类型，增加了一个 <code>Copy</code> 的方法，返回一个强类型的对象</p>
+<h3 id="改造-logprovider">改造 LogProvider</h3>
+<p>为了减少扩展一个 <code>ILogProvider</code> 的复杂性，我们要对 <code>ILogProvider</code> 做一个简化，只需要像扩展 <code>Serilog</code> 的 Sink 一样记录日志即可，不需要关心是否要创建 Logger</p>
+<p>改造后的定义如下：</p>
+<pre><code><code>public interface ILogHelperProvider
+{
+    Task Log(LogHelperLoggingEvent loggingEvent);
+}</code></pre>
+<p>(这里返回了一个 Task，可能返回类型是 void 就足够了，看自己的需要)</p>
+<p>这样在实现 <code>LogProvider</code> 的时候只需要实现这个接口就可以了，不需要再实现一个 Logger 了</p>
+<h3 id="增加-enricher">增加 Enricher</h3>
+<p><code>Enricher</code> 定义：</p>
+<pre><code><code>public interface ILogHelperLoggingEnricher
+{
+    void Enrich(LogHelperLoggingEvent loggingEvent);
+}</code></pre>
+<p>内置了一个 <code>PropertyEnricher</code>，方便添加一些简单的属性</p>
+<pre><code><code>
+internal class PropertyLoggingEnricher : ILogHelperLoggingEnricher
+{
+    private readonly string _propertyName;
+    private readonly Func&lt;LogHelperLoggingEvent, object&gt; _propertyValueFactory;
+    private readonly bool _overwrite;
+    private readonly Func&lt;LogHelperLoggingEvent, bool&gt; _logPropertyPredict = null;
+
+    public PropertyLoggingEnricher(string propertyName, object propertyValue, bool overwrite = false) : this(propertyName, (loggingEvent) =&gt; propertyValue, overwrite)
+    {
+    }
+
+    public PropertyLoggingEnricher(string propertyName, Func&lt;LogHelperLoggingEvent, object&gt; propertyValueFactory,
+                                   bool overwrite = false) : this(propertyName, propertyValueFactory, null, overwrite)
+    {
+    }
+
+    public PropertyLoggingEnricher(string propertyName, Func&lt;LogHelperLoggingEvent, object&gt; propertyValueFactory, Func&lt;LogHelperLoggingEvent, bool&gt; logPropertyPredict,
+                                   bool overwrite = false)
+    {
+        _propertyName = propertyName;
+        _propertyValueFactory = propertyValueFactory;
+        _logPropertyPredict = logPropertyPredict;
+        _overwrite = overwrite;
+    }
+
+    public void Enrich(LogHelperLoggingEvent loggingEvent)
+    {
+        if (_logPropertyPredict?.Invoke(loggingEvent) != false)
+        {
+            loggingEvent.AddProperty(_propertyName, _propertyValueFactory, _overwrite);
+        }
+    }
+}</code></pre>
+<p>为 <code>ILogFactory</code> 增加一个 <code>AddEnricher</code> 的方法</p>
+<pre><code><code>
+/// &lt;summary&gt;
+/// add log enricher
+/// &lt;/summary&gt;
+/// &lt;param name=&quot;enricher&quot;&gt;log enricher&lt;/param&gt;
+/// &lt;returns&gt;&lt;/returns&gt;
+bool AddEnricher(ILogHelperLoggingEnricher enricher);</code></pre>
+<p>这样我们在记录日志的时候就可以通过这些 Enricher 丰富 <code>LoggingEvent</code> 中的 Properties 了</p>
+<p>为了方便 Property 的操作，我们增加了一些扩展方法：</p>
+<pre><code><code>public static ILogHelperFactory WithEnricher&lt;TEnricher&gt;(this ILogHelperFactory logHelperFactory,
+                                                        TEnricher enricher) where TEnricher : ILogHelperLoggingEnricher
+{
+    logHelperFactory.AddEnricher(enricher);
+    return logHelperFactory;
+}
+
+public static ILogHelperFactory WithEnricher&lt;TEnricher&gt;(this ILogHelperFactory logHelperFactory) where TEnricher : ILogHelperLoggingEnricher, new()
+{
+    logHelperFactory.AddEnricher(new TEnricher());
+    return logHelperFactory;
+}
+
+public static ILogHelperFactory EnrichWithProperty(this ILogHelperFactory logHelperFactory, string propertyName, object value, bool overwrite = false)
+{
+    logHelperFactory.AddEnricher(new PropertyLoggingEnricher(propertyName, value, overwrite));
+    return logHelperFactory;
+}
+
+public static ILogHelperFactory EnrichWithProperty(this ILogHelperFactory logHelperFactory, string propertyName, Func&lt;LogHelperLoggingEvent&gt; valueFactory, bool overwrite = false)
+{
+    logHelperFactory.AddEnricher(new PropertyLoggingEnricher(propertyName, valueFactory, overwrite));
+    return logHelperFactory;
+}
+
+public static ILogHelperFactory EnrichWithProperty(this ILogHelperFactory logHelperFactory, string propertyName, object value, Func&lt;LogHelperLoggingEvent, bool&gt; predict, bool overwrite = false)
+{
+    logHelperFactory.AddEnricher(new PropertyLoggingEnricher(propertyName, e =&gt; value, predict, overwrite));
+    return logHelperFactory;
+}
+
+public static ILogHelperFactory EnrichWithProperty(this ILogHelperFactory logHelperFactory, string propertyName, Func&lt;LogHelperLoggingEvent, object&gt; valueFactory, Func&lt;LogHelperLoggingEvent, bool&gt; predict, bool overwrite = false)
+{
+    logHelperFactory.AddEnricher(new PropertyLoggingEnricher(propertyName, valueFactory, predict, overwrite));
+    return logHelperFactory;
+}</code></pre>
+<h3 id="messagetemplate">MessageTemplate</h3>
+<p>从上面的 <code>LoggingEvent</code> 中已经增加了 <code>MessageTemplate</code>，于是我们引入了微软日志框架中日志的格式化，将 messageTemplate 和 parameters 转换成 Message 和 Properties，具体参考 <a href="https://github.com/WeihanLi/WeihanLi.Common/blob/276cc49cfda511f9b7b3bb8344ee52441c4a3b23/src/WeihanLi.Common/Logging/LoggingFormatter.cs" class="uri">https://github.com/WeihanLi/WeihanLi.Common/blob/276cc49cfda511f9b7b3bb8344ee52441c4a3b23/src/WeihanLi.Common/Logging/LoggingFormatter.cs</a></p>
+<pre><code><code>internal struct FormattedLogValue
+{
+    public string Msg { get; set; }
+
+    public Dictionary&lt;string, object&gt; Values { get; set; }
+
+    public FormattedLogValue(string msg, Dictionary&lt;string, object&gt; values)
+    {
+        Msg = msg;
+        Values = values;
+    }
+}
+
+internal static class LoggingFormatter
+{
+    public static FormattedLogValue Format(string msgTemplate, object[] values)
+    {
+        if (values == null || values.Length == 0)
+            return new FormattedLogValue(msgTemplate, null);
+
+        var formatter = new LogValuesFormatter(msgTemplate);
+        var msg = formatter.Format(values);
+        var dic = formatter.GetValues(values)
+            .ToDictionary(x =&gt; x.Key, x =&gt; x.Value);
+
+        return new FormattedLogValue(msg, dic);
+    }
+}</code></pre>
+<p>这样我们就可以支持 messageTemplate 了，然后来改造一下我们的 Logger</p>
+<pre><code><code>public interface ILogHelperLogger
+{
+    void Log(LogHelperLogLevel logLevel, Exception exception, string messageTemplate, params object[] parameters);
+
+    bool IsEnabled(LogHelperLogLevel logLevel);
+}</code></pre>
+<p>与上面不同的是，我们增加了 parameters</p>
+<p>再来更新一下我们的扩展方法，上面的扩展方法是直接使用 <code>string.Format</code> 的方式的格式化的，我们这里要更新一下</p>
+<pre><code><code>public static void Info(this ILogHelperLogger logger, string msg, params object[] parameters)
+{
+    logger.Log(LogHelperLogLevel.Info, null, msg, parameters);
+}
+
+public static void Info(this ILogHelperLogger logger, Exception ex, string msg) =&gt; logger.Log(LogHelperLogLevel.Info, ex, msg);
+
+public static void Info(this ILogHelperLogger logger, Exception ex) =&gt; logger.Log(LogHelperLogLevel.Info, ex, ex?.Message);</code></pre>
+<p>至此，功能基本完成，但是从 API 的角度来说，感觉现在的 <code>ILogFactory</code>太重了，这些 <code>AddProvider</code>/<code>AddEnricher</code>/<code>AddFilter</code> 都应该属性 <code>ILogFactory</code> 的内部属性，通过配置来完成，不应该成为它的接口方法，于是就有了下一版</p>
+<h2 id="v4">V4</h2>
+<p>这一版主要是引入了 <code>LoggingBuilder</code>， 通过 <code>LoggingBuilder</code> 来配置内部的 <code>LogFactory</code> 所需要的 <code>Provider</code>/<code>Enricher</code>/<code>Filter</code>，原来他们的配置方法和扩展方法均变成<code>ILogHelperLoggingBuilder</code></p>
+<pre><code><code>public interface ILogHelperLoggingBuilder
+{
+    /// &lt;summary&gt;
+    /// Adds an ILogHelperProvider to the logging system.
+    /// &lt;/summary&gt;
+    /// &lt;param name=&quot;provider&quot;&gt;The ILogHelperProvider.&lt;/param&gt;
+    bool AddProvider(ILogHelperProvider provider);
+
+    /// &lt;summary&gt;
+    /// add log enricher
+    /// &lt;/summary&gt;
+    /// &lt;param name=&quot;enricher&quot;&gt;log enricher&lt;/param&gt;
+    /// &lt;returns&gt;&lt;/returns&gt;
+    bool AddEnricher(ILogHelperLoggingEnricher enricher);
+
+    /// &lt;summary&gt;
+    /// Add logs filter
+    /// &lt;/summary&gt;
+    /// &lt;param name=&quot;filterFunc&quot;&gt;filterFunc, logProviderType/categoryName/Exception, whether to write log&lt;/param&gt;
+    bool AddFilter(Func&lt;Type, string, LogHelperLogLevel, Exception, bool&gt; filterFunc);
+
+    ///// &lt;summary&gt;
+    ///// config period batching
+    ///// &lt;/summary&gt;
+    ///// &lt;param name=&quot;period&quot;&gt;period&lt;/param&gt;
+    ///// &lt;param name=&quot;batchSize&quot;&gt;batchSize&lt;/param&gt;
+    //void PeriodBatchingConfig(TimeSpan period, int batchSize);
+
+    /// &lt;summary&gt;
+    /// Build for LogFactory
+    /// &lt;/summary&gt;
+    /// &lt;returns&gt;&lt;/returns&gt;
+    ILogHelperFactory Build();
+}</code></pre>
+<p>增加 logging 的配置：</p>
+<pre><code><code>public static class LogHelper
+{
+    private static ILogHelperFactory LogFactory { get; private set; } = NullLogHelperFactory.Instance;
+
+    public static void ConfigureLogging(Action&lt;ILogHelperLoggingBuilder&gt; configureAction)
+    {
+        var loggingBuilder = new LogHelperLoggingBuilder();
+        configureAction?.Invoke(loggingBuilder);
+        LogFactory = loggingBuilder.Build();
+    }
+
+    public static ILogHelperLogger GetLogger&lt;T&gt;() =&gt; LogFactory.GetLogger(typeof(T));
+
+    public static ILogHelperLogger GetLogger(Type type) =&gt; LogFactory.GetLogger(type);
+
+    public static ILogHelperLogger GetLogger(string categoryName)
+    {
+        return LogFactory.CreateLogger(categoryName);
+    }
+}</code></pre>
+<p>最后的使用方式：</p>
+<pre><code><code>internal class LoggingTest
+{
+    private static readonly ILogHelperLogger Logger = LogHelper.GetLogger&lt;LoggingTest&gt;();
+
+    public static void MainTest()
+    {
+        var abc = &quot;1233&quot;;
+        LogHelper.ConfigureLogging(builder =&gt;
+                                   {
+                                       builder
+                                           .AddLog4Net()
+                                           //.AddSerilog(loggerConfig =&gt; loggerConfig.WriteTo.Console())
+                                           .WithMinimumLevel(LogHelperLogLevel.Info)
+                                           .WithFilter((category, level) =&gt; level &gt; LogHelperLogLevel.Error &amp;&amp; category.StartsWith(&quot;System&quot;))
+                                           .EnrichWithProperty(&quot;Entry0&quot;, ApplicationHelper.ApplicationName)
+                                           .EnrichWithProperty(&quot;Entry1&quot;, ApplicationHelper.ApplicationName, e =&gt; e.LogLevel &gt;= LogHelperLogLevel.Error)// 当 LogLevel 是 Error 及以上级别时才增加 Property
+                                           ;
+                                   });
+
+        Logger.Debug(&quot;12333 {abc}&quot;, abc);
+        Logger.Trace(&quot;122334334&quot;);
+        Logger.Info($&quot;122334334 {abc}&quot;);
+
+        Logger.Warn(&quot;12333, err:{err}&quot;, &quot;hahaha&quot;);
+        Logger.Error(&quot;122334334&quot;);
+        Logger.Fatal(&quot;12333&quot;);
+    }
+}</code></pre>
+<h2 id="more">More</h2>
+<p>增加 <code>LoggingEvent</code> 还想做一个批量提交日志，如上面定义的 <code>PeriodBatchingConfig</code> 一样，批量同步到 Provider 但是实际使用下来，有些 provider 不支持设置日志的时间，时间是内部记录的，这样一来日志记录的时间就不准了，而且大多都不支持批量写日志，所以后面放弃了，但是如果只是用自己的扩展，不用 log4net 之类的外部的日志框架的话，我觉得还是可以做的，可以提高效率，目前主要用 <code>Serilog</code> 和 <code>log4net</code>，暂时不更新了，就先这样吧</p>
+<p>下一版本要解决的事情</p>
+<ul>
+<li><code>ILogProvider</code> 记录日志返回一个 Task 感觉有些鸡肋，没太大意义，后面再改一下吧</li>
+<li><code>Serilog</code> 的 Filter 是基于 <code>LogEvent</code> 的，后面看是否需要改一下，基于 LogEvent 的话更简洁，而且可以根据 LogEvent 内的 Properties 做过滤，所以 AddFilter 的API 可以更新一下 <code>AddFilter(Func&lt;LogHelperLoggingEvent, bool&gt; filter)</code></li>
+</ul>
+<h2 id="reference">Reference</h2>
+<ul>
+<li><a href="https://github.com/serilog/serilog" class="uri">https://github.com/serilog/serilog</a></li>
+<li><a href="https://github.com/serilog/serilog-sinks-periodicbatching" class="uri">https://github.com/serilog/serilog-sinks-periodicbatching</a></li>
+<li><a href="https://github.com/aspnet/Logging" class="uri">https://github.com/aspnet/Logging</a></li>
+<li><a href="https://github.com/aspnet/Extensions/tree/master/src/Logging" class="uri">https://github.com/aspnet/Extensions/tree/master/src/Logging</a></li>
+<li><a href="https://github.com/WeihanLi/WeihanLi.Common/tree/dev/src/WeihanLi.Common/Logging" class="uri">https://github.com/WeihanLi/WeihanLi.Common/tree/dev/src/WeihanLi.Common/Logging</a></li>
+</ul>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

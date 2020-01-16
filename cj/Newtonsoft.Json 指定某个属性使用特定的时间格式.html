@@ -1,0 +1,119 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Newtonsoft.Json 指定某个属性使用特定的时间格式' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Newtonsoft.Json 指定某个属性使用特定的时间格式</center></div><div class='banquan'>原文出处:本文由博客园博主WeihanLi提供。<br/>
+原文连接:https://www.cnblogs.com/weihanli/p/11080531.html</div><br>
+    <h1 id="newtonsoft.json-指定某个属性使用特定的时间格式"><code>Newtonsoft.Json</code> 指定某个属性使用特定的时间格式</h1>
+<h2 id="intro">Intro</h2>
+<p><code>Newtonsoft.Json</code> 是 .NET 下最受欢迎 JSON 操作库，原为 <code>JSON.Net</code> 后改名为 <code>Newtonsoft.Json</code>，之前一直推荐大家使用，除了性能好之外，主要是功能丰富，基本满足所有的可能用到的场景（不区分小写，现在还不行，，）。</p>
+<p>遇到这样一个需求，全局使用一种时间格式，某些属性使用特殊的时间格式，这里以一个日期为例</p>
+<h2 id="solution">Solution</h2>
+<p>解决办法：自定义一个 Converter，针对某一个属性使用，<a href="https://github.com/WeihanLi/WeihanLi.Common/blob/dev/src/WeihanLi.Common/Json/DateTimeFormatConverter.cs">DateTimeFormatConverter源码</a>:</p>
+<pre><code><code>using Newtonsoft.Json.Converters;
+
+namespace WeihanLi.Common.Json
+{
+  public class DateTimeFormatConverter : IsoDateTimeConverter
+  {
+    public DateTimeFormatConverter(string format)
+    {
+      DateTimeFormat = format;
+    }
+  }
+}</code></pre>
+<p>在需要设置格式的属性上设置 Converter <a href="https://github.com/WeihanLi/ActivityReservation/blob/dev/ActivityReservation.Helper/ViewModels/ReservationViewModel.cs#L8" class="uri">https://github.com/WeihanLi/ActivityReservation/blob/dev/ActivityReservation.Helper/ViewModels/ReservationViewModel.cs#L8</a></p>
+<pre><code><code>[Display(Name = &quot;预约日期&quot;)]
+[JsonConverter(typeof(DateTimeFormatConverter), &quot;yyyy-MM-dd&quot;)]
+public DateTime ReservationForDate { get; set; }</code></pre>
+<p>请求 api 地址 <a href="https://reservation.weihanli.xyz/api/Reservation?pageNumber=1&amp;pageSize=5" class="uri">https://reservation.weihanli.xyz/api/Reservation?pageNumber=1&amp;pageSize=5</a>,返回的数据如下所示：</p>
+<pre class="json"><code>{
+    &quot;Data&quot;: [
+        {
+            &quot;ReservationForDate&quot;: &quot;2019-06-10&quot;,
+            &quot;ReservationForTime&quot;: &quot;08:00~09:50&quot;,
+            &quot;ReservationPersonPhone&quot;: &quot;123****0112&quot;,
+            &quot;ReservationPersonName&quot;: &quot;儿**&quot;,
+            &quot;ReservationUnit&quot;: &quot;51&quot;,
+            &quot;ReservationPlaceName&quot;: &quot;多媒体工作室&quot;,
+            &quot;ReservationActivityContent&quot;: &quot;62&quot;,
+            &quot;ReservationId&quot;: &quot;f7ab9128-0977-4fd8-9b1a-92648228b397&quot;,
+            &quot;ReservationTime&quot;: &quot;2019-06-09 05:19:11&quot;,
+            &quot;ReservationStatus&quot;: 1
+        },
+        {
+            &quot;ReservationForDate&quot;: &quot;2019-06-12&quot;,
+            &quot;ReservationForTime&quot;: &quot;10:00-12:00&quot;,
+            &quot;ReservationPersonPhone&quot;: &quot;133****3541&quot;,
+            &quot;ReservationPersonName&quot;: &quot;试**&quot;,
+            &quot;ReservationUnit&quot;: &quot;ss&quot;,
+            &quot;ReservationPlaceName&quot;: &quot;多媒体工作室&quot;,
+            &quot;ReservationActivityContent&quot;: &quot;ss&quot;,
+            &quot;ReservationId&quot;: &quot;6c145aea-dc14-4ed9-a47f-48c0b79f7601&quot;,
+            &quot;ReservationTime&quot;: &quot;2019-06-11 12:45:14&quot;,
+            &quot;ReservationStatus&quot;: 0
+        },
+        {
+            &quot;ReservationForDate&quot;: &quot;2019-06-17&quot;,
+            &quot;ReservationForTime&quot;: &quot;14:00-16:00&quot;,
+            &quot;ReservationPersonPhone&quot;: &quot;138****3883&quot;,
+            &quot;ReservationPersonName&quot;: &quot;大**&quot;,
+            &quot;ReservationUnit&quot;: &quot;1&quot;,
+            &quot;ReservationPlaceName&quot;: &quot;多媒体工作室&quot;,
+            &quot;ReservationActivityContent&quot;: &quot;1&quot;,
+            &quot;ReservationId&quot;: &quot;cebea7bf-44b1-4565-8cdd-78b6156c5f4d&quot;,
+            &quot;ReservationTime&quot;: &quot;2019-06-10 02:52:18&quot;,
+            &quot;ReservationStatus&quot;: 1
+        },
+        {
+            &quot;ReservationForDate&quot;: &quot;2019-06-17&quot;,
+            &quot;ReservationForTime&quot;: &quot;08:00-10:00&quot;,
+            &quot;ReservationPersonPhone&quot;: &quot;132****4545&quot;,
+            &quot;ReservationPersonName&quot;: &quot;冷**&quot;,
+            &quot;ReservationUnit&quot;: &quot;技术部&quot;,
+            &quot;ReservationPlaceName&quot;: &quot;多媒体工作室&quot;,
+            &quot;ReservationActivityContent&quot;: &quot;技术部培训&quot;,
+            &quot;ReservationId&quot;: &quot;07f6f8fd-f232-478e-9a94-de0f5fa9b4e9&quot;,
+            &quot;ReservationTime&quot;: &quot;2019-06-10 01:44:52&quot;,
+            &quot;ReservationStatus&quot;: 2
+        },
+        {
+            &quot;ReservationForDate&quot;: &quot;2019-06-22&quot;,
+            &quot;ReservationForTime&quot;: &quot;10:00~11:50&quot;,
+            &quot;ReservationPersonPhone&quot;: &quot;132****3333&quot;,
+            &quot;ReservationPersonName&quot;: &quot;测**&quot;,
+            &quot;ReservationUnit&quot;: &quot;测试&quot;,
+            &quot;ReservationPlaceName&quot;: &quot;多媒体工作室&quot;,
+            &quot;ReservationActivityContent&quot;: &quot;测试&quot;,
+            &quot;ReservationId&quot;: &quot;27d0fb7a-ce14-4958-8636-dd10e5526083&quot;,
+            &quot;ReservationTime&quot;: &quot;2019-06-18 10:57:06&quot;,
+            &quot;ReservationStatus&quot;: 1
+        }
+    ],
+    &quot;PageNumber&quot;: 1,
+    &quot;PageSize&quot;: 5,
+    &quot;TotalCount&quot;: 18,
+    &quot;PageCount&quot;: 4,
+    &quot;Count&quot;: 5
+}</code></pre>
+<p>可以看到 <code>ReservationForDate</code> 序列化之后返回的格式如我们指定的格式了~</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,320 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修.NET调用腾讯云API实例' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>.NET调用腾讯云API实例</center></div><div class='banquan'>原文出处:本文由博客园博主CR&#183;Quincy提供。<br/>
+原文连接:https://www.cnblogs.com/CristianoRonaldo/p/11301859.html</div><br>
+    <p>最近项目有用到腾讯云的身份识别接口，话不多说，直接上代码：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">  1</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> IDCardVerification(HttpContext context)
+</span><span style="color: #008080;">  2</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">  3</span>             
+<span style="color: #008080;">  4</span>             <span style="color: #0000ff;">string</span> imgStr = context.Request[<span style="color: #800000;">"</span><span style="color: #800000;">ImageBase64</span><span style="color: #800000;">"</span><span style="color: #000000;">];
+</span><span style="color: #008080;">  5</span>             <span style="color: #0000ff;">if</span> (!<span style="color: #0000ff;">string</span><span style="color: #000000;">.IsNullOrEmpty(imgStr))
+</span><span style="color: #008080;">  6</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">  7</span>                 <span style="color: #0000ff;">try</span>
+<span style="color: #008080;">  8</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">  9</span>                     <span style="color: #008000;">//</span><span style="color: #008000;">请求地址</span>
+<span style="color: #008080;"> 10</span>                     <span style="color: #0000ff;">string</span> settingUrl = ConfigurationManager.AppSettings.Get(<span style="color: #800000;">"</span><span style="color: #800000;">IDCardVerifUrl</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 11</span>                     <span style="color: #008000;">//</span><span style="color: #008000;">应用ID</span>
+<span style="color: #008080;"> 12</span>                     <span style="color: #0000ff;">string</span> secretId = ConfigurationManager.AppSettings.Get(<span style="color: #800000;">"</span><span style="color: #800000;">TcCloudSecretId</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 13</span>                     <span style="color: #008000;">//</span><span style="color: #008000;">应用key</span>
+<span style="color: #008080;"> 14</span>                     <span style="color: #0000ff;">string</span> secretKey = ConfigurationManager.AppSettings.Get(<span style="color: #800000;">"</span><span style="color: #800000;">TcCloudSecretKey</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 15</span>                     <span style="color: #008000;">//</span><span style="color: #008000;">时间戳</span>
+<span style="color: #008080;"> 16</span>                     <span style="color: #0000ff;">string</span> timesTamp =<span style="color: #000000;"> GetTimeStamp();
+</span><span style="color: #008080;"> 17</span>                     <span style="color: #008000;">//</span><span style="color: #008000;">Nonce</span>
+<span style="color: #008080;"> 18</span>                     <span style="color: #0000ff;">var</span> nonce = <span style="color: #0000ff;">new</span> Random().Next(<span style="color: #800080;">10000</span>, <span style="color: #800080;">99999</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 19</span>                     <span style="color: #008000;">//</span><span style="color: #008000;">拼接参数</span>
+<span style="color: #008080;"> 20</span>                     <span style="color: #0000ff;">string</span> paramsStr = <span style="color: #0000ff;">string</span>.Format(<span style="color: #800000;">@"</span><span style="color: #800000;">Action=IDCardOCR&amp;CardSide=FRONT&amp;ImageBase64={0}&amp;Nonce={1}&amp;Region=ap-guangzhou&amp;SecretId={2}&amp;SignatureMethod=HmacSHA1&amp;Timestamp={3}&amp;Version=2018-11-19</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+</span><span style="color: #008080;"> 21</span> <span style="color: #000000;">                        imgStr, nonce, secretId, timesTamp);
+</span><span style="color: #008080;"> 22</span>                     <span style="color: #008000;">//</span><span style="color: #008000;">生成签名参数</span>
+<span style="color: #008080;"> 23</span>                     <span style="color: #0000ff;">string</span> requestText = <span style="color: #800000;">"</span><span style="color: #800000;">POST</span><span style="color: #800000;">"</span> + settingUrl.Replace(<span style="color: #800000;">"</span><span style="color: #800000;">https://</span><span style="color: #800000;">"</span>, <span style="color: #800000;">""</span>) + <span style="color: #800000;">"</span><span style="color: #800000;">?</span><span style="color: #800000;">"</span> +<span style="color: #000000;"> paramsStr;
+</span><span style="color: #008080;"> 24</span>                     <span style="color: #008000;">//</span><span style="color: #008000;">获得请求签名</span>
+<span style="color: #008080;"> 25</span>                     <span style="color: #0000ff;">string</span> signText =<span style="color: #000000;"> GetHmacSha1Sign(secretKey, requestText);
+</span><span style="color: #008080;"> 26</span>                     <span style="color: #008000;">//</span><span style="color: #008000;">这里一定要进行URL编码，不然调用API会报错</span>
+<span style="color: #008080;"> 27</span>                     signText =<span style="color: #000000;"> HttpUtility.UrlEncode(signText, Encoding.UTF8);
+</span><span style="color: #008080;"> 28</span>                     imgStr =<span style="color: #000000;"> HttpUtility.UrlEncode(imgStr, Encoding.UTF8);
+</span><span style="color: #008080;"> 29</span>                     paramsStr = <span style="color: #0000ff;">string</span>.Format(<span style="color: #800000;">@"</span><span style="color: #800000;">Action=IDCardOCR&amp;CardSide=FRONT&amp;ImageBase64={0}&amp;Nonce={1}&amp;Region=ap-guangzhou&amp;SecretId={2}&amp;Signature={3}&amp;SignatureMethod=HmacSHA1&amp;Timestamp={4}&amp;Version=2018-11-19</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+</span><span style="color: #008080;"> 30</span> <span style="color: #000000;">                        imgStr, nonce, secretId, signText, timesTamp);
+</span><span style="color: #008080;"> 31</span>                     <span style="color: #008000;">//</span><span style="color: #008000;">请求腾讯API，返回身份证信息</span>
+<span style="color: #008080;"> 32</span>                     <span style="color: #0000ff;">string</span> resultStr =<span style="color: #000000;"> Globals.SendRequest(settingUrl, paramsStr);
+</span><span style="color: #008080;"> 33</span>                     <span style="color: #0000ff;">var</span> idCard = <span style="color: #0000ff;">new</span> JavaScriptSerializer().Deserialize&lt;IDCardVerif&gt;<span style="color: #000000;">(resultStr);
+</span><span style="color: #008080;"> 34</span>                     <span style="color: #0000ff;">var</span> iDCardInfo =<span style="color: #000000;"> idCard.Response;
+</span><span style="color: #008080;"> 35</span>                     <span style="color: #0000ff;">if</span> (iDCardInfo.Error != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+</span><span style="color: #008080;"> 36</span> <span style="color: #000000;">                    {
+</span><span style="color: #008080;"> 37</span>                         context.Response.Write(<span style="color: #800000;">"</span><span style="color: #800000;">{\"Status\":\"fail\",\"errorMsg\":\"身份证识别出错： </span><span style="color: #800000;">"</span> + iDCardInfo.Error.Message + <span style="color: #800000;">"</span><span style="color: #800000;"> \"}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 38</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;"> 39</span>                     <span style="color: #0000ff;">else</span>
+<span style="color: #008080;"> 40</span> <span style="color: #000000;">                    {
+</span><span style="color: #008080;"> 41</span>                         <span style="color: #0000ff;">var</span> result = <span style="color: #0000ff;">new</span> { Status = <span style="color: #800000;">"</span><span style="color: #800000;">success</span><span style="color: #800000;">"</span>, data = <span style="color: #0000ff;">new</span><span style="color: #000000;"> { iDCardInfo.name, iDCardInfo.Sex, iDCardInfo.Nation, iDCardInfo.IdNum, iDCardInfo.Address, iDCardInfo.Birth } };
+</span><span style="color: #008080;"> 42</span>                         context.Response.Write(<span style="color: #0000ff;">new</span><span style="color: #000000;"> JavaScriptSerializer().Serialize(result));
+</span><span style="color: #008080;"> 43</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;"> 44</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;"> 45</span>                 <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception ex)
+</span><span style="color: #008080;"> 46</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;"> 47</span>                     context.Response.Write(<span style="color: #800000;">"</span><span style="color: #800000;">{\"Status\":\"fail\",\"errorMsg\":\"请求接口出错 \"}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 48</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;"> 49</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 50</span>             <span style="color: #0000ff;">else</span>
+<span style="color: #008080;"> 51</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 52</span>                 context.Response.Write(<span style="color: #800000;">"</span><span style="color: #800000;">{\"Status\":\"fail\",\"errorMsg\":\"请选择上传的图片！\"}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 53</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 54</span> 
+<span style="color: #008080;"> 55</span> 
+<span style="color: #008080;"> 56</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 57</span> 
+<span style="color: #008080;"> 58</span> 
+<span style="color: #008080;"> 59</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span> 
+<span style="color: #008080;"> 60</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 获取时间戳 
+</span><span style="color: #008080;"> 61</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span> 
+<span style="color: #008080;"> 62</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span> 
+<span style="color: #008080;"> 63</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">string</span><span style="color: #000000;"> GetTimeStamp()
+</span><span style="color: #008080;"> 64</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 65</span>             TimeSpan ts = DateTime.UtcNow - <span style="color: #0000ff;">new</span> DateTime(<span style="color: #800080;">1970</span>, <span style="color: #800080;">1</span>, <span style="color: #800080;">1</span>, <span style="color: #800080;">0</span>, <span style="color: #800080;">0</span>, <span style="color: #800080;">0</span>, <span style="color: #800080;">0</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 66</span>             <span style="color: #0000ff;">return</span><span style="color: #000000;"> Convert.ToInt64(ts.TotalSeconds).ToString();
+</span><span style="color: #008080;"> 67</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 68</span> 
+<span style="color: #008080;"> 69</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;"> 70</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> HMAC-SHA1加密返回签名
+</span><span style="color: #008080;"> 71</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;"> 72</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="secret"&gt;</span><span style="color: #008000;">密钥</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;"> 73</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="strOrgData"&gt;</span><span style="color: #008000;">源文</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;"> 74</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+<span style="color: #008080;"> 75</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">string</span> GetHmacSha1Sign(<span style="color: #0000ff;">string</span> secret, <span style="color: #0000ff;">string</span><span style="color: #000000;"> strOrgData)
+</span><span style="color: #008080;"> 76</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 77</span>             <span style="color: #0000ff;">var</span> hmacsha1 = <span style="color: #0000ff;">new</span><span style="color: #000000;"> HMACSHA1(Encoding.UTF8.GetBytes(secret));
+</span><span style="color: #008080;"> 78</span>             <span style="color: #0000ff;">var</span> dataBuffer =<span style="color: #000000;"> Encoding.UTF8.GetBytes(strOrgData);
+</span><span style="color: #008080;"> 79</span>             <span style="color: #0000ff;">var</span> hashBytes =<span style="color: #000000;"> hmacsha1.ComputeHash(dataBuffer);
+</span><span style="color: #008080;"> 80</span>             <span style="color: #0000ff;">return</span><span style="color: #000000;"> Convert.ToBase64String(hashBytes);
+</span><span style="color: #008080;"> 81</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 82</span> 
+<span style="color: #008080;"> 83</span>        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">string</span> SendRequest(<span style="color: #0000ff;">string</span> url, <span style="color: #0000ff;">string</span><span style="color: #000000;"> completeUrl)
+</span><span style="color: #008080;"> 84</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 85</span>             HttpWebRequest request =<span style="color: #000000;"> (HttpWebRequest)WebRequest.Create(url);
+</span><span style="color: #008080;"> 86</span>             request.Method = <span style="color: #800000;">"</span><span style="color: #800000;">POST</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 87</span>             request.ContentType = <span style="color: #800000;">"</span><span style="color: #800000;">application/x-www-form-urlencoded</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 88</span>             request.ProtocolVersion =<span style="color: #000000;"> HttpVersion.Version10;
+</span><span style="color: #008080;"> 89</span>             request.Host = url.Replace(<span style="color: #800000;">"</span><span style="color: #800000;">https://</span><span style="color: #800000;">"</span>, <span style="color: #800000;">""</span>).Replace(<span style="color: #800000;">"</span><span style="color: #800000;">/</span><span style="color: #800000;">"</span>, <span style="color: #800000;">""</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 90</span>             <span style="color: #0000ff;">byte</span>[] data =<span style="color: #000000;"> Encoding.UTF8.GetBytes(completeUrl);
+</span><span style="color: #008080;"> 91</span>             request.ContentLength =<span style="color: #000000;"> data.Length;
+</span><span style="color: #008080;"> 92</span>             Stream newStream =<span style="color: #000000;"> request.GetRequestStream();
+</span><span style="color: #008080;"> 93</span>             newStream.Write(data, <span style="color: #800080;">0</span><span style="color: #000000;">, data.Length);
+</span><span style="color: #008080;"> 94</span> <span style="color: #000000;">            newStream.Close();
+</span><span style="color: #008080;"> 95</span>             HttpWebResponse response = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 96</span>             <span style="color: #0000ff;">string</span><span style="color: #000000;"> content;
+</span><span style="color: #008080;"> 97</span>             <span style="color: #0000ff;">try</span>
+<span style="color: #008080;"> 98</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 99</span>                 response =<span style="color: #000000;"> (HttpWebResponse)request.GetResponse();
+</span><span style="color: #008080;">100</span>                 StreamReader reader = <span style="color: #0000ff;">new</span><span style="color: #000000;"> StreamReader(response.GetResponseStream(), Encoding.UTF8);
+</span><span style="color: #008080;">101</span>                 content =<span style="color: #000000;"> reader.ReadToEnd();
+</span><span style="color: #008080;">102</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">103</span>             <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (WebException e)
+</span><span style="color: #008080;">104</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">105</span>                 response =<span style="color: #000000;"> (HttpWebResponse)e.Response;
+</span><span style="color: #008080;">106</span>                 <span style="color: #0000ff;">using</span> (Stream errData =<span style="color: #000000;"> response.GetResponseStream())
+</span><span style="color: #008080;">107</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">108</span>                     <span style="color: #0000ff;">using</span> (StreamReader reader = <span style="color: #0000ff;">new</span><span style="color: #000000;"> StreamReader(errData))
+</span><span style="color: #008080;">109</span> <span style="color: #000000;">                    {
+</span><span style="color: #008080;">110</span>                         content =<span style="color: #000000;"> reader.ReadToEnd();
+</span><span style="color: #008080;">111</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">112</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">113</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">114</span>             <span style="color: #0000ff;">return</span><span style="color: #000000;"> content;
+</span><span style="color: #008080;">115</span>         }</pre>
+</div>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">using</span><span style="color: #000000;"> System;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Collections.Generic;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Linq;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Text;
+
+</span><span style="color: #0000ff;">namespace</span><span style="color: #000000;"> Hmeshop.Entities
+{
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> IDCardVerif
+    {
+        </span><span style="color: #0000ff;">public</span> IDCardVerifInfo Response { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+
+    }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> IDCardVerifInfo
+    {
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 姓名
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> name { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 性别
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> Sex { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 民族
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> Nation { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 生日
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> Birth { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 地址
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> Address { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 身份证号
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> IdNum { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 发证机关
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> Authority { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 证件有效期
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> ValidDate { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 扩展信息
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> AdvancedInfo { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 唯一请求 ID，每次请求都会返回。定位问题时需要提供该次请求的 RequestId。
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> RequestId { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 错误信息，有则返回，没有则为空
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> ErrorInfo Error { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+
+    }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> ErrorInfo {
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> Code { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> Message { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+
+    }
+
+
+
+
+}</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>开始的时候，使用了HTTP的POST这种请求方式进行调用，但后面发现这种请求方式有Bug，一旦用户上传的图片尺寸太大（跟图片大小没关系，主要是尺寸），请求腾讯的API就会返回下面这个错误（PS:因为我这边使用的是OCR身份证识别API，如果不涉及图片文件的话，可以使用我上面的调用方式）：</p>
+<p>&nbsp;</p>
+<p>&nbsp;<img src="./images/.NET调用腾讯云API实例0.png" alt="" /></p>
+<p>根据图上的错误信息可知，需要用到TC3-HMAC-SHA256这个签名算法，So，没办法，我们只能用腾讯的SDK来调用了，SDK直接在VS的Nuget里下载就好了，在GitHub下载源码进行编译引用也行</p>
+<p>下面贴腾讯官方SDK调用代码：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span>        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> IDCardVerificationBySDK(HttpContext context)
+</span><span style="color: #008080;"> 2</span> <span style="color: #000000;">        {           
+</span><span style="color: #008080;"> 3</span>             <span style="color: #0000ff;">string</span> imgStr = context.Request[<span style="color: #800000;">"</span><span style="color: #800000;">ImageBase64</span><span style="color: #800000;">"</span><span style="color: #000000;">];          
+</span><span style="color: #008080;"> 4</span>             <span style="color: #0000ff;">try</span>
+<span style="color: #008080;"> 5</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 6</span>                 <span style="color: #0000ff;">if</span> (!<span style="color: #0000ff;">string</span><span style="color: #000000;">.IsNullOrEmpty(imgStr))
+</span><span style="color: #008080;"> 7</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;"> 8</span>                     <span style="color: #0000ff;">string</span> res = <span style="color: #0000ff;">string</span><span style="color: #000000;">.Empty;
+</span><span style="color: #008080;"> 9</span> 
+<span style="color: #008080;">10</span>                     Action&lt;<span style="color: #0000ff;">string</span>&gt; action = t =&gt;
+<span style="color: #008080;">11</span> <span style="color: #000000;">                    {
+</span><span style="color: #008080;">12</span>                         res =<span style="color: #000000;"> GetOCRMsg(imgStr);
+</span><span style="color: #008080;">13</span> <span style="color: #000000;">                    };
+</span><span style="color: #008080;">14</span>                     IAsyncResult asyncResult = action.BeginInvoke(<span style="color: #800000;">"</span><span style="color: #800000;">调用腾讯云身份证识别</span><span style="color: #800000;">"</span>, <span style="color: #0000ff;">null</span>, <span style="color: #0000ff;">null</span><span style="color: #000000;">);
+</span><span style="color: #008080;">15</span> <span style="color: #000000;">                    asyncResult.AsyncWaitHandle.WaitOne();
+</span><span style="color: #008080;">16</span>                     <span style="color: #0000ff;">if</span> (res.Contains(<span style="color: #800000;">"</span><span style="color: #800000;">message</span><span style="color: #800000;">"</span><span style="color: #000000;">))
+</span><span style="color: #008080;">17</span> <span style="color: #000000;">                    {
+</span><span style="color: #008080;">18</span>                         context.Response.Write(<span style="color: #800000;">"</span><span style="color: #800000;">{\"Status\":\"fail\",\"errorMsg\":\"</span><span style="color: #800000;">"</span> + res.Split(<span style="color: #0000ff;">new</span> <span style="color: #0000ff;">string</span>[] { <span style="color: #800000;">"</span><span style="color: #800000;">message:</span><span style="color: #800000;">"</span> }, StringSplitOptions.None)[<span style="color: #800080;">1</span>] + <span style="color: #800000;">"</span><span style="color: #800000;">\"}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">19</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">20</span>                     <span style="color: #0000ff;">else</span>
+<span style="color: #008080;">21</span> <span style="color: #000000;">                    {
+</span><span style="color: #008080;">22</span>                         IDCardOCRResponse resp = JsonConvert.DeserializeObject&lt;IDCardOCRResponse&gt;<span style="color: #000000;">(res);
+</span><span style="color: #008080;">23</span>                         <span style="color: #0000ff;">var</span> result = <span style="color: #0000ff;">new</span> { Status = <span style="color: #800000;">"</span><span style="color: #800000;">success</span><span style="color: #800000;">"</span>, data =<span style="color: #000000;"> resp };
+</span><span style="color: #008080;">24</span> <span style="color: #000000;">                        context.Response.Write(JsonConvert.SerializeObject(result));
+</span><span style="color: #008080;">25</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">26</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">27</span>                 <span style="color: #0000ff;">else</span>
+<span style="color: #008080;">28</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">29</span>                     context.Response.Write(<span style="color: #800000;">"</span><span style="color: #800000;">{\"Status\":\"fail\",\"errorMsg\":\"请选择上传的图片！\"}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">30</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">31</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">32</span>             <span style="color: #0000ff;">catch</span><span style="color: #000000;">(Exception ex)
+</span><span style="color: #008080;">33</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">34</span>                 Globals.Debuglog(<span style="color: #800000;">"</span><span style="color: #800000;">调用接口出错：</span><span style="color: #800000;">"</span> + ex.StackTrace, <span style="color: #800000;">"</span><span style="color: #800000;">Tentent_IDCardVerif.txt</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">35</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">36</span>             
+<span style="color: #008080;">37</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">38</span> 
+<span style="color: #008080;">39</span> 
+<span style="color: #008080;">40</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">string</span> GetOCRMsg(<span style="color: #0000ff;">string</span><span style="color: #000000;"> imgStr)
+</span><span style="color: #008080;">41</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">42</span>             <span style="color: #0000ff;">try</span>
+<span style="color: #008080;">43</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">44</span>                 Credential cred = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Credential
+</span><span style="color: #008080;">45</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">46</span>                     SecretId = ConfigurationManager.AppSettings.Get(<span style="color: #800000;">"</span><span style="color: #800000;">TcCloudSecretId</span><span style="color: #800000;">"</span><span style="color: #000000;">),
+</span><span style="color: #008080;">47</span>                     SecretKey = ConfigurationManager.AppSettings.Get(<span style="color: #800000;">"</span><span style="color: #800000;">TcCloudSecretKey</span><span style="color: #800000;">"</span><span style="color: #000000;">)
+</span><span style="color: #008080;">48</span> <span style="color: #000000;">                };
+</span><span style="color: #008080;">49</span> 
+<span style="color: #008080;">50</span>                 ClientProfile clientProfile = <span style="color: #0000ff;">new</span><span style="color: #000000;"> ClientProfile
+</span><span style="color: #008080;">51</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">52</span>                     SignMethod =<span style="color: #000000;"> ClientProfile.SIGN_TC3SHA256
+</span><span style="color: #008080;">53</span> <span style="color: #000000;">                };
+</span><span style="color: #008080;">54</span>                 HttpProfile httpProfile = <span style="color: #0000ff;">new</span><span style="color: #000000;"> HttpProfile();
+</span><span style="color: #008080;">55</span>                 httpProfile.Endpoint = (<span style="color: #800000;">"</span><span style="color: #800000;">ocr.tencentcloudapi.com</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">56</span>                 httpProfile.ReqMethod = <span style="color: #800000;">"</span><span style="color: #800000;">POST</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+</span><span style="color: #008080;">57</span>                 httpProfile.Timeout = <span style="color: #800080;">10</span>; <span style="color: #008000;">//</span><span style="color: #008000;"> 请求连接超时时间，单位为秒(默认60秒)</span>
+<span style="color: #008080;">58</span>                 clientProfile.HttpProfile =<span style="color: #000000;"> httpProfile;
+</span><span style="color: #008080;">59</span>                 OcrClient client = <span style="color: #0000ff;">new</span> OcrClient(cred, <span style="color: #800000;">"</span><span style="color: #800000;">ap-guangzhou</span><span style="color: #800000;">"</span><span style="color: #000000;">, clientProfile);
+</span><span style="color: #008080;">60</span>                 IDCardOCRRequest req = <span style="color: #0000ff;">new</span><span style="color: #000000;"> IDCardOCRRequest();
+</span><span style="color: #008080;">61</span>                 <span style="color: #0000ff;">string</span> strParams = <span style="color: #800000;">"</span><span style="color: #800000;">{\"ImageBase64\":\"</span><span style="color: #800000;">"</span>+ imgStr + <span style="color: #800000;">"</span><span style="color: #800000;">\",\"CardSide\":\"FRONT\",\"ImageUrl\":\"\",\"Config\":\"\"}</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+</span><span style="color: #008080;">62</span>                 Globals.Debuglog(<span style="color: #800000;">"</span><span style="color: #800000;">strParams: </span><span style="color: #800000;">"</span> + strParams, <span style="color: #800000;">"</span><span style="color: #800000;">Tentent_IDCardVerif.txt</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">63</span>                 req = JsonConvert.DeserializeObject&lt;IDCardOCRRequest&gt;<span style="color: #000000;">(strParams);
+</span><span style="color: #008080;">64</span>                 IDCardOCRResponse resp =<span style="color: #000000;"> client.IDCardOCR(req).
+</span><span style="color: #008080;">65</span>                     ConfigureAwait(<span style="color: #0000ff;">false</span><span style="color: #000000;">).GetAwaiter().GetResult();
+</span><span style="color: #008080;">66</span>                 <span style="color: #0000ff;">return</span><span style="color: #000000;"> AbstractModel.ToJsonString(resp);
+</span><span style="color: #008080;">67</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">68</span>             <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception e)
+</span><span style="color: #008080;">69</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">70</span>                 Globals.Debuglog(<span style="color: #800000;">"</span><span style="color: #800000;">请求接口出错：</span><span style="color: #800000;">"</span> + e.StackTrace, <span style="color: #800000;">"</span><span style="color: #800000;">Tentent_IDCardVerif.txt</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">71</span>                 <span style="color: #0000ff;">return</span><span style="color: #000000;"> e.Message.ToString();
+</span><span style="color: #008080;">72</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">73</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">74</span> </pre>
+</div>
+<p>&nbsp;</p>
+<p>这里要注意的是，一定要使用异步请求的方式进行调用！ 不然直接调用的话，执行到：</p>
+<div class="cnblogs_Highlighter">
+<pre class="brush:csharp;gutter:true;">ConfigureAwait(false).GetAwaiter().GetResult();</pre>
+</div>
+<p>这一步会没有任何响应，程序陷入假死状态，博主就是在这里踩了坑，尝试了多次才发现这个问题，真是坑爹啊- -！</p>
+<p>&nbsp;</p>
+<p>好了，就先说到这里了，这是本人在博客园的处女blog，希望给各位有需要的人一点帮助哈~</p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

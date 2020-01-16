@@ -1,0 +1,108 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修使用MailKit发送带有内嵌图片的邮件且图片不显示成附件' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>使用MailKit发送带有内嵌图片的邮件且图片不显示成附件</center></div><div class='banquan'>原文出处:本文由博客园博主Watt不想上班提供。<br/>
+原文连接:https://www.cnblogs.com/WattWang/p/11708092.html</div><br>
+    <p><span style="font-size: 18pt;">使用MailKit发送带有内嵌图片的邮件且图片不显示成附件</span></p>
+<p><span style="font-size: 12px;">参考文章：<a href="https://www.cnblogs.com/zuimengaitianya/p/9227541.html">MailKit---发送邮件</a></span></p>
+<p><span style="font-size: 18px; color: #ff0000;">注意</span></p>
+<p><span style="font-size: 18px; color: #888888;"><span style="color: #ff0000;">在邮件客户端中是否显示内嵌图片为附件依据不同邮件有所不同，暂经测试Outlook和qq不显示为附件，新浪邮箱会显示附</span>件。</span></p>
+<p><span style="font-size: 18px;">概述</span></p>
+<p><span style="font-size: 12px;">要发送一封带有复杂格式的邮件，且正文内容中带有复杂的图片，以一封阿里云发送的邮件为例，其中还有5张图片。现在想要使用MailKit这个库来发送邮件，邮件模板中也含有图片，该如何发送呢。</span></p>
+<p><span style="font-size: 12px;"><img src="./images/使用MailKit发送带有内嵌图片的邮件且图片不显示成附件0.png" alt="" width="834" height="416" /></span></p>
+<p><span style="font-size: 18px;">知识点</span>&nbsp;</p>
+<p><span style="font-size: 12px;">MIME-多用途互联网邮件扩展类型</span></p>
+<p><span style="font-size: 12px;">一封含有复杂内容的邮件可以如下图表示，分为alternative、related、mixed三个部分，alternative部分包含纯文本和超文本内容，related包含alternative部分和内嵌资源，mixed部分包含related部分和附件。</span></p>
+<p><span style="font-size: 12px;"><img src="./images/使用MailKit发送带有内嵌图片的邮件且图片不显示成附件1.png" alt="" /></span></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><span style="font-size: 12px;">&nbsp;文章中图片一般是作为图中的内嵌资源，所以不会出现在邮件的附件列表中。</span></p>
+<p><span style="font-size: 18px;">实践</span></p>
+<p><span style="font-size: 12px;">我们现在用这封阿里云的邮件作为模板，用MailKit发送这封邮件，且收到后的邮件效果相同。</span></p>
+<p><span style="font-size: 18px;">准备工作</span></p>
+<p><span style="font-size: 12px;">将邮件下载到本地，保存为Html文件，并将邮件中用到的图片资源下载下来，将Html文件和图片放在一个文件中一次作为一个模板。</span></p>
+<p><span style="font-size: 12px;"><img src="./images/使用MailKit发送带有内嵌图片的邮件且图片不显示成附件2.png" alt="" /></span></p>
+<p><span style="font-size: 18px;">代码实现</span></p>
+<p><span style="font-size: 12px;">&nbsp;实现步骤主要问，组装正文部分包裹在alternative中，然后将alternative和内嵌资源包裹在related中，再将related用mixed包裹，将以上内容复制给邮件正文。</span></p>
+<p><span style="font-size: 12px;">图片的链接进行格式处理，原：&lt;img src="xxx/xxx/xx.jpg"/&gt;，修改为&lt;img src="cid:aaaaaaaa"/&gt;。详见代码中射击ContentId部分。</span></p>
+<p><span style="font-size: 12px;">&nbsp;使用bodyBuilder来构建邮件正文。具体见代码。</span></p>
+<div class="cnblogs_code">
+<pre><code>        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">bool</span> SendEmailToSingle(<span style="color: #0000ff;">string</span> toEmail, <span style="color: #0000ff;">string</span> Subject, <span style="color: #0000ff;">string</span><span style="color: #000000;"> FormatId)
+        {
+            </span><span style="color: #0000ff;">try</span><span style="color: #000000;">
+            {
+                </span><span style="color: #0000ff;">var</span> message = <span style="color: #0000ff;">new</span><span style="color: #000000;"> MimeMessage();
+                message.To.Add(</span><span style="color: #0000ff;">new</span><span style="color: #000000;"> MailboxAddress(toEmail));
+                message.From.Add(</span><span style="color: #0000ff;">new</span><span style="color: #000000;"> MailboxAddress(EmailDisplayName, EmailUserName));
+                message.Subject </span>=<span style="color: #000000;"> Subject;
+
+                </span><span style="color: #008000;">//</span><span style="color: #008000;"> 获取邮件模板</span>
+                <span style="color: #0000ff;">string</span> FullFormatPath = Path.Combine(Environment.CurrentDirectory, <span style="color: #800000;">"</span><span style="color: #800000;">Content</span><span style="color: #800000;">"</span><span style="color: #000000;">, FormatId);
+                </span><span style="color: #0000ff;">string</span>[] ImgPaths = Directory.GetFiles(Path.Combine(FullFormatPath, <span style="color: #800000;">"</span><span style="color: #800000;">Resources</span><span style="color: #800000;">"</span><span style="color: #000000;">));
+
+                </span><span style="color: #0000ff;">string</span> HtmlFormat = <span style="color: #0000ff;">string</span><span style="color: #000000;">.Empty;
+
+                </span><span style="color: #0000ff;">var</span> builder = <span style="color: #0000ff;">new</span><span style="color: #000000;"> BodyBuilder();
+
+                </span><span style="color: #0000ff;">using</span> (FileStream fs = <span style="color: #0000ff;">new</span> FileStream(Path.Combine(FullFormatPath, <span style="color: #800000;">"</span><span style="color: #800000;">format.htm</span><span style="color: #800000;">"</span><span style="color: #000000;">), FileMode.Open))
+                {
+                    </span><span style="color: #0000ff;">using</span> (StreamReader sr = <span style="color: #0000ff;">new</span> StreamReader(fs, Encoding.GetEncoding(<span style="color: #800000;">"</span><span style="color: #800000;">gbk</span><span style="color: #800000;">"</span><span style="color: #000000;">)))
+                    {
+                        HtmlFormat </span>=<span style="color: #000000;"> sr.ReadToEnd();
+                    }
+                }
+
+                </span><span style="color: #008000;">//</span><span style="color: #008000;"> 将图片加入内嵌资源，并更换邮件中的图片的链接</span>
+                <span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">string</span> imgpath <span style="color: #0000ff;">in</span><span style="color: #000000;"> ImgPaths)
+                {
+                    </span><span style="color: #0000ff;">var</span> image =<span style="color: #000000;"> builder.LinkedResources.Add(imgpath);
+                    image.ContentId </span>=<span style="color: #000000;"> MimeUtils.GenerateMessageId();
+                    HtmlFormat </span>= HtmlFormat.Replace(Path.GetFileName(imgpath), <span style="color: #0000ff;">string</span>.Format(<span style="color: #800000;">"</span><span style="color: #800000;">cid:{0}</span><span style="color: #800000;">"</span><span style="color: #000000;">, image.ContentId));
+                }
+
+                builder.HtmlBody </span>=<span style="color: #000000;"> HtmlFormat;
+
+                message.Body </span>=<span style="color: #000000;"> builder.ToMessageBody();
+
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">return message;</span>
+                <span style="color: #0000ff;">using</span> (SmtpClient client = <span style="color: #0000ff;">new</span><span style="color: #000000;"> SmtpClient())
+                {
+                    client.ServerCertificateValidationCallback </span>= (s, c, h, e) =&gt; <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+                    client.Connect(EmailServerAddress, EmailServerPort, </span><span style="color: #0000ff;">false</span><span style="color: #000000;">);
+                    client.Authenticate(EmailUserName, EmailPassword);
+                    client.Send(message);
+                    client.Disconnect(</span><span style="color: #0000ff;">true</span><span style="color: #000000;">);
+                }
+
+                </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+            }
+            </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception)
+            {
+                </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+            }
+        }</span></pre>
+</div>
+<p>&nbsp;</p>
+<p><span style="font-size: 18px;">发送后收到的邮件</span></p>
+<p><span style="font-size: 18px;"><img src="./images/使用MailKit发送带有内嵌图片的邮件且图片不显示成附件3.png" alt="" width="984" height="415" /></span></p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

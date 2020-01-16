@@ -1,0 +1,147 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C#中转换运算符explicit、implicit、operator、volatile研究' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C#中转换运算符explicit、implicit、operator、volatile研究</center></div><div class='banquan'>原文出处:本文由博客园博主lingfeng95提供。<br/>
+原文连接:https://www.cnblogs.com/zhao123/p/11120523.html</div><br>
+    <p>C#中的这个几个关键字：explicit、implicit与operator，估计好多人的用不上，什么情况，这是什么？字面解释：explicit：清楚明白的;易于理解的;(说话)清晰的，明确的;直言的;坦率的;直截了当的;不隐晦的;不含糊的。implicit：含蓄的;不直接言明的;成为一部分的;内含的;完全的;无疑问的。operator：操作人员;技工;电话员;接线员;(某企业的)经营者，专业公司。说了这么多，其实explicit和implicit关键字分别表示显式的类型转换和隐式的类型转换。</p>
+<p>volatile 关键字指示一个字段可以由多个同时执行的线程修改，可以保证值得最新。编译器在优化代码时，可能会把经常用到的代码存在Cache里面，然后下一次调用就直接读取Cache而不是内存，这样就大大提高了效率。但是问题也随之而来了，在多线程程序中，如果把一个变量放入Cache后，又有其他线程改变了变量的值，那么本线程是无法知道这个变化的。它可能会直接读Cache里的数据，但是很不幸，Cache里的数据已经过期了，读出来的是不合时宜的脏数据，这时就会出现bug。用volatile 声明变量可以很好的解决这个问题。</p>
+<h2>显式转换</h2>
+<p>显式转换（强制转换）：必须使用强制运算符，才能执行的转换，在转换过程中可能会丢失信息或转换失败。<br />例如</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> BaseAB { }
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> A : BaseAB { }
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> B : BaseAB { }
+</span><span style="color: #008000;">//</span><span style="color: #008000;">测试</span>
+<span style="color: #0000ff;">double</span> test = <span style="color: #800080;">1.234</span><span style="color: #000000;">;
+</span><span style="color: #0000ff;">int</span> testInt = (<span style="color: #0000ff;">int</span><span style="color: #000000;">)test;
+Console.WriteLine(testInt); </span><span style="color: #008000;">//</span><span style="color: #008000;">运算结果1，强制转换数据丢失</span>
+
+<span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+    BaseAB ab </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> A();
+    B b </span>= (B)ab;  <span style="color: #008000;">//</span><span style="color: #008000;">引用强制转换抛出异常 System.InvalidCastException: Unable to cast object of type 'A' to type 'B'.</span>
+} <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception ex) {
+    Console.WriteLine(ex.ToString());
+}</span></pre>
+</div>
+<p>在值类型强制转换的时候，会数据丢失，在引用类型做强制转换的时候会有引发InvalidCastException风险，但是可以通过使用模式匹配安全的进行强制转换，通过is和as运算符来检测是否属于特定类型。<br />模式匹配：给定一个子串，要求在某个字符串中找出与该子串相同的所有子串。例如：A是字串，BA是待查找的字符串，要求从BA中查找出所有与A相同的字串，这个问题就是模式匹配问题。A是模式，BA是目标。<br />例如：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> test = <span style="color: #800080;">1.1234</span><span style="color: #000000;">;
+</span><span style="color: #0000ff;">int</span> testInt = test <span style="color: #0000ff;">is</span> <span style="color: #0000ff;">int</span> ? (<span style="color: #0000ff;">int</span>)test : <span style="color: #800080;">0</span><span style="color: #000000;">;
+Console.WriteLine(testInt);
+BaseAB ab </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> A();
+B b </span>= ab <span style="color: #0000ff;">as</span><span style="color: #000000;"> B;
+</span><span style="color: #0000ff;">if</span> (b == <span style="color: #0000ff;">null</span>) Console.WriteLine(<span style="color: #800000;">"</span><span style="color: #800000;">ab 不是 B类型</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+//结果：
+</span><span style="color: #800080;">//0</span><span style="color: #000000;">
+//ab 不是 B类型
+<br /></span></pre>
+</div>
+<h2>隐式转换</h2>
+<p>隐式转换：这种转换是类型安全的，不需要特殊处理。<br />例如：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">int</span> i = <span style="color: #800080;">123</span><span style="color: #000000;">;
+</span><span style="color: #0000ff;">double</span> b =<span style="color: #000000;"> i;
+Console.WriteLine(b);
+
+A a </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> A();
+BaseAB baseAB </span>=<span style="color: #000000;"> a;
+</span><span style="color: #008000;">//</span><span style="color: #008000;">结果：
+</span><span style="color: #008000;">//</span><span style="color: #008000;">123</span></pre>
+</div>
+<p>简单来说就是：小类型转换成大类型的时候隐式转换，大类型转换成小类型用强制转换。int &gt; float &gt; double &gt;deca</p>
+<h2>正题</h2>
+<p>operator 关键字用于在类或结构声明中声明运算符。运算符声明可以采用下列四种形式之一：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> result-type <span style="color: #0000ff;">operator</span> unary-<span style="color: #0000ff;">operator</span><span style="color: #000000;"> (type1 param)
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> result-type <span style="color: #0000ff;">operator</span> binary-<span style="color: #0000ff;">operator</span><span style="color: #000000;"> (type1 param1, type2 param)
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">implicit</span> <span style="color: #0000ff;">operator</span> result-<span style="color: #000000;">type (type param )
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">explicit</span> <span style="color: #0000ff;">operator</span> result-type (type param )</pre>
+</div>
+<p>参数说明：<br />result-type：结果类型<br />type，type1，type2:参数类型<br />unary-operator： <span style="color: #ff0000;">+   -   !   ~   ++   &mdash;   true   false</span><br />binary-operator： <span style="color: #ff0000;">+   -   *   /   %   &amp;   |   ^   &lt;&lt;   &gt;&gt;   ==   !=   &gt;   &lt;   &gt;=   &lt;=</span></p>
+<p>介绍了这么多，开始步入正题，讲解explicit、implicit与operator。explicit、implicit都是与operator一起操作使用的，operator 关键字用于在类或结构声明中声明运算符。explicit用于强制转换，implicit用于隐式转换。<br />例如：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">struct</span><span style="color: #000000;"> MeDecimal
+{
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">readonly</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> intV;
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">readonly</span> <span style="color: #0000ff;">double</span><span style="color: #000000;"> doubleV;
+
+    </span><span style="color: #0000ff;">public</span> MeDecimal(<span style="color: #0000ff;">int</span> value):<span style="color: #0000ff;">this</span>(value,<span style="color: #800080;">0</span><span style="color: #000000;">)
+    {
+    }
+
+    </span><span style="color: #0000ff;">public</span> MeDecimal(<span style="color: #0000ff;">double</span> value):<span style="color: #0000ff;">this</span>(<span style="color: #800080;">0</span><span style="color: #000000;">,value)
+    {
+    }
+
+    </span><span style="color: #0000ff;">public</span> MeDecimal(<span style="color: #0000ff;">int</span> intV, <span style="color: #0000ff;">double</span><span style="color: #000000;"> doubleV)
+    {
+        </span><span style="color: #0000ff;">this</span>.intV =<span style="color: #000000;"> intV;
+        </span><span style="color: #0000ff;">this</span>.doubleV =<span style="color: #000000;"> doubleV;
+    }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">implicit</span> <span style="color: #0000ff;">operator</span> <span style="color: #0000ff;">int</span><span style="color: #000000;">(MeDecimal meDecimal)
+    {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> meDecimal.intV;
+    }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">explicit</span> <span style="color: #0000ff;">operator</span> <span style="color: #0000ff;">double</span><span style="color: #000000;">(MeDecimal meDecimal)
+    {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> meDecimal.doubleV;
+    }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">implicit</span> <span style="color: #0000ff;">operator</span> MeDecimal(<span style="color: #0000ff;">int</span><span style="color: #000000;"> meDecimal)
+    {
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> MeDecimal(meDecimal);
+    }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">explicit</span> <span style="color: #0000ff;">operator</span> MeDecimal(<span style="color: #0000ff;">double</span><span style="color: #000000;"> meDecimal)
+    {
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> MeDecimal(meDecimal);
+    }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> MeDecimal <span style="color: #0000ff;">operator</span> ++<span style="color: #000000;">(MeDecimal meDecimal)
+    {
+        </span><span style="color: #0000ff;">var</span> t = meDecimal.intV + <span style="color: #800080;">1</span><span style="color: #000000;">;
+        </span><span style="color: #0000ff;">var</span> t2 = meDecimal.doubleV + <span style="color: #800080;">1</span><span style="color: #000000;">;
+        </span><span style="color: #0000ff;">var</span> temp = <span style="color: #0000ff;">new</span><span style="color: #000000;"> MeDecimal(t, t2);
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> temp;
+    }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">override</span> <span style="color: #0000ff;">string</span><span style="color: #000000;"> ToString()
+    {
+        </span><span style="color: #0000ff;">return</span> $<span style="color: #800000;">"</span><span style="color: #800000;">intV:{intV},doubleV:{doubleV}</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+    }
+}</span></pre>
+</div>
+<p>用法：</p>
+<div class="cnblogs_code">
+<pre><code>MeDecimal d = (MeDecimal)<span style="color: #800080;">2.1</span><span style="color: #000000;">;
+Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">原始数据：{d}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+d</span>++<span style="color: #000000;">;
+</span><span style="color: #0000ff;">double</span> c = (<span style="color: #0000ff;">double</span><span style="color: #000000;">)d;
+</span><span style="color: #0000ff;">int</span> c2 =<span style="color: #000000;"> d;
+Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">int的值：{c2},double的值：{c}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">{d}</span><span style="color: #800000;">"</span>);</pre>
+</div>
+<p>//结果：<br />原始数据：intV:0,doubleV:2.1<br />int的值：1,double的值：3.1<br />intV:1,doubleV:3.1</p>
+<p>像一些类型需要转换的地方或者特殊处理的地方，可以用explicit、implicit，方便操作。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

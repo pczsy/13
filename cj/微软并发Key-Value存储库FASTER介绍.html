@@ -1,0 +1,195 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修微软并发Key-Value存储库FASTER介绍' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>微软并发Key-Value存储库FASTER介绍</center></div><div class='banquan'>原文出处:本文由博客园博主物格知止提供。<br/>
+原文连接:https://www.cnblogs.com/knoww/p/11781405.html</div><br>
+    <p>　　微软支持并发的Key-Value&nbsp;存储库有C++与C#两个版本。号称迄今为止最快的并发键值存储。下面是C#版本翻译：</p>
+<p class="p">FASTER C＃可在.NET Framework和.NET&nbsp;Core<span style="font-family: 'Segoe UI';">中运行，并且可以在单线程和并发设置中使用。经过测试，可以在</span>Windows和Linux上使用。它公开了一种API，该API可以执行读取，盲更新（Upserts）和读取-修改-写入(RMW)<span style="font-family: 'Segoe UI';">操作的混合。它支持大于内存的数据，并接受</span>IDevice<span style="font-family: 'Segoe UI';">将日志存储在</span><span style="font-family: 宋体;">文件</span><span style="font-family: 'Segoe UI';">中的实现。提供了</span>IDevice<span style="font-family: 'Segoe UI';">本地文件系统的实现，</span><span style="font-family: 宋体;">也</span><span style="font-family: 'Segoe UI';">可以写入远程文件系统。或者将远程存储</span><span style="font-family: 宋体;">映射到</span><span style="font-family: 'Segoe UI';">本地文件系统中。</span>FASTER可以用作传统并发数据结构<span style="font-family: 宋体;">类似</span>ConcurrentDictionary的高性能替代品，并且还支持大于内存的数据。它支持增量<span style="font-family: 宋体;">或</span><span style="font-family: 'Segoe UI';">非增量数据结构</span><span style="font-family: 宋体;">类型的</span><span style="font-family: 'Segoe UI';">检查点。</span></p>
+<p class="p">FASTER支持三种基本操作：</p>
+<ol>
+<li>Read<span style="font-family: 'Segoe UI';">：从键值存储中读取数据</span></li>
+<li>Upsert：将值盲目向上插入到存储中（不检查先前的值）</li>
+<li>Read-Modify-Write<span style="font-family: 'Segoe UI';">：更新存储区中的值，用于实现</span>&ldquo;求和&rdquo;和&ldquo;计数&rdquo;之类的操作。</li>
+</ol>
+<h3><strong><span style="font-family: 'Segoe UI';">构建</span></strong></h3>
+<p class="p"><span style="font-family: 'Segoe UI';">在实例化</span>FASTER之前，您需要创建FASTER将使用的存储设备。如果使用的是<span style="font-family: 'Segoe UI';">可移植类型</span><span style="font-family: 宋体;">（</span>byte<span style="font-family: 宋体;">、</span><span style="font-family: 'Segoe UI';">int</span><span style="font-family: 宋体;">、</span><span style="font-family: 'Segoe UI';">double</span><span style="font-family: 宋体;">）</span><span style="font-family: 'Segoe UI';">类型，则仅需要混合日志设备。如果使用对象，则需要创建一个单独的对象日志设备。</span></p>
+<p class="pre">IDevice&nbsp;log =&nbsp;Devices.CreateLogDevice("C:\\Temp\\hybridlog_native.log");</p>
+<p class="p"><span style="font-family: 'Segoe UI';">然后，按如下方式创建一个</span>FASTER实例：</p>
+<p class="pre">fht =&nbsp;new&nbsp;FasterKV&lt;Key, Value, Input, Output, Empty, Functions&gt;</p>
+<p class="pre">&nbsp;&nbsp;(1L&nbsp;&lt;&lt;&nbsp;20, new&nbsp;Functions(), new&nbsp;LogSettings&nbsp;{ LogDevice =&nbsp;log });</p>
+<h3><strong><span style="font-family: 'Segoe UI';">构造函数的类型参数</span></strong></h3>
+<p class="p"><span style="font-family: 'Segoe UI';">有六个基本概念，在实例化</span>FASTER时作为通用类型参数提供：</p>
+<ol>
+<li>Key<span style="font-family: 'Segoe UI';">：这是</span><span style="font-family: 宋体;">键</span><span style="font-family: 'Segoe UI';">的类型，例如</span>long<span style="font-family: 'Segoe UI';">。</span></li>
+<li>Value<span style="font-family: 'Segoe UI';">：这是存储在</span>FASTER中的值的类型。</li>
+<li>Input<span style="font-family: 'Segoe UI';">：这是调用</span>Read或RMW时提供给FASTER的输入类型。它可以被视为读取或RMW操作的参数。例如，对于RMW，可是增量累加到值。</li>
+<li>Output<span style="font-family: 'Segoe UI';">：这是读操作的输出类型</span><span style="font-family: 宋体;">，</span><span style="font-family: 'Segoe UI';">将值的相关部分复制到输出。</span></li>
+<li>Context<span style="font-family: 'Segoe UI';">：操作的用户定义上下文</span><span style="font-family: 宋体;">，</span><span style="font-family: 'Segoe UI';">如果没有必要使用</span>Empty<span style="font-family: 'Segoe UI';">。</span></li>
+<li>Functions<span style="font-family: 'Segoe UI';">：</span><span style="font-family: 宋体;">需要</span><span style="font-family: 'Segoe UI';">回调</span><span style="font-family: 宋体;">时，</span><span style="font-family: 宋体;">使用</span>IFunctions&lt;&gt;<span style="font-family: 宋体;">调用。</span></li>
+</ol>
+<h3><strong><span style="font-family: 'Segoe UI';">回调函数</span></strong></h3>
+<p class="p"><span style="font-family: 'Segoe UI';">用户提供一个实例</span><span style="font-family: 宋体;">化</span>IFunctions&lt;&gt;<span style="font-family: 'Segoe UI';">。此类型封装了所有回调，下面将对其进行介绍：</span></p>
+<ol>
+<li>SingleReader和<span style="font-family: 宋体;">并发读</span>ConcurrentReader：这些用于读取存储值并将它们复制到Output。单个读取器可以假定没有并发操作。</li>
+<li>SingleWriter和ConcurrentWriter：这些用于将值从源值写入存储。</li>
+<li>Completion callbacks<span style="font-family: 'Segoe UI';">完成回调：各种操作完成时调用。</span></li>
+<li>RMWUpdaters<span style="font-family: 'Segoe UI';">：用户指定了三个更新器，</span>InitialUpdater，InPlaceUpdater和CopyUpdater。它们一起用于实现RMW操作。</li>
+<li>Hash Table Siz<span style="font-family: 'Segoe UI';">哈希表大小：这是分配给</span>FASTER的存储<span style="font-family: 宋体;">行数</span><span style="font-family: 'Segoe UI';">，其中每个</span><span style="font-family: 宋体;">行</span><span style="font-family: 'Segoe UI';">为</span>64字节。</li>
+<li>LogSettings 日志设置：这些设置与日志的大小<span style="font-family: 宋体;">、</span><span style="font-family: 'Segoe UI';">设备。</span></li>
+<li>Checkpoint<span style="font-family: 'Segoe UI';">设置：这些是与检查相关的设置，例如检查类型和文件夹。</span></li>
+<li>Serialization<span style="font-family: 'Segoe UI';">序列化设置：用于为键和值类型提供自定义序列化程序。序列化程序实现</span>IObjectSerializer&lt;Key&gt;<span style="font-family: 'Segoe UI';">键和</span>IObjectSerializer&lt;Value&gt;<span style="font-family: 'Segoe UI';">值。</span><span style="font-family: 'Segoe UI';">只有</span>C＃类对象<span style="font-family: 'Segoe UI';">非可移植类型才需要这些。</span></li>
+<li>Key<span style="font-family: 'Segoe UI';">比较器：用于为</span>key<span style="font-family: 'Segoe UI';">提供更好的比较器</span>IFasterEqualityComparer&lt;Key&gt;<span style="font-family: 'Segoe UI';">。</span></li>
+</ol>
+<h3><strong><span style="font-family: 'Segoe UI';">构造函数参数</span></strong></h3>
+<p class="p">FASTER的总内存占用量由以下参数控制：</p>
+<ol>
+<li><span style="font-family: 'Segoe UI';">哈希表大小：此参数（第一个构造函数参数）乘以</span>64是内存中哈希表的大小（以字节为单位）。</li>
+<li><span style="font-family: 'Segoe UI';">日志大小：</span>logSettings.MemorySizeBits表示混合日志的内存部分的大小（以位为单位）。换句话说对于参数设置B，日志的大小为2 ^ B字节。如果日志指向类对象，则此大小不包括对象的大小，因为FASTER无法访问此信息。日志的较旧部分溢出到存储中。</li>
+</ol>
+<h3><strong>Sessions (Threads)</strong><strong><span style="font-family: 'Segoe UI';">会话（线程）</span></strong></h3>
+<p class="p"><span style="font-family: 'Segoe UI';">实例化</span>FASTER之后，线程可以使用Session<span style="font-family: 宋体;">来</span><span style="font-family: 'Segoe UI';">使用</span>FASTER</p>
+<p class="p">fht.StartSession();</p>
+<p class="p">fht.StopSession();</p>
+<p class="p"><span style="font-family: 'Segoe UI';">当所有线程都在</span>FASTER上完成操作后，您最终<span style="font-family: 宋体;">销毁</span>FASTER实例：</p>
+<p class="p">fht.Dispose();</p>
+<h2><strong><span style="font-family: 宋体;">示例</span></strong></h2>
+<p class="p"><span style="font-family: 'Segoe UI';">以下是一个简单示例，其中所有数据都在内存中，因此我们不必担心挂起的</span>I / O操作。在此示例中也没有检查点。</p>
+<p class="p">public static void Test()</p>
+<p class="p">{</p>
+<p class="p">&nbsp;&nbsp;var log = Devices.CreateLogDevice("C:\\Temp\\hlog.log");</p>
+<p class="p">&nbsp;&nbsp;var fht = new FasterKV&lt;long, long, long, long, Empty, Funcs&gt;</p>
+<p class="p">&nbsp;&nbsp;&nbsp;&nbsp;(1L &lt;&lt; 20, new Funcs(), new LogSettings { LogDevice = log });</p>
+<p class="p">&nbsp;&nbsp;fht.StartSession();</p>
+<p class="p">&nbsp;&nbsp;long key = 1, value = 1, input = 10, output = 0;</p>
+<p class="p">&nbsp;&nbsp;fht.Upsert(ref key, ref value, Empty.Default, 0);</p>
+<p class="p">&nbsp;&nbsp;fht.Read(ref key, ref input, ref output, Empty.Default, 0);</p>
+<p class="p">&nbsp;&nbsp;Debug.Assert(output == value);</p>
+<p class="p">&nbsp;&nbsp;fht.RMW(ref key, ref input, Empty.Default, 0);</p>
+<p class="p">&nbsp;&nbsp;fht.RMW(ref key, ref input, Empty.Default, 0);</p>
+<p class="p">&nbsp;&nbsp;fht.Read(ref key, ref input, ref output, Empty.Default, 0);</p>
+<p class="p">&nbsp;&nbsp;Debug.Assert(output == value + 20);</p>
+<p class="p">&nbsp;&nbsp;fht.StopSession();</p>
+<p class="p">&nbsp;&nbsp;fht.Dispose();</p>
+<p class="p">&nbsp;&nbsp;log.Close();</p>
+<p class="p">}</p>
+<p class="p"><span style="font-family: Consolas;">此示例的</span><span style="font-family: Consolas;">函数</span><span style="font-family: Consolas;">：</span></p>
+<p class="p">public class Funcs : IFunctions&lt;long, long, long, long, Empty&gt;</p>
+<p class="p">{</p>
+<p class="p">&nbsp;&nbsp;public void SingleReader(ref long key, ref long input, ref long value, ref long dst) =&gt; dst = value;</p>
+<p class="p">&nbsp;&nbsp;public void SingleWriter(ref long key, ref long src, ref long dst) =&gt; dst = src;</p>
+<p class="p">&nbsp;&nbsp;public void ConcurrentReader(ref long key, ref long input, ref long value, ref long dst) =&gt; dst = value;</p>
+<p class="p">&nbsp;&nbsp;public void ConcurrentWriter(ref long key, ref long src, ref long dst) =&gt; dst = src;</p>
+<p class="p">&nbsp;&nbsp;public void InitialUpdater(ref long key, ref long input, ref long value) =&gt; value = input;</p>
+<p class="p">&nbsp;&nbsp;public void CopyUpdater(ref long key, ref long input, ref long oldv, ref long newv) =&gt; newv = oldv + input;</p>
+<p class="p">&nbsp;&nbsp;public void InPlaceUpdater(ref long key, ref long input, ref long value) =&gt; value += input;</p>
+<p class="p">&nbsp;&nbsp;public void UpsertCompletionCallback(ref long key, ref long value, Empty ctx) { }</p>
+<p class="p">&nbsp;&nbsp;public void ReadCompletionCallback(ref long key, ref long input, ref long output, Empty ctx, Status s) { }</p>
+<p class="p">&nbsp;&nbsp;public void RMWCompletionCallback(ref long key, ref long input, Empty ctx, Status s) { }</p>
+<p class="p">&nbsp;&nbsp;public void CheckpointCompletionCallback(Guid sessionId, long serialNum) { }</p>
+<p class="p">}</p>
+<h2><strong><span style="font-family: 'Segoe UI';">更多例子</span></strong></h2>
+<h2><strong><span style="font-family: 'Segoe UI';">检查点和恢复</span></strong></h2>
+<p class="p">FASTER支持<strong><span style="font-family: 'Segoe UI';">基于检查点的恢复</span></strong><span style="font-family: 'Segoe UI';">。每个新的检查点都会保留（或使之持久）其他用户操作（读取，更新或</span>RMW）。FASTER允许客户端线程跟踪已持久的操作和未使用基于会话的API的操作。</p>
+<p class="p"><span style="font-family: 'Segoe UI';">回想一下，每个</span>FASTER线程都会启动一个与唯一的Guid相关联的会话。所有FASTER线程操作（读取，Upsert，RMW）都带有单调序列号。在任何时间点，都可以调用Checkpoint<span style="font-family: 'Segoe UI';">以启动</span>FASTER的异步检查点。在调用之后Checkpoint<span style="font-family: 'Segoe UI';">，（最终）向每个</span>FASTER线程通知一个序列号，这样可以确保直到该序列号之前的所有操作以及在该序列号之后没有任何操作被保留为该检查点的一部分。FASTER线程可以使用此序列号来清除等待执行的操作的任何内存缓冲区。</p>
+<p class="p"><span style="font-family: 'Segoe UI';">在恢复期间，线程可以使用继续使用相同的</span>Guid进行会话ContinueSession<span style="font-family: 'Segoe UI';">。该函数返回线程本地序列号，直到恢复该会话哈希为止。从那时起，新线程可以使用此信息来重播所有未提交的操作。</span></p>
+<p class="p"><span style="font-family: 'Segoe UI';">下面一个单线程的简单恢复示例。</span></p>
+<p class="p">public class PersistenceExample</p>
+<p class="p">{</p>
+<p class="p">&nbsp;&nbsp;private FasterKV&lt;long, long, long, long, Empty, Funcs&gt; fht;</p>
+<p class="p">&nbsp;&nbsp;private IDevice log;</p>
+<p class="p">&nbsp;&nbsp;</p>
+<p class="p">&nbsp;&nbsp;public PersistenceExample()</p>
+<p class="p">&nbsp;&nbsp;{</p>
+<p class="p">&nbsp;&nbsp;&nbsp;&nbsp;log = Devices.CreateLogDevice("C:\\Temp\\hlog.log");</p>
+<p class="p">&nbsp;&nbsp;&nbsp;&nbsp;fht = new FasterKV&lt;long, long, long, long, Empty, Funcs&gt;</p>
+<p class="p">&nbsp;&nbsp;&nbsp;&nbsp;(1L &lt;&lt; 20, new Funcs(), new LogSettings { LogDevice = log });</p>
+<p class="p">&nbsp;&nbsp;}</p>
+<p class="p">&nbsp;&nbsp;</p>
+<p class="p">&nbsp;&nbsp;public void Run()</p>
+<p class="p">&nbsp;&nbsp;{</p>
+<p class="p">&nbsp;&nbsp;&nbsp;&nbsp;IssuePeriodicCheckpoints();</p>
+<p class="p">&nbsp;&nbsp;&nbsp;&nbsp;RunSession();</p>
+<p class="p">&nbsp;&nbsp;}</p>
+<p class="p">&nbsp;&nbsp;</p>
+<p class="p">&nbsp;&nbsp;public void Continue()</p>
+<p class="p">&nbsp;&nbsp;{</p>
+<p class="p">&nbsp;&nbsp;&nbsp;&nbsp;fht.Recover();</p>
+<p class="p">&nbsp;&nbsp;&nbsp;&nbsp;IssuePeriodicCheckpoints();</p>
+<p class="p">&nbsp;&nbsp;&nbsp;&nbsp;ContinueSession();</p>
+<p class="p">&nbsp;&nbsp;}</p>
+<p class="p">&nbsp;&nbsp;</p>
+<p class="p">&nbsp;&nbsp;/* Helper Functions */</p>
+<p class="p">&nbsp;&nbsp;private void RunSession()</p>
+<p class="p">&nbsp;&nbsp;{</p>
+<p class="p">&nbsp;&nbsp;&nbsp;&nbsp;Guid guid = fht.StartSession();</p>
+<p class="p">&nbsp;&nbsp;&nbsp;&nbsp;System.IO.File.WriteAllText(@"C:\\Temp\\session1.txt", guid.ToString());</p>
+<p class="p">&nbsp;&nbsp;&nbsp;&nbsp;</p>
+<p class="p">&nbsp;&nbsp;&nbsp;&nbsp;long seq = 0; // sequence identifier</p>
+<p class="p">&nbsp;&nbsp;&nbsp;&nbsp;</p>
+<p class="p">&nbsp;&nbsp;&nbsp;&nbsp;long key = 1, input = 10;</p>
+<p class="p">&nbsp;&nbsp;&nbsp;&nbsp;while(true)</p>
+<p class="p">&nbsp;&nbsp;&nbsp;&nbsp;{</p>
+<p class="p">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;key = (seq % 1L &lt;&lt; 20);</p>
+<p class="p">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fht.RMW(ref key, ref input, Empty.Default, seq);</p>
+<p class="p">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;seq++;</p>
+<p class="p">&nbsp;&nbsp;&nbsp;&nbsp;}</p>
+<p class="p">&nbsp;&nbsp;&nbsp;&nbsp;// fht.StopSession() - outside infinite loop</p>
+<p class="p">&nbsp;&nbsp;}</p>
+<p class="p">&nbsp;&nbsp;</p>
+<p class="p">&nbsp;&nbsp;private void ContinueSession()</p>
+<p class="p">&nbsp;&nbsp;{</p>
+<p class="p">&nbsp;&nbsp;&nbsp;&nbsp;string guidText = System.IO.File.ReadAllText(@"C:\\Temp\session1.txt");</p>
+<p class="p">&nbsp;&nbsp;&nbsp;&nbsp;Guid sessionGuid = Guid.Parse(guidText);</p>
+<p class="p">&nbsp;&nbsp;&nbsp;&nbsp;</p>
+<p class="p">&nbsp;&nbsp;&nbsp;&nbsp;long seq = fht.ContinueSession(sessionGuid); // recovered seq identifier</p>
+<p class="p">&nbsp;&nbsp;&nbsp;&nbsp;seq++;</p>
+<p class="p">&nbsp;&nbsp;&nbsp;&nbsp;</p>
+<p class="p">&nbsp;&nbsp;&nbsp;&nbsp;long key = 1, input = 10;</p>
+<p class="p">&nbsp;&nbsp;&nbsp;&nbsp;while(true)</p>
+<p class="p">&nbsp;&nbsp;&nbsp;&nbsp;{</p>
+<p class="p">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;key = (seq % 1L &lt;&lt; 20);</p>
+<p class="p">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fht.RMW(ref key, ref input, Empty.Default, seq);</p>
+<p class="p">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;seq++;</p>
+<p class="p">&nbsp;&nbsp;&nbsp;&nbsp;}</p>
+<p class="p">&nbsp;&nbsp;}</p>
+<p class="p">&nbsp;&nbsp;</p>
+<p class="p">&nbsp;&nbsp;private void IssuePeriodicCheckpoints()</p>
+<p class="p">&nbsp;&nbsp;{</p>
+<p class="p">&nbsp;&nbsp;&nbsp;&nbsp;var t = new Thread(() =&gt;</p>
+<p class="p">&nbsp;&nbsp;&nbsp;&nbsp;{</p>
+<p class="p">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while(true)</p>
+<p class="p">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{</p>
+<p class="p">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Thread.Sleep(10000);</p>
+<p class="p">fht.StartSession();</p>
+<p class="p">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fht.TakeCheckpoint(out Guid token);</p>
+<p class="p">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fht.CompleteCheckpoint(token, true);</p>
+<p class="p">fht.StopSession();</p>
+<p class="p">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}</p>
+<p class="p">&nbsp;&nbsp;&nbsp;&nbsp;});</p>
+<p class="p">&nbsp;&nbsp;&nbsp;&nbsp;t.Start();</p>
+<p class="p">&nbsp;&nbsp;}</p>
+<p class="p">}</p>
+<p class="p">FASTER支持两种检查点概念：&ldquo;快照&rdquo;和&ldquo;折叠&rdquo;。前者是将内存中的完整快照复制到一个单独的快照文件中，而后者是自上一个检查点以来更改的<span style="font-family: 'Segoe UI';">增量</span><span style="font-family: 'Segoe UI';">检查点。折叠有效地将混合日志的只读标记移到尾部，因此所有数据都作为同一混合日志的一部分保留（没有单独的快照文件）。所有后续更新均写入新的混合日志尾部位置，这使</span>Fold-Over具有增量性质。</p>
+<p class="p">项目路径：</p>
+<p class="p"><a href="https://github.com/Microsoft/FASTER/tree/master/cs">https://github.com/Microsoft/FASTER/tree/master/cs</a></p>
+<p class="p">&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,122 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C# 图片打印杂谈' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C# 图片打印杂谈</center></div><div class='banquan'>原文出处:本文由博客园博主zlyxm提供。<br/>
+原文连接:https://www.cnblogs.com/zlyxm/p/10937940.html</div><br>
+    <p style="margin-left: 30px;">日常开头水一下，看了下上次博客，一年零八天了，啧啧，奢侈。</p>
+<p style="margin-left: 30px;">最近这个工作挺满意的，是我想要的发展方向，后续要做机器学习，现在得先把公司之前堆积的问题解决了。</p>
+<p style="margin-left: 30px;">谈人生到此结束，还是说正题吧。（感觉这标题吸引不了人啊）</p>
+<p style="margin-left: 30px;">&nbsp;</p>
+<p style="margin-left: 30px;">&nbsp;</p>
+<p style="margin-left: 30px;">打印：PrintDocument</p>
+<p style="margin-left: 30px;">环境：WPF&nbsp;and Winform</p>
+<p style="margin-left: 30px;">要求：排版并打印图片</p>
+<p style="margin-left: 30px;">之前一直不明白很多参数的问题，现在想清楚了，随手记录一下。</p>
+<p style="margin-left: 30px;">WPF暂放一边，把winform先解决了，跟百度烂大街的一样是 PrintPage事件Graphics绘制来打印的。其它部分参考</p>
+<blockquote>
+<p style="margin-left: 30px;"><a title="C# 利用PrintDocument定制打印单据" href="https://www.cnblogs.com/hsiang/p/6921817.html" target="_blank">https://www.cnblogs.com/hsiang/p/6921817.html</a></p>
+</blockquote>
+<p style="margin-left: 30px;">首先用Graphics绘制一直不明白的是该怎么绘制，纸张的大小是多少，怎么样才能按照指定尺寸打印。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;">我们先聊聊纸张大小，看纸张大小可以在开始文件打印</span></pre>
+<pre><code> <span style="color: #000000;"> PrintDocument.Print(); <br /></span></pre>
+</div>
+<pre><code>并选好打印机后，在 PrintPage事件里绘制要打印的数据</pre>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> pdControl_PrintPage(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, PrintPageEventArgs e)
+{<br />　　　　var printDocument = (PrintDocument)sender;<br /></span>　　　　//纸张的高和宽<br />　　　　var paper_h = printDocument.DefaultPageSettings.PaperSize.Height;<br />　　　　var paper_w = printDocument.DefaultPageSettings.PaperSize.Width;<br />}</pre>
+</div>
+<p>然而知道高和宽但不知道单位啊，这高和宽到底是像素还是英寸还是其它的什么鬼。</p>
+<p>在实例化new PaperSize就看得到注释：</p>
+<p style="margin-left: 30px;"><img style="display: block; margin-left: auto; margin-right: auto;" src="./images/C# 图片打印杂谈0.png" alt="" /></p>
+<p style="text-align: center;"><span style="color: #888888;">百分之一英寸为单位</span></p>
+<p>&nbsp;这样第一个问题就解决了，纸张的大小是&nbsp;printDocument.DefaultPageSettings.PaperSize，并且单位是百分之一英寸。</p>
+<p>不过不要太相信这个，比如我要打印的图片是6寸的（特地量了），但给出是尺寸宽多了0.15In,高多了0.13In。好歹win自带的PDF打印A4纸也就相差0.002以下好吧。这个为什么有误差待大神解释。</p>
+<p><img src="./images/C# 图片打印杂谈1.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>那么第二个问题（第三个）：该怎么绘制才能按照指定尺寸打印</p>
+<p>既然我们知道了打印的范围也就避免了绘制超出纸张。那么我们就要绘制内容了，咱这只讲图片，其它的也差不多。</p>
+<p style="margin-left: 30px;">我做的是根据图片的大小铺满整个打印纸。&nbsp;</p>
+<div class="cnblogs_code">
+<pre><code>   <span style="color: #008000;">//</span><span style="color: #008000;">我们先建个类,来记录要图片大小及纸张大小<br /></span>   //这个类只是方便调试转换度量单位，实际应用只选一种计算单位就行了
+    <span style="color: #0000ff;">class</span><span style="color: #000000;"> PrintUnit
+    {<br />　　　　 //图片大小，这里图片其实是一寸的照片
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span> unit_w = <span style="color: #800080;">259</span><span style="color: #000000;">;
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span> unit_h = <span style="color: #800080;">377</span><span style="color: #000000;">;<br />　　　　 //纸张大小300dpi 6*300 4*300
+        </span><span style="color: #0000ff;">public</span> PaperSize paperSize = <span style="color: #0000ff;">new</span> PaperSize(<span style="color: #800000;">"</span><span style="color: #800000;">A6</span><span style="color: #800000;">"</span>, <span style="color: #800080;">1800</span>, <span style="color: #800080;">1200</span><span style="color: #000000;">);<br />　　　　 //度量单位
+        </span><span style="color: #0000ff;">private</span> GraphicsUnit unit =<span style="color: #000000;"> GraphicsUnit.Pixel;
+        </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> GraphicsUnit Unit
+        {
+            </span><span style="color: #0000ff;">get</span> =&gt;<span style="color: #000000;"> unit;
+            </span><span style="color: #0000ff;">set</span><span style="color: #000000;">
+            {
+                unit </span>=<span style="color: #000000;"> value;<br />　　　　　　　　　 //如果度量单位为毫米
+                </span><span style="color: #0000ff;">if</span> (unit ==<span style="color: #000000;"> GraphicsUnit.Millimeter)
+                {<br />　　　　　　　　　　　 //具体换算为 1200/300*25.4 约等于 102<br />　                  paperSize.Height </span>= <span style="color: #800080;">102</span><span style="color: #000000;">;
+                    paperSize.Width </span>= <span style="color: #800080;">152</span><span style="color: #000000;"> ;<br />
+                    unit_w </span>= <span style="color: #800080;">22</span><span style="color: #000000;">;
+                    unit_h </span>= <span style="color: #800080;">32</span><span style="color: #000000;">;
+                }
+            }
+        }
+    }</span></pre>
+</div>
+<p>&nbsp;</p>
+<p style="margin-left: 30px;">然后在&nbsp;PrintPage事件里得到计算打印纸可以铺满多少图片</p>
+<div class="cnblogs_code">
+<pre><code>            PrintUnit printUnit = new PrintUnit();<br />　　　　　　  g.PageUnit = printUnit.Unit;<br />　　　　　　  column = printUnit.paperSize.Width /<span style="color: #000000;"> printUnit.unit_w;
+            row </span>= printUnit.paperSize.Height /<span style="color: #000000;"> printUnit.unit_h;
+
+            </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; row; i++<span style="color: #000000;">)
+            {
+                </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> j = <span style="color: #800080;">0</span>; j &lt; column; j++<span style="color: #000000;">)
+                {
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">g.DrawImage(
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">    Resources._1,
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">    new Rectangle(j * printUnit.unit_w, i * printUnit.unit_h, printUnit.unit_w, printUnit.unit_h),
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">    new Rectangle(0, 0, Resources._1.Width, Resources._1.Height),
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">    g.PageUnit);</span>
+                    g.DrawImage(Resources._1, j * printUnit.unit_w, i *<span style="color: #000000;"> printUnit.unit_h, printUnit.unit_w, printUnit.unit_h);
+                }
+            }</span></pre>
+</div>
+<p>　　有趣的是在DrawImage(Image image, Rectangle destRect, Rectangle srcRect, GraphicsUnit srcUnit);的重载方法里图片有误差，原因不明。</p>
+<p style="margin-left: 30px;">&nbsp;有点乱了，来强行解释一波。</p>
+<p style="margin-left: 30px;">在打印事件里PrintPageEventArgs.PageUnit 是设置度量单位，就是你要绘制的单位是按照像素还是毫米或其它，默认是百分之一英寸。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//比如你要打印A4纸210mm&times;297mm ，打印</span>PrintPage事件<span style="color: #008000;">里设置度量单位为</span>Millimeter<br /><span style="color: #008000;">g.PageUnit=GraphicsUnit.Millimeter；<br />//铺满整个A4纸<br /></span><span style="color: #008000;">g.DrawImage(image, 0, 0, 210, 297);</span></pre>
+</div>
+<p style="margin-left: 30px;">&nbsp;就是这么简单，不过不建议用毫米为单位，因为这样图片容易误差，这是因为绘制时会将毫米转换成像素。</p>
+<p style="margin-left: 30px;"><img style="display: block; margin-left: auto; margin-right: auto;" src="./images/C# 图片打印杂谈2.png" alt="" /></p>
+<p style="margin-left: 30px; text-align: center;"><span style="color: #888888;">很明显用毫米来绘制时会有间隙</span></p>
+<p>&nbsp;</p>
+<p style="margin-left: 30px;">&nbsp;懒得排版，事多，溜了溜了。</p>
+<p style="margin-left: 30px;"><img src="./images/C# 图片打印杂谈3.png" alt="" /></p>
+<p>&nbsp;</p>
+<p style="margin-left: 30px;">&nbsp;</p>
+<p style="margin-left: 30px;">&nbsp;</p>
+<p style="margin-left: 30px;">&nbsp;前方高能提醒，代码很乱，不用谢。</p>
+<p style="margin-left: 30px;">&nbsp;https://files.cnblogs.com/files/zlyxm/DemoPrint_zlyxm.rar</p>
+<p style="margin-left: 30px;">&nbsp;&nbsp;</p>
+<p style="margin-left: 30px;">&nbsp;</p>
+<p style="margin-left: 30px;">&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

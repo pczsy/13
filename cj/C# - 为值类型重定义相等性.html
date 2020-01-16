@@ -1,0 +1,99 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C# - 为值类型重定义相等性' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C# - 为值类型重定义相等性</center></div><div class='banquan'>原文出处:本文由博客园博主solenovex提供。<br/>
+原文连接:https://www.cnblogs.com/cgzl/p/10699667.html</div><br>
+    <h1>为什么要为值类型重定义相等性</h1>
+<p>原因主要有以下几点：</p>
+<ul>
+<li>值类型默认无法使用 == 操作符，除非对它进行重写</li>
+<li>再就是性能原因，因为值类型默认的相等性比较会使用装箱和反射，所以性能很差</li>
+<li>根据业务需求，其实际相等性的意义和默认的比较结果可能会不同，但是这种情况可能不较少</li>
+</ul>
+<p>所以建议是：所有供外部使用的struct都实现相等性。</p>
+<p>&nbsp;</p>
+<h1>实现步骤</h1>
+<ul>
+<li><span style="color: #ff0000;"><strong>重写object.Equals()方法</strong></span></li>
+<li><span style="color: #ff0000;"><strong>实现IEquatable&lt;T&gt;.Equals()接口方法</strong></span></li>
+<li><span style="color: #ff0000;"><strong>重写 == 和 != 操作符</strong></span></li>
+<li><span style="color: #ff0000;"><strong>重写object.GetHashCode()</strong></span></li>
+</ul>
+<p>具体来说：</p>
+<p>重写object.Equals()方法，是避免了反射，因为System.ValueType里面对object.Equals()方法的重写实现如下：</p>
+<p><img src="./images/C# - 为值类型重定义相等性0.png" alt="" /></p>
+<p>这里用到了反射。</p>
+<p>而实现IEquatable&lt;T&gt;.Equals()接口方法，可以避免装箱，并且保证类型安全。</p>
+<p>而实现==和!=，也就允许值类型使用该操作符了，写起来更方便直观，易于理解。而且这两个操作符必须一同实现。</p>
+<p>而重写object.GetHashCode()，则是一个最佳实践。</p>
+<p>&nbsp;</p>
+<p><strong>所有为值类型重定义相等性，一共分4步，每步都是必须的</strong>。</p>
+<p>&nbsp;</p>
+<h1>实现</h1>
+<p>先看实例struct：</p>
+<p><img src="./images/C# - 为值类型重定义相等性1.png" alt="" /></p>
+<p>有构造函数，涉及到一个enum，并重写了ToString()方法。</p>
+<p>&nbsp;</p>
+<h2>实现IEquatable&lt;T&gt;接口</h2>
+<p>首先来实现IEquatable&lt;T&gt;接口。</p>
+<p>（如果你使用resharper或者Rider，那么实现该接口的时候它会自动把object的Equals和GetHashCode方法都重写了，并且自动完成了有意义的代码）</p>
+<p><img src="./images/C# - 为值类型重定义相等性2.png" alt="" /></p>
+<p>这里面我对三个属性进行了比较，使用了==操作符。其中==对于string来说就是比较值，而enum其实就是int，DateTime也是值类型，并且已经实现了相等性判断的功能。</p>
+<p>&nbsp;</p>
+<h2>重写object.Equals()方法</h2>
+<p><img src="./images/C# - 为值类型重定义相等性3.png" alt="" /></p>
+<p>这个代码是resharper生成的。</p>
+<p>代码很简单，首先检查是否为null，然后检查这个object是不是一个Person，这里使用了 is 操作符，并把它转型为Person，赋给了一个叫做other的变量。最后调用的这个Equals()方法，是我们上面写的那个强类型的方法，因为other变量的类型是Person。</p>
+<p>但是这个方法仍然涉及到装箱操作，所以还是IEquatable&lt;T&gt;的实现方法更快一些。</p>
+<p>&nbsp;</p>
+<p>如果只重写了object.Equals()方法，而没有重写GetHasCode()方法，那么resharper会有提示：</p>
+<p><img src="./images/C# - 为值类型重定义相等性4.png" alt="" /></p>
+<p>&nbsp;</p>
+<h2>实现 == 和 != 操作符</h2>
+<p>&nbsp;<img src="./images/C# - 为值类型重定义相等性5.png" alt="" /></p>
+<p>这个很简单，直接调用强类型的Equals()方法即可，而且由于Person是值类型，所以不用检查null，值类型不会为null。</p>
+<p>&nbsp;</p>
+<p>如果只实现了其中一个操作符，那么会报错的。</p>
+<p>&nbsp;</p>
+<h2>实现object.GetHashCode()</h2>
+<p>GetHashCode()这个方法会返回一个32位的哈希码，它代表着对象内容的哈希值。</p>
+<p>而类型里拥有GetHashCode()方法（返回Hash）的真正目的是，允许该类型在内部使用HashTable的集合中可以作为Key，因为HashTable需要这些哈希码。例如Dictionary&lt;TK, TV&gt;。</p>
+<p>为了让HashTable可以正确的工作，Hash码有一个要求：如果两个实例被认为是相等的，那么它们必须返回相同的hash码。如果没有实现这个要求，那么你可能会发现这个类型作为Dictionary的Key的时候，会有一些意想不到的结果。</p>
+<p>所以如果重写了object.Equals()方法，那么就得重写object.GetHashCode()方法。</p>
+<p>&nbsp;</p>
+<p>看一下resharper自动实现的代码：</p>
+<p><img src="./images/C# - 为值类型重定义相等性6.png" alt="" /></p>
+<p>这里使用了unchecked，防止抛出溢出异常。</p>
+<p>Name是引用类型，可能为null，所以判断一下。</p>
+<p>然后其它两个int和DateTime类型，微软都做好了其GetHashCode()的实现。</p>
+<p>这里对它们进行异或操作。之所以使用397这个数，可能因为397是一个足够大的质数，可以导致溢出，并混淆各位，之所以使用质数，是因为用质数相乘会得到比用其他任意数相乘更均匀的结果。</p>
+<p>&nbsp;</p>
+<h2>检验</h2>
+<p><img src="./images/C# - 为值类型重定义相等性7.png" alt="" /></p>
+<p><img src="./images/C# - 为值类型重定义相等性8.png" alt="" /></p>
+<p>结果如预期，OK。</p>
+<p>&nbsp;</p>
+<h2>总结</h2>
+<p>在这几个动作里，实际的逻辑写在了IEquatable&lt;T&gt;.Equals()方法里，object.Equals()就是检查类型然后调用IEquatable&lt;T&gt;.Equals()，== 和 != 操作符也是调用IEquatable&lt;T&gt;.Equals()，而GetHashCode()则使用了按位异或。</p>
+<p>&nbsp;</p>
+<p>最后再重复一次，<strong>为值类型定义相等性一定要实现上述4各步骤的5个方法</strong>。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

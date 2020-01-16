@@ -1,0 +1,282 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C# 异步编程' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C# 异步编程</center></div><div class='banquan'>原文出处:本文由博客园博主yswenli提供。<br/>
+原文连接:https://www.cnblogs.com/yswenli/p/11987377.html</div><br>
+    <p>&nbsp; &nbsp; &nbsp;基于Task的异步<a class="keylink" href="https://www.2cto.com/kf" target="_blank">编程</a>模式（TAP）是Microsoft为.Net平台下使用Task进行编程所提供的一组建议，这种模式提供了可以被await消耗（调用）方法的APIs，并且当使用async关键字编写遵守这种模式的方法时，手写Task通常很有用。通常TAP用起来与普通方式没什么两样，但是不支持ref和out参数。</p>
+<p>&nbsp; &nbsp; &nbsp;任务和线程的区别：<br />&nbsp; &nbsp; &nbsp;1、任务是架构在线程之上的，也就是说任务最终还是要抛给线程去执行。</p>
+<p>&nbsp; &nbsp; &nbsp;2、任务跟线程不是一对一的关系，比如开10个任务并不是说会开10个线程，这一点任务有点类似线程池，但是任务相比线程池有很小的开销和精确的控制。</p>
+<p>&nbsp; &nbsp; &nbsp;3、Task的优势</p>
+<p>　　ThreadPool相比Thread来说具备了很多优势，但是ThreadPool却又存在一些使用上的不方便。比如：<br />　　◆ ThreadPool不支持线程的取消、完成、失败通知等交互性操作；<br />　　◆ ThreadPool不支持线程执行的先后次序；<br />&nbsp; &nbsp; &nbsp;以往，如果开发者要实现上述功能，需要完成很多额外的工作，现在，微软提供了一个功能更强大的概念：Task。Task在线程池的基础上进行了优化，并提供了更多的API。</p>
+<p>&nbsp;下面分析一理异步编程中的一些关键点</p>
+<h2>1.await&nbsp;&nbsp;</h2>
+<p>&nbsp; &nbsp; &nbsp;我们都知道await关键字是.Net FrameWork4.5引入的特性。await使得我们使用异步更加时特别便捷，并且还<strong>不会导致线程堵塞</strong>。我们在使用时也就莫名其妙的使用。往往不知道为什么不会导致线程堵塞。在这里，简单的谈论下await的一点原理。</p>
+<p>&nbsp; &nbsp; &nbsp;在c#并行编程这本书中是这么介绍await的：async方法在开始时以同步方式执行,在async方法内部,await关键字对它参数执行一个异步等待,它首先检查操作是否已经完成,如果完成,就继续运行(同步方式),否则,会暂停async方法,并返回.留下一个未完成的task，一段时间后,操作完成,async方法就恢复执行.</p>
+<p>&nbsp; &nbsp; &nbsp;看到这句话应该就差不多能想到await为什么不会导致线程堵塞了，当碰到await时如果没有执行成功就先暂停这个方法的执行，执行方法外以下代码，等await操作完成后再执行这个方法await之后的代码。</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('5f5620f1-c860-4bb6-aa37-bd1adedc45a2')"><img id="code_img_closed_5f5620f1-c860-4bb6-aa37-bd1adedc45a2" class="code_img_closed" src="./images/C# 异步编程0.png" alt="" /><img id="code_img_opened_5f5620f1-c860-4bb6-aa37-bd1adedc45a2" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('5f5620f1-c860-4bb6-aa37-bd1adedc45a2',event)" src="./images/C# 异步编程1.png" alt="" />
+<div id="cnblogs_code_open_5f5620f1-c860-4bb6-aa37-bd1adedc45a2" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #0000ff;">private</span>  <span style="color: #0000ff;">void</span> button1_Click(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)
+</span><span style="color: #008080;">2</span> <span style="color: #000000;">{
+</span><span style="color: #008080;">3</span> <span style="color: #000000;">      DemoAsync();
+</span><span style="color: #008080;">4</span>       MessageBox.Show(<span style="color: #800000;">"</span><span style="color: #800000;">同步代码</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">5</span> }</pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp; &nbsp; &nbsp;运行后会发现在点击button按钮时窗体不能被移动了,然后等待了3秒钟才弹出"同步代码"这句话。</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('9613735c-ffeb-4692-9080-efa1f6b1a17d')"><img id="code_img_closed_9613735c-ffeb-4692-9080-efa1f6b1a17d" class="code_img_closed" src="./images/C# 异步编程0.png" alt="" /><img id="code_img_opened_9613735c-ffeb-4692-9080-efa1f6b1a17d" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('9613735c-ffeb-4692-9080-efa1f6b1a17d',event)" src="./images/C# 异步编程1.png" alt="" />
+<div id="cnblogs_code_open_9613735c-ffeb-4692-9080-efa1f6b1a17d" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #0000ff;">async</span><span style="color: #000000;"> Task DemoAsync()
+</span><span style="color: #008080;">2</span> <span style="color: #000000;">{
+</span><span style="color: #008080;">3</span>       <span style="color: #0000ff;">await</span> Task.Run(() =&gt; { Thread.Sleep(<span style="color: #800080;">3000</span><span style="color: #000000;">); });
+</span><span style="color: #008080;">4</span>       Thread.Sleep(<span style="color: #800080;">3000</span><span style="color: #000000;">);
+</span><span style="color: #008080;">5</span> }</pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp; &nbsp; &nbsp;再次运行就会神奇的发现,此时会先弹出"同步代码"这局话,然后等待3秒后窗体就不能被移动。</p>
+<h2>2.Task</h2>
+<p>&nbsp; &nbsp; &nbsp;<span data-ttu-id="a5d5c-102"><a class="xref" href="https://docs.microsoft.com/zh-cn/dotnet/api/system.threading.tasks.task?view=netframework-4.8" data-linktype="relative-path">Task</a>&nbsp;类表示通常以异步方式执行的单个操作，&nbsp;<span data-ttu-id="a5d5c-103"><a class="xref" href="https://docs.microsoft.com/zh-cn/dotnet/api/system.threading.tasks.task?view=netframework-4.8" data-linktype="relative-path">Task</a>&nbsp;对象是<a href="https://docs.microsoft.com/zh-cn/dotnet/standard/asynchronous-programming-patterns/task-based-asynchronous-pattern-tap?view=netframework-4.8" data-linktype="relative-path">基于任务的异步模式</a>的中心组件之一。&nbsp;<span data-ttu-id="a5d5c-104">由于&nbsp;<a class="xref" href="https://docs.microsoft.com/zh-cn/dotnet/api/system.threading.tasks.task?view=netframework-4.8" data-linktype="relative-path">Task</a>&nbsp;对象执行的工作通常在线程池线程上异步执行，而不是在主应用程序线程上同步执行，因此可以使用&nbsp;<a class="xref" href="https://docs.microsoft.com/zh-cn/dotnet/api/system.threading.tasks.task.status?view=netframework-4.8" data-linktype="relative-path">Status</a>&nbsp;属性，还可以使用&nbsp;<a class="xref" href="https://docs.microsoft.com/zh-cn/dotnet/api/system.threading.tasks.task.iscanceled?view=netframework-4.8" data-linktype="relative-path">IsCanceled</a>、<a class="xref" href="https://docs.microsoft.com/zh-cn/dotnet/api/system.threading.tasks.task.iscompleted?view=netframework-4.8" data-linktype="relative-path">IsCompleted</a>和&nbsp;<a class="xref" href="https://docs.microsoft.com/zh-cn/dotnet/api/system.threading.tasks.task.isfaulted?view=netframework-4.8" data-linktype="relative-path">IsFaulted</a>&nbsp;属性，用于确定任务的状态。&nbsp;<span data-ttu-id="a5d5c-105">通常，lambda 表达式用于指定任务要执行的工作。<span data-ttu-id="a5d5c-126">可以通过多种方式创建&nbsp;<a class="xref" href="https://docs.microsoft.com/zh-cn/dotnet/api/system.threading.tasks.task?view=netframework-4.8" data-linktype="relative-path">Task</a>&nbsp;实例。&nbsp;<span data-ttu-id="a5d5c-127">最常见的方法（从&nbsp;<span data-ttu-id="c8c81-101">.NET Framework 4.5开始提供）是调用静态&nbsp;<a class="xref" href="https://docs.microsoft.com/zh-cn/dotnet/api/system.threading.tasks.task.run?view=netframework-4.8" data-linktype="relative-path">Run</a>&nbsp;方法。&nbsp;<span data-ttu-id="a5d5c-128"><a class="xref" href="https://docs.microsoft.com/zh-cn/dotnet/api/system.threading.tasks.task.run?view=netframework-4.8" data-linktype="relative-path">Run</a>&nbsp;方法提供一种简单的方法来使用默认值启动任务，而无需其他参数。</span></span></span></span><span data-ttu-id="a5d5c-137"><a class="xref" href="https://docs.microsoft.com/zh-cn/dotnet/api/system.threading.tasks.task?view=netframework-4.8" data-linktype="relative-path">Task</a>&nbsp;类还提供了初始化任务的构造函数，但不计划执行该任务。&nbsp;<span data-ttu-id="a5d5c-138">出于性能原因，<a class="xref" href="https://docs.microsoft.com/zh-cn/dotnet/api/system.threading.tasks.task.run?view=netframework-4.8" data-linktype="relative-path">Task.Run</a>&nbsp;或&nbsp;<a class="xref" href="https://docs.microsoft.com/zh-cn/dotnet/api/system.threading.tasks.taskfactory.startnew?view=netframework-4.8" data-linktype="relative-path">TaskFactory.StartNew</a>&nbsp;方法是用于创建和计划计算任务的首选机制，但对于必须分隔创建和计划的情况，可以使用构造函数，然后调用&nbsp;<a class="xref" href="https://docs.microsoft.com/zh-cn/dotnet/api/system.threading.tasks.task.start?view=netframework-4.8" data-linktype="relative-path">Task.Start</a>用于计划任务稍后执行的方法。</span></span><span data-ttu-id="a5d5c-140">因为任务通常在线程池线程上以异步方式运行，所以，创建和启动任务的线程会在实例化任务后立即继续执行。&nbsp;<span data-ttu-id="a5d5c-141">在某些情况下，当调用线程是主应用程序线程时，应用程序可能会在任何任务实际开始执行之前终止。&nbsp;<span data-ttu-id="a5d5c-142">在其他情况下，应用程序的逻辑可能要求调用线程在一个或多个任务完成执行时继续执行。&nbsp;<span data-ttu-id="a5d5c-143">可以通过调用&nbsp;<code>Wait</code>&nbsp;方法来等待一个或多个任务完成，从而同步调用线程的执行以及它启动的异步任务。</span></span></span></span>若要等待单个任务完成，可以调用其&nbsp;<a class="xref" href="https://docs.microsoft.com/zh-cn/dotnet/api/system.threading.tasks.task.wait?view=netframework-4.8" data-linktype="relative-path">Task.Wait</a>&nbsp;方法。&nbsp;<span data-ttu-id="a5d5c-149"><a class="xref" href="https://docs.microsoft.com/zh-cn/dotnet/api/system.threading.tasks.task.wait?view=netframework-4.8#System_Threading_Tasks_Task_Wait_System_Int32_" data-linktype="relative-path">Wait(Int32)</a>&nbsp;和&nbsp;<a class="xref" href="https://docs.microsoft.com/zh-cn/dotnet/api/system.threading.tasks.task.wait?view=netframework-4.8#System_Threading_Tasks_Task_Wait_System_TimeSpan_" data-linktype="relative-path">Wait(TimeSpan)</a>&nbsp;方法会阻止调用线程，直到任务完成或超时间隔结束。</span></span></span></span></span></p>
+<p><span data-ttu-id="a5d5c-102"><span data-ttu-id="a5d5c-103"><span data-ttu-id="a5d5c-104"><span data-ttu-id="a5d5c-105"><span data-ttu-id="a5d5c-149">&nbsp; &nbsp; &nbsp;需要注意的是，Task中的方法一般是不会将异常抛出的，哪怕是Task&lt;T&gt;这种，这需要开发人员自行处理。不过如果获取Task&lt;T&gt;.Result则会将任务内的异常抛出来；</span></span></span></span></span></p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('5a1f8524-373c-42bd-a755-7aafca383172')"><img id="code_img_closed_5a1f8524-373c-42bd-a755-7aafca383172" class="code_img_closed" src="./images/C# 异步编程0.png" alt="" /><img id="code_img_opened_5a1f8524-373c-42bd-a755-7aafca383172" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('5a1f8524-373c-42bd-a755-7aafca383172',event)" src="./images/C# 异步编程1.png" alt="" />
+<div id="cnblogs_code_open_5a1f8524-373c-42bd-a755-7aafca383172" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">async</span> Task&lt;<span style="color: #0000ff;">string</span>&gt; Hello(<span style="color: #0000ff;">int</span> a=<span style="color: #800080;">0</span><span style="color: #000000;">)
+</span><span style="color: #008080;"> 2</span> <span style="color: #000000;">{
+</span><span style="color: #008080;"> 3</span>     <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">await</span> Task.Run(<span style="color: #0000ff;">async</span> () =&gt;
+<span style="color: #008080;"> 4</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;"> 5</span>         <span style="color: #0000ff;">await</span> Task.Delay(<span style="color: #800080;">1000</span>).ConfigureAwait(<span style="color: #0000ff;">true</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 6</span> 
+<span style="color: #008080;"> 7</span>         <span style="color: #0000ff;">return</span> $<span style="color: #800000;">"</span><span style="color: #800000;">Hello {10/a}</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 8</span> 
+<span style="color: #008080;"> 9</span>     }).ConfigureAwait(<span style="color: #0000ff;">true</span><span style="color: #000000;">);
+</span><span style="color: #008080;">10</span> <span style="color: #000000;">}
+</span><span style="color: #008080;">11</span> <span style="color: #008000;">//</span><span style="color: #008000;">不会报异常</span>
+<span style="color: #008080;">12</span> Hello(<span style="color: #800080;">0</span><span style="color: #000000;">);
+</span><span style="color: #008080;">13</span> <span style="color: #008000;">//</span><span style="color: #008000;">会报异常</span>
+<span style="color: #008080;">14</span> <span style="color: #0000ff;">var</span> a1=  Hello(<span style="color: #800080;">0</span>).Result;</pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>Task.Factory提供了更多参数的Task创建方式以支持自定义的Task，比如：Task,Factory.StartNew(Action action, CancellationToken cancellationToken, TaskCreationOptions creationOptions, TaskScheduler scheduler)就支持指定取消通知参数、任务创建模式，指定任务调度器；其中TaskCreationOptions参数意义如下：</p>
+<table class="nameValue cols3">
+<tbody>
+<tr>
+<td id="System_Threading_Tasks_TaskCreationOptions_AttachedToParent">AttachedToParent</td>
+<td>4</td>
+<td>
+<p><span data-ttu-id="663b4-109">指定将任务附加到任务层次结构中的某个父级。&nbsp;<span data-ttu-id="663b4-110">默认情况下，子任务（即由外部任务创建的内部任务）将独立于其父任务执行。&nbsp;<span data-ttu-id="663b4-111">可以使用&nbsp;<a class="xref" href="https://docs.microsoft.com/zh-cn/dotnet/api/system.threading.tasks.taskcontinuationoptions?view=netframework-4.8#System_Threading_Tasks_TaskContinuationOptions_AttachedToParent" data-linktype="relative-path">AttachedToParent</a>&nbsp;选项以便将父任务和子任务同步。</span></span></span></p>
+<p><span data-ttu-id="663b4-112">请注意，如果使用&nbsp;<a class="xref" href="https://docs.microsoft.com/zh-cn/dotnet/api/system.threading.tasks.taskcreationoptions?view=netframework-4.8#System_Threading_Tasks_TaskCreationOptions_DenyChildAttach" data-linktype="relative-path">DenyChildAttach</a>&nbsp;选项配置父任务，则子任务中的&nbsp;<a class="xref" href="https://docs.microsoft.com/zh-cn/dotnet/api/system.threading.tasks.taskcreationoptions?view=netframework-4.8#System_Threading_Tasks_TaskCreationOptions_AttachedToParent" data-linktype="relative-path">AttachedToParent</a>&nbsp;选项不起作用，并且子任务将作为分离的子任务执行。</span></p>
+<p><span data-ttu-id="663b4-113">有关详细信息，请参阅<a href="https://docs.microsoft.com/zh-cn/dotnet/standard/parallel-programming/attached-and-detached-child-tasks?view=netframework-4.8" data-linktype="relative-path">附加和分离的子任务</a>。</span></p>
+</td>
+</tr>
+<tr data-moniker=" dotnet-uwp-10.0 netcore-1.0 netcore-1.1 netcore-2.0 netcore-2.1 netcore-2.2 netcore-3.0 netframework-4.5 netframework-4.5.1 netframework-4.5.2 netframework-4.6 netframework-4.6.1 netframework-4.6.2 netframework-4.7 netframework-4.7.1 netframework-4.7.2 netframework-4.8 netstandard-1.0 netstandard-1.1 netstandard-1.2 netstandard-1.3 netstandard-1.4 netstandard-1.6 netstandard-2.0 netstandard-2.1 xamarinandroid-7.1 xamarinios-10.8 xamarinmac-3.0 ">
+<td id="System_Threading_Tasks_TaskCreationOptions_DenyChildAttach">DenyChildAttach</td>
+<td>8</td>
+<td>
+<p><span data-ttu-id="663b4-114">指定任何尝试作为附加的子任务执行（即，使用&nbsp;<a class="xref" href="https://docs.microsoft.com/zh-cn/dotnet/api/system.threading.tasks.taskcreationoptions?view=netframework-4.8#System_Threading_Tasks_TaskCreationOptions_AttachedToParent" data-linktype="relative-path">AttachedToParent</a>&nbsp;选项创建）的子任务都无法附加到父任务，会改成作为分离的子任务执行。&nbsp;<span data-ttu-id="663b4-115">有关详细信息，请参阅&nbsp;<a href="https://docs.microsoft.com/zh-cn/dotnet/standard/parallel-programming/attached-and-detached-child-tasks?view=netframework-4.8" data-linktype="relative-path">附加和分离的子任务</a>。</span></span></p>
+</td>
+</tr>
+<tr data-moniker=" dotnet-uwp-10.0 netcore-1.0 netcore-1.1 netcore-2.0 netcore-2.1 netcore-2.2 netcore-3.0 netframework-4.5 netframework-4.5.1 netframework-4.5.2 netframework-4.6 netframework-4.6.1 netframework-4.6.2 netframework-4.7 netframework-4.7.1 netframework-4.7.2 netframework-4.8 netstandard-1.0 netstandard-1.1 netstandard-1.2 netstandard-1.3 netstandard-1.4 netstandard-1.6 netstandard-2.0 netstandard-2.1 xamarinandroid-7.1 xamarinios-10.8 xamarinmac-3.0 ">
+<td id="System_Threading_Tasks_TaskCreationOptions_HideScheduler">HideScheduler</td>
+<td>16</td>
+<td>
+<p><span data-ttu-id="663b4-116">防止环境计划程序被视为已创建任务的当前计划程序。&nbsp;<span data-ttu-id="663b4-117">这意味着像 StartNew 或 ContinueWith 创建任务的执行操作将被视为&nbsp;<a class="xref" href="https://docs.microsoft.com/zh-cn/dotnet/api/system.threading.tasks.taskscheduler.default?view=netframework-4.8#System_Threading_Tasks_TaskScheduler_Default" data-linktype="relative-path">Default</a>&nbsp;当前计划程序。</span></span></p>
+</td>
+</tr>
+<tr>
+<td id="System_Threading_Tasks_TaskCreationOptions_LongRunning">LongRunning</td>
+<td>2</td>
+<td>
+<p><span data-ttu-id="663b4-118">指定任务将是长时间运行的、粗粒度的操作，涉及比细化的系统更少、更大的组件。&nbsp;<span data-ttu-id="663b4-119">它会向&nbsp;<a class="xref" href="https://docs.microsoft.com/zh-cn/dotnet/api/system.threading.tasks.taskscheduler?view=netframework-4.8" data-linktype="relative-path">TaskScheduler</a>&nbsp;提示，过度订阅可能是合理的。&nbsp;<span data-ttu-id="663b4-120">可以通过过度订阅创建比可用硬件线程数更多的线程。&nbsp;<span data-ttu-id="663b4-121">它还将提示任务计划程序：该任务需要附加线程，以使任务不阻塞本地线程池队列中其他线程或工作项的向前推动。</span></span></span></span></p>
+</td>
+</tr>
+<tr>
+<td id="System_Threading_Tasks_TaskCreationOptions_None">None</td>
+<td>0</td>
+<td>
+<p><span data-ttu-id="663b4-122">指定应使用默认行为。</span></p>
+</td>
+</tr>
+<tr>
+<td id="System_Threading_Tasks_TaskCreationOptions_PreferFairness">PreferFairness</td>
+<td>1</td>
+<td>
+<p><span data-ttu-id="663b4-123">提示&nbsp;<a class="xref" href="https://docs.microsoft.com/zh-cn/dotnet/api/system.threading.tasks.taskscheduler?view=netframework-4.8" data-linktype="relative-path">TaskScheduler</a>&nbsp;以一种尽可能公平的方式安排任务，这意味着较早安排的任务将更可能较早运行，而较晚安排运行的任务将更可能较晚运行。</span></p>
+</td>
+</tr>
+<tr data-moniker=" dotnet-uwp-10.0 netcore-1.0 netcore-1.1 netcore-2.0 netcore-2.1 netcore-2.2 netcore-3.0 netframework-4.6 netframework-4.6.1 netframework-4.6.2 netframework-4.7 netframework-4.7.1 netframework-4.7.2 netframework-4.8 netstandard-1.3 netstandard-1.4 netstandard-1.6 netstandard-2.0 netstandard-2.1 xamarinandroid-7.1 xamarinios-10.8 xamarinmac-3.0 ">
+<td id="System_Threading_Tasks_TaskCreationOptions_RunContinuationsAsynchronously">RunContinuationsAsynchronously</td>
+<td>64</td>
+<td>
+<p><span data-ttu-id="663b4-124">强制异步执行添加到当前任务的延续任务。</span></p>
+<p><span data-ttu-id="663b4-125">请注意，<a class="xref" href="https://docs.microsoft.com/zh-cn/dotnet/api/system.threading.tasks.taskcreationoptions?view=netframework-4.8#System_Threading_Tasks_TaskCreationOptions_RunContinuationsAsynchronously" data-linktype="relative-path">RunContinuationsAsynchronously</a>&nbsp;成员在以&nbsp;<span data-ttu-id="5c517-101">.NET Framework 4.6&nbsp;开头的&nbsp;<a class="xref" href="https://docs.microsoft.com/zh-cn/dotnet/api/system.threading.tasks.taskcreationoptions?view=netframework-4.8" data-linktype="relative-path">TaskCreationOptions</a>&nbsp;枚举中可用。</span></span></p>
+</td>
+</tr>
+</tbody>
+</table>
+<h2>3.Task.ConfigureAwait</h2>
+<p>&nbsp; &nbsp; &nbsp;在Task里中有ConfigureAwait这么一个方法,这个方法是干什么的呢,我们先看下方法注释是怎么解释这个方法的："&nbsp;<strong>尝试将延续任务封送回原始上下文，则为 true；否则为 false。</strong>"&nbsp; 光看这段代码并看不出什么，然后我们再看这么一段话：<strong>"一个async方法是由多个同步执行的程序块组成.每个同步程序块之间由await语句分隔.用await语句等待一个任务完成.当该方法在await处暂停时,就可以捕捉上下文(context).如果当前SynchronizationContext不为空,这个上下文就是当前SynchronizationContext.如果为空,则这个上下文为当前TaskScheduler.该方法会在这个上下文中继续运行.一般来说,运行UI线程时采用UI上下文,处理ASP.NET请求时采用ASP.NET请求上下文,其它很多情况则采用线程池上下文。</strong>" 这句话已经基本讲明了其实后续代码会下上文中执行。这个上下文一般时UI上下文（运行在UI上）或请求上下文（ASP.NET) 这两个可以说时原始上下文，而其它情况采用线程池上下文，也就是开辟一个新线程。这么说也就是ConfigureAwait方法是将后续代码是送到原始上下文还是线程池上下文中。</p>
+<p>&nbsp; &nbsp; &nbsp;下面稍微修改下刚才的方法：</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('19b89690-385b-4762-b70a-605461dcb674')"><img id="code_img_closed_19b89690-385b-4762-b70a-605461dcb674" class="code_img_closed" src="./images/C# 异步编程0.png" alt="" /><img id="code_img_opened_19b89690-385b-4762-b70a-605461dcb674" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('19b89690-385b-4762-b70a-605461dcb674',event)" src="./images/C# 异步编程1.png" alt="" />
+<div id="cnblogs_code_open_19b89690-385b-4762-b70a-605461dcb674" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #0000ff;">async</span><span style="color: #000000;"> Task DemoAsync()
+</span><span style="color: #008080;">2</span> <span style="color: #000000;">{
+</span><span style="color: #008080;">3</span>      <span style="color: #008000;">//</span><span style="color: #008000;">将后续代码交给线程池执行</span>
+<span style="color: #008080;">4</span>      <span style="color: #0000ff;">await</span> Task.Run(() =&gt; { Thread.Sleep(<span style="color: #800080;">3000</span>); }).ConfigureAwait(<span style="color: #0000ff;">false</span><span style="color: #000000;">);
+</span><span style="color: #008080;">5</span>      Thread.Sleep(<span style="color: #800080;">3000</span><span style="color: #000000;">);
+</span><span style="color: #008080;">6</span> }</pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp; &nbsp; &nbsp;ConfigureAwait(false)将后续代码交给线程池来执行,也就是上面的Thread.Sleep并不会阻塞窗体。</p>
+<h2>4.Task.Delay</h2>
+<p>&nbsp; &nbsp; &nbsp;在异步编程中，一般不建议使用Thread.Sleep，而是使用粒度更小的Task.Delay；Thread.Sleep、Thread.Yeild等会让当前工作线程阻塞，而Task.Delay可以让当前线程空出来去完成其他的Task。</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('e51524aa-7c97-4ca2-9d8d-fe1c571ce89e')"><img id="code_img_closed_e51524aa-7c97-4ca2-9d8d-fe1c571ce89e" class="code_img_closed" src="./images/C# 异步编程0.png" alt="" /><img id="code_img_opened_e51524aa-7c97-4ca2-9d8d-fe1c571ce89e" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('e51524aa-7c97-4ca2-9d8d-fe1c571ce89e',event)" src="./images/C# 异步编程1.png" alt="" />
+<div id="cnblogs_code_open_e51524aa-7c97-4ca2-9d8d-fe1c571ce89e" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;"> 1</span>       CancellationTokenSource source = <span style="color: #0000ff;">new</span><span style="color: #000000;"> CancellationTokenSource();
+</span><span style="color: #008080;"> 2</span> 
+<span style="color: #008080;"> 3</span>       <span style="color: #0000ff;">var</span> t = Task.Run(<span style="color: #0000ff;">async</span> <span style="color: #0000ff;">delegate</span>
+<span style="color: #008080;"> 4</span> <span style="color: #000000;">              {
+</span><span style="color: #008080;"> 5</span>                  <span style="color: #0000ff;">await</span> Task.Delay(TimeSpan.FromSeconds(<span style="color: #800080;">1.5</span><span style="color: #000000;">), source.Token);
+</span><span style="color: #008080;"> 6</span>                  <span style="color: #0000ff;">return</span> <span style="color: #800080;">42</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 7</span> <span style="color: #000000;">              });
+</span><span style="color: #008080;"> 8</span> <span style="color: #000000;">      source.Cancel();
+</span><span style="color: #008080;"> 9</span>       <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">10</span> <span style="color: #000000;">         t.Wait();
+</span><span style="color: #008080;">11</span> <span style="color: #000000;">      }
+</span><span style="color: #008080;">12</span>       <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (AggregateException ae) {
+</span><span style="color: #008080;">13</span>          <span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">var</span> e <span style="color: #0000ff;">in</span><span style="color: #000000;"> ae.InnerExceptions)
+</span><span style="color: #008080;">14</span>             Console.WriteLine(<span style="color: #800000;">"</span><span style="color: #800000;">{0}: {1}</span><span style="color: #800000;">"</span><span style="color: #000000;">, e.GetType().Name, e.Message);
+</span><span style="color: #008080;">15</span>       }</pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<h2>5.SemaphoreSlim</h2>
+<p>&nbsp; &nbsp; &nbsp;表示对可同时访问资源或资源池的线程数加以限制的 Semaphore 的轻量替代，&nbsp;<span data-ttu-id="eb486-108"><a class="xref" href="https://docs.microsoft.com/zh-cn/dotnet/api/system.threading.semaphoreslim?view=netframework-4.8" data-linktype="relative-path">SemaphoreSlim</a>类是用于在单个应用内进行同步的建议信号量</span>。在异步编程过程中，建议使用SemaphoreSlim.Wait()、SemaphoreSlim.Release()来替换Lock，因为lock只能由当前线程来解锁，而SemaphoreSlim可以由任意线程来解锁。</p>
+<h2>6.CancellationTokenSource&nbsp;</h2>
+<p>&nbsp; &nbsp; &nbsp;启动一个Task去做一些事，如果希望它在某个阶段去被动的停止，可以使用这个CancellationTokenSource对象，把它注入到Task里，使用当外界<strong>触发Cancel()方法或设置了超时</strong>时，这个Task就会被取消。通常和<strong>CancellationToken.IsCancellationRequested</strong>一起配合Task来使用。</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('5c82ea5d-bff6-4257-be2a-ec57ba14fa1a')"><img id="code_img_closed_5c82ea5d-bff6-4257-be2a-ec57ba14fa1a" class="code_img_closed" src="./images/C# 异步编程0.png" alt="" /><img id="code_img_opened_5c82ea5d-bff6-4257-be2a-ec57ba14fa1a" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('5c82ea5d-bff6-4257-be2a-ec57ba14fa1a',event)" src="./images/C# 异步编程1.png" alt="" />
+<div id="cnblogs_code_open_5c82ea5d-bff6-4257-be2a-ec57ba14fa1a" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;"> 1</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">async</span> <span style="color: #0000ff;">void</span> Loop(<span style="color: #0000ff;">int</span> timeOut = <span style="color: #800080;">5</span> * <span style="color: #800080;">1000</span><span style="color: #000000;">)
+</span><span style="color: #008080;"> 2</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 3</span>             <span style="color: #0000ff;">using</span> (CancellationTokenSource source = <span style="color: #0000ff;">new</span><span style="color: #000000;"> CancellationTokenSource(timeOut))
+</span><span style="color: #008080;"> 4</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 5</span>                 CancellationToken token =<span style="color: #000000;"> source.Token;
+</span><span style="color: #008080;"> 6</span> 
+<span style="color: #008080;"> 7</span>                 <span style="color: #008000;">//</span><span style="color: #008000;">匿名异步方法</span>
+<span style="color: #008080;"> 8</span>                 <span style="color: #0000ff;">var</span> task1 = Task.Run(<span style="color: #0000ff;">async</span> () =&gt;
+<span style="color: #008080;"> 9</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">10</span>                     <span style="color: #0000ff;">while</span> (!<span style="color: #000000;">token.IsCancellationRequested)
+</span><span style="color: #008080;">11</span> <span style="color: #000000;">                    {
+</span><span style="color: #008080;">12</span>                         Console.WriteLine($<span style="color: #800000;">"</span><span style="color: #800000;">{DateTime.Now.ToLongTimeString()}\t TaskTest Loop</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">13</span>                         <span style="color: #0000ff;">await</span> Task.Delay(<span style="color: #800080;">1000</span>).ConfigureAwait(<span style="color: #0000ff;">false</span><span style="color: #000000;">);
+</span><span style="color: #008080;">14</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">15</span>                     Console.WriteLine($<span style="color: #800000;">"</span><span style="color: #800000;">{DateTime.Now.ToLongTimeString()}\t TaskTest Loop Timeout Stoped</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">16</span> <span style="color: #000000;">                }, token);
+</span><span style="color: #008080;">17</span> 
+<span style="color: #008080;">18</span>                 <span style="color: #0000ff;">await</span> Task.WhenAll(task1).ConfigureAwait(<span style="color: #0000ff;">false</span><span style="color: #000000;">);
+</span><span style="color: #008080;">19</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">20</span>         }</pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp; &nbsp; &nbsp;也可以<strong>CancellationTokenSource.CreateLinkedTokenSource</strong>来关联多个CancellationTokenSource</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('98ab962c-e022-471a-a6ae-7b8db9cd018b')"><img id="code_img_closed_98ab962c-e022-471a-a6ae-7b8db9cd018b" class="code_img_closed" src="./images/C# 异步编程0.png" alt="" /><img id="code_img_opened_98ab962c-e022-471a-a6ae-7b8db9cd018b" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('98ab962c-e022-471a-a6ae-7b8db9cd018b',event)" src="./images/C# 异步编程1.png" alt="" />
+<div id="cnblogs_code_open_98ab962c-e022-471a-a6ae-7b8db9cd018b" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">using</span> (CancellationTokenSource cts = <span style="color: #0000ff;">new</span><span style="color: #000000;"> CancellationTokenSource())
+</span><span style="color: #008080;"> 2</span> <span style="color: #000000;">{
+</span><span style="color: #008080;"> 3</span>     <span style="color: #0000ff;">var</span> cancellationToken =<span style="color: #000000;"> cts.Token;
+</span><span style="color: #008080;"> 4</span> 
+<span style="color: #008080;"> 5</span>     <span style="color: #0000ff;">using</span> (CancellationTokenSource timeoutSource = <span style="color: #0000ff;">new</span> CancellationTokenSource(timeOut * <span style="color: #800080;">1000</span><span style="color: #000000;">))
+</span><span style="color: #008080;"> 6</span> 
+<span style="color: #008080;"> 7</span>     <span style="color: #0000ff;">using</span> (CancellationTokenSource linkSource =<span style="color: #000000;"> CancellationTokenSource.CreateLinkedTokenSource(timeoutSource.Token, cancellationToken))
+</span><span style="color: #008080;"> 8</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;"> 9</span>         <span style="color: #0000ff;">var</span> task = Task.Run(() =&gt;
+<span style="color: #008080;">10</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">11</span> <span style="color: #000000;">            ...
+</span><span style="color: #008080;">12</span> <span style="color: #000000;">        }, linkSource.Token);
+</span><span style="color: #008080;">13</span> 
+<span style="color: #008080;">14</span>         <span style="color: #008000;">//</span><span style="color: #008000;">引发异步异常</span>
+<span style="color: #008080;">15</span>         <span style="color: #0000ff;">if</span> (a == <span style="color: #800080;">10</span><span style="color: #000000;">)
+</span><span style="color: #008080;">16</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">17</span> <span style="color: #000000;">            cts.Cancel();
+</span><span style="color: #008080;">18</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">19</span> 
+<span style="color: #008080;">20</span>         <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">await</span> task2.ConfigureAwait(<span style="color: #0000ff;">true</span><span style="color: #000000;">);
+</span><span style="color: #008080;">21</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">22</span> }</pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<h2>&nbsp;7.TaskCompletionSource</h2>
+<p>表示未绑定到委托的&nbsp;<a class="xref" href="https://docs.microsoft.com/zh-cn/dotnet/api/system.threading.tasks.task-1?view=netframework-4.8" data-linktype="relative-path">Task&lt;TResult&gt;</a>&nbsp;的制造者方，并通过&nbsp;<a class="xref" href="https://docs.microsoft.com/zh-cn/dotnet/api/system.threading.tasks.taskcompletionsource-1.task?view=netframework-4.8#System_Threading_Tasks_TaskCompletionSource_1_Task" data-linktype="relative-path">Task</a>&nbsp;属性提供对使用者方的访问。从这个官方解释上看不出这个到底有什么作用，其实这是一种受用者控制创建Task的方式。你可以使Task在任何你想要的时候完成，你也可以在任何地方给它一个异常让它失败。这个可以实现事件通知类似的功能；具体就是说TaskCompletionSource如果不进行SetResult或SetException的时候，TaskCompletionSource所委托的的Task是不会有Result,这个Task会一直等待TaskCompletionSource来赋值；这样就极大的简化了异步事件或异步通知的实现。</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('7a9a0661-8dfa-4f81-b9a2-ea428bcda74b')"><em><em><img id="code_img_closed_7a9a0661-8dfa-4f81-b9a2-ea428bcda74b" class="code_img_closed" src="./images/C# 异步编程0.png" alt="" /><img id="code_img_opened_7a9a0661-8dfa-4f81-b9a2-ea428bcda74b" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('7a9a0661-8dfa-4f81-b9a2-ea428bcda74b',event)" src="./images/C# 异步编程1.png" alt="" /></em></em>
+<div id="cnblogs_code_open_7a9a0661-8dfa-4f81-b9a2-ea428bcda74b" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">async</span> Task&lt;<span style="color: #0000ff;">int</span>&gt; SetValue(<span style="color: #0000ff;">int</span> a = <span style="color: #800080;">1</span><span style="color: #000000;">)
+</span><span style="color: #008080;"> 2</span> <span style="color: #000000;">{
+</span><span style="color: #008080;"> 3</span>     <span style="color: #0000ff;">var</span> sw =<span style="color: #000000;"> Stopwatch.StartNew();
+</span><span style="color: #008080;"> 4</span> 
+<span style="color: #008080;"> 5</span>     TaskCompletionSource&lt;<span style="color: #0000ff;">int</span>&gt; tcs = <span style="color: #0000ff;">new</span> TaskCompletionSource&lt;<span style="color: #0000ff;">int</span>&gt;<span style="color: #000000;">();
+</span><span style="color: #008080;"> 6</span> 
+<span style="color: #008080;"> 7</span>     <span style="color: #0000ff;">await</span> Task.Run(<span style="color: #0000ff;">async</span> () =&gt;
+<span style="color: #008080;"> 8</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;"> 9</span>         <span style="color: #0000ff;">try</span>
+<span style="color: #008080;">10</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">11</span>             <span style="color: #0000ff;">await</span> Task.Delay(<span style="color: #800080;">10</span> * <span style="color: #800080;">1000</span>).ConfigureAwait(<span style="color: #0000ff;">true</span><span style="color: #000000;">);
+</span><span style="color: #008080;">12</span>             <span style="color: #008000;">//</span><span style="color: #008000;">此处若不赋值，测tcs.Task.Result会一直等待</span>
+<span style="color: #008080;">13</span>             tcs.SetResult(<span style="color: #800080;">10</span> /<span style="color: #000000;"> a);
+</span><span style="color: #008080;">14</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">15</span>         <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception ex)
+</span><span style="color: #008080;">16</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">17</span> <span style="color: #000000;">            tcs.SetException(ex);
+</span><span style="color: #008080;">18</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">19</span>     }).ConfigureAwait(<span style="color: #0000ff;">true</span><span style="color: #000000;">);
+</span><span style="color: #008080;">20</span> 
+<span style="color: #008080;">21</span> 
+<span style="color: #008080;">22</span>     <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">await</span> Task.Run(() =&gt;
+<span style="color: #008080;">23</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;">24</span>         <span style="color: #0000ff;">int</span> result = <span style="color: #800080;">0</span><span style="color: #000000;">;
+</span><span style="color: #008080;">25</span>         <span style="color: #0000ff;">try</span>
+<span style="color: #008080;">26</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">27</span>             result =<span style="color: #000000;"> tcs.Task.Result;
+</span><span style="color: #008080;">28</span> 
+<span style="color: #008080;">29</span>             Console.WriteLine(<span style="color: #800000;">"</span><span style="color: #800000;">tcs取值成功！</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">30</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">31</span>         <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (AggregateException e)
+</span><span style="color: #008080;">32</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">33</span>             Console.WriteLine(<span style="color: #800000;">"</span><span style="color: #800000;">tcs异常</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">34</span> 
+<span style="color: #008080;">35</span>             <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> j = <span style="color: #800080;">0</span>; j &lt; e.InnerExceptions.Count; j++<span style="color: #000000;">)
+</span><span style="color: #008080;">36</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">37</span>                 Console.WriteLine($<span style="color: #800000;">"</span><span style="color: #800000;">\n-------------------------------------------------\n{e.InnerExceptions[j].ToString()}\n-------------------------------------------------\n</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">38</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">39</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">40</span> <span style="color: #000000;">        sw.Stop();
+</span><span style="color: #008080;">41</span>         Console.WriteLine($<span style="color: #800000;">"</span><span style="color: #800000;">(ElapsedTime={sw.ElapsedMilliseconds})</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">42</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> result;
+</span><span style="color: #008080;">43</span>     }).ConfigureAwait(<span style="color: #0000ff;">true</span><span style="color: #000000;">);
+</span><span style="color: #008080;">44</span> }</pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<blockquote>
+<p><br />转载请标明本文来源：<a title="https://www.cnblogs.com/yswenli/p/11987377.html" href="https://www.cnblogs.com/yswenli/p/11987377.html" target="_blank">https://www.cnblogs.com/yswenli/p/11987377.html</a><br />更多内容欢迎我的的github：<a title="https://github.com/yswenli" href="https://github.com/yswenli/" target="_blank">https://github.com/yswenli</a><br />如果发现本文有什么问题和任何建议，也随时欢迎交流~</p>
+
+
+</blockquote>
+<pre class="hljs cs"><span class="hljs-keyword">&nbsp;</span></pre>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

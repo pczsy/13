@@ -1,0 +1,234 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C#基于Quartz.NET实现任务调度并部署Windows服务' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C#基于Quartz.NET实现任务调度并部署Windows服务</center></div><div class='banquan'>原文出处:本文由博客园博主wuzh提供。<br/>
+原文连接:https://www.cnblogs.com/wzh5959/p/11678938.html</div><br>
+    <h1>一、Quartz.NET介绍</h1>
+<p>Quartz.NET是一个强大、开源、轻量的作业调度框架，是 OpenSymphony 的 Quartz API 的.NET移植，用C#改写，可用于winform和asp.net mvc、.Net Core应用中。它灵活而不复杂。你能够用它来为执行一个作业而创建简单的或复杂的作业调度。它有很多特征，如：数据库支持，集群，插件，支持cron-like表达式等等。</p>
+<p>官网：<a href="http://www.quartz-scheduler.net/" rel="nofollow">http://www.quartz-scheduler.net/</a></p>
+<p>源码：https://github.com/quartznet/quartznet</p>
+<h1>二、Quartz.NET用途</h1>
+<p>&nbsp;一，可以定时发邮件通知。&nbsp;</p>
+<p>二 ， 电商网站的定时打折活动。（比如规定11月11日 淘宝购买女朋友打八折）</p>
+<p>三， 定时对数据更新 或者添加。</p>
+<p>四，自己朋友生日。 可以定时发生日祝福。 等等 （我也不一一举例了）&nbsp;</p>
+<h1>三、Quartz.NET安装</h1>
+<p>我使用的VS版本是2017的&nbsp; 选择工具&nbsp; - NuGet包管理 - 管理解决方案的NuGet包&nbsp; &nbsp;输入&nbsp;Quartz.NET 安装</p>
+<p><img src="./images/C#基于Quartz.NET实现任务调度并部署Windows服务0.png" alt="" /></p>
+<p>还可以通过NuGet控制台 通过安装命令&nbsp;&nbsp;</p>
+<pre><code>Install-Package Quartz</pre>
+<h1>四、Quartz.NET实现思路</h1>
+<p>一：继承并实现IJob接口，在Execute 方法中写你要定时执行的事情（切记 ）</p>
+<p>二：使用Quartz创建任务调度核心代码步骤</p>
+<p>　　1、配置Quartz，创建工厂，开启调度。</p>
+<p>　　2、创建工作任务</p>
+<p>　　3、创建触发器</p>
+<p>　　4、将任务加入到任务池</p>
+<p>三：添加任务，使用Topshelf部署Windows服务，定时执行</p>
+<h1>五、代码步骤讲解</h1>
+<p>一：继承并实现IJob接口，在Execute 方法中写你要做的事情（切记 ）</p>
+<p>　　　</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> Quartz.Utility;
+</span><span style="color: #008080;"> 2</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System;
+</span><span style="color: #008080;"> 3</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.IO;
+</span><span style="color: #008080;"> 4</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Threading.Tasks;
+</span><span style="color: #008080;"> 5</span> 
+<span style="color: #008080;"> 6</span> <span style="color: #0000ff;">namespace</span><span style="color: #000000;"> Quartz.JobWork
+</span><span style="color: #008080;"> 7</span> <span style="color: #000000;">{
+</span><span style="color: #008080;"> 8</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> MyJob : IJob
+</span><span style="color: #008080;"> 9</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;">10</span>         <span style="color: #0000ff;">public</span><span style="color: #000000;"> Task Execute(IJobExecutionContext context)
+</span><span style="color: #008080;">11</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">12</span>             Task task = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+</span><span style="color: #008080;">13</span>             <span style="color: #0000ff;">try</span>
+<span style="color: #008080;">14</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">15</span>                 <span style="color: #0000ff;">string</span> fileName = <span style="color: #800000;">"</span><span style="color: #800000;">printlog.txt</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+</span><span style="color: #008080;">16</span>                 StreamWriter writer = <span style="color: #0000ff;">new</span> StreamWriter(fileName, <span style="color: #0000ff;">true</span><span style="color: #000000;">);
+</span><span style="color: #008080;">17</span>                 task = writer.WriteLineAsync(<span style="color: #0000ff;">string</span>.Format(<span style="color: #800000;">"</span><span style="color: #800000;">{0},测试</span><span style="color: #800000;">"</span><span style="color: #000000;">, DateTime.Now.ToLongTimeString()));
+</span><span style="color: #008080;">18</span> <span style="color: #000000;">                writer.Close();
+</span><span style="color: #008080;">19</span> <span style="color: #000000;">                writer.Dispose();
+</span><span style="color: #008080;">20</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">21</span>             <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception ex)
+</span><span style="color: #008080;">22</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">23</span> <span style="color: #000000;">                LogHelper.WriteLog(ex.Message.ToString(), ex);
+</span><span style="color: #008080;">24</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">25</span>             <span style="color: #0000ff;">return</span><span style="color: #000000;"> task;
+</span><span style="color: #008080;">26</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">27</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">28</span> }</pre>
+</div>
+<p>&nbsp;</p>
+<p>二：使用Quartz创建任务调度核心代码步骤</p>
+<p><span style="color: #ff0000;"><strong>注：这里提供一个QuartzHelper帮助类，直接把以下代码copy过去即可用，只需要重写Execute方法即可。Quartz3.0及以上的版本是采用的异步，3.0以下的版本没有采用异步，使用方法是一样的</strong></span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> Quartz.Impl;
+</span><span style="color: #008080;"> 2</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System;
+</span><span style="color: #008080;"> 3</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Collections.Generic;
+</span><span style="color: #008080;"> 4</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Collections.Specialized;
+</span><span style="color: #008080;"> 5</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Linq;
+</span><span style="color: #008080;"> 6</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Text;
+</span><span style="color: #008080;"> 7</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Threading;
+</span><span style="color: #008080;"> 8</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Threading.Tasks;
+</span><span style="color: #008080;"> 9</span> 
+<span style="color: #008080;">10</span> <span style="color: #0000ff;">namespace</span><span style="color: #000000;"> Quartz.Utility
+</span><span style="color: #008080;">11</span> <span style="color: #000000;">{
+</span><span style="color: #008080;">12</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> QuartzHelper
+</span><span style="color: #008080;">13</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;">14</span>         <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">readonly</span><span style="color: #000000;"> IScheduler _scheduler;
+</span><span style="color: #008080;">15</span>         <span style="color: #0000ff;">static</span><span style="color: #000000;"> QuartzHelper()
+</span><span style="color: #008080;">16</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">17</span>             <span style="color: #0000ff;">var</span> properties = <span style="color: #0000ff;">new</span><span style="color: #000000;"> NameValueCollection();
+</span><span style="color: #008080;">18</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 设置线程池</span>
+<span style="color: #008080;">19</span>             properties[<span style="color: #800000;">"</span><span style="color: #800000;">quartz.threadPool.type</span><span style="color: #800000;">"</span>] = <span style="color: #800000;">"</span><span style="color: #800000;">Quartz.Simpl.SimpleThreadPool, Quartz</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+</span><span style="color: #008080;">20</span>             <span style="color: #008000;">//</span><span style="color: #008000;">设置线程池的最大线程数量</span>
+<span style="color: #008080;">21</span>             properties[<span style="color: #800000;">"</span><span style="color: #800000;">quartz.threadPool.threadCount</span><span style="color: #800000;">"</span>] = <span style="color: #800000;">"</span><span style="color: #800000;">5</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+</span><span style="color: #008080;">22</span>             <span style="color: #008000;">//</span><span style="color: #008000;">设置作业中每个线程的优先级</span>
+<span style="color: #008080;">23</span>             properties[<span style="color: #800000;">"</span><span style="color: #800000;">quartz.threadPool.threadPriority</span><span style="color: #800000;">"</span>] =<span style="color: #000000;"> ThreadPriority.Normal.ToString();
+</span><span style="color: #008080;">24</span> 
+<span style="color: #008080;">25</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 远程输出配置</span>
+<span style="color: #008080;">26</span>             properties[<span style="color: #800000;">"</span><span style="color: #800000;">quartz.scheduler.exporter.type</span><span style="color: #800000;">"</span>] = <span style="color: #800000;">"</span><span style="color: #800000;">Quartz.Simpl.RemotingSchedulerExporter, Quartz</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+</span><span style="color: #008080;">27</span>             properties[<span style="color: #800000;">"</span><span style="color: #800000;">quartz.scheduler.exporter.port</span><span style="color: #800000;">"</span>] = <span style="color: #800000;">"</span><span style="color: #800000;">555</span><span style="color: #800000;">"</span>;  <span style="color: #008000;">//</span><span style="color: #008000;">配置端口号</span>
+<span style="color: #008080;">28</span>             properties[<span style="color: #800000;">"</span><span style="color: #800000;">quartz.scheduler.exporter.bindName</span><span style="color: #800000;">"</span>] = <span style="color: #800000;">"</span><span style="color: #800000;">QuartzScheduler</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+</span><span style="color: #008080;">29</span>             properties[<span style="color: #800000;">"</span><span style="color: #800000;">quartz.scheduler.exporter.channelType</span><span style="color: #800000;">"</span>] = <span style="color: #800000;">"</span><span style="color: #800000;">tcp</span><span style="color: #800000;">"</span>; <span style="color: #008000;">//</span><span style="color: #008000;">协议类型
+</span><span style="color: #008080;">30</span> 
+<span style="color: #008080;">31</span>             <span style="color: #008000;">//</span><span style="color: #008000;">创建一个工厂</span>
+<span style="color: #008080;">32</span>             <span style="color: #0000ff;">var</span> schedulerFactory = <span style="color: #0000ff;">new</span><span style="color: #000000;"> StdSchedulerFactory(properties);
+</span><span style="color: #008080;">33</span>             <span style="color: #008000;">//</span><span style="color: #008000;">启动</span>
+<span style="color: #008080;">34</span>             _scheduler =<span style="color: #000000;"> schedulerFactory.GetScheduler().Result;
+</span><span style="color: #008080;">35</span>             <span style="color: #008000;">//</span><span style="color: #008000;">1、开启调度</span>
+<span style="color: #008080;">36</span> <span style="color: #000000;">            _scheduler.Start();
+</span><span style="color: #008080;">37</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">38</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">39</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 时间间隔执行任务
+</span><span style="color: #008080;">40</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">41</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;typeparam name="T"&gt;</span><span style="color: #008000;">任务类，必须实现IJob接口</span><span style="color: #808080;">&lt;/typeparam&gt;</span>
+<span style="color: #008080;">42</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="seconds"&gt;</span><span style="color: #008000;">时间间隔(单位：秒)</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;">43</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">async</span> Task&lt;<span style="color: #0000ff;">bool</span>&gt; ExecuteInterval&lt;T&gt;(<span style="color: #0000ff;">int</span> seconds) <span style="color: #0000ff;">where</span><span style="color: #000000;"> T : IJob
+</span><span style="color: #008080;">44</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">45</span>             <span style="color: #008000;">//</span><span style="color: #008000;">2、创建工作任务</span>
+<span style="color: #008080;">46</span>             IJobDetail job = JobBuilder.Create&lt;T&gt;<span style="color: #000000;">().Build();
+</span><span style="color: #008080;">47</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 3、创建触发器</span>
+<span style="color: #008080;">48</span>             ITrigger trigger =<span style="color: #000000;"> TriggerBuilder.Create()
+</span><span style="color: #008080;">49</span> <span style="color: #000000;">           .StartNow()
+</span><span style="color: #008080;">50</span> <span style="color: #000000;">           .WithSimpleSchedule(
+</span><span style="color: #008080;">51</span>                 x =&gt;<span style="color: #000000;">x.WithIntervalInSeconds(seconds)
+</span><span style="color: #008080;">52</span>                 <span style="color: #008000;">//</span><span style="color: #008000;">x.WithIntervalInMinutes(1)</span>
+<span style="color: #008080;">53</span> <span style="color: #000000;">                .RepeatForever())
+</span><span style="color: #008080;">54</span> <span style="color: #000000;">           .Build();
+</span><span style="color: #008080;">55</span>             <span style="color: #008000;">//</span><span style="color: #008000;">4、将任务加入到任务池</span>
+<span style="color: #008080;">56</span>             <span style="color: #0000ff;">await</span><span style="color: #000000;"> _scheduler.ScheduleJob(job, trigger);
+</span><span style="color: #008080;">57</span>             <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+</span><span style="color: #008080;">58</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">59</span> 
+<span style="color: #008080;">60</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">61</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 指定时间执行任务
+</span><span style="color: #008080;">62</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">63</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;typeparam name="T"&gt;</span><span style="color: #008000;">任务类，必须实现IJob接口</span><span style="color: #808080;">&lt;/typeparam&gt;</span>
+<span style="color: #008080;">64</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="cronExpression"&gt;</span><span style="color: #008000;">cron表达式，即指定时间点的表达式</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;">65</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">async</span> Task&lt;<span style="color: #0000ff;">bool</span>&gt; ExecuteByCron&lt;T&gt;(<span style="color: #0000ff;">string</span> cronExpression) <span style="color: #0000ff;">where</span><span style="color: #000000;"> T : IJob
+</span><span style="color: #008080;">66</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">67</span>             <span style="color: #008000;">//</span><span style="color: #008000;">2、创建工作任务</span>
+<span style="color: #008080;">68</span>             IJobDetail job = JobBuilder.Create&lt;T&gt;<span style="color: #000000;">().Build();
+</span><span style="color: #008080;">69</span>             <span style="color: #008000;">//</span><span style="color: #008000;">3、创建触发器</span>
+<span style="color: #008080;">70</span>             ICronTrigger trigger =<span style="color: #000000;"> (ICronTrigger)TriggerBuilder.Create()
+</span><span style="color: #008080;">71</span> <span style="color: #000000;">            .StartNow()
+</span><span style="color: #008080;">72</span> <span style="color: #000000;">            .WithCronSchedule(cronExpression)
+</span><span style="color: #008080;">73</span> <span style="color: #000000;">            .Build();
+</span><span style="color: #008080;">74</span>             <span style="color: #008000;">//</span><span style="color: #008000;">4、将任务加入到任务池</span>
+<span style="color: #008080;">75</span>             <span style="color: #0000ff;">await</span><span style="color: #000000;"> _scheduler.ScheduleJob(job, trigger);
+</span><span style="color: #008080;">76</span>             <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+</span><span style="color: #008080;">77</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">78</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">79</span> }</pre>
+</div>
+<p>&nbsp;</p>
+<p>&nbsp;三：添加任务，Topshelf部署Windows服务，定时执行</p>
+<p>　　　　</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">namespace</span><span style="color: #000000;"> Quartz
+</span><span style="color: #008080;"> 2</span> <span style="color: #000000;">{
+</span><span style="color: #008080;"> 3</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+</span><span style="color: #008080;"> 4</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;"> 5</span>         <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+</span><span style="color: #008080;"> 6</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 7</span>             <span style="color: #0000ff;">string</span> cronExpression = <span style="color: #800000;">"</span><span style="color: #800000;">0 0 8,23 * * ? </span><span style="color: #800000;">"</span>;  <span style="color: #008000;">//</span><span style="color: #008000;">=&gt;这是指每天的9点和16点执行任务</span>
+<span style="color: #008080;"> 8</span>             cronExpression = <span style="color: #800000;">"</span><span style="color: #800000;">30 0/1 * * * ?</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 9</span>             <span style="color: #008000;">//</span><span style="color: #008000;">QuartzHelper.ExecuteByCron&lt;MyJob&gt;(cronExpression).Wait();　　</span><span style="color: #008000;">//</span><span style="color: #008000;">=&gt;这是调用Cron计划方法</span>
+<span style="color: #008080;">10</span>             QuartzHelper.ExecuteInterval&lt;MyJob&gt;(<span style="color: #800080;">180</span><span style="color: #000000;">).Wait();
+</span><span style="color: #008080;">11</span>             <span style="color: #008000;">/*</span>
+<span style="color: #008080;">12</span> <span style="color: #008000;">             简单说一下Cron表达式吧，
+</span><span style="color: #008080;">13</span> 
+<span style="color: #008080;">14</span> <span style="color: #008000;">            由7段构成：秒 分 时 日 月 星期 年（可选）
+</span><span style="color: #008080;">15</span>  
+<span style="color: #008080;">16</span> <span style="color: #008000;">            "-" ：表示范围  MON-WED表示星期一到星期三
+</span><span style="color: #008080;">17</span> <span style="color: #008000;">            "," ：表示列举 MON,WEB表示星期一和星期三
+</span><span style="color: #008080;">18</span> <span style="color: #008000;">            "*" ：表是&ldquo;每&rdquo;，每月，每天，每周，每年等
+</span><span style="color: #008080;">19</span> <span style="color: #008000;">            "/" :表示增量：0/15（处于分钟段里面） 每15分钟，在0分以后开始，3/20 每20分钟，从3分钟以后开始
+</span><span style="color: #008080;">20</span> <span style="color: #008000;">            "?" :只能出现在日，星期段里面，表示不指定具体的值
+</span><span style="color: #008080;">21</span> <span style="color: #008000;">            "L" :只能出现在日，星期段里面，是Last的缩写，一个月的最后一天，一个星期的最后一天（星期六）
+</span><span style="color: #008080;">22</span> <span style="color: #008000;">            "W" :表示工作日，距离给定值最近的工作日
+</span><span style="color: #008080;">23</span> <span style="color: #008000;">            "#" :表示一个月的第几个星期几，例如："6#3"表示每个月的第三个星期五（1=SUN...6=FRI,7=SAT）
+</span><span style="color: #008080;">24</span>  
+<span style="color: #008080;">25</span> <span style="color: #008000;">            如果Minutes的数值是 '0/15' ，表示从0开始每15分钟执行
+</span><span style="color: #008080;">26</span>  
+<span style="color: #008080;">27</span> <span style="color: #008000;">            如果Minutes的数值是 '3/20' ，表示从3开始每20分钟执行，也就是&lsquo;3/23/43&rsquo;
+</span><span style="color: #008080;">28</span>             <span style="color: #008000;">*/</span>
+<span style="color: #008080;">29</span>             HostFactory.Run(x =&gt;
+<span style="color: #008080;">30</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">31</span> <span style="color: #000000;">                x.UseLog4Net();
+</span><span style="color: #008080;">32</span>                 x.Service&lt;TownCrier&gt;(s =&gt;
+<span style="color: #008080;">33</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">34</span>                     s.ConstructUsing(name =&gt; <span style="color: #0000ff;">new</span><span style="color: #000000;"> TownCrier());
+</span><span style="color: #008080;">35</span>                     s.WhenStarted(tc =&gt;<span style="color: #000000;"> tc.Start());
+</span><span style="color: #008080;">36</span>                     s.WhenStopped(tc =&gt;<span style="color: #000000;"> tc.Stop());
+</span><span style="color: #008080;">37</span> <span style="color: #000000;">                });
+</span><span style="color: #008080;">38</span> <span style="color: #000000;">                x.RunAsLocalSystem();
+</span><span style="color: #008080;">39</span>                 x.SetDescription(<span style="color: #800000;">"</span><span style="color: #800000;">QuartzJob任务定时发送</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">40</span>                 x.SetDisplayName(<span style="color: #800000;">"</span><span style="color: #800000;">QuartzJob</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">41</span>                 x.SetServiceName(<span style="color: #800000;">"</span><span style="color: #800000;">QuartzJob</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">42</span> 
+<span style="color: #008080;">43</span> <span style="color: #000000;">                x.EnablePauseAndContinue();
+</span><span style="color: #008080;">44</span> <span style="color: #000000;">            });
+</span><span style="color: #008080;">45</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">46</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">47</span> }</pre>
+</div>
+<p><span style="font-size: 14pt;">　<span style="font-family: 'Microsoft YaHei';">　<span style="font-size: 18px;">TownCrier服务实现类</span></span></span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> TownCrier
+</span><span style="color: #008080;"> 2</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;"> 3</span>         <span style="color: #0000ff;">readonly</span><span style="color: #000000;"> Timer _timer;
+</span><span style="color: #008080;"> 4</span>         <span style="color: #0000ff;">public</span><span style="color: #000000;"> TownCrier()
+</span><span style="color: #008080;"> 5</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 6</span>             _timer = <span style="color: #0000ff;">new</span> Timer(<span style="color: #800080;">1000</span>) { AutoReset = <span style="color: #0000ff;">true</span><span style="color: #000000;"> };
+</span><span style="color: #008080;"> 7</span>             _timer.Elapsed += (sender, eventArgs) =&gt; Console.WriteLine(<span style="color: #800000;">"</span><span style="color: #800000;">---------------------DateTime： {0} ------------------- </span><span style="color: #800000;">"</span><span style="color: #000000;">, DateTime.Now);
+</span><span style="color: #008080;"> 8</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 9</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> Start() { _timer.Start(); }
+</span><span style="color: #008080;">10</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> Stop() { _timer.Stop(); }
+</span><span style="color: #008080;">11</span>     }</pre>
+</div>
+<p>&nbsp;</p>
+<p><span style="font-size: 14pt;"><span style="font-family: 'Microsoft YaHei';">　　<span style="font-size: 13px; font-family: 'courier new', courier;">最后就可以做自己想要做的事情了！</span></span></span></p>
+<p><span style="font-size: 13px; font-family: 'courier new', courier;">　　 下期讲解使用Topshelf部署Windows服务!</span></p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

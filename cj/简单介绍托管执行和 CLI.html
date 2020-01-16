@@ -1,0 +1,164 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修简单介绍托管执行和 CLI' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>简单介绍托管执行和 CLI</center></div><div class='banquan'>原文出处:本文由博客园博主Vin&#176;提供。<br/>
+原文连接:https://www.cnblogs.com/vin-c/p/12011943.html</div><br>
+    <div class="toc">
+    <p class="toc-title">目录</p>
+    <div class="toc-list">
+        <ul>
+        <li><a href="#cil-和-ildasm">CIL 和 ILDASM</a></li>
+        <li><a href="#查看-myapp.dll-的-cil-输出">查看 myApp.dll 的 CIL 输出</a></li>
+        <li><a href="#使用-ilspy-查看-myapp.dll-反编译后的代码">使用 ILSpy 查看 myApp.dll 反编译后的代码</a></li>
+        </ul>
+    </div>
+</div>
+<p>处理器不能直接解释程序集。程序集用的是另一种语言，即公共中间语言（Common Intermediate Language，CIL），或称为中间语言（IL）<a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a>。</p>
+<p>C# 编译器将 C# 源代码文件转换成中间语言。为了将 CIL 代码转换成处理器能理解的机器码，还要完成一个额外的步骤（通常在运行时进行）。该步骤涉及 C# 程序执行的一个重要元素：VES（Virtual Execution System，虚拟执行系统）。VES 也称为运行时（runtime）。</p>
+<p>它根据需要编译 CIL 代码，这个过程称为即时编译或 JIT 编译（just-in-time compilation）。如代码在像“运行时”这样的一个“代理” 的上下文中执行，就称为托管代码（managed code），在“运行时”的控制下执行的过程则称为托管执行（managed execution）。</p>
+<p>之所以 称为“托管”，是因为“运行时”管理着诸如内存分配、安全性和 JIT 编译等方面，从而控制了主要的程序行为。执行时不需要“运行时”的代码称为本机代码（native code）或非托管代码（unmanaged code）。</p>
+<p><strong>说明：</strong>“运行时”既可能指“程序执行的时候”，也可能指“虚拟执行系统”。为明确起见，用“执行时”表示“程序执行的时候”，用“运行时”表示负责管理 C# 程序执行的代理。<a href="#fn2" class="footnote-ref" id="fnref2"><sup>2</sup></a></p>
+<p>“运行时”规范包含在一个包容面更广的规范中，即 CLI（Common Language Infrastructure，公共语言基础结构）规范。作为国际标准，CLI 包含了以下几方面的规范：</p>
+<ul>
+<li>VES 或“运行时”。</li>
+<li>CIL。</li>
+<li>支持语言互操作性的类型系统，称为 CTS（Common Type System，公共类型系统）。</li>
+<li>如何编写通过 CLI 兼容语言访问的库的指导原则，这部分内容具体放在公共语言规范（Common Language Specification，CLS）中。</li>
+<li>使各种服务能被 CLI 识别的元数据（包括程序集的布局或文件格式规范）。</li>
+<li><p>在“运行时”执行引擎的上下文中运行，程序员不需要直接写代码就能使用几种服务和功能，包括：</p>
+<ul>
+<li>语言互操作性：不同源语言间的互操作性。语言编译器将每种源语言转换成相同中间语言（CIL）来实现这种互操作性。</li>
+<li>类型安全：检查类型间转换，确保兼容的类型才能相互转换。这有助于防范缓冲区溢出（这是产生安全隐患的主要原因）。</li>
+<li>代码访问安全性：程序集开发者的代码有权在计算机上执行的证明。</li>
+<li>垃圾回收：一种内存管理机制，自动释放“运行时”为数据分配的空间。</li>
+<li>平台可移植性：同一程序集可在多种操作系统上运行。要实现这一点，一个显而易见的限制就是不能使用平台特有的库。所以平台依赖问题需单独解决。</li>
+<li>BCL（基类库）：提供开发者能（在所有 .NET 框架中）依赖的大型代码库，使其不必亲自写这些代码。</li>
+</ul></li>
+</ul>
+<p><strong>注意：</strong> 本篇只是简单介绍了 CLI，目的是让读者熟悉 C# 程序的执行环境。此外，本篇还提及了本系列博文后面才会用到的一些术语。在时机合适的时候，我会专门总结 CLI 及其与 C# 的关系。</p>
+<h2 id="cil-和-ildasm">CIL 和 ILDASM</h2>
+<p>前面说过，C# 编译器将 C# 代码转换成 CIL 代码而不是机器码。处理器只理解机器码，所以 CIL 代码必须先转换成机器码才能由处理器执行。可用 CIL 反汇编程序将程序集解构为 CIL。通常使用 Microsoft 特有的文件名 ILDASM 来称呼这种 CIL 反汇编程序（ILDASM 是 IL Disassembler 的简称），它能对程序集执行反汇编，提取 C# 编译器生成的CIL。</p>
+<p>反汇编 .NET 程序集的结果比机器码更易理解。许多开发人员害怕即使别人没有拿到源代码，程序也容易被反汇编并曝光其算法。其实无论是否基于 CLI，任何程序防止反编译唯一安全的方法就是禁止访问编译好的程序（例如只在网站上存放程序，不把它分发到用户机器）。</p>
+<p>但假如目的只是减小别人获得源代码的可能性，可考虑使用一些混淆器（obfuscator）产品。这种产品会打开 IL 代码，转换成一种功能不变但更难理解的形式。这可以防止普通开发者访问代码，使程序集难以被反编译成容易理解的代码。除非程序需要对算法进行高级安全防护，否则混淆器足矣。</p>
+<h2 id="查看-myapp.dll-的-cil-输出">查看 myApp.dll 的 CIL 输出</h2>
+<p>myApp.dll 程序请参考这篇文章：<a href="https://www.vinanysoft.com/c-sharp-basics/introducing/start-with-hello-world/" class="uri">https://www.vinanysoft.com/c-sharp-basics/introducing/start-with-hello-world/</a></p>
+<p>安装了 Visual Studio 之后 ILDASM 会默认被安装，位置是：<code>C:\Program Files (x86)\Microsoft SDKs\Windows\v10.0A（随便一个目录）\bin\NETFX 4.8 Tools（随便一个目录）\x64</code>。</p>
+<p>双击运行 ildasm.exe，把 myApp.dll 拖进去，如下图：</p>
+<p><img src="./images/简单介绍托管执行和 CLI0.png" /></p>
+<p>双击即可查看到 IL 代码，下面是 MANIFEST 的 IL 代码</p>
+<pre><code><code>// Metadata version: v4.0.30319
+.assembly extern System.Runtime
+{
+  .publickeytoken = (B0 3F 5F 7F 11 D5 0A 3A )                         // .?_....:
+  .ver 4:2:1:0
+}
+.assembly extern System.Console
+{
+  .publickeytoken = (B0 3F 5F 7F 11 D5 0A 3A )                         // .?_....:
+  .ver 4:1:1:0
+}
+.assembly myApp
+{
+  .custom instance void [System.Runtime]System.Runtime.CompilerServices.CompilationRelaxationsAttribute::.ctor(int32) = ( 01 00 08 00 00 00 00 00 ) 
+  .custom instance void [System.Runtime]System.Runtime.CompilerServices.RuntimeCompatibilityAttribute::.ctor() = ( 01 00 01 00 54 02 16 57 72 61 70 4E 6F 6E 45 78   // ....T..WrapNonEx
+                                                                                                                   63 65 70 74 69 6F 6E 54 68 72 6F 77 73 01 )       // ceptionThrows.
+
+  // --- 下列自定义特性会自动添加，不要取消注释 -------
+  //  .custom instance void [System.Runtime]System.Diagnostics.DebuggableAttribute::.ctor(valuetype [System.Runtime]System.Diagnostics.DebuggableAttribute/DebuggingModes) = ( 01 00 07 01 00 00 00 00 ) 
+
+  .custom instance void [System.Runtime]System.Runtime.Versioning.TargetFrameworkAttribute::.ctor(string) = ( 01 00 18 2E 4E 45 54 43 6F 72 65 41 70 70 2C 56   // ....NETCoreApp,V
+                                                                                                              65 72 73 69 6F 6E 3D 76 33 2E 30 01 00 54 0E 14   // ersion=v3.0..T..
+                                                                                                              46 72 61 6D 65 77 6F 72 6B 44 69 73 70 6C 61 79   // FrameworkDisplay
+                                                                                                              4E 61 6D 65 00 )                                  // Name.
+  .custom instance void [System.Runtime]System.Reflection.AssemblyCompanyAttribute::.ctor(string) = ( 01 00 05 6D 79 41 70 70 00 00 )                   // ...myApp..
+  .custom instance void [System.Runtime]System.Reflection.AssemblyConfigurationAttribute::.ctor(string) = ( 01 00 05 44 65 62 75 67 00 00 )                   // ...Debug..
+  .custom instance void [System.Runtime]System.Reflection.AssemblyFileVersionAttribute::.ctor(string) = ( 01 00 07 31 2E 30 2E 30 2E 30 00 00 )             // ...1.0.0.0..
+  .custom instance void [System.Runtime]System.Reflection.AssemblyInformationalVersionAttribute::.ctor(string) = ( 01 00 05 31 2E 30 2E 30 00 00 )                   // ...1.0.0..
+  .custom instance void [System.Runtime]System.Reflection.AssemblyProductAttribute::.ctor(string) = ( 01 00 05 6D 79 41 70 70 00 00 )                   // ...myApp..
+  .custom instance void [System.Runtime]System.Reflection.AssemblyTitleAttribute::.ctor(string) = ( 01 00 05 6D 79 41 70 70 00 00 )                   // ...myApp..
+  .hash algorithm 0x00008004
+  .ver 1:0:0:0
+}
+.module myApp.dll
+// MVID: {29FC93A2-9A52-445C-A581-09AA5BCC11C7}
+.imagebase 0x00400000
+.file alignment 0x00000200
+.stackreserve 0x00100000
+.subsystem 0x0003       // WINDOWS_CUI
+.corflags 0x00000001    //  ILONLY
+// Image base: 0x000002015D090000</code></pre>
+<p>.class private auto ansi beforefieldint</p>
+<pre><code><code>.class private auto ansi beforefieldinit myApp.Program
+       extends [System.Runtime]System.Object
+{
+} // end of class myApp.Program</code></pre>
+<p>.ctor:void()</p>
+<pre><code><code>.method public hidebysig specialname rtspecialname 
+        instance void  .ctor() cil managed
+{
+  // 代码大小       8 (0x8)
+  .maxstack  8
+  IL_0000:  ldarg.0
+  IL_0001:  call       instance void [System.Runtime]System.Object::.ctor()
+  IL_0006:  nop
+  IL_0007:  ret
+} // end of method Program::.ctor</code></pre>
+<p>Main:void(string[])</p>
+<pre><code><code>.method private hidebysig static void  Main(string[] args) cil managed
+{
+  .entrypoint
+  // 代码大小       42 (0x2a)
+  .maxstack  2
+  .locals init (valuetype [System.Runtime]System.DateTime V_0)
+  IL_0000:  nop
+  IL_0001:  ldstr      &quot;Hello World!&quot;
+  IL_0006:  call       void [System.Console]System.Console::WriteLine(string)
+  IL_000b:  nop
+  IL_000c:  ldstr      &quot;The current time is &quot;
+  IL_0011:  call       valuetype [System.Runtime]System.DateTime [System.Runtime]System.DateTime::get_Now()
+  IL_0016:  stloc.0
+  IL_0017:  ldloca.s   V_0
+  IL_0019:  call       instance string [System.Runtime]System.DateTime::ToString()
+  IL_001e:  call       string [System.Runtime]System.String::Concat(string,
+                                                                    string)
+  IL_0023:  call       void [System.Console]System.Console::WriteLine(string)
+  IL_0028:  nop
+  IL_0029:  ret
+} // end of method Program::Main</code></pre>
+<p>最开头是清单（manifest）信息。其中不仅包括被反编译的模块的全名（myApp），还包括它依赖的所有模块和程序集及其版本信息。</p>
+<p>基于这样的一个 CIL 代码清单，最有趣的可能就是能相对比较容易地理解程序所做的事情，这比阅读并理解机器码（汇编程序）容易多了。</p>
+<p>上述代码出现了对 <code>System.Console.WriteLine()</code> 的显式引用。 CIL 代码清单包含许多外围信息，但如果开发者想要理解 C# 模块（或任何基于 CLI 的程序）的内部工作原理，但又拿不到源代码，只要作者没有使用混淆器，理解这样的 CIL 代码清单还是比较容易的。</p>
+<p>事实上，一些免费工具（比如 Red Gate Reflector，ILSpy，JustDecompile，dotPeek 和 CodeReflect）都能将 CIL 自动反编译成 C#。</p>
+<h2 id="使用-ilspy-查看-myapp.dll-反编译后的代码">使用 ILSpy 查看 myApp.dll 反编译后的代码</h2>
+<p>ILSpy 的地址：<a href="https://github.com/icsharpcode/ILSpy" target="_blank"><code>https://github.com/icsharpcode/ILSpy</code></a></p>
+<p>双击运行 ILSpy.exe，把 myApp.dll 拖进去，如下图：</p>
+<p><a href="./images/简单介绍托管执行和 CLI1.png" target="_blank"><img src="./images/简单介绍托管执行和 CLI1.png"></a></p>
+<p><strong>注意：</strong> 反汇编（disassemble）和反编译（decompile）的区别。反汇编得到的是汇编代码，反编译得到的是所用语言的源代码。</p>
+<p>原文链接：<a href="https://www.vinanysoft.com/c-sharp-basics/introducing/managed-execution-and-the-common-language-infrastructure/" class="uri">https://www.vinanysoft.com/c-sharp-basics/introducing/managed-execution-and-the-common-language-infrastructure/</a></p>
+<section class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p>CIL 的第三种说法是 Microsoft IL（MSIL）。 本博客使用 CIL 一词，因其是 CLI 标准所采纳的。C# 程序员交流时经常使用 IL 一词，因为他们都假定 IL 是指 CIL 而不是其他中间语言。<a href="#fnref1" class="footnote-back">↩</a></p></li>
+<li id="fn2"><p>“运行时”（runtime） 作为名词使用时一律添加引号。<a href="#fnref2" class="footnote-back">↩</a></p></li>
+</ol>
+</section>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,171 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C#使用SignalR实现进度条' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C#使用SignalR实现进度条</center></div><div class='banquan'>原文出处:本文由博客园博主BKY小杰提供。<br/>
+原文连接:https://www.cnblogs.com/-bobi/p/11615411.html</div><br>
+    <ol>
+<li>需求背景&nbsp; 产品觉得在后台处理数据时给前端加个进度条&nbsp;</li>
+<li>项目框架 .ENT framework4.5 MVC 5.0</li>
+<li>Nuget引入&nbsp;Microsoft.Owin 系列 2.0.2&nbsp;</li>
+<li>Nuget引入&nbsp;Microsoft.AspNet.SignalR 系列 2.0.3</li>
+<li>服务器代码&nbsp;选择已安装&nbsp;&gt;&nbsp;Visual C#&nbsp;&gt;&nbsp;Web&nbsp;&gt;&nbsp;SignalR&nbsp;，然后选择SignalR Hub 类 (v2)<ol>
+<li>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">using</span><span style="color: #000000;"> System;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Collections.Generic;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Linq;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Web;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> XXX.WMS.Core.Log;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> Microsoft.AspNet.SignalR;
+
+</span><span style="color: #0000ff;">namespace</span><span style="color: #000000;"> XXX.WebUI
+{
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> SaleBackHub : Hub
+    {
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> Send(<span style="color: #0000ff;">string</span> connectionId, <span style="color: #0000ff;">string</span><span style="color: #000000;"> percent)
+        {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> Call the addNewMessageToPage method to update clients.</span>
+            <span style="color: #0000ff;">try</span><span style="color: #000000;">
+            {
+                Clients.Client(connectionId).updateProgressbar(percent);
+            }
+            </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception ex)
+            {
+                LoggerManager.GetInstance().Fatal(ex);
+            }
+        }
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span><span style="color: #000000;"> GetConnectionId()
+        {
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">.Context.ConnectionId;
+        }
+    }
+}</span></pre>
+</div>
+<p>&nbsp;</p>
+</li>
+<li>服务端调用前端action更新进度条
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #008000;">//</span><span style="color: #008000;">使用外部方式调用Hub类方法</span>
+<span style="color: #008080;"> 2</span> <span style="color: #0000ff;">var</span> saleBackHub = Microsoft.AspNet.SignalR.GlobalHost.ConnectionManager.GetHubContext&lt;SaleBackHub&gt;<span style="color: #000000;">();
+</span><span style="color: #008080;"> 3</span> <span style="color: #0000ff;">var</span> percent = <span style="color: #800080;">0</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 4</span> <span style="color: #0000ff;">if</span> (!<span style="color: #0000ff;">string</span><span style="color: #000000;">.IsNullOrWhiteSpace(requestDto.ProgressbarKey))
+</span><span style="color: #008080;"> 5</span> <span style="color: #000000;">{
+</span><span style="color: #008080;"> 6</span> 　　percent = (<span style="color: #0000ff;">int</span>)((<span style="color: #0000ff;">decimal</span>)++progressCount / (<span style="color: #0000ff;">decimal</span>)saleBackModelListCount * <span style="color: #800080;">100</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 7</span> <span style="color: #0000ff;">try</span>
+<span style="color: #008080;"> 8</span> <span style="color: #000000;">{
+</span><span style="color: #008080;"> 9</span>    <span style="color: #008000;">//</span><span style="color: #008000;">调用前端action 更新进度条</span>
+<span style="color: #008080;">10</span>    <span style="color: #000000;">saleBackHub.Clients.Client(requestDto.ProgressbarKey).updateProgressbar(percent.ToString());
+</span><span style="color: #008080;">11</span> <span style="color: #000000;">}
+</span><span style="color: #008080;">12</span> <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception ex)
+</span><span style="color: #008080;">13</span> <span style="color: #000000;">{
+</span><span style="color: #008080;">14</span>     <span style="color: #0000ff;">throw</span><span style="color: #000000;">;
+</span><span style="color: #008080;">15</span> <span style="color: #000000;">}
+</span><span style="color: #008080;">16</span> }</pre>
+</div>
+<p>&nbsp;</p>
+</li>
+</ol></li>
+<li>服务添加Starup.cs<ol>
+<li>　　
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">using</span><span style="color: #000000;"> System;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Threading.Tasks;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> Microsoft.Owin;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> Owin;
+
+[assembly: OwinStartup(</span><span style="color: #0000ff;">typeof</span><span style="color: #000000;">(Frxs.WMS.Management.WebUI.Startup))]
+
+</span><span style="color: #0000ff;">namespace</span><span style="color: #000000;"> xxx.WMS.Management.WebUI
+{
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Startup
+    {
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> Configuration(IAppBuilder app)
+        {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> 有关如何配置应用程序的详细信息，请访问 </span><span style="color: #008000; text-decoration: underline;">https://go.microsoft.com/fwlink/?LinkID=316888</span>
+<span style="color: #000000;">            app.MapSignalR();
+        }
+    }
+}</span></pre>
+</div>
+<p>&nbsp;</p>
+</li>
+</ol></li>
+<li>
+<p>　前端代码</p>
+<ol>
+<li>
+<p>对应页面引入signalR.js</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script </span><span style="color: #ff0000;">src</span><span style="color: #0000ff;">="@Url.Content("</span><span style="color: #ff0000;">~/Scripts/signalR/jquery.signalR-2.0.3.min.js&ldquo;</span><span style="color: #0000ff;">)"</span><span style="color: #ff0000;"> type</span><span style="color: #0000ff;">="text/javascript"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script </span><span style="color: #ff0000;">src</span><span style="color: #0000ff;">="~/signalr/hubs"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+</li>
+<li>
+<p>初始化signalR 连接 定义后端推送action&nbsp; 渲染进度条&nbsp; 本次用的是jeasyui 进度条弹窗</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span><span style="color: #000000;"> chat;
+</span><span style="color: #0000ff;">var</span><span style="color: #000000;"> chatConnectionId;
+</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> initchatHub() {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> Reference the auto-generated proxy for the hub.</span>
+    chat =<span style="color: #000000;"> $.connection.saleBackHub;
+    $.connection.hub.logging </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> Get the user name and store it to prepend to messages.</span>
+    <span style="color: #008000;">//</span><span style="color: #008000;"> Set initial focus to message input box.</span>
+    <span style="color: #008000;">//</span><span style="color: #008000;"> Start the connection.</span>
+    $.connection.hub.start().done(<span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+        chat.server.getConnectionId().done(</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> (connectionId) {
+            chatConnectionId </span>=<span style="color: #000000;"> connectionId;
+        });
+    });
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> Create a function that the hub can call back to display messages.</span>
+    chat.client.updateProgressbar = <span style="color: #0000ff;">function</span><span style="color: #000000;"> (percent) {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> Add the message to the page.</span>
+        <span style="color: #0000ff;">if</span> (parseInt(percent) &lt;= 100<span style="color: #000000;">) {
+            $.messager.progress(</span>'bar').progressbar('setValue'<span style="color: #000000;">, percent);
+        }
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">var value = $.messager.progress('bar').progressbar('getValue');</span>
+<span style="color: #000000;">    };
+}
+
+</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> showProgressbar() {
+    $.messager.progress({
+        title: </span>'测试进度条'<span style="color: #000000;">,
+        interval: </span>0 <span style="color: #008000;">//</span><span style="color: #008000;">每次进度更新之间以毫秒为单位的时间长度。默认值是 300。 </span>
+<span style="color: #000000;">    });
+}</span></pre>
+</div>
+</li>
+</ol></li>
+<li>
+<p>　　实际效果图</p>
+<ol>
+<li>
+<p><img src="./images/C#使用SignalR实现进度条0.png" alt="" /></p>
+</li>
+</ol></li>
+<li>
+<p>　　参考地址&nbsp;<a href="https://docs.microsoft.com/zh-cn/aspnet/signalr/overview/">https://docs.microsoft.com/zh-cn/aspnet/signalr/overview/</a></p>
+　　　　　　</li>
+</ol>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

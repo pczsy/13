@@ -1,0 +1,318 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修提供一个中国身份证号码判断的类' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>提供一个中国身份证号码判断的类</center></div><div class='banquan'>原文出处:本文由博客园博主愚提供。<br/>
+原文连接:https://www.cnblogs.com/mazhiyuan/p/10661112.html</div><br>
+    <p>本文章的目的是实现一个用于身份证号码判断是否有效的功能</p>
+<p>&nbsp;</p>
+<p>首先，创建一个身份证基类：</p>
+<div class="cnblogs_Highlighter">
+<pre><code>    /// &lt;summary&gt;
+    /// 中国大陆身份证
+    /// &lt;/summary&gt;
+    public abstract class ChineseIdBase
+    {
+        /// &lt;summary&gt;
+        /// 验证15位身份证号
+        /// &lt;/summary&gt;
+        /// &lt;param name="id"&gt;身份证号&lt;/param&gt;
+        /// &lt;returns&gt;&lt;/returns&gt;
+        public abstract bool IsGrant(string id);
+
+        /// &lt;summary&gt;
+        /// 数字验证
+        /// &lt;/summary&gt;
+        /// &lt;param name="id"&gt;&lt;/param&gt;
+        /// &lt;returns&gt;&lt;/returns&gt;
+        protected abstract bool CheckNumber(string id);
+
+        /// &lt;summary&gt;
+        /// 省市区区域校验，身份前2位拿来判断
+        /// &lt;/summary&gt;
+        /// &lt;param name="code"&gt;比对码&lt;/param&gt;
+        protected virtual bool CheckAddress(string id)
+        {
+            string address = "11x22x35x44x53x12x23x36x45x54x13x31x37x46x61x14x32x41x50x62x15x33x42x51x63x21x34x43x52x64x65x71x81x82x91";
+            if (address.IndexOf(id.Remove(2)) == -1)
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        /// &lt;summary&gt;
+        /// 针对15位身份证校验生日。取身份证上的第7-14位字符来判断
+        /// &lt;/summary&gt;
+        /// &lt;param name="id"&gt;身份证号&lt;/param&gt;
+        /// &lt;returns&gt;&lt;/returns&gt;
+        protected abstract bool CheckBirth(string id);
+    }
+</pre>
+</div>
+<p>　　</p>
+<p>身份证有分15位，和18位两种。</p>
+<p>下面先实现15位身份证的子类：</p>
+<div class="cnblogs_Highlighter">
+<pre><code>    /// &lt;summary&gt;
+    /// 中国大陆身份证判断。用于15位判断
+    /// 
+    /// &lt;see cref="!:https://blog.csdn.net/s1102379635/article/details/7967179"/&gt;
+    /// &lt;see cref="!:https://blog.csdn.net/qq_26545305/article/details/75042982"/&gt;
+    /// 
+    /// 前1、2位数字表示：所在省（直辖市、自治区）的代码；
+    /// 第3、4位数字表示：所在地级市（自治州）的代码；
+    /// 第5、6位数字表示：所在区（县、自治县、县级市）的代码；
+    /// 第7&mdash;14位数字表示：出生年、月、日；
+    /// 第15、16位数字表示：所在地的派出所的代码（身份证背面的签发机关）；
+    /// 第17位数字表示性别：奇数表示男性，偶数表示女性；
+    /// 第18位数字是校检码（个人信息码）（有的人是可能是x，这代表的是10罗马数字）；
+    /// &lt;/summary&gt;
+    public class ChineseId15Bit : ChineseIdBase
+    {
+&nbsp; &nbsp; &nbsp; &nbsp; /// &lt;summary&gt;
+&nbsp; &nbsp; &nbsp; &nbsp; /// 验证15位身份证号
+&nbsp; &nbsp; &nbsp; &nbsp; /// &lt;/summary&gt;
+&nbsp; &nbsp; &nbsp; &nbsp; /// &lt;param name="id"&gt;身份证号&lt;/param&gt;
+&nbsp; &nbsp; &nbsp; &nbsp; /// &lt;returns&gt;验证成功为True，否则为False&lt;/returns&gt;
+&nbsp; &nbsp; &nbsp; &nbsp; public override bool IsGrant(string id)
+        {
+            if (string.IsNullOrWhiteSpace(id))
+            {
+                return false;
+            }
+            if (id.Length != 15)
+            {
+                return false;
+            }
+
+            //数字校验
+            if (!this.CheckNumber(id)) { return false; }
+            //省市区区域校验，身份前2位拿来判断
+            if (!this.CheckAddress(id)) { return false; }
+            //针对15位身份证校验生日。取身份证上的第7-14位字符来判断
+            if (!this.CheckBirth(id)) { return false; }
+
+            return true;//符合15位身份证标准
+&nbsp; &nbsp; &nbsp; &nbsp; }
+
+        /// &lt;summary&gt;
+        /// 数字验证
+        /// &lt;/summary&gt;
+        /// &lt;param name="id"&gt;&lt;/param&gt;
+        /// &lt;returns&gt;&lt;/returns&gt;
+        protected override bool CheckNumber(string id)
+        {
+            if (long.TryParse(id, out long n) == false || n &lt; Math.Pow(10, 14))
+            {
+                return false;//数字验证
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; }
+
+            return true;
+        }
+
+        /// &lt;summary&gt;
+        /// 针对15位身份证校验生日。取身份证上的第7-14位字符来判断
+        /// &lt;/summary&gt;
+        /// &lt;param name="code"&gt;&lt;/param&gt;
+        /// &lt;returns&gt;&lt;/returns&gt;
+        protected override bool CheckBirth(string id)
+        {
+            string birth = id.Substring(6, 6).Insert(4, "-").Insert(2, "-");
+            DateTime time = new DateTime();
+            if (DateTime.TryParse(birth, out time) == false)
+            {
+                return false;//生日验证
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; }
+
+            return true;
+        }
+    }
+</pre>
+</div>
+<p>　　</p>
+<p>然后再写一个18位身份证的判断类：</p>
+<div class="cnblogs_Highlighter">
+<pre><code>    /// &lt;summary&gt;
+    /// 中国大陆身份证判断。用于18位判断
+    /// 
+    /// &lt;see cref="!:https://blog.csdn.net/s1102379635/article/details/7967179"/&gt;
+    /// &lt;see cref="!:https://blog.csdn.net/qq_26545305/article/details/75042982"/&gt;
+    /// 
+    /// 前1、2位数字表示：所在省（直辖市、自治区）的代码；
+    /// 第3、4位数字表示：所在地级市（自治州）的代码；
+    /// 第5、6位数字表示：所在区（县、自治县、县级市）的代码；
+    /// 第7&mdash;14位数字表示：出生年、月、日；
+    /// 第15、16位数字表示：所在地的派出所的代码（身份证背面的签发机关）；
+    /// 第17位数字表示性别：奇数表示男性，偶数表示女性；
+    /// 第18位数字是校检码（个人信息码）（有的人是可能是x，这代表的是10罗马数字）；
+    /// &lt;/summary&gt;
+    public class ChineseId18Bit : ChineseIdBase
+    {
+        /// &lt;summary&gt;
+&nbsp; &nbsp; &nbsp; &nbsp; /// 验证18位身份证号
+&nbsp; &nbsp; &nbsp; &nbsp; /// &lt;/summary&gt;
+&nbsp; &nbsp; &nbsp; &nbsp; /// &lt;param name="id"&gt;身份证号&lt;/param&gt;
+&nbsp; &nbsp; &nbsp; &nbsp; /// &lt;returns&gt;验证成功为True，否则为False&lt;/returns&gt;
+&nbsp; &nbsp; &nbsp; &nbsp; public override bool IsGrant(string id)
+        {
+            if (string.IsNullOrWhiteSpace(id))
+            {
+                return false;
+            }
+            if (id.Length != 18)
+            {
+                return false;
+            }
+
+            //数字校验
+            if (!this.CheckNumber(id)) { return false; }
+            //省市区区域校验，身份前2位拿来判断
+            if (!this.CheckAddress(id)) { return false; }
+            //生日验证
+            if (!this.CheckBirth(id)) { return false; }
+            //判断校验码
+            if (!this.CheckVerifyCode(id)) { return false; }
+
+            return true;//符合GB11643-1999标准
+&nbsp; &nbsp; &nbsp; &nbsp; }
+
+        /// &lt;summary&gt;
+        /// 数字验证
+        /// &lt;/summary&gt;
+        /// &lt;param name="id"&gt;身份证号&lt;/param&gt;
+        /// &lt;returns&gt;&lt;/returns&gt;
+        protected override bool CheckNumber(string id)
+        {
+            if (long.TryParse(id.Remove(17), out long n) == false || n &lt; Math.Pow(10, 16) || long.TryParse(id.Replace('x', '0').Replace('X', '0'), out n) == false)
+            {
+                return false;//数字验证
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; }
+
+            return true;
+        }
+
+        /// &lt;summary&gt;
+        /// 针对15位身份证校验生日。取身份证上的第7-14位字符来判断
+        /// &lt;/summary&gt;
+        /// &lt;param name="id"&gt;身份证号&lt;/param&gt;
+        /// &lt;returns&gt;&lt;/returns&gt;
+        protected override bool CheckBirth(string id)
+        {
+            string birth = id.Substring(6, 8).Insert(6, "-").Insert(4, "-");
+            DateTime time = new DateTime();
+            if (DateTime.TryParse(birth, out time) == false)
+            {
+                return false;//生日验证
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; }
+
+            return true;
+        }
+
+        /// &lt;summary&gt;
+        /// 检测检验码
+        /// &lt;/summary&gt;
+        /// &lt;param name="id"&gt;身份证号&lt;/param&gt;
+        /// &lt;returns&gt;&lt;/returns&gt;
+        private bool CheckVerifyCode(string id)
+        {
+            string[] vi = ("1,0,x,9,8,7,6,5,4,3,2").Split(',');
+            string[] wi = ("7,9,10,5,8,4,2,1,6,3,7,9,10,5,8,4,2").Split(',');
+            char[] ai = id.Remove(17).ToCharArray();
+            int sum = 0;
+            for (int i = 0; i &lt; 17; i++)
+            {
+                sum += int.Parse(wi[i]) * int.Parse(ai[i].ToString());
+            }
+            int y = -1;
+            Math.DivRem(sum, 11, out y);
+            if (vi[y] != id.Substring(17, 1).ToLower())
+            {
+                return false;//校验码验证
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; }
+
+            return true;
+        }
+    }
+</pre>
+</div>
+<p>　　</p>
+<p>最后，编写一个管理类，用于统一给外部方法调用 ，当然，你也可以不用这么做，直接实例化15位或者18位的身份证判断类，去实现自己的逻辑：</p>
+<div class="cnblogs_Highlighter">
+<pre><code>    /// &lt;summary&gt;
+    /// 身份证管理
+    /// &lt;/summary&gt;
+    public class ChineseIdManager : ITransient
+    {
+        /// &lt;summary&gt;
+        /// 判断身份证是否验证通过
+        /// &lt;/summary&gt;
+        /// &lt;param name="id"&gt;&lt;/param&gt;
+        /// &lt;returns&gt;&lt;/returns&gt;
+        public async Task&lt;bool&gt; IsGrant(string id)
+        {
+            if (string.IsNullOrWhiteSpace(id))
+            {
+                throw new ArgumentNullException(nameof(id));
+            }
+
+            ChineseIdBase checker = null;
+            var len = id.Length;
+            if (len == 15)
+            {
+                checker = new ChineseId15Bit();
+            }
+            else if (len == 18)
+            {
+                checker = new ChineseId18Bit();
+            }
+            else
+            {
+                throw new UserFriendlyException("身份证号码错误");
+            }
+
+            return await Task.FromResult(checker.IsGrant(id));
+        }
+    }
+</pre>
+</div>
+<p>　　</p>
+<p>&nbsp;</p>
+<p>客户端如何调用上述的类及方法呢：</p>
+<div class="cnblogs_Highlighter">
+<pre><code>        /// &lt;summary&gt;
+        /// 检查身份证号码是否被ps修改过
+        /// &lt;/summary&gt;
+        /// &lt;param name="id"&gt;&lt;/param&gt;
+        /// &lt;returns&gt;&lt;/returns&gt;
+        private async Task CheckId(string id)
+        {
+            if (!await this._chineseIdManager.IsGrant(id))
+            {
+                throw new UserFriendlyException("身份证号码格式错误");
+            }
+        }
+</pre>
+</div>
+<p>　　</p>
+<p>如上，即可实现调用和判断。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

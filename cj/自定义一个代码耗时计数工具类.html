@@ -1,0 +1,147 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修自定义一个代码耗时计数工具类' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>自定义一个代码耗时计数工具类</center></div><div class='banquan'>原文出处:本文由博客园博主三人行工作室提供。<br/>
+原文连接:https://www.cnblogs.com/timeddd/p/10948831.html</div><br>
+    <blockquote>
+<p>当需要知道某段代码到底耗时多少时，使用最最频繁的场景，就是计时开始，计时结束得到耗时时间（通常以毫秒为单位，再转换成秒也是特别容易）。</p>
+</blockquote>
+<p>通常情况下，会使用一个变量记录开始时间，结束时再进行时间运算显示结果，但代码有点多，且时间加减本就不容易（哈哈）。而使用其它工具，得找（哈哈），而且它可能给你个并不好关联的名字。</p>
+<p>那就来自定义一个耗时计数器吧，它有个开始，有个结束，结束时返回耗时计数。关键，这里用一个自己一碰到耗时计数就能想起的名字。</p>
+<h3 id="开始定义">开始定义</h3>
+<p>于时，有了以下类定义：</p>
+<pre><code><code>/// &lt;summary&gt;
+/// 耗时计数器
+/// &lt;/summary&gt;
+public class TimeConsumingCounter
+{
+    // 创建时默认为创建时间，这样不调用 Start 也可以
+    private DateTime _StartTime = DateTime.Now;
+
+    // 计时开始
+    public void Start()
+    {
+        _StartTime = DateTime.Now;
+    }
+
+    // 计时结束（输出毫秒）
+    public long Over()
+    {
+        var timespan = DateTime.Now - _StartTime;
+        return Convert.ToInt32(timespan.TotalMilliseconds);
+    } 
+}</code></pre>
+<p>来来来，看一下使用方法：</p>
+<pre><code><code>TimeConsumingCounter tcc = new TimeConsumingCounter();
+tcc.Start();
+for (var i = 0; i &lt; 10000000; i++)
+{
+}
+// 输出耗时计数
+Debug.Write(tcc.Over());</code></pre>
+<h3 id="稍作扩展">稍作扩展</h3>
+<p>也许毫秒并不能满足我的需要，不想再进行秒分的转换。那就再来个 TimeSpan 的返回吧，它自带转换。</p>
+<pre><code><code>// 取得间隔
+public TimeSpan Span()
+{
+    return DateTime.Now - _StartTime;
+}</code></pre>
+<p>于是输出可以是： <code>Debug.Write(tcc.Span().TotalMinutes);</code></p>
+<blockquote>
+<p>其实，还想更直接点，直接告诉我那个过程运行有多少时间吧。</p>
+</blockquote>
+<p>先看看，最终使用的两个示例：<br />
+1.示例一</p>
+<pre><code><code>Debug.Write(
+    TimeConsumingCounter.TimeConsuming(() =&gt;
+    {
+        for (var i = 0; i &lt; 10000000; i++)
+        {
+        }
+    }).TotalMilliseconds
+);</code></pre>
+<p>2.示例二</p>
+<pre><code><code>private void Foo()
+{
+    for (var i = 0; i &lt; 10000000; i++)
+    {
+    }
+}
+
+// 输出 Foo 运行耗时
+Debug.Write(
+    TimeConsumingCounter.TimeConsuming(Foo).TotalMilliseconds
+);</code></pre>
+<p>原理其实很简单，为工具类增加一个静态方法，把需要耗时统计的代码以参数的形式传递给它去计时就可以了。这个方法中，使用到了 Action，是 C# 的一种委托，可先熟悉下。静态方法如下：</p>
+<pre><code><code>/// &lt;summary&gt;
+/// 静态方法，运行指定函数，返回耗时结果
+/// &lt;/summary&gt;
+/// &lt;param name=&quot;action&quot;&gt;&lt;/param&gt;
+/// &lt;returns&gt;&lt;/returns&gt;
+public static TimeSpan TimeConsuming(Action action)
+{
+    TimeConsumingCounter tcc = new TimeConsumingCounter();
+    action();
+    return tcc.Span();
+}</code></pre>
+<h3 id="附完整代码">附完整代码</h3>
+<pre><code><code>/// &lt;summary&gt;
+/// 耗时计数器
+/// &lt;/summary&gt;
+public class TimeConsumingCounter
+{
+    // 创建时默认为创建时间，这样不调用 Start 也可以
+    private DateTime _StartTime = DateTime.Now;
+
+    // 计时开始
+    public void Start()
+    {
+        _StartTime = DateTime.Now;
+    }
+
+    // 计时结束（输出毫秒）
+    public long Over()
+    {
+        var timespan = DateTime.Now - _StartTime;
+        return Convert.ToInt32(timespan.TotalMilliseconds);
+    }
+
+    // 取得间隔
+    public TimeSpan Span()
+    {
+        return DateTime.Now - _StartTime;
+    }
+
+    /// &lt;summary&gt;
+    /// 静态方法，运行指定函数，返回耗时结果
+    /// &lt;/summary&gt;
+    /// &lt;param name=&quot;action&quot;&gt;&lt;/param&gt;
+    /// &lt;returns&gt;&lt;/returns&gt;
+    public static TimeSpan TimeConsuming(Action action)
+    {
+        TimeConsumingCounter tcc = new TimeConsumingCounter();
+        action();
+        return tcc.Span();
+    }
+}</code></pre>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

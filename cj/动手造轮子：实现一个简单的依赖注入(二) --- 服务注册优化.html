@@ -1,0 +1,256 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修动手造轮子：实现一个简单的依赖注入(二) --- 服务注册优化' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>动手造轮子：实现一个简单的依赖注入(二) --- 服务注册优化</center></div><div class='banquan'>原文出处:本文由博客园博主WeihanLi提供。<br/>
+原文连接:https://www.cnblogs.com/weihanli/p/implement-dependency-injection-02.html</div><br>
+    <h1 id="动手造轮子实现一个简单的依赖注入二-----服务注册优化">动手造轮子：实现一个简单的依赖注入(二) --- 服务注册优化</h1>
+<h2 id="intro">Intro</h2>
+<p>之前实现的那版依赖注入框架基本可用，但是感觉还是不够灵活，而且注册服务和解析服务在同一个地方感觉有点别扭，有点职责分离不够。于是借鉴 Autofac 的做法，增加了一个 <code>ServiceContainerBuilder</code> 来负责注册服务，<code>ServiceContainer</code>负责解析服务，并且增加了一个 <code>ServiceContainerModule</code> 可以支持像 Autofac 中 <code>Module</code>/<code>RegisterAssemblyModules</code> 一样注册服务</p>
+<h2 id="实现代码">实现代码</h2>
+<h3 id="servicecontainerbuilder">ServiceContainerBuilder</h3>
+<p>增加 <code>ServiceContainerBuild</code> 来专门负责注册服务，原来注册服务的那些扩展方法则从 <code>IServiceContainer</code> 的扩展方法变成 <code>IServiceContainerBuilder</code> 的扩展</p>
+<pre><code><code>public interface IServiceContainerBuilder
+{
+    IServiceContainerBuilder Add(ServiceDefinition item);
+
+    IServiceContainerBuilder TryAdd(ServiceDefinition item);
+
+    IServiceContainer Build();
+}
+
+public class ServiceContainerBuilder : IServiceContainerBuilder
+{
+    private readonly List&lt;ServiceDefinition&gt; _services = new List&lt;ServiceDefinition&gt;();
+
+    public IServiceContainerBuilder Add(ServiceDefinition item)
+    {
+        if (_services.Any(_ =&gt; _.ServiceType == item.ServiceType &amp;&amp; _.GetImplementType() == item.GetImplementType()))
+        {
+            return this;
+        }
+
+        _services.Add(item);
+        return this;
+    }
+
+    public IServiceContainerBuilder TryAdd(ServiceDefinition item)
+    {
+        if (_services.Any(_ =&gt; _.ServiceType == item.ServiceType))
+        {
+            return this;
+        }
+        _services.Add(item);
+        return this;
+    }
+
+    public IServiceContainer Build() =&gt; new ServiceContainer(_services);
+}</code></pre>
+<h3 id="iservicecontainer">IServiceContainer</h3>
+<p>增加 <code>ServiceContainerBuilder</code> 之后就不再支持注册服务了，<code>ServiceContainer</code> 这个类型也可以变成一个内部类了，不必再对外暴露</p>
+<pre><code><code>public interface IServiceContainer : IScope, IServiceProvider
+{
+    IServiceContainer CreateScope();
+}
+
+internal class ServiceContainer : IServiceContainer
+{
+    private readonly IReadOnlyList&lt;ServiceDefinition&gt; _services;
+    
+    public ServiceContainer(IReadOnlyList&lt;ServiceDefinition&gt; serviceDefinitions)
+    {
+        _services = serviceDefinitions;
+        // ...
+    }
+    
+    // 此处约省略一万行代码 ...
+}</code></pre>
+<h3 id="servicecontainermodule">ServiceContainerModule</h3>
+<p>定义了一个 <code>ServiceContainerModule</code> 来实现像 Autofac 那样，在某一个程序集内定义一个 Module 注册程序集内需要注册的服务，在服务注册的地方调用 <code>RegisterAssemblyModules</code> 来扫描所有程序集并注册自定义 <code>ServiceContainerModule</code> 需要注册的服务</p>
+<pre><code><code>public interface IServiceContainerModule
+{
+    void ConfigureServices(IServiceContainerBuilder serviceContainerBuilder);
+}
+
+public abstract class ServiceContainerModule : IServiceContainerModule
+{
+    public abstract void ConfigureServices(IServiceContainerBuilder serviceContainerBuilder);
+}</code></pre>
+<p>自定义 <code>ServiceContainerModule</code> 使用示例：</p>
+<pre><code><code>public class TestServiceContainerModule : ServiceContainerModule
+{
+    public override void ConfigureServices(IServiceContainerBuilder serviceContainerBuilder)
+    {
+        serviceContainerBuilder.AddSingleton&lt;IIdGenerator&gt;(GuidIdGenerator.Instance);
+    }
+}</code></pre>
+<p><code>RegisterAssemblyModules</code> 扩展方法实现如下：</p>
+<pre><code><code>
+public static IServiceContainerBuilder RegisterAssemblyModules(
+    [NotNull] this IServiceContainerBuilder serviceContainerBuilder, params Assembly[] assemblies)
+{
+    #if NET45
+        // 解决 asp.net 在 IIS 下应用程序域被回收的问题
+        // https://autofac.readthedocs.io/en/latest/register/scanning.html#iis-hosted-web-applications
+        if (null == assemblies || assemblies.Length == 0)
+        {
+            if (System.Web.Hosting.HostingEnvironment.IsHosted)
+            {
+                assemblies = System.Web.Compilation.BuildManager.GetReferencedAssemblies()
+                    .Cast&lt;Assembly&gt;().ToArray();
+            }
+        }
+    #endif
+
+        if (null == assemblies || assemblies.Length == 0)
+        {
+            assemblies = AppDomain.CurrentDomain.GetAssemblies();
+        }
+
+    foreach (var type in assemblies.WhereNotNull().SelectMany(ass =&gt; ass.GetTypes())
+             .Where(t =&gt; t.IsClass &amp;&amp; !t.IsAbstract &amp;&amp; typeof(IServiceContainerModule).IsAssignableFrom(t))
+            )
+    {
+        try
+        {
+            if (Activator.CreateInstance(type) is ServiceContainerModule module)
+            {
+                module.ConfigureServices(serviceContainerBuilder);
+            }
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+        }
+    }
+    return serviceContainerBuilder;
+}</code></pre>
+<h2 id="使用示例">使用示例</h2>
+<p>使用起来除了注册服务变化了之外，别的地方并没有什么不同，看一下单元测试代码</p>
+<pre><code><code>public class DependencyInjectionTest : IDisposable
+{
+    private readonly IServiceContainer _container;
+
+    public DependencyInjectionTest()
+    {
+        var containerBuilder = new ServiceContainerBuilder();
+        containerBuilder.AddSingleton&lt;IConfiguration&gt;(new ConfigurationBuilder().Build());
+        containerBuilder.AddScoped&lt;IFly, MonkeyKing&gt;();
+        containerBuilder.AddScoped&lt;IFly, Superman&gt;();
+
+        containerBuilder.AddScoped&lt;HasDependencyTest&gt;();
+        containerBuilder.AddScoped&lt;HasDependencyTest1&gt;();
+        containerBuilder.AddScoped&lt;HasDependencyTest2&gt;();
+        containerBuilder.AddScoped&lt;HasDependencyTest3&gt;();
+        containerBuilder.AddScoped(typeof(HasDependencyTest4&lt;&gt;));
+
+        containerBuilder.AddTransient&lt;WuKong&gt;();
+        containerBuilder.AddScoped&lt;WuJing&gt;(serviceProvider =&gt; new WuJing());
+        containerBuilder.AddSingleton(typeof(GenericServiceTest&lt;&gt;));
+        
+        containerBuilder.RegisterAssemblyModules();
+
+        _container = containerBuilder.Build();
+    }
+
+    [Fact]
+    public void Test()
+    {
+        var rootConfig = _container.ResolveService&lt;IConfiguration&gt;();
+
+        Assert.Throws&lt;InvalidOperationException&gt;(() =&gt; _container.ResolveService&lt;IFly&gt;());
+        Assert.Throws&lt;InvalidOperationException&gt;(() =&gt; _container.ResolveRequiredService&lt;IDependencyResolver&gt;());
+
+        using (var scope = _container.CreateScope())
+        {
+            var config = scope.ResolveService&lt;IConfiguration&gt;();
+
+            Assert.Equal(rootConfig, config);
+
+            var fly1 = scope.ResolveRequiredService&lt;IFly&gt;();
+            var fly2 = scope.ResolveRequiredService&lt;IFly&gt;();
+            Assert.Equal(fly1, fly2);
+
+            var wukong1 = scope.ResolveRequiredService&lt;WuKong&gt;();
+            var wukong2 = scope.ResolveRequiredService&lt;WuKong&gt;();
+
+            Assert.NotEqual(wukong1, wukong2);
+
+            var wuJing1 = scope.ResolveRequiredService&lt;WuJing&gt;();
+            var wuJing2 = scope.ResolveRequiredService&lt;WuJing&gt;();
+
+            Assert.Equal(wuJing1, wuJing2);
+
+            var s0 = scope.ResolveRequiredService&lt;HasDependencyTest&gt;();
+            s0.Test();
+            Assert.Equal(s0._fly, fly1);
+
+            var s1 = scope.ResolveRequiredService&lt;HasDependencyTest1&gt;();
+            s1.Test();
+
+            var s2 = scope.ResolveRequiredService&lt;HasDependencyTest2&gt;();
+            s2.Test();
+
+            var s3 = scope.ResolveRequiredService&lt;HasDependencyTest3&gt;();
+            s3.Test();
+
+            var s4 = scope.ResolveRequiredService&lt;HasDependencyTest4&lt;string&gt;&gt;();
+            s4.Test();
+
+            using (var innerScope = scope.CreateScope())
+            {
+                var config2 = innerScope.ResolveRequiredService&lt;IConfiguration&gt;();
+                Assert.True(rootConfig == config2);
+
+                var fly3 = innerScope.ResolveRequiredService&lt;IFly&gt;();
+                fly3.Fly();
+
+                Assert.NotEqual(fly1, fly3);
+            }
+
+            var flySvcs = scope.ResolveServices&lt;IFly&gt;();
+            foreach (var f in flySvcs)
+                f.Fly();
+        }
+
+        var genericService1 = _container.ResolveRequiredService&lt;GenericServiceTest&lt;int&gt;&gt;();
+        genericService1.Test();
+
+        var genericService2 = _container.ResolveRequiredService&lt;GenericServiceTest&lt;string&gt;&gt;();
+        genericService2.Test();
+    }
+
+    public void Dispose()
+    {
+        _container.Dispose();
+    }
+}
+</code></pre>
+<h2 id="reference">Reference</h2>
+<ul>
+<li><a href="https://github.com/WeihanLi/WeihanLi.Common/tree/dev/src/WeihanLi.Common/DependencyInjection" class="uri">https://github.com/WeihanLi/WeihanLi.Common/tree/dev/src/WeihanLi.Common/DependencyInjection</a></li>
+<li><a href="https://www.cnblogs.com/weihanli/p/implement-dependency-injection-01.html" class="uri">https://www.cnblogs.com/weihanli/p/implement-dependency-injection-01.html</a></li>
+<li><a href="https://www.cnblogs.com/weihanli/p/implement-dependency-injection.html" class="uri">https://www.cnblogs.com/weihanli/p/implement-dependency-injection.html</a></li>
+<li><a href="https://autofac.org/" class="uri">https://autofac.org/</a></li>
+<li><a href="https://autofac.readthedocs.io/en/latest/register/scanning.html" class="uri">https://autofac.readthedocs.io/en/latest/register/scanning.html</a></li>
+</ul>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

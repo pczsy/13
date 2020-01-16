@@ -1,0 +1,334 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C# MVC微信扫码支付' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C# MVC微信扫码支付</center></div><div class='banquan'>原文出处:本文由博客园博主你像风提供。<br/>
+原文连接:https://www.cnblogs.com/aqing0/p/10774886.html</div><br>
+    <p><strong>项目需求：学校学生网上缴费项目，刚来公司实习网上百度了各种资料，感谢很多大神避免了很多大坑。</strong></p>
+<p><strong>本次扫码支付为：电脑生成二维码，手机微信扫码进行付款。建议开发前下载官方demo熟悉及后续有用到里面代码：https://pay.weixin.qq.com/wiki/doc/api/jsapi.php?chapter=11_1</strong></p>
+<p>1.微信公众平台&rarr;支付配置&rarr;支付授权目录(授权目录就是指你要进行支付的目录)添加你的项目发布文件网址，手上暂无公司微信公众平台账号，百度上下有什么详细说明就不再说明了。</p>
+<p>2.新建MVC项目&rarr;新建文件夹Resources将官方demo中的business和lib文件夹复制过来</p>
+<p><img src="./images/C# MVC微信扫码支付0.png" alt="" /></p>
+<p>3.打开lib文件夹里的config，在这里配置基础信息和支付回调地址</p>
+<p><img src="./images/C# MVC微信扫码支付1.png" alt="" /></p>
+<p>4.新建WxPay页面，此页面展示付款二维码，采用了jquery.qrcode.min.js生成二维码，贴部分重要代码</p>
+<p>&nbsp;</p>
+<div class="cnblogs_code">
+<pre><code>&lt;script language=<span style="color: #800000;">"</span><span style="color: #800000;">javascript</span><span style="color: #800000;">"</span>&gt;<span style="color: #000000;">
+        $(function () {
+            GetWXQRCode();
+        });
+
+        function GetWXQRCode() {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">$('#QRCode').css('display', ''); </span><span style="color: #008000;">//</span><span style="color: #008000;">去除隐藏
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">$('#paytitle').html('微信支付');</span>
+            $(<span style="color: #800000;">'</span><span style="color: #800000;">#tradeno</span><span style="color: #800000;">'</span>).html(<span style="color: #800000;">''</span><span style="color: #000000;">);
+            $(</span><span style="color: #800000;">'</span><span style="color: #800000;">#paymoney</span><span style="color: #800000;">'</span>).html(<span style="color: #800000;">''</span><span style="color: #000000;">);
+            $.ajax({
+                type: </span><span style="color: #800000;">"</span><span style="color: #800000;">post</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+                url: </span><span style="color: #800000;">"</span><span style="color: #800000;">/StudentIndex/GetWXQRCode</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+                data: {
+                    time: </span><span style="color: #0000ff;">new</span><span style="color: #000000;"> Date(),
+                    productId: </span><span style="color: #800000;">"</span><span style="color: #800000;">考试费用</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+                    idcard: </span><span style="color: #800000;">'</span><span style="color: #800000;">@ViewBag.idcard</span><span style="color: #800000;">'</span><span style="color: #000000;">,
+                },
+                success: function (json) {
+                    </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (json.result) {
+                        $(</span><span style="color: #800000;">"</span><span style="color: #800000;">#QRCode</span><span style="color: #800000;">"</span>).qrcode(json.str); <span style="color: #008000;">//</span><span style="color: #008000;">生成二维码</span>
+                        $(<span style="color: #800000;">"</span><span style="color: #800000;">#tradeno</span><span style="color: #800000;">"</span>).html(json.no); <span style="color: #008000;">//</span><span style="color: #008000;">订单编号</span>
+                        $(<span style="color: #800000;">'</span><span style="color: #800000;">#paymoney</span><span style="color: #800000;">'</span><span style="color: #000000;">).html(json.money);
+                    }
+                    </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+                        $(</span><span style="color: #800000;">"</span><span style="color: #800000;">#QRCode</span><span style="color: #800000;">"</span>).html(<span style="color: #800000;">"</span><span style="color: #800000;">二维码生成失败</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                    }
+                },
+                error: function (json) {
+                    $(</span><span style="color: #800000;">"</span><span style="color: #800000;">#QRCode</span><span style="color: #800000;">"</span>).html(<span style="color: #800000;">"</span><span style="color: #800000;">二维码生成错误</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                }
+            })
+        }</span>
+
+    &lt;div <span style="color: #0000ff;">class</span>=<span style="color: #800000;">"</span><span style="color: #800000;">i_ma</span><span style="color: #800000;">"</span>&gt;
+        &lt;div <span style="color: #0000ff;">class</span>=<span style="color: #800000;">"</span><span style="color: #800000;">i_name</span><span style="color: #800000;">"</span>&gt;<span style="color: #000000;">
+            微信支付
+        </span>&lt;p&gt;WeChat Payment&lt;/p&gt;
+        &lt;/div&gt;
+        &lt;div <span style="color: #0000ff;">class</span>=<span style="color: #800000;">"</span><span style="color: #800000;">space_hx</span><span style="color: #800000;">"</span>&gt;&amp;nbsp;&lt;/div&gt;
+
+        &lt;div&gt;订单编号：&lt;p id=<span style="color: #800000;">"</span><span style="color: #800000;">tradeno</span><span style="color: #800000;">"</span>&gt;&lt;/p&gt;&lt;/div&gt;
+        &lt;div&gt;考试费用：&lt;p id=<span style="color: #800000;">"</span><span style="color: #800000;">paymoney</span><span style="color: #800000;">"</span>&gt;&lt;/p&gt;&lt;/div&gt;
+        &lt;div id=<span style="color: #800000;">"</span><span style="color: #800000;">QRCode</span><span style="color: #800000;">"</span>&gt;
+        &lt;/div&gt;
+
+    &lt;/div&gt;
+
+    &lt;div <span style="color: #0000ff;">class</span>=<span style="color: #800000;">"</span><span style="color: #800000;">space_hx</span><span style="color: #800000;">"</span>&gt;&amp;nbsp;&lt;/div&gt;</pre>
+</div>
+<p>5.控制器内添加生成二维码方法，这里面的idcard是学生身份证，添加到附加数据内便于后面查询订单时判断是谁缴了费</p>
+<div class="cnblogs_code">
+<pre><code> <span style="color: #008000;">//</span><span style="color: #008000;">生成微信支付二维码</span>
+<span style="color: #000000;">        [HttpPost]
+        </span><span style="color: #0000ff;">public</span> ActionResult GetWXQRCode(<span style="color: #0000ff;">string</span><span style="color: #000000;"> idcard)
+        {
+            </span><span style="color: #0000ff;">object</span> objResult = <span style="color: #800000;">""</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">string</span><span style="color: #000000;"> tradeno;
+            </span><span style="color: #0000ff;">string</span><span style="color: #000000;"> paymoney;
+            </span><span style="color: #0000ff;">string</span> strProductID = Request.Form[<span style="color: #800000;">"</span><span style="color: #800000;">productId</span><span style="color: #800000;">"</span>];  <span style="color: #008000;">//</span><span style="color: #008000;">商品ID</span>
+            <span style="color: #0000ff;">string</span> strQRCodeStr = GetWXPayUrl(strProductID, idcard, <span style="color: #0000ff;">out</span> tradeno, <span style="color: #0000ff;">out</span><span style="color: #000000;"> paymoney);
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">Session["outtradeno"] = outtradeno;</span>
+            <span style="color: #0000ff;">if</span> (!<span style="color: #0000ff;">string</span><span style="color: #000000;">.IsNullOrWhiteSpace(strProductID))
+            {
+                objResult </span>= <span style="color: #0000ff;">new</span> { result = <span style="color: #0000ff;">true</span>, str = strQRCodeStr, no = tradeno, money =<span style="color: #000000;"> paymoney };
+            }
+            </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+            {
+                objResult </span>= <span style="color: #0000ff;">new</span> { result = <span style="color: #0000ff;">false</span><span style="color: #000000;"> };
+            }
+
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> Json(objResult);
+        }
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">生成直接微信支付url，支付url有效期为10分钟,模式二</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> GetWXPayUrl(<span style="color: #0000ff;">string</span> productId, <span style="color: #0000ff;">string</span> idcard, <span style="color: #0000ff;">out</span> <span style="color: #0000ff;">string</span> out_trade_no, <span style="color: #0000ff;">out</span> <span style="color: #0000ff;">string</span><span style="color: #000000;"> money)
+        {
+            WxPayData data </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> WxPayData();
+            data.SetValue(</span><span style="color: #800000;">"</span><span style="color: #800000;">body</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">分类考试学费</span><span style="color: #800000;">"</span>);<span style="color: #008000;">//</span><span style="color: #008000;">商品描述</span>
+            data.SetValue(<span style="color: #800000;">"</span><span style="color: #800000;">attach</span><span style="color: #800000;">"</span>, idcard);<span style="color: #008000;">//</span><span style="color: #008000;">附加数据</span>
+            out_trade_no =<span style="color: #000000;"> WxPayApi.GenerateOutTradeNo();
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">Session["out_trade_no"] = out_trade_no;</span>
+            data.SetValue(<span style="color: #800000;">"</span><span style="color: #800000;">out_trade_no</span><span style="color: #800000;">"</span>, out_trade_no);<span style="color: #008000;">//</span><span style="color: #008000;">随机字符串</span>
+            <span style="color: #0000ff;">string</span> total = Convert.ToInt32((context.receiptInfoModel.OrderBy(x =&gt; x.ID).FirstOrDefault().PayMoney * <span style="color: #800080;">100</span><span style="color: #000000;">)).ToString();
+            money </span>= context.receiptInfoModel.OrderBy(x =&gt; x.ID).FirstOrDefault().PayMoney + <span style="color: #800000;">"</span><span style="color: #800000;">元</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            data.SetValue(</span><span style="color: #800000;">"</span><span style="color: #800000;">total_fee</span><span style="color: #800000;">"</span>, total);<span style="color: #008000;">//</span><span style="color: #008000;">总金额</span>
+            data.SetValue(<span style="color: #800000;">"</span><span style="color: #800000;">time_start</span><span style="color: #800000;">"</span>, DateTime.Now.ToString(<span style="color: #800000;">"</span><span style="color: #800000;">yyyyMMddHHmmss</span><span style="color: #800000;">"</span>));<span style="color: #008000;">//</span><span style="color: #008000;">交易起始时间</span>
+            data.SetValue(<span style="color: #800000;">"</span><span style="color: #800000;">time_expire</span><span style="color: #800000;">"</span>, DateTime.Now.AddMinutes(<span style="color: #800080;">10</span>).ToString(<span style="color: #800000;">"</span><span style="color: #800000;">yyyyMMddHHmmss</span><span style="color: #800000;">"</span>));<span style="color: #008000;">//</span><span style="color: #008000;">交易结束时间</span>
+            data.SetValue(<span style="color: #800000;">"</span><span style="color: #800000;">goods_tag</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">商品的备忘,可以自定义</span><span style="color: #800000;">"</span>);<span style="color: #008000;">//</span><span style="color: #008000;">商品标记</span>
+            data.SetValue(<span style="color: #800000;">"</span><span style="color: #800000;">trade_type</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">NATIVE</span><span style="color: #800000;">"</span>);<span style="color: #008000;">//</span><span style="color: #008000;">交易类型</span>
+            data.SetValue(<span style="color: #800000;">"</span><span style="color: #800000;">product_id</span><span style="color: #800000;">"</span>, productId);<span style="color: #008000;">//</span><span style="color: #008000;">商品ID</span>
+            WxPayData result = WxPayApi.UnifiedOrder(data);<span style="color: #008000;">//</span><span style="color: #008000;">调用统一下单接口</span>
+            <span style="color: #0000ff;">string</span> url = result.GetValue(<span style="color: #800000;">"</span><span style="color: #800000;">code_url</span><span style="color: #800000;">"</span>).ToString();<span style="color: #008000;">//</span><span style="color: #008000;">获得统一下单接口返回的二维码链接</span>
+<span style="color: #000000;">            PreWxPayOrder(idcard, out_trade_no);
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> url;
+        }
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">生成二维码同时，生成预支付订单</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> PreWxPayOrder(<span style="color: #0000ff;">string</span> idcard, <span style="color: #0000ff;">string</span><span style="color: #000000;"> out_trade_no)
+        {
+            WxPayOrderModel model </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> WxPayOrderModel();
+            model.StudentCard </span>=<span style="color: #000000;"> idcard;
+            model.OrderNo </span>=<span style="color: #000000;"> out_trade_no;
+            model.OrderTime </span>=<span style="color: #000000;"> DateTime.Now;
+            model.Status </span>= <span style="color: #800080;">0</span><span style="color: #000000;">;
+            model.OrderType </span>= <span style="color: #800000;">"</span><span style="color: #800000;">微信</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            context.wxpayOrderModel.Add(model);
+            context.SaveChanges();
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">Log.Info("生成预支付订单","订单号:"+out_trade_no);</span>
+        }</pre>
+</div>
+<p>&nbsp;</p>
+<p>&nbsp;6.新建wxpayok页面(此页面是config里配置的支付回调url)，视图不需要改动，在控制器里添加接收微信返回的数据</p>
+<div class="cnblogs_code">
+<pre><code>        <span style="color: #008000;">//</span><span style="color: #008000;">接收微信返回信息</span>
+        <span style="color: #0000ff;">public</span><span style="color: #000000;"> ActionResult WxPayOK()
+        {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">接收从微信后台POST过来的数据</span>
+            System.IO.Stream s =<span style="color: #000000;"> Request.InputStream;
+            </span><span style="color: #0000ff;">int</span> count = <span style="color: #800080;">0</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">byte</span>[] buffer = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">byte</span>[<span style="color: #800080;">1024</span><span style="color: #000000;">];
+            StringBuilder builder </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> StringBuilder();
+            </span><span style="color: #0000ff;">while</span> ((count = s.Read(buffer, <span style="color: #800080;">0</span>, <span style="color: #800080;">1024</span>)) &gt; <span style="color: #800080;">0</span><span style="color: #000000;">)
+            {
+                builder.Append(Encoding.UTF8.GetString(buffer, </span><span style="color: #800080;">0</span><span style="color: #000000;">, count));
+            }
+            s.Flush();
+            s.Close();
+            s.Dispose();
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">转换数据格式并验证签名</span>
+            WxPayData data = <span style="color: #0000ff;">new</span><span style="color: #000000;"> WxPayData();
+            </span><span style="color: #0000ff;">try</span><span style="color: #000000;">
+            {
+                data.FromXml(builder.ToString());
+            }
+            </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (WxPayException ex)
+            {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">若签名错误，则立即返回结果给微信支付后台</span>
+                WxPayData res = <span style="color: #0000ff;">new</span><span style="color: #000000;"> WxPayData();
+                res.SetValue(</span><span style="color: #800000;">"</span><span style="color: #800000;">return_code</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">FAIL</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                res.SetValue(</span><span style="color: #800000;">"</span><span style="color: #800000;">return_msg</span><span style="color: #800000;">"</span><span style="color: #000000;">, ex.Message);
+                Log.Error(</span><span style="color: #800000;">"</span><span style="color: #800000;">签名错误</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">Sign check error : </span><span style="color: #800000;">"</span> +<span style="color: #000000;"> res.ToXml());
+                Response.Write(res.ToXml());
+                Response.End();
+            }
+
+            ProcessNotify(data);
+
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> View();
+        }
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">微信支付后台返回的数据</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> ProcessNotify(WxPayData data)
+        {
+            WxPayData notifyData </span>=<span style="color: #000000;"> data;
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">检查支付结果中transaction_id是否存在</span>
+            <span style="color: #0000ff;">if</span> (!notifyData.IsSet(<span style="color: #800000;">"</span><span style="color: #800000;">transaction_id</span><span style="color: #800000;">"</span><span style="color: #000000;">))
+            {
+                WxPayData res </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> WxPayData();
+                res.SetValue(</span><span style="color: #800000;">"</span><span style="color: #800000;">return_code</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">FAIL</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                res.SetValue(</span><span style="color: #800000;">"</span><span style="color: #800000;">return_msg</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">支付结果中微信订单号不存在</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                Log.Error(</span><span style="color: #800000;">"</span><span style="color: #800000;">ERROR</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">订单号不存在</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                Response.Write(res.ToXml());
+                Response.End();
+            }
+            </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+            {
+                </span><span style="color: #0000ff;">string</span> transaction_id = notifyData.GetValue(<span style="color: #800000;">"</span><span style="color: #800000;">transaction_id</span><span style="color: #800000;">"</span><span style="color: #000000;">).ToString();
+                </span><span style="color: #0000ff;">if</span> (!<span style="color: #000000;">QueryOrder(transaction_id))
+                {
+                    WxPayData res </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> WxPayData();
+                    res.SetValue(</span><span style="color: #800000;">"</span><span style="color: #800000;">return_code</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">FAIL</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                    res.SetValue(</span><span style="color: #800000;">"</span><span style="color: #800000;">return_msg</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">订单查询失败</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                    Log.Error(</span><span style="color: #800000;">"</span><span style="color: #800000;">ERROR</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">订单查询失败</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                    Response.Write(res.ToXml());
+                    Response.End();
+                }
+                </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+                {
+                    WxPayData res </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> WxPayData();
+                    res.SetValue(</span><span style="color: #800000;">"</span><span style="color: #800000;">return_code</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">SUCCESS</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                    res.SetValue(</span><span style="color: #800000;">"</span><span style="color: #800000;">return_msg</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">OK</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">Log.Info("success", "支付成功");</span>
+                    AddWayPayRecord(data.GetValue(<span style="color: #800000;">"</span><span style="color: #800000;">out_trade_no</span><span style="color: #800000;">"</span>).ToString(), data.GetValue(<span style="color: #800000;">"</span><span style="color: #800000;">transaction_id</span><span style="color: #800000;">"</span>).ToString(), data.GetValue(<span style="color: #800000;">"</span><span style="color: #800000;">attach</span><span style="color: #800000;">"</span><span style="color: #000000;">).ToString());
+                    Response.Write(res.ToXml());
+                    Response.End();
+                }
+            }
+        }
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">查询订单</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">bool</span> QueryOrder(<span style="color: #0000ff;">string</span><span style="color: #000000;"> transaction_id)
+        {
+            WxPayData req </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> WxPayData();
+            req.SetValue(</span><span style="color: #800000;">"</span><span style="color: #800000;">transaction_id</span><span style="color: #800000;">"</span><span style="color: #000000;">, transaction_id);
+            WxPayData res </span>=<span style="color: #000000;"> WxPayApi.OrderQuery(req);
+            </span><span style="color: #0000ff;">if</span> (res.GetValue(<span style="color: #800000;">"</span><span style="color: #800000;">return_code</span><span style="color: #800000;">"</span>).ToString() == <span style="color: #800000;">"</span><span style="color: #800000;">SUCCESS</span><span style="color: #800000;">"</span> &amp;&amp;<span style="color: #000000;">
+                res.GetValue(</span><span style="color: #800000;">"</span><span style="color: #800000;">result_code</span><span style="color: #800000;">"</span>).ToString() == <span style="color: #800000;">"</span><span style="color: #800000;">SUCCESS</span><span style="color: #800000;">"</span><span style="color: #000000;">)
+            {
+                </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+            }
+            </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+            {
+                </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+            }
+        }
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">微信支付完成添加记录  tradeno:订单号</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> AddWayPayRecord(<span style="color: #0000ff;">string</span> tradeno, <span style="color: #0000ff;">string</span> tranid, <span style="color: #0000ff;">string</span><span style="color: #000000;"> idcard)
+        {
+            </span><span style="color: #0000ff;">lock</span> (wxlock)<span style="color: #008000;">//</span><span style="color: #008000;">线程同步</span>
+<span style="color: #000000;">            {
+                WxPayOrderModel wxpayOrderModel </span>= context.wxpayOrderModel.FirstOrDefault(x =&gt; x.OrderNo == tradeno &amp;&amp; x.OrderType == <span style="color: #800000;">"</span><span style="color: #800000;">微信</span><span style="color: #800000;">"</span> &amp;&amp; x.StudentCard == idcard &amp;&amp; x.Status == <span style="color: #800080;">0</span><span style="color: #000000;">);
+                </span><span style="color: #0000ff;">if</span> (wxpayOrderModel != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+                {
+                    wxpayOrderModel.Status </span>= <span style="color: #800080;">1</span><span style="color: #000000;">;
+                    context.Entry(wxpayOrderModel).State </span>=<span style="color: #000000;"> System.Data.EntityState.Modified;
+                    context.SaveChanges();
+
+                    StudentModel studentModel </span>= context.studentModel.Where(a =&gt; a.identityCard ==<span style="color: #000000;"> wxpayOrderModel.StudentCard).FirstOrDefault();
+                    PayModel payModel </span>= context.payModel.FirstOrDefault(x =&gt; x.studentid ==<span style="color: #000000;"> studentModel.candidateNum);
+                    Random rd </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Random();
+
+                    </span><span style="color: #0000ff;">if</span> (payModel == <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+                    {
+                        PayModel paymodel </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> PayModel();
+                        paymodel.paycount </span>= context.receiptInfoModel.OrderBy(x =&gt;<span style="color: #000000;"> x.ID).FirstOrDefault().PayMoney;
+                        paymodel.ordernumber </span>=<span style="color: #000000;"> tradeno;
+                        paymodel.paytime </span>=<span style="color: #000000;"> DateTime.Now;
+                        paymodel.PayOddNum </span>=<span style="color: #000000;"> tranid;
+                        context.payModel.Add(paymodel);
+                        context.SaveChanges();
+                    }
+                }
+            }
+        }</span></pre>
+</div>
+<p>7.这时候页面也接收到微信返回的数据同时也添加到数据库中，页面上得给用户一个友好提示，告诉他支付成功了。在wxpay页面里加个ajax实时轮询数据库</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">        $(function () {
+            setInterval(GetWxPayResult, </span><span style="color: #800080;">2000</span><span style="color: #000000;">);
+            function GetWxPayResult() {
+                </span><span style="color: #0000ff;">var</span> no = $(<span style="color: #800000;">"</span><span style="color: #800000;">#tradeno</span><span style="color: #800000;">"</span><span style="color: #000000;">).text();
+                $.ajax({
+                    url: </span><span style="color: #800000;">"</span><span style="color: #800000;">/StudentIndex/WxPayResult</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+                    type: </span><span style="color: #800000;">"</span><span style="color: #800000;">post</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+                    data: {
+                        idcard: </span><span style="color: #800000;">'</span><span style="color: #800000;">@ViewBag.idcard</span><span style="color: #800000;">'</span><span style="color: #000000;">,
+                        tradeno:no,
+                    },
+                    success: function (json) {
+                        </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (json.result) {
+                            document.location.href </span>= <span style="color: #800000;">"</span><span style="color: #800000;">/StudentIndex/WxPayisOK?idcard=@ViewBag.idcard</span><span style="color: #800000;">"</span>+<span style="color: #800000;">"</span><span style="color: #800000;">&amp;&amp;tradeno=</span><span style="color: #800000;">"</span>+<span style="color: #000000;">no;
+                        }
+                        </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+                        }
+                    },
+                    error: function (json) {
+                        alert(</span><span style="color: #800000;">"</span><span style="color: #800000;">错误</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                    }
+                })
+            }
+        })</span></pre>
+</div>
+<p>同时控制器里需要加上对应的方法，判断支付成功后跳转到一个新的页面wxpayisok</p>
+<div class="cnblogs_code">
+<pre><code>        <span style="color: #008000;">//</span><span style="color: #008000;">ajax轮询支付结果</span>
+        <span style="color: #0000ff;">public</span> ActionResult WxPayResult(<span style="color: #0000ff;">string</span> idcard, <span style="color: #0000ff;">string</span><span style="color: #000000;"> tradeno)
+        {
+            </span><span style="color: #0000ff;">object</span> data = <span style="color: #800000;">""</span><span style="color: #000000;">;
+            StudentModel studentModel </span>= context.studentModel.FirstOrDefault(x =&gt; x.identityCard ==<span style="color: #000000;"> idcard);
+            PayModel model </span>= context.payModel.FirstOrDefault(x =&gt; x.studentid ==<span style="color: #000000;"> studentModel.candidateNum);
+            </span><span style="color: #0000ff;">if</span> (model != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+            {
+                data </span>= <span style="color: #0000ff;">new</span> { result = <span style="color: #0000ff;">true</span><span style="color: #000000;"> };
+            }
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> Json(data);
+        }
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">支付完成</span>
+        <span style="color: #0000ff;">public</span> ActionResult WxPayisOK(<span style="color: #0000ff;">string</span> idcard, <span style="color: #0000ff;">string</span><span style="color: #000000;"> tradeno)
+        {
+            StudentModel studentModel </span>= context.studentModel.FirstOrDefault(x =&gt; x.identityCard ==<span style="color: #000000;"> idcard);
+            PayModel model </span>= context.payModel.FirstOrDefault(x =&gt; x.studentid ==<span style="color: #000000;"> studentModel.candidateNum);
+
+            </span><span style="color: #0000ff;">if</span> (model != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+            {
+                </span><span style="color: #0000ff;">return</span> Content(<span style="color: #800000;">"</span><span style="color: #800000;">&lt;Script&gt;alert('缴费成功！');window.location.href='/StudentIndex/StudentIndex';&lt;/Script&gt;</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            }
+            </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+            {
+                </span><span style="color: #0000ff;">return</span> Content(<span style="color: #800000;">"</span><span style="color: #800000;">&lt;Script&gt;alert('缴费失败！请保留好支付凭证前往缴费处申请退款');window.location.href='/StudentIndex/StudentIndex';&lt;/Script&gt;</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            }
+        }</span></pre>
+</div>
+<p>结尾：第一次写博客有些乱，微信支付安全性还需要提高，项目部署也没经过大批量测试，就直接上线。</p>
+<p>到现在也经历过两次几千人的缴费，一分钟缴费好几次，也碰到过网络延迟问题缴费成功后没及时更新数据库和一个浏览器打开两次微信支付界面导致两次缴费只算一次的各种问题。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

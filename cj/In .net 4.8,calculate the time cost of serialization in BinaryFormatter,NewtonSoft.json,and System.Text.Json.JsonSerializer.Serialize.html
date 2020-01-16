@@ -1,0 +1,203 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修In .net 4.8,calculate the time cost of serialization in BinaryFormatter,NewtonSoft.json,and System.Text.Json.JsonSerializer.Serialize' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>In .net 4.8,calculate the time cost of serialization in BinaryFormatter,NewtonSoft.json,and System.Text.Json.JsonSerializer.Serialize</center></div><div class='banquan'>原文出处:本文由博客园博主Fred1987提供。<br/>
+原文连接:https://www.cnblogs.com/Fred1987/p/11919288.html</div><br>
+    <div class="cnblogs_code">
+<pre><code> <span style="color: #0000ff;">using</span><span style="color: #000000;"> ConsoleApp390.Model;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> Newtonsoft.Json;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Collections.Generic;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Diagnostics;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.IO;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Linq;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Runtime.Serialization;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Runtime.Serialization.Formatters.Binary;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Text;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Threading;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Threading.Tasks;
+
+</span><span style="color: #0000ff;">namespace</span><span style="color: #000000;"> ConsoleApp390
+{
+    </span><span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            SerializationDemo(); 
+        }
+
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> SerializationDemo()
+        {
+            List</span>&lt;SalesOrderDetail&gt; dataList =<span style="color: #000000;"> GetList();
+            </span><span style="color: #0000ff;">bool</span> IsBusy = <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">int</span> i=<span style="color: #800080;">0</span>;i&lt;<span style="color: #800080;">10</span>;i++<span style="color: #000000;">)
+            {
+                </span><span style="color: #0000ff;">if</span>(!<span style="color: #000000;">IsBusy)
+                {
+                    IsBusy </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">;                   
+
+                    Task task </span>= Task.Run(() =&gt;<span style="color: #000000;"> 
+                    {
+                        TestCostDemo(dataList);
+                    });
+                    task.Wait();
+
+                    Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">Task {i} has finished!</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                    IsBusy </span>= <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+                }
+            }            
+        }
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> TestCostDemo(List&lt;SalesOrderDetail&gt;<span style="color: #000000;"> dataList)
+        {
+            StringBuilder msgBuilder </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> StringBuilder();
+            Stopwatch sw </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Stopwatch();
+
+            sw.Start();
+            Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">BinaryFormatterDemo started at {DateTime.Now.ToString(</span><span style="color: #800000;">"</span>yyyyMMddHHmmssffff<span style="color: #800000;">"</span><span style="color: #800000;">)}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            BinaryFormatterDemo</span>&lt;SalesOrderDetail&gt;<span style="color: #000000;">(dataList);
+            sw.Stop();
+            Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">BinaryFormatterDemo stopped at {DateTime.Now.ToString(</span><span style="color: #800000;">"</span>yyyyMMddHHmmssffff<span style="color: #800000;">"</span><span style="color: #800000;">)}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            msgBuilder.Append($</span><span style="color: #800000;">"</span><span style="color: #800000;">In  .net 4.8,now {DateTime.Now.ToString(</span><span style="color: #800000;">"</span>yyyyMMddHHmmssffff<span style="color: #800000;">"</span><span style="color: #800000;">)} BinaryFormatterDemo cost {sw.ElapsedMilliseconds} milliseconds.</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+
+            sw.Restart();
+            Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">NewtonJsonDemo started at {DateTime.Now.ToString(</span><span style="color: #800000;">"</span>yyyyMMddHHmmssffff<span style="color: #800000;">"</span><span style="color: #800000;">)}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            NewtonJsonDemo</span>&lt;SalesOrderDetail&gt;<span style="color: #000000;">(dataList);
+            sw.Stop();
+            Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">NewtonJsonDemo stopped at {DateTime.Now.ToString(</span><span style="color: #800000;">"</span>yyyyMMddHHmmssffff<span style="color: #800000;">"</span><span style="color: #800000;">)}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            msgBuilder.Append($</span><span style="color: #800000;">"</span><span style="color: #800000;">NewtonJsonDemo cost {sw.ElapsedMilliseconds} milliseconds.</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+
+            sw.Restart();
+            Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">JsonSerializerDemo started at {DateTime.Now.ToString(</span><span style="color: #800000;">"</span>yyyyMMddHHmmssffff<span style="color: #800000;">"</span><span style="color: #800000;">)}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            JsonSerializerDemo</span>&lt;SalesOrderDetail&gt;<span style="color: #000000;">(dataList);
+            sw.Stop();
+            Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">JsonSerializerDemo stopped at {DateTime.Now.ToString(</span><span style="color: #800000;">"</span>yyyyMMddHHmmssffff<span style="color: #800000;">"</span><span style="color: #800000;">)}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            msgBuilder.AppendLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">JsonSerializerDemo cost {sw.ElapsedMilliseconds} milliseconds.\n\n</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            </span><span style="color: #0000ff;">string</span> msg =<span style="color: #000000;"> msgBuilder.ToString();
+            PrintMsg(msg);
+        }
+
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> PrintMsg(<span style="color: #0000ff;">string</span><span style="color: #000000;"> msg)
+        {
+            Console.WriteLine(msg);
+            Debug.WriteLine(msg);
+            LogResult(msg);
+        }
+
+        </span><span style="color: #0000ff;">static</span> List&lt;SalesOrderDetail&gt;<span style="color: #000000;"> GetList()
+        {
+            </span><span style="color: #0000ff;">using</span> (AdventureWorks2017Entities db = <span style="color: #0000ff;">new</span><span style="color: #000000;"> AdventureWorks2017Entities())
+            {
+                List</span>&lt;SalesOrderDetail&gt; dataList = <span style="color: #0000ff;">new</span> List&lt;SalesOrderDetail&gt;<span style="color: #000000;">(db.SalesOrderDetails);
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> dataList;
+            }
+        }
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> BinaryFormatterDemo&lt;T&gt;(List&lt;T&gt;<span style="color: #000000;"> dataList)
+        {
+            </span><span style="color: #0000ff;">using</span> (FileStream fs = <span style="color: #0000ff;">new</span> FileStream($<span style="color: #800000;">"</span><span style="color: #800000;">{Guid.NewGuid().ToString().Substring(0, 6)}BinFormatter.dat</span><span style="color: #800000;">"</span><span style="color: #000000;">, FileMode.Create))
+            {
+                BinaryFormatter binFormatter </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> BinaryFormatter();
+                </span><span style="color: #0000ff;">try</span><span style="color: #000000;">
+                {
+                    binFormatter.Serialize(fs, dataList);
+                }
+                </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (SerializationException e)
+                {
+                    Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">BinaryFormatter serialize ex:{e.StackTrace}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                }
+            }
+        }
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> NewtonJsonDemo&lt;T&gt;(List&lt;T&gt;<span style="color: #000000;"> dataList)
+        {
+            </span><span style="color: #0000ff;">try</span><span style="color: #000000;">
+            {
+                </span><span style="color: #0000ff;">string</span> jsonString =<span style="color: #000000;"> JsonConvert.SerializeObject(dataList);
+            }
+            </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (SerializationException ex)
+            {
+                Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">NewtonJson serialization ex :{ex.StackTrace}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            }
+        }
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> JsonSerializerDemo&lt;T&gt;(List&lt;T&gt;<span style="color: #000000;"> dataList)
+        {
+            </span><span style="color: #0000ff;">try</span><span style="color: #000000;">
+            {
+                </span><span style="color: #0000ff;">string</span> msJsonSerializerString =<span style="color: #000000;"> System.Text.Json.JsonSerializer.Serialize(dataList);
+            }
+            </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (SerializationException ex)
+            {
+                Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">System.Text.Json.JsonSerializer ex:{ex.StackTrace}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            }
+        }
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> LogResult(<span style="color: #0000ff;">string</span><span style="color: #000000;"> msg)
+        {
+            </span><span style="color: #0000ff;">string</span> logPath = <span style="color: #800000;">@"</span><span style="color: #800000;">log.txt</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">using</span> (StreamWriter logWriter = <span style="color: #0000ff;">new</span> StreamWriter(logPath, <span style="color: #0000ff;">true</span><span style="color: #000000;">, Encoding.UTF8))
+            {
+                logWriter.WriteLine(msg);
+            }
+        }          
+    }
+}</span></pre>
+</div>
+<p>I had validated in .net 4.8 NewtonSoft.Json's speed rank 1st,System.Text.Json.JsonSerializer.Serialize 2nd,and BinaryFormatter 3rd.</p>
+<p>&nbsp;</p>
+<div class="cnblogs_code">
+<pre><code>In  .net <span style="color: #800080;">4.8</span>,now <span style="color: #800080;">201911231857080779</span> BinaryFormatterDemo cost <span style="color: #800080;">1679</span> milliseconds.NewtonJsonDemo cost <span style="color: #800080;">1182</span> milliseconds.JsonSerializerDemo cost <span style="color: #800080;">1387</span><span style="color: #000000;"> milliseconds.
+
+
+
+In  .net </span><span style="color: #800080;">4.8</span>,now <span style="color: #800080;">201911231857123745</span> BinaryFormatterDemo cost <span style="color: #800080;">1686</span> milliseconds.NewtonJsonDemo cost <span style="color: #800080;">823</span> milliseconds.JsonSerializerDemo cost <span style="color: #800080;">947</span><span style="color: #000000;"> milliseconds.
+
+
+
+In  .net </span><span style="color: #800080;">4.8</span>,now <span style="color: #800080;">201911231857158273</span> BinaryFormatterDemo cost <span style="color: #800080;">1676</span> milliseconds.NewtonJsonDemo cost <span style="color: #800080;">797</span> milliseconds.JsonSerializerDemo cost <span style="color: #800080;">992</span><span style="color: #000000;"> milliseconds.
+
+
+
+In  .net </span><span style="color: #800080;">4.8</span>,now <span style="color: #800080;">201911231857193271</span> BinaryFormatterDemo cost <span style="color: #800080;">1704</span> milliseconds.NewtonJsonDemo cost <span style="color: #800080;">786</span> milliseconds.JsonSerializerDemo cost <span style="color: #800080;">987</span><span style="color: #000000;"> milliseconds.
+
+
+
+In  .net </span><span style="color: #800080;">4.8</span>,now <span style="color: #800080;">201911231857227811</span> BinaryFormatterDemo cost <span style="color: #800080;">1672</span> milliseconds.NewtonJsonDemo cost <span style="color: #800080;">777</span> milliseconds.JsonSerializerDemo cost <span style="color: #800080;">983</span><span style="color: #000000;"> milliseconds.
+
+
+
+In  .net </span><span style="color: #800080;">4.8</span>,now <span style="color: #800080;">201911231857261715</span> BinaryFormatterDemo cost <span style="color: #800080;">1582</span> milliseconds.NewtonJsonDemo cost <span style="color: #800080;">840</span> milliseconds.JsonSerializerDemo cost <span style="color: #800080;">985</span><span style="color: #000000;"> milliseconds.
+
+
+
+In  .net </span><span style="color: #800080;">4.8</span>,now <span style="color: #800080;">201911231857296400</span> BinaryFormatterDemo cost <span style="color: #800080;">1642</span> milliseconds.NewtonJsonDemo cost <span style="color: #800080;">828</span> milliseconds.JsonSerializerDemo cost <span style="color: #800080;">973</span><span style="color: #000000;"> milliseconds.
+
+
+
+In  .net </span><span style="color: #800080;">4.8</span>,now <span style="color: #800080;">201911231857331241</span> BinaryFormatterDemo cost <span style="color: #800080;">1664</span> milliseconds.NewtonJsonDemo cost <span style="color: #800080;">786</span> milliseconds.JsonSerializerDemo cost <span style="color: #800080;">1006</span><span style="color: #000000;"> milliseconds.
+
+
+
+In  .net </span><span style="color: #800080;">4.8</span>,now <span style="color: #800080;">201911231857366239</span> BinaryFormatterDemo cost <span style="color: #800080;">1698</span> milliseconds.NewtonJsonDemo cost <span style="color: #800080;">762</span> milliseconds.JsonSerializerDemo cost <span style="color: #800080;">999</span><span style="color: #000000;"> milliseconds.
+
+
+
+In  .net </span><span style="color: #800080;">4.8</span>,now <span style="color: #800080;">201911231857400455</span> BinaryFormatterDemo cost <span style="color: #800080;">1661</span> milliseconds.NewtonJsonDemo cost <span style="color: #800080;">780</span> milliseconds.JsonSerializerDemo cost <span style="color: #800080;">992</span> milliseconds.</pre>
+</div>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

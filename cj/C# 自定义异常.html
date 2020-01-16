@@ -1,0 +1,86 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C# 自定义异常' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C# 自定义异常</center></div><div class='banquan'>原文出处:本文由博客园博主园子的蜗牛提供。<br/>
+原文连接:https://www.cnblogs.com/snailblog/p/11530629.html</div><br>
+    <h2>自定义异常</h2>
+<p>C#中提供了丰富的异常类，但是为了满足一些其他方面需求，只有自定义一个异常类。而今天我们定义的这个异常类添加的功能也简单，就是进异常信息打印到日志中即可。</p>
+<p>所以代码如下：</p>
+<div class="cnblogs_code">
+<pre><code>[Serializable]
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> PFTException : Exception
+    {
+        <span style="color: #0000ff;">public</span> PFTException()
+        {
+        }
+
+        <span style="color: #0000ff;">public</span> PFTException(<span style="color: #0000ff;">string</span> message)
+            : <span style="color: #0000ff;">base</span>(message)
+        {
+            PFTLog.Error(message, () =&gt; { });
+        }
+
+        <span style="color: #0000ff;">public</span> PFTException(<span style="color: #0000ff;">string</span> messageFormat, <span style="color: #0000ff;">params</span> <span style="color: #0000ff;">object</span>[] args)
+            : <span style="color: #0000ff;">base</span>(<span style="color: #0000ff;">string</span>.Format(messageFormat, args))
+        {
+            PFTLog.Error(<span style="color: #0000ff;">string</span>.Format(messageFormat, args), () =&gt; { });
+        }
+
+        <span style="color: #0000ff;">public</span> PFTException(<span style="color: #0000ff;">string</span> message, Exception innerException)
+            : <span style="color: #0000ff;">base</span>(message, innerException)
+        {
+            <span style="color: #008000;">//只记录最原始的Exception信息</span>
+            <span style="color: #0000ff;">if</span> (!(innerException <span style="color: #0000ff;">is</span> PFTException))
+            {
+                PFTLog.Error(message, innerException, () =&gt; { });
+            }
+        }
+
+
+        <span style="color: #808080;">/// &lt;summary&gt;</span>
+        <span style="color: #808080;">/// 实现ISerialization接口所需要的反序列化构造函数。</span>
+        <span style="color: #808080;">/// &lt;/summary&gt;</span>
+        <span style="color: #808080;">/// &lt;param name="info"&gt;&lt;/param&gt;</span>
+        <span style="color: #808080;">/// &lt;param name="context"&gt;&lt;/param&gt;</span>
+        <span style="color: #0000ff;">private</span> PFTException(SerializationInfo info, StreamingContext context) : <span style="color: #0000ff;">base</span>(info, context)
+        {
+            <span style="color: #008000;">// stringInfo = info.GetString("StringInfo");</span>
+        }
+
+        <span style="color: #808080;">/// &lt;summary&gt;</span>
+        <span style="color: #808080;">///  重写GetObjectData方法。如果添加了自定义字段，一定要重写基类GetObjectData方法的实现</span>
+        <span style="color: #808080;">/// &lt;/summary&gt;</span>
+        <span style="color: #808080;">/// &lt;param name="info"&gt;&lt;/param&gt;</span>
+        <span style="color: #808080;">/// &lt;param name="context"&gt;&lt;/param&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">override</span> <span style="color: #0000ff;">void</span> GetObjectData(SerializationInfo info, StreamingContext context)
+        {
+            <span style="color: #008000;">// 序列化自定义数据成员</span>
+            <span style="color: #008000;">//info.AddValue("StringInfo", stringInfo);</span>
+
+            <span style="color: #008000;">// 调用基类方法，序列化它的成员</span>
+            <span style="color: #0000ff;">base</span>.GetObjectData(info, context);
+        }
+
+    }</pre>
+</div>
+<p>里面的日志方法可以看到我之前的【<a href="https://www.cnblogs.com/snailblog/p/11484436.html" target="_blank">Log4Net 日志记录的实现</a>】，当我们直接抛PFTException信息时，我们就将message信息保存到日志里面，如果是带有Exception，就判断Exception是否是PFTException本身，如果不是就说明是系统的异常类，也需要记录里面的信息到日志。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

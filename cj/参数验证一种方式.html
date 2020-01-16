@@ -1,0 +1,448 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修参数验证一种方式' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>参数验证一种方式</center></div><div class='banquan'>原文出处:本文由博客园博主MeetYan提供。<br/>
+原文连接:https://www.cnblogs.com/MeetYan/p/10674204.html</div><br>
+    <blockquote>
+<ol>
+<li><p>在调用方法的时候我们需要对输入参数进行验证，譬如非空，只能数字类型等；</p></li>
+<li><p>一些参数验证都是非常通用的，所以可以累积后续不断完善；</p></li>
+<li><p>这种写法源于之前很早看到一篇博客后续完善，具体地址忘记了，所以现在Github项目采用协议:MIT，非常抱歉；</p></li>
+<li><p>GitHub地址：<a href="https://github.com/YanZhiwei/MasterChief">MasterChief</a> <a href="https://github.com/YanZhiwei/MasterChief/blob/master/MasterChief.DotNet4.Utilities/Operator/ValidateOperator.cs">参数验证代码</a></p></li>
+<li><p>欢迎Star，欢迎Issues；</p></li>
+</ol>
+</blockquote>
+<h3 id="代码实现">1. 代码实现</h3>
+<pre><code><code>using System;
+using System.IO;
+using System.Text.RegularExpressions;
+using MasterChief.DotNet4.Utilities.Common;
+using MasterChief.DotNet4.Utilities.Model;
+ 
+namespace MasterChief.DotNet4.Utilities.Operator
+{
+    /// &lt;summary&gt;
+    ///     参数验证帮助类
+    /// &lt;/summary&gt;
+    public static class ValidateOperator
+    {
+        #region Methods
+ 
+        /// &lt;summary&gt;
+        ///     验证初始化
+        /// &lt;/summary&gt;
+        /// &lt;returns&gt;Validation&lt;/returns&gt;
+        public static Validation Begin()
+        {
+            return null;
+        }
+ 
+        /// &lt;summary&gt;
+        ///     需要验证的正则表达式
+        /// &lt;/summary&gt;
+        /// &lt;param name=&quot;validation&quot;&gt;Validation&lt;/param&gt;
+        /// &lt;param name=&quot;checkFactory&quot;&gt;委托&lt;/param&gt;
+        /// &lt;param name=&quot;pattern&quot;&gt;正则表达式&lt;/param&gt;
+        /// &lt;param name=&quot;argumentName&quot;&gt;参数名称&lt;/param&gt;
+        /// &lt;returns&gt;Validation&lt;/returns&gt;
+        public static Validation Check(this Validation validation, Func&lt;bool&gt; checkFactory, string pattern,
+            string argumentName)
+        {
+            return Check&lt;ArgumentException&gt;(validation, checkFactory,
+                string.Format(ValidateResource.ParameterCheck_Match2, argumentName));
+        }
+ 
+        /// &lt;summary&gt;
+        ///     自定义参数检查
+        /// &lt;/summary&gt;
+        /// &lt;typeparam name=&quot;TException&quot;&gt;泛型&lt;/typeparam&gt;
+        /// &lt;param name=&quot;validation&quot;&gt;Validation&lt;/param&gt;
+        /// &lt;param name=&quot;checkedFactory&quot;&gt;委托&lt;/param&gt;
+        /// &lt;param name=&quot;message&quot;&gt;自定义错误消息&lt;/param&gt;
+        /// &lt;returns&gt;Validation&lt;/returns&gt;
+        /// 时间：2016/7/19 11:37
+        /// 备注：
+        public static Validation Check&lt;TException&gt;(this Validation validation, Func&lt;bool&gt; checkedFactory,
+            string message)
+            where TException : Exception
+        {
+            if (checkedFactory())
+                return validation ?? new Validation
+                {
+                    IsValid = true
+                };
+ 
+            var exception = (TException) Activator.CreateInstance(typeof(TException), message);
+            throw exception;
+        }
+ 
+        /// &lt;summary&gt;
+        ///     检查指定路径的文件夹必须存在，否则抛出&lt;see cref=&quot;DirectoryNotFoundException&quot; /&gt;异常。
+        /// &lt;/summary&gt;
+        /// &lt;param name=&quot;validation&quot;&gt;Validation&lt;/param&gt;
+        /// &lt;param name=&quot;data&quot;&gt;判断数据&lt;/param&gt;
+        /// &lt;exception cref=&quot;ArgumentNullException&quot;&gt;ArgumentNullException&lt;/exception&gt;
+        /// &lt;exception cref=&quot;DirectoryNotFoundException&quot;&gt;DirectoryNotFoundException&lt;/exception&gt;
+        /// &lt;returns&gt;Validation&lt;/returns&gt;
+        public static Validation CheckDirectoryExist(this Validation validation, string data)
+        {
+            return Check&lt;DirectoryNotFoundException&gt;(validation, () =&gt; Directory.Exists(data),
+                string.Format(ValidateResource.ParameterCheck_DirectoryNotExists, data));
+        }
+ 
+        /// &lt;summary&gt;
+        ///     检查文件类型
+        /// &lt;/summary&gt;
+        /// &lt;param name=&quot;validation&quot;&gt;Validation&lt;/param&gt;
+        /// &lt;param name=&quot;actualFileExt&quot;&gt;实际文件类型；eg: .xls&lt;/param&gt;
+        /// &lt;param name=&quot;expectFileExt&quot;&gt;期待文件类型&lt;/param&gt;
+        /// &lt;returns&gt;&lt;/returns&gt;
+        public static Validation CheckedFileExt(this Validation validation, string actualFileExt,
+            string[] expectFileExt)
+        {
+            var allowFileExts = expectFileExt.ToString(&quot;,&quot;);
+            return Check&lt;FileNotFoundException&gt;(validation, () =&gt; expectFileExt.ContainIgnoreCase(actualFileExt),
+                string.Format(ValidateResource.ParameterCheck_FileExtCompare, allowFileExts));
+        }
+ 
+        /// &lt;summary&gt;
+        ///     检查文件类型
+        /// &lt;/summary&gt;
+        /// &lt;param name=&quot;validation&quot;&gt;Validation&lt;/param&gt;
+        /// &lt;param name=&quot;actualFileExt&quot;&gt;实际文件类型；eg: .xls&lt;/param&gt;
+        /// &lt;param name=&quot;expectFileExt&quot;&gt;期待文件类型&lt;/param&gt;
+        /// &lt;returns&gt;&lt;/returns&gt;
+        public static Validation CheckedFileExt(this Validation validation, string actualFileExt, string expectFileExt)
+        {
+            return Check&lt;FileNotFoundException&gt;(validation, () =&gt; actualFileExt.CompareIgnoreCase(expectFileExt),
+                string.Format(ValidateResource.ParameterCheck_FileExtCompare, expectFileExt));
+        }
+ 
+        /// &lt;summary&gt;
+        ///     检查指定路径的文件必须存在，否则抛出&lt;see cref=&quot;FileNotFoundException&quot; /&gt;异常。
+        /// &lt;/summary&gt;
+        /// &lt;param name=&quot;validation&quot;&gt;Validation&lt;/param&gt;
+        /// &lt;param name=&quot;data&quot;&gt;参数&lt;/param&gt;
+        /// &lt;exception cref=&quot;ArgumentNullException&quot;&gt;当文件路径为null时&lt;/exception&gt;
+        /// &lt;exception cref=&quot;FileNotFoundException&quot;&gt;当文件路径不存在时&lt;/exception&gt;
+        /// &lt;returns&gt;Validation&lt;/returns&gt;
+        public static Validation CheckFileExists(this Validation validation, string data)
+        {
+            return Check&lt;FileNotFoundException&gt;(validation, () =&gt; File.Exists(data),
+                string.Format(ValidateResource.ParameterCheck_FileNotExists, data));
+        }
+ 
+        /// &lt;summary&gt;
+        ///     检查参数必须大于[或可等于，参数canEqual]指定值，否则抛出&lt;see cref=&quot;ArgumentOutOfRangeException&quot; /&gt;异常。
+        /// &lt;/summary&gt;
+        /// &lt;typeparam name=&quot;T&quot;&gt;参数类型。&lt;/typeparam&gt;
+        /// &lt;param name=&quot;validation&quot;&gt;Validation&lt;/param&gt;
+        /// &lt;param name=&quot;value&quot;&gt;判断数据&lt;/param&gt;
+        /// &lt;param name=&quot;paramName&quot;&gt;参数名称。&lt;/param&gt;
+        /// &lt;param name=&quot;target&quot;&gt;要比较的值。&lt;/param&gt;
+        /// &lt;param name=&quot;canEqual&quot;&gt;是否可等于。&lt;/param&gt;
+        /// &lt;exception cref=&quot;ArgumentOutOfRangeException&quot;&gt;ArgumentOutOfRangeException&lt;/exception&gt;
+        /// &lt;returns&gt;Validation&lt;/returns&gt;
+        public static Validation CheckGreaterThan&lt;T&gt;(this Validation validation, T value, string paramName, T target,
+            bool canEqual)
+            where T : IComparable&lt;T&gt;
+        {
+            // bool flag = canEqual ? value.CompareTo(target) &gt;= 0 : value.CompareTo(target) &gt; 0;
+            var format = canEqual
+                ? ValidateResource.ParameterCheck_NotGreaterThanOrEqual
+                : ValidateResource.ParameterCheck_NotGreaterThan;
+            return Check&lt;ArgumentOutOfRangeException&gt;(validation,
+                () =&gt; canEqual ? value.CompareTo(target) &gt;= 0 : value.CompareTo(target) &gt; 0,
+                string.Format(format, paramName, target));
+        }
+ 
+        /// &lt;summary&gt;
+        ///     检查参数必须小于[或可等于，参数canEqual]指定值，否则抛出&lt;see cref=&quot;ArgumentOutOfRangeException&quot; /&gt;异常。
+        /// &lt;/summary&gt;
+        /// &lt;typeparam name=&quot;T&quot;&gt;参数类型。&lt;/typeparam&gt;
+        /// &lt;param name=&quot;validation&quot;&gt;Validation&lt;/param&gt;
+        /// &lt;param name=&quot;value&quot;&gt;判断数据&lt;/param&gt;
+        /// &lt;param name=&quot;paramName&quot;&gt;参数名称。&lt;/param&gt;
+        /// &lt;param name=&quot;target&quot;&gt;要比较的值。&lt;/param&gt;
+        /// &lt;param name=&quot;canEqual&quot;&gt;是否可等于。&lt;/param&gt;
+        /// &lt;exception cref=&quot;ArgumentOutOfRangeException&quot;&gt;ArgumentOutOfRangeException&lt;/exception&gt;
+        /// &lt;returns&gt;Validation&lt;/returns&gt;
+        public static Validation CheckLessThan&lt;T&gt;(this Validation validation, T value, string paramName, T target,
+            bool canEqual)
+            where T : IComparable&lt;T&gt;
+        {
+            var format = canEqual
+                ? ValidateResource.ParameterCheck_NotLessThanOrEqual
+                : ValidateResource.ParameterCheck_NotLessThan;
+            return Check&lt;ArgumentOutOfRangeException&gt;(validation,
+                () =&gt; canEqual ? value.CompareTo(target) &lt;= 0 : value.CompareTo(target) &lt; 0,
+                string.Format(format, paramName, target));
+        }
+ 
+        /// &lt;summary&gt;
+        ///     验证是否在范围内
+        /// &lt;/summary&gt;
+        /// &lt;param name=&quot;validation&quot;&gt;Validation&lt;/param&gt;
+        /// &lt;param name=&quot;data&quot;&gt;输入项&lt;/param&gt;
+        /// &lt;param name=&quot;min&quot;&gt;最小值&lt;/param&gt;
+        /// &lt;param name=&quot;max&quot;&gt;最大值&lt;/param&gt;
+        /// &lt;param name=&quot;argumentName&quot;&gt;参数名称&lt;/param&gt;
+        /// &lt;returns&gt;Validation&lt;/returns&gt;
+        public static Validation InRange(this Validation validation, int data, int min, int max, string argumentName)
+        {
+            return Check&lt;ArgumentOutOfRangeException&gt;(validation, () =&gt; data &gt;= min &amp;&amp; data &lt;= max,
+                string.Format(ValidateResource.ParameterCheck_Between, argumentName, min, max));
+        }
+ 
+        /// &lt;summary&gt;
+        ///     是否是中文
+        /// &lt;/summary&gt;
+        /// &lt;param name=&quot;validation&quot;&gt;Validation&lt;/param&gt;
+        /// &lt;param name=&quot;data&quot;&gt;中文&lt;/param&gt;
+        /// &lt;param name=&quot;argumentName&quot;&gt;参数名称&lt;/param&gt;
+        /// &lt;returns&gt;Validation&lt;/returns&gt;
+        public static Validation IsChinses(this Validation validation, string data, string argumentName)
+        {
+            return Check(validation, () =&gt; CheckHelper.IsChinses(data), RegexPattern.ChineseCheck, argumentName);
+        }
+ 
+        /// &lt;summary&gt;
+        ///     是否是电子邮箱
+        /// &lt;/summary&gt;
+        /// &lt;param name=&quot;validation&quot;&gt;Validation&lt;/param&gt;
+        /// &lt;param name=&quot;email&quot;&gt;需要验证的邮箱&lt;/param&gt;
+        /// &lt;param name=&quot;argumentName&quot;&gt;参数名称&lt;/param&gt;
+        /// &lt;returns&gt;Validation&lt;/returns&gt;
+        public static Validation IsEmail(this Validation validation, string email, string argumentName)
+        {
+            return Check(validation, () =&gt; CheckHelper.IsEmail(email), RegexPattern.EmailCheck, argumentName);
+        }
+ 
+        /// &lt;summary&gt;
+        ///     是否是文件路径
+        /// &lt;/summary&gt;
+        /// &lt;param name=&quot;validation&quot;&gt;Validation&lt;/param&gt;
+        /// &lt;param name=&quot;data&quot;&gt;路径&lt;/param&gt;
+        /// &lt;returns&gt;Validation&lt;/returns&gt;
+        public static Validation IsFilePath(this Validation validation, string data)
+        {
+            return Check&lt;ArgumentException&gt;(validation, () =&gt; CheckHelper.IsFilePath(data),
+                string.Format(ValidateResource.ParameterCheck_IsFilePath, data));
+        }
+ 
+        /// &lt;summary&gt;
+        ///     是否是十六进制字符串
+        /// &lt;/summary&gt;
+        /// &lt;param name=&quot;validation&quot;&gt;Validation&lt;/param&gt;
+        /// &lt;param name=&quot;data&quot;&gt;验证数据&lt;/param&gt;
+        /// &lt;param name=&quot;argumentName&quot;&gt;参数名称&lt;/param&gt;
+        /// &lt;returns&gt;Validation&lt;/returns&gt;
+        public static Validation IsHexString(this Validation validation, string data, string argumentName)
+        {
+            return Check(validation, () =&gt; CheckHelper.IsHexString(data), RegexPattern.HexStringCheck, argumentName);
+        }
+ 
+        /// &lt;summary&gt;
+        ///     是否是身份证号码
+        /// &lt;/summary&gt;
+        /// &lt;param name=&quot;validation&quot;&gt;Validation&lt;/param&gt;
+        /// &lt;param name=&quot;data&quot;&gt;验证数据&lt;/param&gt;
+        /// &lt;param name=&quot;argumentName&quot;&gt;参数名称&lt;/param&gt;
+        /// &lt;returns&gt;Validation&lt;/returns&gt;
+        public static Validation IsIdCard(this Validation validation, string data, string argumentName)
+        {
+            return Check(validation, () =&gt; CheckHelper.IsIdCard(data), RegexPattern.IdCardCheck, argumentName);
+        }
+ 
+        /// &lt;summary&gt;
+        ///     是否是整数
+        /// &lt;/summary&gt;
+        /// &lt;param name=&quot;validation&quot;&gt;Validation&lt;/param&gt;
+        /// &lt;param name=&quot;data&quot;&gt;需要检测的字符串&lt;/param&gt;
+        /// &lt;param name=&quot;argumentName&quot;&gt;参数名称&lt;/param&gt;
+        /// &lt;returns&gt;Validation&lt;/returns&gt;
+        public static Validation IsInt(this Validation validation, string data, string argumentName)
+        {
+            return Check(validation, () =&gt; CheckHelper.IsInt(data), RegexPattern.IntCheck, argumentName);
+        }
+ 
+        /// &lt;summary&gt;
+        ///     是否是IP
+        /// &lt;/summary&gt;
+        /// &lt;param name=&quot;validation&quot;&gt;Validation&lt;/param&gt;
+        /// &lt;param name=&quot;data&quot;&gt;需要检测到IP&lt;/param&gt;
+        /// &lt;param name=&quot;argumentName&quot;&gt;参数名称&lt;/param&gt;
+        /// &lt;returns&gt;Validation&lt;/returns&gt;
+        public static Validation IsIp(this Validation validation, string data, string argumentName)
+        {
+            return Check(validation, () =&gt; CheckHelper.IsIp4Address(data), RegexPattern.IpCheck, argumentName);
+        }
+ 
+        /// &lt;summary&gt;
+        ///     是否是数字
+        /// &lt;/summary&gt;
+        /// &lt;param name=&quot;validation&quot;&gt;Validation&lt;/param&gt;
+        /// &lt;param name=&quot;data&quot;&gt;需要检测的字符串&lt;/param&gt;
+        /// &lt;param name=&quot;argumentName&quot;&gt;参数名称&lt;/param&gt;
+        /// &lt;returns&gt;Validation&lt;/returns&gt;
+        public static Validation IsNumber(this Validation validation, string data, string argumentName)
+        {
+            return Check(validation, () =&gt; CheckHelper.IsNumber(data), RegexPattern.NumberCheck, argumentName);
+        }
+ 
+        /// &lt;summary&gt;
+        ///     是否是合法端口
+        /// &lt;/summary&gt;
+        /// &lt;param name=&quot;validation&quot;&gt;Validation&lt;/param&gt;
+        /// &lt;param name=&quot;data&quot;&gt;参数值&lt;/param&gt;
+        /// &lt;param name=&quot;paramName&quot;&gt;参数名称&lt;/param&gt;
+        /// &lt;returns&gt;Validation&lt;/returns&gt;
+        public static Validation IsPort(this Validation validation, string data, string paramName)
+        {
+            return Check&lt;ArgumentException&gt;(validation, () =&gt; CheckHelper.IsValidPort(data),
+                string.Format(ValidateResource.ParameterCheck_Port, paramName));
+        }
+ 
+        /// &lt;summary&gt;
+        ///     是否是邮政编码
+        /// &lt;/summary&gt;
+        /// &lt;param name=&quot;validation&quot;&gt;Validation&lt;/param&gt;
+        /// &lt;param name=&quot;data&quot;&gt;邮政编码&lt;/param&gt;
+        /// &lt;param name=&quot;argumentName&quot;&gt;参数名称&lt;/param&gt;
+        /// &lt;returns&gt;Validation&lt;/returns&gt;
+        public static Validation IsPoseCode(this Validation validation, string data, string argumentName)
+        {
+            return Check(validation, () =&gt; CheckHelper.IsPoseCode(data), RegexPattern.PostCodeCheck, argumentName);
+        }
+ 
+        /// &lt;summary&gt;
+        ///     判断字符串是否是要求的长度
+        /// &lt;/summary&gt;
+        /// &lt;param name=&quot;validation&quot;&gt;Validation&lt;/param&gt;
+        /// &lt;param name=&quot;input&quot;&gt;验证的字符串&lt;/param&gt;
+        /// &lt;param name=&quot;requireLength&quot;&gt;要求的长度&lt;/param&gt;
+        /// &lt;param name=&quot;argumentName&quot;&gt;参数名称&lt;/param&gt;
+        /// &lt;returns&gt;Validation&lt;/returns&gt;
+        public static Validation IsRequireLen(this Validation validation, string input, int requireLength,
+            string argumentName)
+        {
+            return Check&lt;ArgumentException&gt;(
+                validation,
+                () =&gt; input.Length == requireLength,
+                string.Format(ValidateResource.ParameterCheck_StringLength, argumentName, requireLength));
+        }
+ 
+        /// &lt;summary&gt;
+        ///     判断类型是否能序列化
+        /// &lt;/summary&gt;
+        /// &lt;param name=&quot;validation&quot;&gt;Validation&lt;/param&gt;
+        /// &lt;param name=&quot;data&quot;&gt;输入项&lt;/param&gt;
+        /// &lt;returns&gt;Validation&lt;/returns&gt;
+        /// 时间：2016-01-14 9:57
+        /// 备注：
+        public static Validation IsSerializable(this Validation validation, object data)
+        {
+            return Check&lt;ArgumentException&gt;(validation, () =&gt; data.GetType().IsSerializable,
+                $&quot;该参数类型{data.GetType().FullName}不能序列化！&quot;);
+        }
+ 
+        /// &lt;summary&gt;
+        ///     是否是URL
+        /// &lt;/summary&gt;
+        /// &lt;param name=&quot;validation&quot;&gt;Validation&lt;/param&gt;
+        /// &lt;param name=&quot;data&quot;&gt;url&lt;/param&gt;
+        /// &lt;param name=&quot;argumentName&quot;&gt;参数名称&lt;/param&gt;
+        /// &lt;returns&gt;Validation&lt;/returns&gt;
+        public static Validation IsUrl(this Validation validation, string data, string argumentName)
+        {
+            return Check(validation, () =&gt; CheckHelper.IsURL(data), RegexPattern.UrlCheck, argumentName);
+        }
+ 
+        /// &lt;summary&gt;
+        ///     验证参数不能等于某个值
+        /// &lt;/summary&gt;
+        /// &lt;param name=&quot;validation&quot;&gt;Validation&lt;/param&gt;
+        /// &lt;param name=&quot;data&quot;&gt;输入项&lt;/param&gt;
+        /// &lt;param name=&quot;equalObj&quot;&gt;比较项&lt;/param&gt;
+        /// &lt;param name=&quot;argumentName&quot;&gt;参数名称&lt;/param&gt;
+        /// &lt;returns&gt;Validation&lt;/returns&gt;
+        public static Validation NotEqual(this Validation validation, object data, object equalObj, string argumentName)
+        {
+            return Check&lt;ArgumentException&gt;(validation, () =&gt; data != equalObj,
+                string.Format(ValidateResource.ParameterCheck_NotEqual, argumentName, data));
+        }
+ 
+        /// &lt;summary&gt;
+        ///     验证非空
+        /// &lt;/summary&gt;
+        /// &lt;param name=&quot;validation&quot;&gt;Validation&lt;/param&gt;
+        /// &lt;param name=&quot;data&quot;&gt;输入项&lt;/param&gt;
+        /// &lt;param name=&quot;argumentName&quot;&gt;参数名称&lt;/param&gt;
+        /// &lt;returns&gt;Validation&lt;/returns&gt;
+        public static Validation NotNull(this Validation validation, object data, string argumentName)
+        {
+            return Check&lt;ArgumentNullException&gt;(validation, () =&gt; CheckHelper.NotNull(data),
+                string.Format(ValidateResource.ParameterCheck_NotNull, argumentName));
+        }
+ 
+        /// &lt;summary&gt;
+        ///     不能为空或者NULL验证
+        /// &lt;/summary&gt;
+        /// &lt;param name=&quot;validation&quot;&gt;Validation&lt;/param&gt;
+        /// &lt;param name=&quot;input&quot;&gt;输入项&lt;/param&gt;
+        /// &lt;param name=&quot;argumentName&quot;&gt;参数名称&lt;/param&gt;
+        /// &lt;returns&gt;Validation&lt;/returns&gt;
+        public static Validation NotNullOrEmpty(this Validation validation, string input, string argumentName)
+        {
+            return Check&lt;ArgumentNullException&gt;(validation, () =&gt; !string.IsNullOrEmpty(input),
+                string.Format(ValidateResource.ParameterCheck_NotNullOrEmpty_String, argumentName));
+        }
+ 
+        /// &lt;summary&gt;
+        ///     需要验证的正则表达式
+        /// &lt;/summary&gt;
+        /// &lt;param name=&quot;validation&quot;&gt;Validation&lt;/param&gt;
+        /// &lt;param name=&quot;input&quot;&gt;需要匹配的输入项&lt;/param&gt;
+        /// &lt;param name=&quot;pattern&quot;&gt;正则表达式&lt;/param&gt;
+        /// &lt;param name=&quot;argumentName&quot;&gt;参数名称&lt;/param&gt;
+        /// &lt;returns&gt;Validation&lt;/returns&gt;
+        public static Validation RegexMatch(this Validation validation, string input, string pattern,
+            string argumentName)
+        {
+            return Check&lt;ArgumentException&gt;(validation, () =&gt; Regex.IsMatch(input, pattern),
+                string.Format(ValidateResource.ParameterCheck_Match, input, argumentName));
+        }
+ 
+        #endregion Methods
+    }
+}</code></pre>
+<h3 id="使用方法">2. 使用方法</h3>
+<pre><code><code>        public IEnumerable&lt;T&gt; SqlQuery&lt;T&gt;(string sql, IDbDataParameter[] parameters)
+        {
+            ValidateOperator.Begin()
+                .NotNullOrEmpty(sql, &quot;Sql语句&quot;)
+                .NotNull(parameters, &quot;sql对应参数&quot;);
+            var dataParameters = CreateParameter(parameters);
+            return CurrentConnection.Query&lt;T&gt;(sql, dataParameters, CurrentTransaction);
+        }</code></pre>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

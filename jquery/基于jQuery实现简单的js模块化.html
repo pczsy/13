@@ -1,0 +1,114 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修基于jQuery实现简单的js模块化' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>基于jQuery实现简单的js模块化</center></div><div class='banquan'>原文出处:本文由博客园博主GH_军提供。<br/>
+原文连接:https://www.cnblogs.com/zengyuanjun/p/10727031.html</div><br>
+    <p>&nbsp; &nbsp; 在多人合作完成网页，经常遇到大家的js代码相互影响的问题。现在有许多模块化的前端框架，应该是可以解决这个问题。但本人并非前端开发人员，那些框架都没用过，只对jQuery相对熟悉，就想用jQuery来解决这个问题。</p>
+<p>&nbsp; &nbsp; 首先相互影响主要有两个方面，一是js代码中定义的function名重复，导致覆盖问题；另一个是js操作页面元素时，大家使用的id、name、class等可能重复，导致操作了错误的对象。</p>
+<p>&nbsp; &nbsp; 对于第一点，采用的是定义一个注册函数，其他自定义的方法都要通过调用注册函数进行注册，注册时去检查该函数是否已经存在。对于第二点，考虑使用div作为容器（当然其他标签元素也可以），一个功能模块放到一个容器中，一个模块的js只操作对应容器中的元素，该模块只通过容器进行对外的交互（模块化后一个模块只知道自己的容器是谁，数据传递只在模块和容器间进行）。</p>
+<p>&nbsp; &nbsp; 下面是自定义的注册函数$r，参数有两个，第一个参数是功能模块函数，要求把一个功能的js代码块写到一个函数中，传递给注册函数。第二个参数是模块名称字符串，多级采用&ldquo;.&rdquo;来分隔。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> 注册函数$r</span>
+window.$r = <span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+    </span><span style="color: #0000ff;">var</span><span style="color: #000000;"> i, func, modelName, name, model, paramArr;
+    func </span>= arguments[0<span style="color: #000000;">];
+    modelName </span>= arguments[1<span style="color: #000000;">];
+    </span><span style="color: #0000ff;">if</span>(<span style="color: #0000ff;">typeof</span> func != 'function'<span style="color: #000000;">){
+        console.error(</span>'第一个参数不是function'<span style="color: #000000;">);
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;">;
+    }
+    </span><span style="color: #0000ff;">if</span>(<span style="color: #0000ff;">typeof</span> modelName != 'string'<span style="color: #000000;">){
+        console.error(</span>'第二个参数应当为模块名字符串'<span style="color: #000000;">);
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;">;
+    }
+    paramArr </span>=  modelName.split('.'<span style="color: #000000;">);
+    model </span>=<span style="color: #000000;"> window;
+    name </span>= ''<span style="color: #000000;">;
+    </span><span style="color: #0000ff;">for</span>(i=0; i&lt;paramArr.length; i++<span style="color: #000000;">){
+        </span><span style="color: #0000ff;">if</span>(i == paramArr.length - 1<span style="color: #000000;">){
+            </span><span style="color: #0000ff;">if</span>(<span style="color: #0000ff;">typeof</span> model[paramArr[i]] != 'undefined'<span style="color: #000000;">){
+                console.error(</span>'模块"' + modelName + '"已存在'<span style="color: #000000;">);
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;">;
+            }
+            model[paramArr[i]] </span>=<span style="color: #000000;"> checkParamProxy;
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> checkParamProxy;
+        }
+        model </span>= model[paramArr[i]] = model[paramArr[i]] ||<span style="color: #000000;"> {};
+        </span><span style="color: #0000ff;">if</span>(<span style="color: #0000ff;">typeof</span> model != 'object'<span style="color: #000000;">){
+            </span><span style="color: #0000ff;">for</span>(j=0; j&lt;i; j++<span style="color: #000000;">){}
+            console.error(</span>'"' + name + paramArr[i] + '"不是object'<span style="color: #000000;">);
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;">;
+        }
+        name </span>+= paramArr[i] + '.'<span style="color: #000000;">;
+    }
+    
+    </span><span style="color: #0000ff;">function</span><span style="color: #000000;"> checkParamProxy($p){
+        </span><span style="color: #0000ff;">if</span>(<span style="color: #0000ff;">typeof</span> $p == 'undefined'<span style="color: #000000;">){
+            console.error(</span>'模块' + modelName + '需要传入一个jQuery类型参数作为容器'<span style="color: #000000;">);
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;">;
+        }
+        </span><span style="color: #0000ff;">if</span>($p <span style="color: #0000ff;">instanceof</span><span style="color: #000000;"> jQuery){
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> func.call($p, $p);
+        }
+        console.error(</span>'"' + $p + '"不是jQuery对象'<span style="color: #000000;">);
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;">;
+    }
+}</span></pre>
+</div>
+<p>&nbsp; &nbsp; &nbsp;下面举个示例，页面代码如下，里面就两个div，container1和container2，当作容器使用。</p>
+<div class="cnblogs_code">
+<pre><code>&lt;html&gt;
+&lt;head&gt;
+&lt;meta charset="UTF-8"/&gt;
+&lt;title&gt;Register&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;div id="container1" style="height: 100px;width: 100px;"&gt;&lt;/div&gt;
+    &lt;div id="container2" style="height: 120px;width: 80px;"&gt;&lt;/div&gt;
+&lt;/body&gt;
+&lt;/html&gt;</pre>
+</div>
+<p>&nbsp; &nbsp; 现在注册一个绘制内切椭圆或圆形的js模块，模块名叫&ldquo;graph.ellipse&rdquo;，然后将容器container1的jQuery对象作为参数赋给graph.ellipse</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> 注册graph.ellipse模块</span>
+$r(<span style="color: #0000ff;">function</span>($c){ <span style="color: #008000;">//</span><span style="color: #008000;"> $c为容器的jQuery对象，也可通过this来获取</span>
+    $c.html('&lt;div style="height: 100%;width: 100%; border: 2px solid #999999;border-radius: 50%;"&gt;&lt;/div&gt;'<span style="color: #000000;">);
+    
+    $c.on(</span>'change', <span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+        </span><span style="color: #0000ff;">var</span> color = $c.data('color'<span style="color: #000000;">);
+        $c.children().css({</span>'border-color'<span style="color: #000000;">:color});
+    })
+    
+    $c.trigger(</span>'loaded'<span style="color: #000000;">);
+}, </span>'graph.ellipse'<span style="color: #000000;">);
+
+graph.ellipse($(</span>'#container1')); <span style="color: #008000;">//</span><span style="color: #008000;"> 将container1作为模块容器</span></pre>
+</div>
+<p>&nbsp; &nbsp;这样就得到了一个宽高为100px的圆。</p>
+<div id="container1" style="height: 100px; width: 100px;">
+<div style="height: 100%; width: 100%; border: 2px solid #999999; border-radius: 50%;">&nbsp;</div>
+</div>
+<p>&nbsp; &nbsp; 在graph.ellipse模块中，将操作都限定在$c（示例中即$('#container1')）内，比如用$c.find(e|o|e)查找元素，用$c.append(content|fn)追加元素等，这样就确保不会对其他模块产生影响。模块对外交互采用$c.trigger(type)和$c.on(type,fn)触发绑定事件机制，比如示例中$c.trigger('loaded')触发一个loaded加载完成事件，需要在模块加载完成后执行的操作，就可以在外部用$('#container1').on('loaded',function(){// TODO&nbsp;graph.ellipse模块加载完成后执行})来实现。外部要改变圆的颜色，就可以用$('#container1').data({'color':'#27ae60'}).trigger('change')触发容器上的change事件，得到一个绿色的圆。</p>
+<div id="container1" style="height: 100px; width: 100px;">
+<div style="height: 100%; width: 100%; border: 2px solid #27ae60; border-radius: 50px;">&nbsp;</div>
+</div>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

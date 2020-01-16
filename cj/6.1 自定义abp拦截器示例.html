@@ -1,0 +1,140 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修6.1 自定义abp拦截器示例' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>6.1 自定义abp拦截器示例</center></div><div class='banquan'>原文出处:本文由博客园博主又见阿郎提供。<br/>
+原文连接:https://www.cnblogs.com/zhiyong-ITNote/p/11978453.html</div><br>
+    <p>一个简单、基于AbpInterceptor的拦截器示例：</p>
+<pre><code><code>using Microsoft.Extensions.DependencyInjection;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using Volo.Abp;
+using Volo.Abp.DynamicProxy;
+
+namespace ConsoleApp1
+{
+    public interface ICanLogOnObject
+    {
+        List&lt;string&gt; Logs { get; }
+    }
+
+    public class SimpleAsyncInterceptor : AbpInterceptor
+    {
+        public override void Intercept(IAbpMethodInvocation invocation)
+        {
+            (invocation.TargetObject as ICanLogOnObject)?.Logs?.Add($&quot;{GetType().Name}_Intercept_BeforeInvocation&quot;);
+            invocation.ProceedAsync();
+            (invocation.TargetObject as ICanLogOnObject)?.Logs?.Add($&quot;{GetType().Name}_Intercept_AfterInvocation&quot;);
+        }
+
+        public override async Task InterceptAsync(IAbpMethodInvocation invocation)
+        {
+            await Task.Delay(5);
+            (invocation.TargetObject as ICanLogOnObject)?.Logs?.Add($&quot;{GetType().Name}_InterceptAsync_BeforeInvocation&quot;);
+            await invocation.ProceedAsync();
+            (invocation.TargetObject as ICanLogOnObject)?.Logs?.Add($&quot;{GetType().Name}_InterceptAsync_AfterInvocation&quot;);
+            await Task.Delay(5);
+        }
+    }
+
+    public class SimpleInterceptionTargetClass : ICanLogOnObject
+    {
+        public List&lt;string&gt; Logs { get; } = new List&lt;string&gt;();
+
+        public virtual void DoIt()
+        {
+            Logs.Add(&quot;ExecutingDoIt&quot;);
+        }
+
+        public virtual int GetValue()
+        {
+            Logs.Add(&quot;ExecutingGetValue&quot;);
+            return 42;
+        }
+
+        public virtual async Task&lt;int&gt; GetValueAsync()
+        {
+            Logs.Add(&quot;EnterGetValueAsync&quot;);
+            await Task.Delay(5);
+            Logs.Add(&quot;MiddleGetValueAsync&quot;);
+            await Task.Delay(5);
+            Logs.Add(&quot;ExitGetValueAsync&quot;);
+            return 42;
+        }
+
+        public virtual async Task DoItAsync()
+        {
+            Logs.Add(&quot;EnterDoItAsync&quot;);
+            await Task.Delay(5);
+            Logs.Add(&quot;MiddleDoItAsync&quot;);
+            await Task.Delay(5);
+            Logs.Add(&quot;ExitDoItAsync&quot;);
+        }
+    }
+
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            // 服务容器
+            var services = new ServiceCollection();
+            services.AddTransient&lt;SimpleAsyncInterceptor&gt;();
+            services.AddTransient&lt;SimpleInterceptionTargetClass&gt;();
+            services.OnRegistred(register =&gt;
+            {
+                // 添加拦截器
+                if (typeof(SimpleInterceptionTargetClass) == register.ImplementationType)
+                {
+                    register.Interceptors.Add&lt;SimpleAsyncInterceptor&gt;();
+                }
+            });
+
+            var application = services.AddApplication&lt;AbpTestModule&gt;(options =&gt;
+            {
+                options.UseAutofac();
+            });
+
+            var rootServiceProvider = services.BuildServiceProviderFromFactory();
+            var testServiceProvider = rootServiceProvider.CreateScope();
+            var ServiceProvider = testServiceProvider.ServiceProvider;
+
+            application.Initialize(ServiceProvider);
+
+            // 拦截器 代码 ↓
+            var target = ServiceProvider.GetRequiredService&lt;SimpleInterceptionTargetClass&gt;();
+            target.DoIt();
+
+            foreach (var log in target.Logs)
+            {
+                Console.WriteLine(log);
+            }
+
+            Console.WriteLine(&quot;Done&quot;);
+            Console.Read();
+        }
+    }
+}
+</code></pre>
+<p>拦截器调用顺序，可参考打上断点调试分析：</p>
+<p>AutofacRegistration.Populate(内部调用Autofac.Extras.DynamicProxy) --&gt; SimpleAsyncInterceptor.Intercept --&gt; CastleAbpMethodInvocationAdapter.Proceed(内部调用Castle.DynamicProxy)</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,159 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修【带着canvas去流浪（6）】绘制雷达图' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>【带着canvas去流浪（6）】绘制雷达图</center></div><div class='banquan'>原文出处:本文由博客园博主大史不说话提供。<br/>
+原文连接:https://www.cnblogs.com/dashnowords/p/10656750.html</div><br>
+    <div class="toc">
+    <p class="toc-title">目录</p>
+    <div class="toc-list">
+        <ul>
+        <li><a href="#一.-任务说明">一. 任务说明</a></li>
+        <li><a href="#二.-重点提示">二. 重点提示</a></li>
+        <li><a href="#三.-示例代码">三. 示例代码</a></li>
+        </ul>
+    </div>
+</div>
+<p><img src="./images/【带着canvas去流浪（6）】绘制雷达图0.png" /></p>
+<blockquote>
+<p>示例代码托管在：<a href="https://github.com/dashnowords/blogs/tree/master/Demo/canvas-echarts/radar-chart">http://www.github.com/dashnowords/blogs</a></p>
+<p>博客园地址：<a href="https://www.cnblogs.com/dashnowords/p/10127926.html">《大史住在大前端》原创博文目录</a></p>
+<p>华为云社区地址：<a href="https://bbs.huaweicloud.com/blogs/8ae7e6420a4611e9bd5a7ca23e93a891">【你要的前端打怪升级指南】</a></p>
+</blockquote>
+<h2 id="一.-任务说明">一. 任务说明</h2>
+<p>使用原生<code>canvasAPI</code>绘制雷达图。（截图以及数据来自于百度Echarts官方示例库<a href="https://echarts.baidu.com/examples/editor.html?c=radar">【查看示例链接】</a>)。</p>
+<p><img src="./images/【带着canvas去流浪（6）】绘制雷达图1.png" /></p>
+<h2 id="二.-重点提示">二. 重点提示</h2>
+<p><code>雷达图</code>绘制的看起来并不复杂，无非就是一些路径点的连线，其中的难点都在于一些细节。</p>
+<ol>
+<li><p>坐标转换</p>
+<p>为了避免在绘制过程中不断根据夹角来计算某个数据点的坐标，我们可以让坐标系先移动到绘图中心，然后在绘制过程中逐步旋转并使用<code>context.lineTo(x,y)</code>来连线即可，这样做的好处是很明显的。比如在绘制背景六边形的时候，每次旋转后，路径点压根就不需要移动，直接在循环中每次都调用<code>context.lineTo( )</code>方法连线至同一个数据点即可，看起来位移没有变，实际上随着坐标系的旋转，连线绕过的是多边形的轨迹。</p></li>
+<li><p>文字的对齐</p>
+<p>为了让文字保持正常的方向，我们需要将坐标系的旋转恢复到初始状态再进行绘制。绘制的过程中可以根据绘制点和中心连线相对于x轴的角度来动态修改其绘制时的相对点（<code>left</code>,<code>right</code>,<code>center</code>），否则就会出现下图的结果，也就是文字区域的中心到图形中心的距离的确是一致的，但这并不是我们想要的效果。</p></li>
+</ol>
+<p><img src="./images/【带着canvas去流浪（6）】绘制雷达图2.png" /></p>
+<ol>
+<li><p>canvas坐标系</p>
+<p>请时刻记得canvas坐标系的初始方向是x轴向右，y轴向下，和普通笛卡尔坐标系是不一样的，尤其是在旋转角度和坐标计算的时候，很容易出现和预期角度不相符的结果。</p></li>
+</ol>
+<h2 id="三.-示例代码">三. 示例代码</h2>
+<pre><code><code>//options数据来自于百度Echarts官方示例库
+start(options);
+
+/**
+ * 绘制图表
+ */
+function start(options) {
+    drawBg(options);
+    drawData(options);//绘制雷达图
+    drawText(options);//绘制文字
+}
+
+function drawBg(options) {
+    let length = options.radar.indicator.length;
+    let angleStep = -2 * Math.PI / length;
+    context.strokeStyle=&quot;#b2b2b2&quot;;
+    context.lineWidth = 1;
+    //调整坐标系
+    //移动中心点
+    context.translate(500,300);
+    //将x轴旋转至竖直向上
+    context.rotate(-90 * 2 * Math.PI / 360);
+    //每次以不同旋转半径绘制多个由大到小的图形
+    for(let r = 200; r &gt; 0 ; r -=40){
+        //移动至第一个绘图点
+        context.save();
+        context.beginPath();
+        context.moveTo(r,0);
+        
+        //转动坐标系绘制所有点
+         for(let i = 0; i &lt; length; i++){
+            context.rotate(angleStep);
+            context.lineTo(r,0);
+         }
+        context.closePath();
+        context.stroke();
+        //明暗色替换填充，此处从大到小切换颜色覆盖式绘制即可
+        context.fillStyle = Math.round(r / 40) % 2 ? &#39;white&#39;:&#39;#eaeaea&#39;;
+        context.fill();
+        context.restore();
+    }
+}
+
+/**
+ * 绘制数据
+ */
+function drawData(options) {
+   //解构赋值拿到数据关键点
+   let {radar:{indicator:indicators},series:[{data:data}]} = options;
+   let colors = [&#39;#c43e3a&#39;,&#39;#364c5a&#39;];
+   let length = indicators.length;
+   let angleStep = -2 * Math.PI / length;
+
+   for(let i = 0; i &lt; data.length; i++){
+       
+       context.save();
+       context.beginPath();
+       context.moveTo(200 * data[i].value[0] / indicators[0].max,0);
+    
+       //遍历每组数据
+       for(let j = 1; j &lt; data[i].value.length; j++){
+           context.rotate(angleStep);
+           context.lineTo(200 * data[i].value[j] / indicators[j].max,0);
+       }
+       context.restore();
+       context.lineTo(200 * data[i].value[0] / indicators[0].max,0);
+       context.strokeStyle = colors[i];
+       context.lineWidth = 2;
+       context.stroke();
+   }
+   context.restore();
+}
+
+//绘制文字
+function drawText(options) {
+   let {radar:{indicator:indicators}} = options;
+   let length = indicators.length;
+   let angleStep = 2 * Math.PI / length;
+   let r = 220;
+   context.fillStyle = &#39;black&#39;;
+   context.font = &quot;14px bold 黑体&quot;;
+   context.textAlign = &#39;center&#39;;
+   context.rotate(90 * Math.PI * 2 / 360);
+   for(let i = 0; i &lt; indicators.length; i++){
+     let curAngle = -90*2*Math.PI/360 - angleStep*i;
+       //根据方向调整文字的对齐点
+     let cos = Math.cos(curAngle);
+     if (Math.abs(cos) &lt; 10e-4) {
+        context.textAlign = &#39;center&#39;;
+     }else if(cos &gt; 0){
+        context.textAlign = &#39;left&#39;;
+     }else{
+        context.textAlign = &#39;right&#39;;
+     }
+     console.log(indicators[i].name, Math.cos(curAngle))
+      context.fillText(indicators[i].name, r * Math.cos(curAngle), r * Math.sin(curAngle));
+   }
+}</code></pre>
+<p>浏览器中可查看效果：</p>
+<p><img src="./images/【带着canvas去流浪（6）】绘制雷达图3.png" /></p>
+<p>百度Echarts官方示例库中有这样一个<a href="https://echarts.baidu.com/examples/editor.html?c=radar2">雷达图的示例</a>，展示了在雷达图上表现时间维度的示例，感兴趣的读者可以自行查看。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

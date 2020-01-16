@@ -1,0 +1,299 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修笔记 - C#从头开始构建编译器 - 3' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>笔记 - C#从头开始构建编译器 - 3</center></div><div class='banquan'>原文出处:本文由博客园博主WQY自由呼吸提供。<br/>
+原文连接:https://www.cnblogs.com/wqyu/p/10837899.html</div><br>
+    <p>视频与PR：https://github.com/terrajobst/minsk/blob/master/docs/episode-03.md</p>
+<p>作者是 Immo Landwerth（https://twitter.com/terrajobst），微软 .NET 团队的项目经理。</p>
+<p>&nbsp;</p>
+<p>这一集前半段主要是重构代码，后半段的主要内容：</p>
+<p>1. 变量与赋值表达式</p>
+<p>2. 加强诊断信息</p>
+<p>&nbsp;</p>
+<p>Parser 非常清晰</p>
+<div class="cnblogs_Highlighter">
+<pre><code>using System.Collections.Generic;
+
+namespace Minsk.CodeAnalysis.Syntax
+{
+    internal sealed class Parser
+    {
+        private readonly SyntaxToken[] _tokens;
+        private int _position;
+        private DiagnosticBag _diagnostics = new DiagnosticBag();
+
+        public Parser(string text)
+        {
+            var tokens = new List&lt;SyntaxToken&gt;();
+
+            var lexer = new Lexer(text);
+            SyntaxToken token;
+            do
+            {
+                token = lexer.Lex();
+                if (token.Kind != SyntaxKind.WhiteSpaceToken &amp;&amp; token.Kind != SyntaxKind.BadToken)
+                    tokens.Add(token);
+            } while (token.Kind != SyntaxKind.EndOfFileToken);
+
+            _tokens = tokens.ToArray();
+            _diagnostics.AddRange(lexer.Diagnostics);
+        }
+
+        public DiagnosticBag Diagnostics =&gt; _diagnostics;
+
+        private SyntaxToken Peek(int offset)
+        {
+            var index = _position + offset;
+            if (index &gt;= _tokens.Length)
+                return _tokens[_tokens.Length - 1];
+            return _tokens[index];
+        }
+
+        private SyntaxToken Current =&gt; Peek(0);
+
+        private SyntaxToken NextToken()
+        {
+            var token = Current;
+            _position++;
+            return token;
+        }
+
+        private SyntaxToken MatchToken(SyntaxKind kind)
+        {
+            if (Current.Kind == kind)
+                return NextToken();
+
+            _diagnostics.ReportUnexpectedToken(Current.Span, Current.Kind, kind);
+            return new SyntaxToken(kind, Current.Position, null, null);
+        }
+
+        public SyntaxTree Parse()
+        {
+            var expression = ParseExpression();
+            var endOfFileToken = MatchToken(SyntaxKind.EndOfFileToken);
+            return new SyntaxTree(_diagnostics, expression, endOfFileToken);
+        }
+
+        private ExpressionSyntax ParseExpression()
+        {
+            return ParseAssignmentExpression();
+        }
+
+        private ExpressionSyntax ParseAssignmentExpression()
+        {
+            if (Peek(0).Kind == SyntaxKind.IdentifierToken &amp;&amp; Peek(1).Kind == SyntaxKind.EqualsToken)
+            {
+                var identifierToken = NextToken();
+                var equalsToken = NextToken();
+                var right = ParseAssignmentExpression();
+                return new AssignmentExpressionSyntax(identifierToken, equalsToken, right);
+            }
+
+            return ParseBinaryExpression();
+        }
+
+        private ExpressionSyntax ParseBinaryExpression(int parentPrecedence = 0)
+        {
+            ExpressionSyntax left;
+            var unaryOperatorPrecedence = Current.Kind.GetUnaryOperatorPrecedence();
+            if (unaryOperatorPrecedence != 0 &amp;&amp; unaryOperatorPrecedence &gt;= parentPrecedence)
+            {
+                var operatorToken = NextToken();
+                var operand = ParseBinaryExpression(unaryOperatorPrecedence);
+                left = new UnaryExpressionSyntax(operatorToken, operand);
+            }
+            else
+                left = ParsePrimaryExpression();
+
+            while (true)
+            {
+                var precedence = Current.Kind.GetBinaryOperatorPrecedence();
+                if (precedence == 0 || precedence &lt;= parentPrecedence)
+                    break;
+
+                var operatorToken = NextToken();
+                var right = ParseBinaryExpression(precedence);
+                left = new BinaryExpressionSyntax(left, operatorToken, right);
+            }
+
+            return left;
+        }
+
+        private ExpressionSyntax ParsePrimaryExpression()
+        {
+            switch (Current.Kind)
+            {
+                case SyntaxKind.OpenParenthesisToken:
+                {
+                    var left = NextToken();
+                    var expression = ParseExpression();
+                    var right = MatchToken(SyntaxKind.CloseParenthesisToken);
+                    return new ParenthesizedExpressionSyntax(left, expression, right);
+                }
+
+                case SyntaxKind.TrueKeyword:
+                case SyntaxKind.FalseKeyword:
+                {
+                    var keywordToken = NextToken();
+                    var value = keywordToken.Kind == SyntaxKind.TrueKeyword;
+                    return new LiteralExpressionSyntax(keywordToken, value);
+                }
+
+                case SyntaxKind.IdentifierToken:
+                {
+                    var identifierToken = NextToken();
+                    return new NameExpressionSyntax(identifierToken);
+                }
+
+                default:
+                {
+                    var numberToken = MatchToken(SyntaxKind.NumberToken);
+                    return new LiteralExpressionSyntax(numberToken);
+                }
+            }
+
+        }
+    }
+}
+</pre>
+</div>
+<p>作为语义分析的 Binder 也非常清晰</p>
+<div class="cnblogs_Highlighter">
+<pre><code>using System;
+using System.Collections.Generic;
+using System.Linq;
+using Minsk.CodeAnalysis.Syntax;
+
+namespace Minsk.CodeAnalysis.Binding
+{
+    internal sealed class Binder
+    {
+        private readonly DiagnosticBag _diagnostics = new DiagnosticBag ();
+        private readonly Dictionary&lt;VariableSymbol, object&gt; _variables;
+
+        public Binder(Dictionary&lt;VariableSymbol, object&gt; variables)
+        {
+            _variables = variables;
+        }
+
+        public DiagnosticBag Diagnostics =&gt; _diagnostics;
+
+        public BoundExpression BindExpression(ExpressionSyntax syntax)
+        {
+            switch (syntax.Kind)
+            {
+                case SyntaxKind.ParenthesizedExpression:
+                    return BindParenthesizedExpression((ParenthesizedExpressionSyntax)syntax);
+                case SyntaxKind.LiteralExpression:
+                    return BindLiteralExpression((LiteralExpressionSyntax)syntax);
+                case SyntaxKind.NameExpression:
+                    return BindNameExpression((NameExpressionSyntax)syntax);
+                case SyntaxKind.AssignmentExpression:
+                    return BindAssignmentExpression((AssignmentExpressionSyntax)syntax);
+                case SyntaxKind.UnaryExpression:
+                    return BindUnaryExpression((UnaryExpressionSyntax)syntax);
+                case SyntaxKind.BinaryExpression:
+                    return BindBinaryExpression((BinaryExpressionSyntax)syntax);
+                default:
+                    throw new Exception($"Unexpected syntax {syntax.Kind}");
+            }
+        }
+
+        private BoundExpression BindParenthesizedExpression(ParenthesizedExpressionSyntax syntax)
+        {
+            return BindExpression(syntax.Expression);
+        }
+
+        private BoundExpression BindLiteralExpression(LiteralExpressionSyntax syntax)
+        {
+            var value = syntax.Value ?? 0;
+            return new BoundLiteralExpression(value);
+        }
+
+        private BoundExpression BindNameExpression(NameExpressionSyntax syntax)
+        {
+            var name = syntax.IdentifierToken.Text;
+            var variable = _variables.Keys.FirstOrDefault(v =&gt; v.Name == name);
+            if (variable == null)
+            {
+                _diagnostics.ReportUndefinedName(syntax.IdentifierToken.Span, name);
+                return new BoundLiteralExpression(0);
+            }
+
+            return new BoundVariableExpression(variable);
+        }
+
+        private BoundExpression BindAssignmentExpression(AssignmentExpressionSyntax syntax)
+        {
+            var name = syntax.IdentifierToken.Text;
+            var boundExpression = BindExpression(syntax.Expression);
+
+            var existingVariable = _variables.Keys.FirstOrDefault(v =&gt; v.Name == name);
+            if (existingVariable != null)
+                _variables.Remove(existingVariable);
+
+            var variable = new VariableSymbol(name, boundExpression.Type);
+            _variables[variable] = null;
+
+            return new BoundAssignmentExpression(variable, boundExpression);
+        }
+
+        private BoundExpression BindUnaryExpression(UnaryExpressionSyntax syntax)
+        {
+            var boundOperand = BindExpression(syntax.Operand);
+            var boundOperator = BoundUnaryOperator.Bind(syntax.OperatorToken.Kind, boundOperand.Type);
+            if (boundOperator == null)
+            {
+                _diagnostics.ReportUndefinedUnaryOperator(syntax.OperatorToken.Span, syntax.OperatorToken.Text, boundOperand.Type);
+                return boundOperand;
+            }
+            return new BoundUnaryExpression(boundOperator, boundOperand);
+        }
+
+        private BoundExpression BindBinaryExpression(BinaryExpressionSyntax syntax)
+        {
+            var boundLeft = BindExpression(syntax.Left);
+            var boundRight = BindExpression(syntax.Right);
+            var boundOperator = BoundBinaryOperator.Bind(syntax.OperatorToken.Kind, boundLeft.Type, boundRight.Type);
+            if (boundOperator == null)
+            {
+                _diagnostics.ReportUndefinedBinaryOperator(syntax.OperatorToken.Span, syntax.OperatorToken.Text, boundLeft.Type, boundRight.Type);
+                return boundLeft;
+            }
+            return new BoundBinaryExpression(boundLeft, boundOperator, boundRight);
+        }
+    }
+}
+</pre>
+</div>
+<p>&nbsp;</p>
+<p>C#语言点：</p>
+<div class="cnblogs_Highlighter">
+<pre><code>public static class Enumerable
+{
+    public static TSource FirstOrDefault&lt;TSource&gt;(this IEnumerable&lt;TSource&gt; source, Func&lt;TSource, bool&gt; predicate);
+}
+</pre>
+</div>
+<p>FirstOrDefault 可以使用谓词作为判断条件，Binder 的 55 行使用了 Lambda 表达式。</p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

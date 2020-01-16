@@ -1,0 +1,241 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C# 针对特定的条件进行锁操作，不用lock，而是mutex' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C# 针对特定的条件进行锁操作，不用lock，而是mutex</center></div><div class='banquan'>原文出处:本文由博客园博主pig-tong提供。<br/>
+原文连接:https://www.cnblogs.com/bookobe/p/11229021.html</div><br>
+    <p>背景：用户领取优惠券，同一个用户需要加锁验证是否已经领取，不同用户则可以同时领取。</p>
+<p>上代码示例：</p>
+<p>1、创建Person类</p>
+<div class="cnblogs_code">
+<pre><code>    <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+    <span style="color: #808080;">///</span><span style="color: #008000;"> Person类
+    </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Person
+    {
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> id
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span> Id { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;">  姓名
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> Name { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 是否获得优惠券
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">bool</span> IsGetCoupon { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+    }</span></pre>
+</div>
+<p>2.1、不加锁的方法(可能会出现重复领取的情况)</p>
+<div class="cnblogs_code">
+<pre><code>        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 获取优惠券
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> GetCoupon(Person person)
+        {
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">date:{0:yyyy-MM-dd HH:mm:ss},name:{1},前来领取优惠券</span><span style="color: #800000;">"</span><span style="color: #000000;">, DateTime.Now, person.Name);</span>
+            <span style="color: #0000ff;">if</span><span style="color: #000000;"> (person.IsGetCoupon)
+            {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">假装业务处理</span>
+                Thread.Sleep(<span style="color: #800080;">1000</span><span style="color: #000000;">);
+                Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">date:{0:yyyy-MM-dd HH:mm:ss},name:{1},已经领取，不可重复领取</span><span style="color: #800000;">"</span><span style="color: #000000;">, DateTime.Now, person.Name);
+            }
+            </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+            {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">假装业务处理</span>
+                Thread.Sleep(<span style="color: #800080;">1000</span><span style="color: #000000;">);
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">领取</span>
+                person.IsGetCoupon = <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+                Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">date:{0:yyyy-MM-dd HH:mm:ss},name:{1},领取成功</span><span style="color: #800000;">"</span><span style="color: #000000;">, DateTime.Now, person.Name);
+            }
+        }</span></pre>
+</div>
+<p>2.2、加lock锁的方法，所有来领优惠券的人，都得排对领（也不好）</p>
+<div class="cnblogs_code">
+<pre><code>        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> Lock获取优惠券
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> LockGetCoupon(Person person)
+        {
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">date:{0:yyyy-MM-dd HH:mm:ss},name:{1},前来领取优惠券</span><span style="color: #800000;">"</span><span style="color: #000000;">, DateTime.Now, person.Name);
+            </span><span style="color: #0000ff;">lock</span><span style="color: #000000;"> (LockObj)
+            {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">判断是否已经领取</span>
+                <span style="color: #0000ff;">if</span><span style="color: #000000;"> (person.IsGetCoupon)
+                {
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">假装业务处理</span>
+                    Thread.Sleep(<span style="color: #800080;">1000</span><span style="color: #000000;">);
+                    Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">date:{0:yyyy-MM-dd HH:mm:ss},name:{1},已经领取，不可重复领取</span><span style="color: #800000;">"</span><span style="color: #000000;">, DateTime.Now, person.Name);
+                }
+                </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+                {
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">假装业务处理</span>
+                    Thread.Sleep(<span style="color: #800080;">1000</span><span style="color: #000000;">);
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">领取</span>
+                    person.IsGetCoupon = <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+                    Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">date:{0:yyyy-MM-dd HH:mm:ss},name:{1},领取成功</span><span style="color: #800000;">"</span><span style="color: #000000;">, DateTime.Now, person.Name);
+                }
+            }
+        }</span></pre>
+</div>
+<p>2.3、mutex锁，互斥锁，只有相同id的人，才会排对领取，不同id的人就可以同时领取</p>
+<div class="cnblogs_code">
+<pre><code>        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> Mutex，领取
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="person"&gt;&lt;/param&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> MutexGetCoupon(Person person)
+        {
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">date:{0:yyyy-MM-dd HH:mm:ss},name:{1},前来领取优惠券</span><span style="color: #800000;">"</span><span style="color: #000000;">, DateTime.Now, person.Name);
+            </span><span style="color: #0000ff;">using</span> (<span style="color: #0000ff;">var</span> mutex = <span style="color: #0000ff;">new</span> Mutex(<span style="color: #0000ff;">false</span><span style="color: #000000;">, person.Id.ToString()))
+            {
+                </span><span style="color: #0000ff;">try</span><span style="color: #000000;">
+                {
+                    </span><span style="color: #0000ff;">if</span> (mutex.WaitOne(-<span style="color: #800080;">1</span>, <span style="color: #0000ff;">false</span><span style="color: #000000;">))
+                    {
+                        </span><span style="color: #008000;">//</span><span style="color: #008000;">判断是否已经领取</span>
+                        <span style="color: #0000ff;">if</span><span style="color: #000000;"> (person.IsGetCoupon)
+                        {
+                            </span><span style="color: #008000;">//</span><span style="color: #008000;">假装业务处理</span>
+                            Thread.Sleep(<span style="color: #800080;">1000</span><span style="color: #000000;">);
+                            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">date:{0:yyyy-MM-dd HH:mm:ss},name:{1},已经领取，不可重复领取</span><span style="color: #800000;">"</span><span style="color: #000000;">, DateTime.Now, person.Name);
+                        }
+                        </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+                        {
+
+                            </span><span style="color: #008000;">//</span><span style="color: #008000;">假装业务处理</span>
+                            Thread.Sleep(<span style="color: #800080;">1000</span><span style="color: #000000;">);
+                            </span><span style="color: #008000;">//</span><span style="color: #008000;">领取</span>
+                            person.IsGetCoupon = <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+                            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">date:{0:yyyy-MM-dd HH:mm:ss},name:{1},领取成功</span><span style="color: #800000;">"</span><span style="color: #000000;">, DateTime.Now, person.Name);
+                        }
+                    }
+                }
+                </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception ex)
+                {
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">TxtLogHelper.WriteLog(ex);</span>
+<span style="color: #000000;">                }
+                </span><span style="color: #0000ff;">finally</span><span style="color: #000000;">
+                {
+                    mutex.ReleaseMutex();
+                }
+            }
+        }
+    }</span></pre>
+</div>
+<p>3.1、开始测试(不加锁)</p>
+<div class="cnblogs_code">
+<pre><code>        <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">实例化三个人</span>
+            Person p1 = <span style="color: #0000ff;">new</span> Person { Id = <span style="color: #800080;">24</span>, Name = <span style="color: #800000;">"</span><span style="color: #800000;">Kobe</span><span style="color: #800000;">"</span><span style="color: #000000;"> };
+            Person p2 </span>= <span style="color: #0000ff;">new</span> Person { Id = <span style="color: #800080;">25</span>, Name = <span style="color: #800000;">"</span><span style="color: #800000;">Rose</span><span style="color: #800000;">"</span><span style="color: #000000;"> };
+            Person p3 </span>= <span style="color: #0000ff;">new</span> Person { Id = <span style="color: #800080;">23</span>, Name = <span style="color: #800000;">"</span><span style="color: #800000;">Lebl</span><span style="color: #800000;">"</span><span style="color: #000000;"> };
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">开启多线程、模拟三个人同时发起多次领取请求</span>
+            <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; <span style="color: #800080;">4</span>; i++<span style="color: #000000;">)
+            {
+                </span><span style="color: #0000ff;">new</span> Thread(() =&gt;<span style="color: #000000;">
+                {
+                    GetCoupon(p1);
+                }).Start();
+                </span><span style="color: #0000ff;">new</span> Thread(() =&gt;<span style="color: #000000;">
+                {
+                    GetCoupon(p2);
+                }).Start();
+                </span><span style="color: #0000ff;">new</span> Thread(() =&gt;<span style="color: #000000;">
+                {
+                    GetCoupon(p3);
+                }).Start();
+            }
+            Console.ReadLine();
+        }</span></pre>
+</div>
+<p>测试结果：每个人都重复领取</p>
+<p><img src="./images/C# 针对特定的条件进行锁操作，不用lock，而是mutex0.png" alt="" /></p>
+<p>3.2、测试lock锁方法，</p>
+<div class="cnblogs_code">
+<pre><code>        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">readonly</span> <span style="color: #0000ff;">object</span> LockObj = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">object</span><span style="color: #000000;">();
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">实例化三个人</span>
+            Person p1 = <span style="color: #0000ff;">new</span> Person { Id = <span style="color: #800080;">24</span>, Name = <span style="color: #800000;">"</span><span style="color: #800000;">Kobe</span><span style="color: #800000;">"</span><span style="color: #000000;"> };
+            Person p2 </span>= <span style="color: #0000ff;">new</span> Person { Id = <span style="color: #800080;">25</span>, Name = <span style="color: #800000;">"</span><span style="color: #800000;">Rose</span><span style="color: #800000;">"</span><span style="color: #000000;"> };
+            Person p3 </span>= <span style="color: #0000ff;">new</span> Person { Id = <span style="color: #800080;">23</span>, Name = <span style="color: #800000;">"</span><span style="color: #800000;">Lebl</span><span style="color: #800000;">"</span><span style="color: #000000;"> };
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">开启多线程、模拟三个人同时发起多次领取请求</span>
+            <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; <span style="color: #800080;">4</span>; i++<span style="color: #000000;">)
+            {
+                </span><span style="color: #0000ff;">new</span> Thread(() =&gt;<span style="color: #000000;">
+                {
+                    LockGetCoupon(p1);
+                }).Start();
+                </span><span style="color: #0000ff;">new</span> Thread(() =&gt;<span style="color: #000000;">
+                {
+                    LockGetCoupon(p2);
+                }).Start();
+                </span><span style="color: #0000ff;">new</span> Thread(() =&gt;<span style="color: #000000;">
+                {
+                    LockGetCoupon(p3);
+                }).Start();
+            }
+            Console.ReadLine();
+        }</span></pre>
+</div>
+<p>测试结果：虽然避免了重复领取，但是每个人都的每个请求都要排对。如果用户量大的话，这种方式效率就太低了，所以不推荐。</p>
+<p><img src="./images/C# 针对特定的条件进行锁操作，不用lock，而是mutex1.png" alt="" /></p>
+<p>&nbsp;3.3、测试mutex锁，互斥锁</p>
+<div class="cnblogs_code">
+<pre><code>        <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">实例化三个人</span>
+            Person p1 = <span style="color: #0000ff;">new</span> Person { Id = <span style="color: #800080;">24</span>, Name = <span style="color: #800000;">"</span><span style="color: #800000;">Kobe</span><span style="color: #800000;">"</span><span style="color: #000000;"> };
+            Person p2 </span>= <span style="color: #0000ff;">new</span> Person { Id = <span style="color: #800080;">25</span>, Name = <span style="color: #800000;">"</span><span style="color: #800000;">Rose</span><span style="color: #800000;">"</span><span style="color: #000000;"> };
+            Person p3 </span>= <span style="color: #0000ff;">new</span> Person { Id = <span style="color: #800080;">23</span>, Name = <span style="color: #800000;">"</span><span style="color: #800000;">Lebl</span><span style="color: #800000;">"</span><span style="color: #000000;"> };
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">开启多线程、模拟三个人同时发起多次领取请求</span>
+            <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; <span style="color: #800080;">4</span>; i++<span style="color: #000000;">)
+            {
+                </span><span style="color: #0000ff;">new</span> Thread(() =&gt;<span style="color: #000000;">
+                {
+                    MutexGetCoupon(p1);
+                }).Start();
+                </span><span style="color: #0000ff;">new</span> Thread(() =&gt;<span style="color: #000000;">
+                {
+                    MutexGetCoupon(p2);
+                }).Start();
+                </span><span style="color: #0000ff;">new</span> Thread(() =&gt;<span style="color: #000000;">
+                {
+                    MutexGetCoupon(p3);
+                }).Start();
+            }
+            Console.ReadLine();
+        }</span></pre>
+</div>
+<p>测试结果：既避免了重复领取，也避免了堵塞用户请求的情况。见下面截图，Kobe、Rose、Lebl是同时领取的优惠券，但是每个人的重复请求都在排对</p>
+<p><img src="./images/C# 针对特定的条件进行锁操作，不用lock，而是mutex2.png" alt="" /></p>
+<p>总结：mutex锁，完美的解决了此类问题。</p>
+<p>&nbsp;--------------------------------------------华丽的分割线&nbsp;--------------------------------------------</p>
+<p>感谢各位大佬提出的问题和建议，我确实没有考虑到这些问题。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

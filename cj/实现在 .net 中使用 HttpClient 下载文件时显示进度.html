@@ -1,0 +1,104 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修实现在 .net 中使用 HttpClient 下载文件时显示进度' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>实现在 .net 中使用 HttpClient 下载文件时显示进度</center></div><div class='banquan'>原文出处:本文由博客园博主h82258652提供。<br/>
+原文连接:https://www.cnblogs.com/h82258652/p/10950580.html</div><br>
+    <p>在 .net framework 中，要实现下载文件并显示进度的话，最简单的做法是使用 <a href="https://docs.microsoft.com/zh-cn/dotnet/api/system.net.webclient">WebClient</a> 类。订阅 <a href="https://docs.microsoft.com/zh-cn/dotnet/api/system.net.webclient.downloadprogresschanged">DownloadProgressChanged</a> 事件就行了。</p>
+<p>但是很可惜，WebClient 并不包含在 .net standard 当中。在 .net standard 中，要进行 http 网络请求，我们用得更多的是 <a href="https://docs.microsoft.com/zh-cn/dotnet/api/system.net.http.httpclient">HttpClient</a>。另外还要注意的是，UWP 中也有一个 <a href="https://docs.microsoft.com/zh-cn/uwp/api/Windows.Web.Http.HttpClient">HttpClient</a>，虽然用法差不多，但是命名空间是不一样的，而且 UWP 的是可以支持获取下载进度的，这里就不再细说。</p>
+<p>如果要下载文件，我们会使用到 HttpClient 的 <a href="https://docs.microsoft.com/zh-cn/dotnet/api/system.net.http.httpclient.getbytearrayasync">GetByteArrayAsync</a> 这个方法。要实现下载进度，那要怎么办呢？俗话说，不行就包一层。这里我们写个扩展方法，定义如下：</p>
+<div class="cnblogs_code" style="padding: 5px; border: 1px solid #cccccc; border-image: none; background-color: #f5f5f5;">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> HttpClientExtensions
+{
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> Task&lt;<span style="color: #0000ff;">byte</span>[]&gt; GetByteArrayAsync(<span style="color: #0000ff;">this</span> HttpClient client, Uri requestUri, IProgress&lt;HttpDownloadProgress&gt;<span style="color: #000000;"> progress, CancellationToken cancellationToken)
+    {
+        </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> NotImplementedException();
+    }
+}</span></pre>
+</div>
+<p>其中 HttpDownloadProgress 是我自己定义的结构体（不使用类的原因我下面再说），代码如下：</p>
+<div class="cnblogs_code" style="padding: 5px; border: 1px solid #cccccc; border-image: none; background-color: #f5f5f5;">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">struct</span><span style="color: #000000;"> HttpDownloadProgress
+{
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">ulong</span> BytesReceived { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">ulong</span>? TotalBytesToReceive { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+}</span></pre>
+</div>
+<p>BytesReceived 代表已经下载的字节数，TotalBytesToReceive 代表需要下载的字节数，因为 http 的响应头不一定会返回长度（content-length），所以这里设置为可空。</p>
+<p>由于我们需要从 http 响应头获取到 content-length，而 HttpClient 自身的 GetByteArrayAsync 并没有办法实现，我们需要转向使用 GetAsync 这个方法。GetAsync 这个方法有一个重载 <a href="https://docs.microsoft.com/zh-cn/dotnet/api/system.net.http.httpclient.getasync#System_Net_Http_HttpClient_GetAsync_System_Uri_System_Net_Http_HttpCompletionOption_System_Threading_CancellationToken_">https://docs.microsoft.com/zh-cn/dotnet/api/system.net.http.httpclient.getasync#System_Net_Http_HttpClient_GetAsync_System_Uri_System_Net_Http_HttpCompletionOption_System_Threading_CancellationToken_</a> 它的第二个参数是一个枚举，代表是什么时候可以得到 response。按照需求，我们这里应该使用 HttpCompletionOption.ResponseHeadersRead 这个。</p>
+<p>另外 HttpClient 的源码也可以在 Github 上看得到。<a href="https://github.com/dotnet/corefx/blob/d69d441dfb0710c2a34155c7c4745db357b14c96/src/System.Net.Http/src/System/Net/Http/HttpClient.cs">https://github.com/dotnet/corefx/blob/d69d441dfb0710c2a34155c7c4745db357b14c96/src/System.Net.Http/src/System/Net/Http/HttpClient.cs</a> 我们可以参考一下 GetByteArrayAsync 的实现。</p>
+<p>经过思考，可以写出下面的代码：</p>
+<div class="cnblogs_code" style="padding: 5px; border: 1px solid #cccccc; border-image: none; background-color: #f5f5f5;">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> HttpClientExtensions
+{
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">int</span> BufferSize = <span style="color: #800080;">8192</span><span style="color: #000000;">;
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">async</span> Task&lt;<span style="color: #0000ff;">byte</span>[]&gt; GetByteArrayAsync(<span style="color: #0000ff;">this</span> HttpClient client, Uri requestUri, IProgress&lt;HttpDownloadProgress&gt;<span style="color: #000000;"> progress, CancellationToken cancellationToken)
+    {
+        </span><span style="color: #0000ff;">if</span> (client == <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+        {
+            </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> ArgumentNullException(nameof(client));
+        }
+
+        </span><span style="color: #0000ff;">using</span> (<span style="color: #0000ff;">var</span> responseMessage = <span style="color: #0000ff;">await</span> client.GetAsync(requestUri, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(<span style="color: #0000ff;">false</span><span style="color: #000000;">))
+        {
+            responseMessage.EnsureSuccessStatusCode();
+
+            </span><span style="color: #0000ff;">var</span> content =<span style="color: #000000;"> responseMessage.Content;
+            </span><span style="color: #0000ff;">if</span> (content == <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+            {
+                </span><span style="color: #0000ff;">return</span> Array.Empty&lt;<span style="color: #0000ff;">byte</span>&gt;<span style="color: #000000;">();
+            }
+
+            </span><span style="color: #0000ff;">var</span> headers =<span style="color: #000000;"> content.Headers;
+            </span><span style="color: #0000ff;">var</span> contentLength =<span style="color: #000000;"> headers.ContentLength;
+            </span><span style="color: #0000ff;">using</span> (<span style="color: #0000ff;">var</span> responseStream = <span style="color: #0000ff;">await</span> content.ReadAsStreamAsync().ConfigureAwait(<span style="color: #0000ff;">false</span><span style="color: #000000;">))
+            {
+                </span><span style="color: #0000ff;">var</span> buffer = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">byte</span><span style="color: #000000;">[BufferSize];
+                </span><span style="color: #0000ff;">int</span><span style="color: #000000;"> bytesRead;
+                </span><span style="color: #0000ff;">var</span> bytes = <span style="color: #0000ff;">new</span> List&lt;<span style="color: #0000ff;">byte</span>&gt;<span style="color: #000000;">();
+
+                </span><span style="color: #0000ff;">var</span> downloadProgress = <span style="color: #0000ff;">new</span><span style="color: #000000;"> HttpDownloadProgress();
+                </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (contentLength.HasValue)
+                {
+                    downloadProgress.TotalBytesToReceive </span>= (<span style="color: #0000ff;">ulong</span><span style="color: #000000;">)contentLength.Value;
+                }
+                progress</span>?<span style="color: #000000;">.Report(downloadProgress);
+
+                </span><span style="color: #0000ff;">while</span> ((bytesRead = <span style="color: #0000ff;">await</span> responseStream.ReadAsync(buffer, <span style="color: #800080;">0</span>, BufferSize, cancellationToken).ConfigureAwait(<span style="color: #0000ff;">false</span>)) &gt; <span style="color: #800080;">0</span><span style="color: #000000;">)
+                {
+                    bytes.AddRange(buffer.Take(bytesRead));
+
+                    downloadProgress.BytesReceived </span>+= (<span style="color: #0000ff;">ulong</span><span style="color: #000000;">)bytesRead;
+                    progress</span>?<span style="color: #000000;">.Report(downloadProgress);
+                }
+
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> bytes.ToArray();
+            }
+        }
+    }
+}</span></pre>
+</div>
+<p>这里我将缓冲区设置为 8192 字节（8 KB），相当于每读取 8 KB 就汇报一次下载进度，当然各位看官也可以把这个值调小，这样效果会更好，但相对的性能就差一些。同时也因为这里 Report 的频率是比较高的，因此 HttpDownloadProgress 不适合用 class（否则 GC 会压力相当大）。</p>
+<p>下面我自己的 Demo 的效果图：</p>
+<p><a href="https://img2018.cnblogs.com/blog/484187/201905/484187-20190530165147096-1937495416.gif"><img style="display: inline;" title="iiiw" src="./images/实现在 .net 中使用 HttpClient 下载文件时显示进度0.png" alt="iiiw" width="240" height="144" /></a></p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

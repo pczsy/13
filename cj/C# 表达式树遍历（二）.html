@@ -1,0 +1,299 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C# 表达式树遍历（二）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C# 表达式树遍历（二）</center></div><div class='banquan'>原文出处:本文由博客园博主园子的蜗牛提供。<br/>
+原文连接:https://www.cnblogs.com/snailblog/p/11521335.html</div><br>
+    <h2>一、前言</h2>
+<p><a href="https://www.cnblogs.com/snailblog/p/11521043.html" target="_blank">上一篇</a>我们对表达式树有了初步的认识，这里我们将对表达式树进行遍历，只有弄清楚了他的运行原理，我们才可以对他进行定制化修改。</p>
+<p>表达式系列目录</p>
+<p><a href="https://www.cnblogs.com/snailblog/p/11521043.html" target="_blank">C# 表达式树讲解（一）</a></p>
+<p>C# 表达式树遍历（二）</p>
+<p><a href="https://www.cnblogs.com/snailblog/p/11521359.html" target="_blank">&nbsp;C# 表达式树分页扩展（三）</a></p>
+<p><a href="https://www.cnblogs.com/snailblog/p/11525118.html" target="_blank">C# 表达式树Lambda扩展（四）</a></p>
+<h2>二、表达式树的遍历</h2>
+<p>要查看表达式树的遍历，肯定不能直接用.Net Framework封装的方法，因为.Net Framework框架是闭源的，除了看中间语言（IL）去查看。我们就用ExpressionVisitor类查看一下他的运行原理，看了下ExpressionVisitor类，里面都是对各个表达式的访问，而且都是虚拟函数，我们可以对他进行override。</p>
+<p>ExpressionVisitor类里面都是对各个类型的表达式进行访问，为了更好的理解里面的访问顺序，蜗牛把里面的虚函数都override了一遍，然后跟踪里面的执行顺序。【傻眼了，35个虚函数需要override，内心是很拒绝的，vs2019有没有重写父类虚函数的快捷键啊！！！！！！！】</p>
+<p>ExpressionVisitor类相关介绍：<a href="https://docs.microsoft.com/zh-cn/dotnet/api/system.linq.expressions.expressionvisitor?view=netframework-4.8" target="_blank">https://docs.microsoft.com/zh-cn/dotnet/api/system.linq.expressions.expressionvisitor?view=netframework-4.8</a></p>
+<h3>2.1、ExpressionVisitor类的跟踪</h3>
+<p>为了不改变ExpressionVisitor类原来的访问，创建的SnailExpressionVisitor.cs 文件只在重写方法里面添加日志打印。</p>
+<p>代码如下：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> SnailExpressionVisitor : ExpressionVisitor
+    {
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">override</span> Expression Visit(Expression node)
+        {
+            Console.WriteLine($"<span style="color: #8b0000;">访问了 Visit，内容：{node.ToString()}</span>");
+            <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">base</span>.Visit(node);
+        }
+
+        <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">override</span> CatchBlock VisitCatchBlock(CatchBlock node)
+        {
+
+            Console.WriteLine($"<span style="color: #8b0000;">访问了 VisitCatchBlock，内容：{node.ToString()}</span>");
+            <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">base</span>.VisitCatchBlock(node);
+        }
+
+        <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">override</span> ElementInit VisitElementInit(ElementInit node)
+        {
+            Console.WriteLine($"<span style="color: #8b0000;">访问了 VisitElementInit，内容：{node.ToString()}</span>");
+            <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">base</span>.VisitElementInit(node);
+        }
+        <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">override</span> LabelTarget VisitLabelTarget(LabelTarget node)
+        {
+
+            Console.WriteLine($"<span style="color: #8b0000;">访问了 VisitLabelTarget，内容：{node.ToString()}</span>");
+            <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">base</span>.VisitLabelTarget(node);
+        }
+        <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">override</span> MemberAssignment VisitMemberAssignment(MemberAssignment node)
+        {
+
+            Console.WriteLine($"<span style="color: #8b0000;">访问了 VisitMemberAssignment，内容：{node.ToString()}</span>");
+            <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">base</span>.VisitMemberAssignment(node);
+        }
+        <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">override</span> MemberBinding VisitMemberBinding(MemberBinding node)
+        {
+
+            Console.WriteLine($"<span style="color: #8b0000;">访问了 VisitMemberBinding，内容：{node.ToString()}</span>");
+            <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">base</span>.VisitMemberBinding(node);
+        }
+
+        <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">override</span> MemberListBinding VisitMemberListBinding(MemberListBinding node)
+        {
+
+            Console.WriteLine($"<span style="color: #8b0000;">访问了 VisitMemberListBinding，内容：{node.ToString()}</span>");
+            <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">base</span>.VisitMemberListBinding(node);
+        }
+        <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">override</span> MemberMemberBinding VisitMemberMemberBinding(MemberMemberBinding node)
+        {
+
+            Console.WriteLine($"<span style="color: #8b0000;">访问了 VisitMemberMemberBinding，内容：{node.ToString()}</span>");
+            <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">base</span>.VisitMemberMemberBinding(node);
+        }
+        <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">override</span> SwitchCase VisitSwitchCase(SwitchCase node)
+        {
+            Console.WriteLine($"<span style="color: #8b0000;">访问了 VisitSwitchCase，内容：{node.ToString()}</span>");
+            <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">base</span>.VisitSwitchCase(node);
+        }
+        <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">override</span> Expression VisitBinary(BinaryExpression node)
+        {
+            Console.WriteLine($"<span style="color: #8b0000;">访问了 VisitBinary，内容：{node.ToString()}</span>");
+            <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">base</span>.VisitBinary(node);
+        }
+        <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">override</span> Expression VisitBlock(BlockExpression node)
+        {
+            Console.WriteLine($"<span style="color: #8b0000;">访问了 VisitBlock，内容：{node.ToString()}</span>");
+            <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">base</span>.VisitBlock(node);
+        }
+
+        <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">override</span> Expression VisitConditional(ConditionalExpression node)
+        {
+            Console.WriteLine($"<span style="color: #8b0000;">访问了 VisitConditional，内容：{node.ToString()}</span>");
+            <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">base</span>.VisitConditional(node);
+        }
+
+        <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">override</span> Expression VisitConstant(ConstantExpression node)
+        {
+            Console.WriteLine($"<span style="color: #8b0000;">访问了 VisitConstant，内容：{node.ToString()}</span>");
+            <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">base</span>.VisitConstant(node);
+        }
+        <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">override</span> Expression VisitDebugInfo(DebugInfoExpression node)
+        {
+            Console.WriteLine($"<span style="color: #8b0000;">访问了 VisitDebugInfo，内容：{node.ToString()}</span>");
+            <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">base</span>.VisitDebugInfo(node);
+        }
+        <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">override</span> Expression VisitDefault(DefaultExpression node)
+        {
+            Console.WriteLine($"<span style="color: #8b0000;">访问了 VisitDefault，内容：{node.ToString()}</span>");
+            <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">base</span>.VisitDefault(node);
+        }
+
+        <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">override</span> Expression VisitDynamic(DynamicExpression node)
+        {
+            Console.WriteLine($"<span style="color: #8b0000;">访问了 VisitDynamic，内容：{node.ToString()}</span>");
+            <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">base</span>.VisitDynamic(node);
+        }
+        <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">override</span> Expression VisitExtension(Expression node)
+        {
+            Console.WriteLine($"<span style="color: #8b0000;">访问了 VisitExtension，内容：{node.ToString()}</span>");
+            <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">base</span>.VisitExtension(node);
+        }
+        <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">override</span> Expression VisitGoto(GotoExpression node)
+        {
+            Console.WriteLine($"<span style="color: #8b0000;">访问了 VisitGoto，内容：{node.ToString()}</span>");
+            <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">base</span>.VisitGoto(node);
+        }
+        <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">override</span> Expression VisitIndex(IndexExpression node)
+        {
+            Console.WriteLine($"<span style="color: #8b0000;">访问了 VisitIndex，内容：{node.ToString()}</span>");
+            <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">base</span>.VisitIndex(node);
+        }
+        <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">override</span> Expression VisitInvocation(InvocationExpression node)
+        {
+            Console.WriteLine($"<span style="color: #8b0000;">访问了 VisitInvocation，内容：{node.ToString()}</span>");
+            <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">base</span>.VisitInvocation(node);
+        }
+        <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">override</span> Expression VisitLabel(LabelExpression node)
+        {
+            Console.WriteLine($"<span style="color: #8b0000;">访问了 VisitLabel，内容：{node.ToString()}</span>");
+            <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">base</span>.VisitLabel(node);
+        }
+        <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">override</span> Expression VisitLambda&lt;T&gt;(Expression&lt;T&gt; node)
+        {
+            Console.WriteLine($"<span style="color: #8b0000;">访问了 VisitLambda，内容：{node.ToString()}</span>");
+            <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">base</span>.VisitLambda(node);
+        }
+
+        <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">override</span> Expression VisitListInit(ListInitExpression node)
+        {
+            Console.WriteLine($"<span style="color: #8b0000;">访问了 VisitListInit，内容：{node.ToString()}</span>");
+            <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">base</span>.VisitListInit(node);
+        }
+        <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">override</span> Expression VisitLoop(LoopExpression node)
+        {
+            Console.WriteLine($"<span style="color: #8b0000;">访问了 VisitLoop，内容：{node.ToString()}</span>");
+            <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">base</span>.VisitLoop(node);
+        }
+        <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">override</span> Expression VisitMember(MemberExpression node)
+        {
+            Console.WriteLine($"<span style="color: #8b0000;">访问了 VisitMember，内容：{node.ToString()}</span>");
+            <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">base</span>.VisitMember(node);
+        }
+        <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">override</span> Expression VisitMemberInit(MemberInitExpression node)
+        {
+            Console.WriteLine($"<span style="color: #8b0000;">访问了 VisitMemberInit，内容：{node.ToString()}</span>");
+            <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">base</span>.VisitMemberInit(node);
+        }
+        <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">override</span> Expression VisitMethodCall(MethodCallExpression node)
+        {
+            Console.WriteLine($"<span style="color: #8b0000;">访问了 VisitMethodCall，内容：{node.ToString()}</span>");
+            <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">base</span>.VisitMethodCall(node);
+        }
+        <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">override</span> Expression VisitNew(NewExpression node)
+        {
+            Console.WriteLine($"<span style="color: #8b0000;">访问了 VisitNew，内容：{node.ToString()}</span>");
+            <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">base</span>.VisitNew(node);
+        }
+        <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">override</span> Expression VisitNewArray(NewArrayExpression node)
+        {
+            Console.WriteLine($"<span style="color: #8b0000;">访问了 VisitNewArray，内容：{node.ToString()}</span>");
+            <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">base</span>.VisitNewArray(node);
+        }
+
+        <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">override</span> Expression VisitParameter(ParameterExpression node)
+        {
+            Console.WriteLine($"<span style="color: #8b0000;">访问了 VisitParameter，内容：{node.ToString()}</span>");
+            <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">base</span>.VisitParameter(node);
+        }
+        <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">override</span> Expression VisitRuntimeVariables(RuntimeVariablesExpression node)
+        {
+            Console.WriteLine($"<span style="color: #8b0000;">访问了 VisitRuntimeVariables，内容：{node.ToString()}</span>");
+            <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">base</span>.VisitRuntimeVariables(node);
+        }
+
+        <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">override</span> Expression VisitSwitch(SwitchExpression node)
+        {
+            Console.WriteLine($"<span style="color: #8b0000;">访问了 VisitSwitch，内容：{node.ToString()}</span>");
+            <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">base</span>.VisitSwitch(node);
+        }
+        <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">override</span> Expression VisitTry(TryExpression node)
+        {
+            Console.WriteLine($"<span style="color: #8b0000;">访问了 VisitTry，内容：{node.ToString()}</span>");
+            <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">base</span>.VisitTry(node);
+        }
+
+        <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">override</span> Expression VisitTypeBinary(TypeBinaryExpression node)
+        {
+            Console.WriteLine($"<span style="color: #8b0000;">访问了 VisitTypeBinary，内容：{node.ToString()}</span>");
+            <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">base</span>.VisitTypeBinary(node);
+        }
+        <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">override</span> Expression VisitUnary(UnaryExpression node)
+        {
+            Console.WriteLine($"<span style="color: #8b0000;">访问了 VisitUnary，内容：{node.ToString()}</span>");
+            <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">base</span>.VisitUnary(node);
+        }
+
+
+
+    }</pre>
+</div>
+<p>调用方法：</p>
+<div class="cnblogs_code">
+<pre><code>Expression&lt;Func&lt;<span style="color: #0000ff;">int</span>, <span style="color: #0000ff;">int</span>, <span style="color: #0000ff;">bool</span>&gt;&gt; fun = (x, y) =&gt; x - y &gt; 5;
+
+var treeModifier = <span style="color: #0000ff;">new</span> SnailExpressionVisitor();
+Expression modifiedExpr = treeModifier.Visit(fun);
+</pre>
+</div>
+<p>运行结果：</p>
+<p><a href="https://img2018.cnblogs.com/blog/1764554/201909/1764554-20190915102305051-1533802902.png"><img style="display: inline; background-image: none;" title="image" src="./images/C# 表达式树遍历（二）0.png" alt="image" width="592" height="425" border="0" /></a></p>
+<p>从打印的日志里面可以看出，</p>
+<p>1、每次访问表达式类时，都会先去调用Visit函数，估计他是在Visit里面判定表达式类，然后在根据表达式类的类型，调用访问改表达式的函数</p>
+<p>2、对Lambda表达式类，是先访问的是Expression&lt;T&gt;。Expression&lt;T&gt;是不是很熟悉，上一章说过他的作用是将强类型Lambda表达式表示为表达式树形式的数据结构，解析成功之后才对表达式的访问</p>
+<p>3、对于表达式先解析的是左边，左边的内容解析完了之后在解析右边，如(x-y)&gt;5，解析的顺序是：x-y=&gt;x=&gt;y=&gt;5</p>
+<h3>2.2、修改表达式树</h3>
+<p>既然我们弄清楚了表达式树的访问，现在我们就可以对他进行编辑修改了。</p>
+<p>上面我们判断的是x-y&gt;5，现在我们规定，将&ldquo;-&rdquo;改成&ldquo;+&rdquo;，&ldquo;&gt;&rdquo;改成&ldquo;&gt;=&rdquo;</p>
+<p>对VisitBinary方法修改代码如下：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">override</span> Expression VisitBinary(BinaryExpression node)
+{
+    Console.WriteLine($"<span style="color: #8b0000;">访问了 VisitBinary，内容：{node.ToString()}</span>");
+    <span style="color: #0000ff;">if</span> (node.NodeType == ExpressionType.GreaterThan)
+    {
+        Expression left = <span style="color: #0000ff;">this</span>.Visit(node.Left);
+        Expression right = <span style="color: #0000ff;">this</span>.Visit(node.Right);
+
+        var result = Expression.MakeBinary(ExpressionType.GreaterThanOrEqual, left, right, node.IsLiftedToNull, node.Method);
+        Console.WriteLine($"<span style="color: #8b0000;">访问了 VisitBinary，更改之后的内容：{result.ToString()}</span>");
+        <span style="color: #0000ff;">return</span> result;
+    }
+    <span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (node.NodeType == ExpressionType.Subtract || node.NodeType == ExpressionType.SubtractChecked)
+    {
+        Expression left = <span style="color: #0000ff;">this</span>.Visit(node.Left);
+        Expression right = <span style="color: #0000ff;">this</span>.Visit(node.Right);
+
+        var result = Expression.MakeBinary(ExpressionType.Add, left, right, node.IsLiftedToNull, node.Method);
+        Console.WriteLine($"<span style="color: #8b0000;">访问了 VisitBinary，更改之后的内容：{result.ToString()}</span>");
+        <span style="color: #0000ff;">return</span> result;
+    }
+    <span style="color: #0000ff;">else</span>
+    {
+        <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">base</span>.VisitBinary(node);
+    }
+}
+</pre>
+</div>
+<p>调用方法：</p>
+<div class="cnblogs_code">
+<pre><code>Expression&lt;Func&lt;<span style="color: #0000ff;">int</span>, <span style="color: #0000ff;">int</span>, <span style="color: #0000ff;">bool</span>&gt;&gt; fun = (x, y) =&gt; x - y &gt; 5;
+
+var treeModifier = <span style="color: #0000ff;">new</span> SnailExpressionVisitor();
+Expression modifiedExpr = treeModifier.Visit(fun);
+
+Console.WriteLine($"<span style="color: #8b0000;">Lambda的转换最后结果：{modifiedExpr.ToString()}</span>");
+</pre>
+</div>
+<p>运行结果如下</p>
+<p><a href="https://img2018.cnblogs.com/blog/1764554/201909/1764554-20190915102306070-1298442000.png"><img style="display: inline; background-image: none;" title="image" src="./images/C# 表达式树遍历（二）1.png" alt="image" width="572" height="403" border="0" /></a></p>
+<h2>三、总结</h2>
+<p>对表达树的讲解已经完成了，但是说了这么久，对真实的开发有什么作用呢？后面我将利用Lambda表达式写一个对现有数据分页的公共方法，同时在对Dapper的扩展也会用到相关知识点，大家拭目以待吧&hellip;&hellip;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,146 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修.Net Standard（.Net Core）实现获取配置信息' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>.Net Standard（.Net Core）实现获取配置信息</center></div><div class='banquan'>原文出处:本文由博客园博主园子的蜗牛提供。<br/>
+原文连接:https://www.cnblogs.com/snailblog/p/11565907.html</div><br>
+    <h2>一、前言</h2>
+<p>在.Net Framework框架有专门获取webconfig配置的方法供我们使用，但是在.Net Core或者.Net Standard中没有可以直接使用的方法来获取配置文件信息，下面就来实现获取配置信息。</p>
+<h2>二、获取配置信息的实现</h2>
+<p>在.Net Core中，他的配置信息的载体是一个json文件，我们现在就计划所有项目（包含.Net Framework和.Net Standard(.Net Core)框架）都是json文件作为配置的载体。</p>
+<p>首先通过Nuget加载如下的包：</p>
+<div class="cnblogs_code">
+<pre><code>Install-Package Microsoft.Extensions.Configuration
+Install-Package Microsoft.Extensions.Configuration.Json
+Install-Package Microsoft.Extensions.DependencyInjection
+Install-Package Microsoft.Extensions.Options
+Install-Package Microsoft.Extensions.Options.ConfigurationExtensions</pre>
+</div>
+<p><span style="color: #000000;">现在我们使用json配置文件的内容有一下格式：</span></p>
+<div class="cnblogs_code">
+<pre><code>{
+  "<span style="color: #8b0000;">ConnectionStrings</span>": {
+    "<span style="color: #8b0000;">CxyOrder</span>": "<span style="color: #8b0000;">Server=LAPTOP-AQUL6MDE\\MSSQLSERVERS;Database=CxyOrder;User ID=sa;Password=123456;Trusted_Connection=False;</span>"
+  },
+  "<span style="color: #8b0000;">Appsettings</span>": {
+    "<span style="color: #8b0000;">SystemName</span>": "<span style="color: #8b0000;">PDF .NET CORE</span>",
+    "<span style="color: #8b0000;">Date</span>": "<span style="color: #8b0000;">2017-07-23</span>",
+    "<span style="color: #8b0000;">Author</span>": "<span style="color: #8b0000;">PDF</span>"
+  },
+  "<span style="color: #8b0000;">ServiceUrl</span>": "<span style="color: #8b0000;">https://www.baidu.com/getnews</span>"
+}</pre>
+</div>
+<p><span style="color: #000000;">创建PFTConfiguration.cs文件，代码如下：</span></p>
+<div class="cnblogs_code">
+<pre><code> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> PFTConfiguration
+    {
+        <span style="color: #008000;">/// &lt;summary&gt;</span>
+        <span style="color: #008000;">/// PFTConfiguration.Configuration.GetConnectionString("CxyOrder"); </span>
+        <span style="color: #008000;">/// PFTConfiguration.Configuration["ServiceUrl"];</span>
+        <span style="color: #008000;">/// PFTConfiguration.Configuration["Appsettings:SystemName"];</span>
+        <span style="color: #008000;">/// &lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> IConfiguration Configuration { get; set; }
+        <span style="color: #0000ff;">static</span> PFTConfiguration()
+        {
+            Configuration = <span style="color: #0000ff;">new</span> ConfigurationBuilder()
+            .Add(<span style="color: #0000ff;">new</span> JsonConfigurationSource { Path = "<span style="color: #8b0000;">appsettings.json</span>", ReloadOnChange = <span style="color: #0000ff;">true</span> })
+            .Build();
+        }
+
+        <span style="color: #008000;">/// &lt;summary&gt;</span>
+        <span style="color: #008000;">/// 获取配置信息</span>
+        <span style="color: #008000;">/// &lt;/summary&gt;</span>
+        <span style="color: #008000;">/// &lt;param name="path"&gt;json文件类型&lt;/param&gt;</span>
+        <span style="color: #008000;">/// &lt;typeparam name="T"&gt;返回实体类型&lt;/typeparam&gt;</span>
+        <span style="color: #008000;">/// &lt;param name="key"&gt;json关键字&lt;/param&gt;</span>
+        <span style="color: #008000;">/// &lt;returns&gt;&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> T GetAppsettings&lt;T&gt;(string key, string path) where T : <span style="color: #0000ff;">class</span>, <span style="color: #0000ff;">new</span>()
+        {
+            <span style="color: #0000ff;">try</span>
+            {
+                <span style="color: #0000ff;">if</span> (string.IsNullOrWhiteSpace(path))
+                {
+                    <span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> Exception("<span style="color: #8b0000;">解析配置错误，配置文件路径为空</span>");
+                }
+                <span style="color: #0000ff;">if</span> (string.IsNullOrWhiteSpace(key))
+                {
+                    <span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> Exception("<span style="color: #8b0000;">解析配置错误，配置key为空</span>");
+                }
+                <span style="color: #0000ff;">var</span> config = <span style="color: #0000ff;">new</span> ConfigurationBuilder()
+                    .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
+                    .Add(<span style="color: #0000ff;">new</span> JsonConfigurationSource { Path = path, ReloadOnChange = <span style="color: #0000ff;">true</span> })
+                    .Build();
+                <span style="color: #0000ff;">var</span> appconfig = <span style="color: #0000ff;">new</span> ServiceCollection()
+                    .AddOptions()
+                    .Configure&lt;T&gt;(config.GetSection(key))
+                    .BuildServiceProvider()
+                    .GetService&lt;IOptions&lt;T&gt;&gt;()
+                    .Value;
+                <span style="color: #0000ff;">return</span> appconfig;
+            }
+            <span style="color: #0000ff;">catch</span> (Exception ex)
+            {
+                <span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> Exception("<span style="color: #8b0000;">解析配置（对象）异常</span>", ex);
+            }
+
+        }
+
+
+        <span style="color: #008000;">/// &lt;summary&gt;</span>
+        <span style="color: #008000;">/// 获取配置信息</span>
+        <span style="color: #008000;">/// &lt;/summary&gt;</span>
+        <span style="color: #008000;">/// &lt;param name="key"&gt;json关键字&lt;/param&gt;</span>
+        <span style="color: #008000;">/// &lt;param name="path"&gt;json文件类型&lt;/param&gt;</span>
+        <span style="color: #008000;">/// &lt;returns&gt;&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> string GetAppsettings(string key, string path)
+        {
+            <span style="color: #0000ff;">try</span>
+            {
+                <span style="color: #0000ff;">if</span> (string.IsNullOrWhiteSpace(path))
+                {
+                    <span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> Exception("<span style="color: #8b0000;">解析配置错误，配置文件路径为空</span>");
+                }
+                <span style="color: #0000ff;">if</span> (string.IsNullOrWhiteSpace(key))
+                {
+                    <span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> Exception("<span style="color: #8b0000;">解析配置错误，配置key为空</span>");
+                }
+                <span style="color: #0000ff;">var</span> config = <span style="color: #0000ff;">new</span> ConfigurationBuilder()
+                    .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
+                    .Add(<span style="color: #0000ff;">new</span> JsonConfigurationSource { Path = path, ReloadOnChange = <span style="color: #0000ff;">true</span>, Optional = <span style="color: #0000ff;">false</span> })
+                    .Build();
+                <span style="color: #0000ff;">var</span> appconfig = config.GetSection(key).Value;
+                <span style="color: #0000ff;">return</span> appconfig;
+            }
+            <span style="color: #0000ff;">catch</span> (Exception ex)
+            {
+                <span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> Exception("<span style="color: #8b0000;">解析配置（字符串）异常</span>", ex);
+            }
+        }
+
+
+    }
+}</pre>
+</div>
+<p>里面定义了3种获取方法</p>
+<p>1、PFTConfiguration.Configuration["Appsettings:SystemName"] 文件路径默认为appsettings.json，然后通过节点来获取，这个方式有点类似于.Net Framework中获取配置的方法</p>
+<p>2、PFTConfiguration.GetAppsettings&lt;T&gt;(string key, string path)，他是获取指定配置文件，指定节点，以T对象的形式返回节点内容</p>
+<p>3、PFTConfiguration.GetAppsettings(string key, string path)，他是获取指定配置文件，指定节点，以字符串的形式返回节点内容</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

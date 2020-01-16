@@ -1,0 +1,310 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修jQuery 源码分析(十) 数据缓存模块 data详解' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>jQuery 源码分析(十) 数据缓存模块 data详解</center></div><div class='banquan'>原文出处:本文由博客园博主大沙漠提供。<br/>
+原文连接:https://www.cnblogs.com/greatdesert/p/11609111.html</div><br>
+    <p>jQuery的数据缓存模块以一种安全的方式为DOM元素附加任意类型的数据，避免了在JavaScript对象和DOM元素之间出现循环引用，以及由此而导致的内存泄漏。</p>
+<p>数据缓存模块为DOM元素和JavaScript对象提供了统一的数据设置、读取和移除方法，在jQuery内部还为队列模块、动画模块、样式操作模块、事件系统提供基础功能，负责维护这些模块运行时的内部数据。</p>
+<p class="hwi">&nbsp;writer by:大沙漠 QQ:22969969</p>
+<p>对于DOM元素和JavaScript对象，数据的存储位置是不同的，如下:</p>
+<ul>
+<li><span style="color: #ff0000;">对于DOM元素jQuery直接把数据存储在jQuery.cache中</span></li>
+<li><span style="color: #ff0000;">对于JavaScript对象，垃圾回收机制能够自动发生，因此数据可以直接存储在JavaScript对象中。</span></li>
+</ul>
+<p>另外为了避免jQuery内部使用的数据和用户自定义的数据发生冲突，分为内部数据缓存对象和自定义数据缓存对象</p>
+<ul>
+<li><span style="color: #ff0000;">内部缓存对象&nbsp;&nbsp; 　　&nbsp;;jQuery内部使用</span>&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;;DOM元素:存储在$.cache[elem[$.expando]]&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ;JavaScript对象:obj[$.expando]</li>
+<li><span style="color: #ff0000;">自定义缓存对象&nbsp;&nbsp; &nbsp;　;给用户使用的&nbsp;&nbsp; &nbsp;&nbsp;</span>&nbsp; &nbsp;&nbsp;&nbsp;&nbsp; ;DOM元素:存储在$.cache[elem[$.expando]].data&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;;JavaScript对象:obj[$.expando].data</li>
+</ul>
+<p>jQuery的静态方法含有如下API:</p>
+<ul>
+<li>$.cache　　　　　　　　　 &nbsp; &nbsp;　;DOM元素的数据缓存对象,所有DOM元素存储的数据都会存储在该对象里</li>
+<li>$.uuid　　　　　　 &nbsp;　　　　 &nbsp; &nbsp; ;唯一id种子，初始值为0,当数据存储在DOM元素上时用到，元素的$.expando属性的值等于最新的$.uuid加1</li>
+<li>$.expando　　　　 &nbsp;&nbsp;　　　　 &nbsp; &nbsp; ;页面中每个jQuery副本的唯一标识，只有刷新页面才会发生变化。格式:jQuery+版本号+随机数</li>
+<li>$.acceptData(elem) &nbsp; 　　　　 &nbsp; &nbsp;;判断DOM元素elem是否可以设置数据，elem是一个DOM节点</li>
+<li>$.hasData(elem)　　　　　　 &nbsp; &nbsp; ;判断elem是否有关联的数据</li>
+<li>$.data(elem, name, data,pvt)　　;设置或返回DOM或JavaScript对象的数据。</li>
+</ul>
+<p>　　　　　　　　　　　　　　　　　　&middot;elem是DOM元素或JavaScript对象。</p>
+<p>　　　　　　　　　　　　　　　　　　&middot;name是要设置或读取的数据名，也可以是包含键值对的对象。</p>
+<p>　　　　　　　　　　　　　　　　　　&middot;data是要设置的数据值，可以是任意数据。</p>
+<p>　　　　　　　　　　　　　　　　　　&middot;pvt表示操作的是否为内部数据，默认为false</p>
+<ul>
+<li>$._data(elem, name, data)　　　;设置、读取内部数据，内部代码就一句return jQuery.data( elem, name, data, true )</li>
+<li>$.removeData(elem, name, pvt)　;移除通过$.data()设置的数据,pvt表示是否为内部数据</li>
+<li>&nbsp;$.cleanData(elem)　　　　　　 &nbsp; ;移除多个DOM元素的全部数据和事件</li>
+</ul>
+<p>jQuery/$ 实例方法(可以通过jQuery实例调用的):</p>
+<ul>
+<li>data(key,value)　　　　　　　　;设置/读取自定义数据</li>
+<li>removeData(key)　　　　　　　 ;移除匹配元素的自定义数据，key可以是一个字符换或数组，表示属性或属性列表</li>
+</ul>
+<p>为DOM元素存储数据时，比较特别，jQuery首先会在该DOM上添加一个名为$.expando的属性，值是一个唯一的id,等于++$.uuid(jQuery的一个内置属性)，$.uuid是一个整型值,初始值为0。为该DOM添加属性之后还会把这个id作为属性添加到全局缓存对象jQuery.cache中，对应的属性值是一个JavaScript对象，该对象是DOM元素的数据缓存对象</p>
+<p>例如:</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;!</span><span style="color: #ff00ff;">DOCTYPE html</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">html </span><span style="color: #ff0000;">lang</span><span style="color: #0000ff;">="en"</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">head</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">meta </span><span style="color: #ff0000;">charset</span><span style="color: #0000ff;">="UTF-8"</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">title</span><span style="color: #0000ff;">&gt;</span>Document<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">title</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script </span><span style="color: #ff0000;">src</span><span style="color: #0000ff;">="http://libs.baidu.com/jquery/1.7.1/jquery.min.js"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">head</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">body</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">p</span><span style="color: #0000ff;">&gt;</span>123<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">p</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span>
+        <span style="background-color: #f5f5f5; color: #0000ff;">var</span><span style="background-color: #f5f5f5; color: #000000;"> p </span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #000000;"> document.getElementsByTagName(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">p</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">)[</span><span style="background-color: #f5f5f5; color: #000000;">0</span><span style="background-color: #f5f5f5; color: #000000;">];
+        $.data(p,</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">age</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">,</span><span style="background-color: #f5f5f5; color: #000000;">25</span><span style="background-color: #f5f5f5; color: #000000;">,</span><span style="background-color: #f5f5f5; color: #0000ff;">true</span><span style="background-color: #f5f5f5; color: #000000;">);                                </span><span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;">设置内部数据age=25，这是直接定义在数据缓存对象上的。等价于$._data(p,'age',25);</span>
+<span style="background-color: #f5f5f5; color: #000000;">        $.data(p,</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">age</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">,</span><span style="background-color: #f5f5f5; color: #000000;">23</span><span style="background-color: #f5f5f5; color: #000000;">);                                     </span><span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;">设置自定义数据age=23，等价于$.data(p,'age',23,false)，这是定义在数据缓存对象的data属性对象上</span>
+<span style="background-color: #f5f5f5; color: #000000;">        console.log($.data(p,undefined,undefined,</span><span style="background-color: #f5f5f5; color: #0000ff;">true</span><span style="background-color: #f5f5f5; color: #000000;">));        </span><span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;">输出: Object { data={ age=23},  age=25}    ;获取数据缓存对象。    </span>
+<span style="background-color: #f5f5f5; color: #000000;">        console.log($.data(p));                                 </span><span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;">输出: Object { age=23}             ;获取自定义缓存对象,其实就是$.data(p,undefined,undefined,true)对象的data属性</span>
+<span style="background-color: #f5f5f5; color: #000000;">        console.log($.cache[p[$.expando]].data </span><span style="background-color: #f5f5f5; color: #000000;">===</span><span style="background-color: #f5f5f5; color: #000000;"> $.data(p));  </span><span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;">输出true，从这里可以看出$.data(p)获取的就是自定义缓存对象，也就是数据缓存对象的data属性对象</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span>    
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">body</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">html</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<p>输出如下:</p>
+<p><img src="./images/jQuery 源码分析(十) 数据缓存模块 data详解0.png" alt="" /></p>
+<p>&nbsp;</p>
+<p><strong><span style="font-size: 18pt;">源码分析</span></strong></p>
+<hr />
+<p>对于数据缓存模块的静态方法来说，它是以jQuery.extend({})函数直接挂载到jQuery里的，如下:</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">jQuery.extend({
+  cache: {},                                </span><span style="color: #008000;">//</span><span style="color: #008000;">DOM元素的数据缓存对象</span>
+
+  <span style="color: #008000;">//</span><span style="color: #008000;"> Please use with caution</span>
+  uuid: 0<span style="color: #000000;">,
+
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> Unique for each copy of jQuery on the page</span>
+  <span style="color: #008000;">//</span><span style="color: #008000;"> Non-digits removed to match rinlinejQuery</span>
+  expando: "jQuery" + ( jQuery.fn.jquery + Math.random() ).replace( /\D/g, "" ),    <span style="color: #008000;">//</span><span style="color: #008000;">页面中每个jQuery副本的唯一标识</span>
+
+  <span style="color: #008000;">//</span><span style="color: #008000;"> The following elements throw uncatchable exceptions if you</span>
+  <span style="color: #008000;">//</span><span style="color: #008000;"> attempt to add expando properties to them.</span>
+  noData: {                                   <span style="color: #008000;">//</span><span style="color: #008000;">存放了不支持扩展属性的embed、object、applet元素的节点名称</span>
+    "embed": <span style="color: #0000ff;">true</span><span style="color: #000000;">,
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> Ban all objects except for Flash (which handle expandos)</span>
+    "object": "clsid:D27CDB6E-AE6D-11cf-96B8-444553540000"<span style="color: #000000;">,
+    </span>"applet": <span style="color: #0000ff;">true</span><span style="color: #000000;">
+  },
+
+  hasData: </span><span style="color: #0000ff;">function</span>( elem ) {                 <span style="color: #008000;">//</span><span style="color: #008000;">判断一个DOM元素或JavaScript对象是否有与之关联的数据</span>
+    elem = elem.nodeType ? jQuery.cache[ elem[jQuery.expando] ] : elem[ jQuery.expando ];     <span style="color: #008000;">//</span><span style="color: #008000;">如果是元素节点(有nodeType属性)则判断在jQuery.cache中是否有jQuery.expando属性，否则认为是JavaScript对象，判断是否有jQuery.expando属性。</span>
+    <span style="color: #0000ff;">return</span> !!elem &amp;&amp; !isEmptyDataObject( elem );                                              <span style="color: #008000;">//</span><span style="color: #008000;">如果elem存在且含有数据缓存则返回true,isEmptyDataObject是个jQuery内部的工具函数</span>
+<span style="color: #000000;">  },
+
+  data: </span><span style="color: #0000ff;">function</span>( elem, name, data, pvt <span style="color: #008000;">/*</span><span style="color: #008000;"> Internal Use Only </span><span style="color: #008000;">*/</span><span style="color: #000000;"> ) {
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">略</span><span style="color: #008000;">*/</span><span style="color: #000000;">
+  },
+
+  removeData: </span><span style="color: #0000ff;">function</span>( elem, name, pvt <span style="color: #008000;">/*</span><span style="color: #008000;"> Internal Use Only </span><span style="color: #008000;">*/</span><span style="color: #000000;"> ) {
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">略</span><span style="color: #008000;">*/</span><span style="color: #000000;">
+  },
+
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> For internal use only.</span>
+  _data: <span style="color: #0000ff;">function</span>( elem, name, data ) {       <span style="color: #008000;">//</span><span style="color: #008000;">设置、读取内部数据，就是调用jQuery.data()，并设置第四个参数为true</span>
+    <span style="color: #0000ff;">return</span> jQuery.data( elem, name, data, <span style="color: #0000ff;">true</span><span style="color: #000000;"> );
+  },
+
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> A method for determining if a DOM node can handle the data expando</span>
+  acceptData: <span style="color: #0000ff;">function</span>( elem ) {              <span style="color: #008000;">//</span><span style="color: #008000;">判断参数elem是否可以设置数据，返回true则可以设置，返回false则不可以</span>
+    <span style="color: #0000ff;">if</span><span style="color: #000000;"> ( elem.nodeName ) {
+      </span><span style="color: #0000ff;">var</span> match =<span style="color: #000000;"> jQuery.noData[ elem.nodeName.toLowerCase() ];
+
+      </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> ( match ) {
+        </span><span style="color: #0000ff;">return</span> !(match === <span style="color: #0000ff;">true</span> || elem.getAttribute("classid") !==<span style="color: #000000;"> match);
+      }
+    }
+
+    </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+  }
+});</span></pre>
+</div>
+<p>我们主要看一下$.data()是怎么设置数据的，懂了怎么设置数据，removeData也就懂了，如下:</p>
+<div class="cnblogs_code">
+<pre><code>data: <span style="color: #0000ff;">function</span>( elem, name, data, pvt <span style="color: #008000;">/*</span><span style="color: #008000;"> Internal Use Only </span><span style="color: #008000;">*/</span> ) {       <span style="color: #008000;">//</span><span style="color: #008000;">设置、读取自定义数据、内部数据</span>
+  <span style="color: #0000ff;">if</span> ( !jQuery.acceptData( elem ) ) {               <span style="color: #008000;">//</span><span style="color: #008000;">检查elem元素是否支持设置数据，如果jQuery.acceptData()函数返回false表示不允许设置数据</span>
+    <span style="color: #0000ff;">return</span>;                                           <span style="color: #008000;">//</span><span style="color: #008000;">则直接返回，不继续操作</span>
+<span style="color: #000000;">  }
+
+  </span><span style="color: #0000ff;">var</span> privateCache, thisCache, ret,                 <span style="color: #008000;">//</span><span style="color: #008000;">privateCache默认指向数据缓存对象(如果pvt参数未设置或者为false则指向自定义数据),thisCache表示自定义数据缓存对象,如果pvt是true,则privateCache和thisCache都指向数据缓存对象都指向数据缓存对象。ret是读取时的返回值</span>
+    internalKey = jQuery.expando,                   <span style="color: #008000;">//</span><span style="color: #008000;">jQuery.expando页面中每个jQuery副本的唯一标识，把它赋值给internalKey是为了减少拼写字数和缩短作用域链查找。</span>
+    getByName = <span style="color: #0000ff;">typeof</span> name === "string",           <span style="color: #008000;">//</span><span style="color: #008000;">getByName表示name是否为字符串</span>
+
+    <span style="color: #008000;">//</span><span style="color: #008000;"> We have to handle DOM nodes and JS objects differently because IE6-7</span>
+    <span style="color: #008000;">//</span><span style="color: #008000;"> can't GC object references properly across the DOM-JS boundary</span>
+    isNode = elem.nodeType,                         <span style="color: #008000;">//</span><span style="color: #008000;">isNode表示elem是否为DOM元素</span>
+
+    <span style="color: #008000;">//</span><span style="color: #008000;"> Only DOM nodes need the global jQuery cache; JS object data is</span>
+    <span style="color: #008000;">//</span><span style="color: #008000;"> attached directly to the object so GC can occur automatically</span>
+    cache = isNode ? jQuery.cache : elem,           <span style="color: #008000;">//</span><span style="color: #008000;">如果是DOM元素则存储在$.cache中，如果是JavaScript对象则存储在该对象本身 </span>
+
+    <span style="color: #008000;">//</span><span style="color: #008000;"> Only defining an ID for JS objects if its cache already exists allows</span>
+    <span style="color: #008000;">//</span><span style="color: #008000;"> the code to shortcut on the same path as a DOM node with no cache</span>
+    id = isNode ? elem[ internalKey ] : elem[ internalKey ] &amp;&amp;<span style="color: #000000;"> internalKey,
+    isEvents </span>= name === "events"<span style="color: #000000;">;
+
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> Avoid doing any more work than we need to when trying to get data on an</span>
+  <span style="color: #008000;">//</span><span style="color: #008000;"> object that has no data at all</span>
+  <span style="color: #0000ff;">if</span> ( (!id || !cache[id] || (!isEvents &amp;&amp; !pvt &amp;&amp; !cache[id].data)) &amp;&amp; getByName &amp;&amp; data === undefined ) {   <span style="color: #008000;">//</span><span style="color: #008000;">如果是读取数据但没有数据，则返回，避免做不必要的工作,if语句中的符合表达式可以分两个部分，后一部分是getByName &amp;&amp; data === undefined，表示，如果name是字符串且data没有设置，则说明是在读数据。 前一部分(!id || !cache[id] || (!isEvents &amp;&amp; !pvt &amp;&amp; !cache[id].data)表示，如果id不存在说明没有该属性，如果cache[id]不存在则说明没有该数据</span>
+    <span style="color: #0000ff;">return</span><span style="color: #000000;">;
+  }
+  </span><span style="color: #008000;">/*</span><span style="color: #ff0000;">执行到这里有两种情况:1.存储数据 2.读取数据且数据存在</span><span style="color: #008000;">*/</span>   
+  <span style="color: #0000ff;">if</span> ( !id ) {                                      <span style="color: #008000;">//</span><span style="color: #008000;">如果id不存在，则分配一个</span>
+    <span style="color: #008000;">//</span><span style="color: #008000;"> Only DOM nodes need a new unique ID for each element since their data</span>
+    <span style="color: #008000;">//</span><span style="color: #008000;"> ends up in the global cache</span>
+    <span style="color: #0000ff;">if</span> ( isNode ) {                                   <span style="color: #008000;">//</span><span style="color: #008000;">如果是DOM元素</span>
+      elem[ internalKey ] = id = ++jQuery.uuid;         <span style="color: #008000;">//</span><span style="color: #008000;">jQuery.uuid会自动加1，并附在DOM元素上</span>
+    } <span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+      id </span>= internalKey;                               <span style="color: #008000;">//</span><span style="color: #008000;">否则关联ID就是jQuery.expando</span>
+<span style="color: #000000;">    }
+  }
+
+  </span><span style="color: #0000ff;">if</span> ( !cache[ id ] ) {                           <span style="color: #008000;">//</span><span style="color: #008000;">如果DOM对象或JavaScript对象对应的数据缓存对象不存在则初始化为一个空对象</span>
+    cache[ id ] =<span style="color: #000000;"> {};
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> Avoids exposing jQuery metadata on plain JS objects when the object</span>
+    <span style="color: #008000;">//</span><span style="color: #008000;"> is serialized using JSON.stringify</span>
+    <span style="color: #0000ff;">if</span> ( !<span style="color: #000000;">isNode ) {
+      cache[ id ].toJSON </span>=<span style="color: #000000;"> jQuery.noop;
+    }
+  }
+
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> An object can be passed to jQuery.data instead of a key/value pair; this gets</span>
+  <span style="color: #008000;">//</span><span style="color: #008000;"> shallow copied over onto the existing cache</span>
+  <span style="color: #0000ff;">if</span> ( <span style="color: #0000ff;">typeof</span> name === "object" || <span style="color: #0000ff;">typeof</span> name === "function" ) { <span style="color: #008000;">//</span><span style="color: #008000;">如果name是对象或者函数(函数好像不可以，只能是对象)，则批量把参数name中的属性合并到已有的数据缓存对象上，即批量设置数据</span>
+    <span style="color: #0000ff;">if</span><span style="color: #000000;"> ( pvt ) {
+      cache[ id ] </span>=<span style="color: #000000;"> jQuery.extend( cache[ id ], name );
+    } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+      cache[ id ].data </span>=<span style="color: #000000;"> jQuery.extend( cache[ id ].data, name );
+    }
+  }
+
+  privateCache </span>= thisCache = cache[ id ];                         <span style="color: #008000;">//</span><span style="color: #008000;">设置privateCache和thisCache都指向数据缓存对象cache[ id ]</span>
+
+  <span style="color: #008000;">//</span><span style="color: #008000;"> jQuery data() is stored in a separate object inside the object's internal data</span>
+  <span style="color: #008000;">//</span><span style="color: #008000;"> cache in order to avoid key collisions between internal data and user-defined</span>
+  <span style="color: #008000;">//</span><span style="color: #008000;"> data.</span>
+  <span style="color: #0000ff;">if</span> ( !pvt ) {                                                   <span style="color: #008000;">//</span><span style="color: #008000;">如果参数pvt是false或者未设置，则设置thisCache指向自定义数据，</span>
+    <span style="color: #0000ff;">if</span> ( !thisCache.data ) {                                        <span style="color: #008000;">//</span><span style="color: #008000;">如果数据缓存对象thisCache.data不存在则先将其初始化为空对象。</span>
+      thisCache.data =<span style="color: #000000;"> {};
+    }
+
+    thisCache </span>=<span style="color: #000000;"> thisCache.data;
+  }
+
+  </span><span style="color: #0000ff;">if</span> ( data !== undefined ) {                                     <span style="color: #008000;">//</span><span style="color: #008000;">如果data不是undefined，则把参数data设置到属性name上，这里统一把参数name转换成了驼峰式，这样在读取的时候不管是连字符串还是驼峰式就都不会出错。</span>
+    thisCache[ jQuery.camelCase( name ) ] =<span style="color: #000000;"> data;
+  }
+
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> Users should not attempt to inspect the internal events object using jQuery.data,</span>
+  <span style="color: #008000;">//</span><span style="color: #008000;"> it is undocumented and subject to change. But does anyone listen? No.</span>
+  <span style="color: #0000ff;">if</span> ( isEvents &amp;&amp; !<span style="color: #000000;">thisCache[ name ] ) {
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> privateCache.events;
+  }
+
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> Check for both converted-to-camel and non-converted data property names</span>
+  <span style="color: #008000;">//</span><span style="color: #008000;"> If a data property was specified</span>
+  <span style="color: #0000ff;">if</span> ( getByName ) {                                            <span style="color: #008000;">//</span><span style="color: #008000;">如果参数name是字符串，则读取单个数据</span>
+
+    <span style="color: #008000;">//</span><span style="color: #008000;"> First Try to find as-is property data</span>
+    ret = thisCache[ name ];                                      <span style="color: #008000;">//</span><span style="color: #008000;">先尝试读取参数name对应的数据</span>
+
+    <span style="color: #008000;">//</span><span style="color: #008000;"> Test for null|undefined property data  </span>
+    <span style="color: #0000ff;">if</span> ( ret == <span style="color: #0000ff;">null</span> ) {                                          <span style="color: #008000;">//</span><span style="color: #008000;">如果没有读取到则把参数name转换为驼峰式再次尝试读取</span>
+
+      <span style="color: #008000;">//</span><span style="color: #008000;"> Try to find the camelCased property</span>
+      ret =<span style="color: #000000;"> thisCache[ jQuery.camelCase( name ) ];
+    }
+  } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+    ret </span>= thisCache;                                          <span style="color: #008000;">//</span><span style="color: #008000;">如果参数2不是字符串,则返回数据缓存对象。</span>
+<span style="color: #000000;">  }
+
+  </span><span style="color: #0000ff;">return</span> ret;                                                 <span style="color: #008000;">//</span><span style="color: #008000;">最后返回ret</span>
+},</pre>
+</div>
+<p>这样就完成数据的设置的，对于jQuery实例上的方法如下:</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">jQuery.fn.extend({
+  data: </span><span style="color: #0000ff;">function</span>( key, value ) {      <span style="color: #008000;">//</span><span style="color: #008000;">设置、读取自定义数据，解析html5属性data- key是要设置或读取的数据名，或者是含有键值对的对象，value是要设置的数据值，可以是任意类型</span>
+    <span style="color: #0000ff;">var</span><span style="color: #000000;"> parts, attr, name,
+      data </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+
+    </span><span style="color: #0000ff;">if</span> ( <span style="color: #0000ff;">typeof</span> key === "undefined" ) {       <span style="color: #008000;">//</span><span style="color: #008000;">如果未传入参数，即参数格式是.data()，则获取第一个匹配元素关联的数据缓存对象(即获得全部数据)</span>
+      <span style="color: #0000ff;">if</span> ( <span style="color: #0000ff;">this</span>.length ) {                      <span style="color: #008000;">//</span><span style="color: #008000;">如果该jQuery对象有匹配的元素</span>
+        data = jQuery.data( <span style="color: #0000ff;">this</span>[0] );            <span style="color: #008000;">//</span><span style="color: #008000;">获取第一个元素的数据缓存对象</span>
+
+        <span style="color: #0000ff;">if</span> ( <span style="color: #0000ff;">this</span>[0].nodeType === 1 &amp;&amp; !jQuery._data( <span style="color: #0000ff;">this</span>[0], "parsedAttrs" ) ) {    <span style="color: #008000;">//</span><span style="color: #008000;">这里是解析html5里的data-属性的，可以先略过</span>
+          attr = <span style="color: #0000ff;">this</span>[0<span style="color: #000000;">].attributes;
+          </span><span style="color: #0000ff;">for</span> ( <span style="color: #0000ff;">var</span> i = 0, l = attr.length; i &lt; l; i++<span style="color: #000000;"> ) {
+            name </span>=<span style="color: #000000;"> attr[i].name;
+
+            </span><span style="color: #0000ff;">if</span> ( name.indexOf( "data-" ) === 0<span style="color: #000000;"> ) {
+              name </span>= jQuery.camelCase( name.substring(5<span style="color: #000000;">) );
+
+              dataAttr( </span><span style="color: #0000ff;">this</span>[0<span style="color: #000000;">], name, data[ name ] );
+            }
+          }
+          jQuery._data( </span><span style="color: #0000ff;">this</span>[0], "parsedAttrs", <span style="color: #0000ff;">true</span> );   <span style="color: #008000;">//</span><span style="color: #008000;">返回第一个匹配元素关联的自定义数据缓存对象。如果没有匹配元素则会返回null</span>
+<span style="color: #000000;">        }
+      }
+
+      </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> data;
+
+    } </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> ( <span style="color: #0000ff;">typeof</span> key === "object" ) {         <span style="color: #008000;">//</span><span style="color: #008000;">如果key是一个对象，则为每个元素对象调用方法$.data(this,key)批量设置数据</span>
+      <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span>.each(<span style="color: #0000ff;">function</span><span style="color: #000000;">() {
+        jQuery.data( </span><span style="color: #0000ff;">this</span><span style="color: #000000;">, key );
+      });
+    }
+
+    parts </span>= key.split("."<span style="color: #000000;">);
+    parts[</span>1] = parts[1] ? "." + parts[1] : "";      <span style="color: #008000;">//</span><span style="color: #008000;">取出命名空间，比如$(this).data('a.b',123);则parts[1]是.b</span>
+
+    <span style="color: #0000ff;">if</span> ( value === undefined ) {                    <span style="color: #008000;">//</span><span style="color: #008000;">如果传入的格式是.data(key),则认为是读取单个数据</span>
+      data = <span style="color: #0000ff;">this</span>.triggerHandler("getData" + parts[1] + "!", [parts[0]]);     <span style="color: #008000;">//</span><span style="color: #008000;">触发自定义事件getData,并把事件监听函数的返回值赋值给变量data</span>
+
+      <span style="color: #008000;">//</span><span style="color: #008000;"> Try to fetch any internally stored data first</span>
+      <span style="color: #0000ff;">if</span> ( data === undefined &amp;&amp; <span style="color: #0000ff;">this</span>.length ) {          <span style="color: #008000;">//</span><span style="color: #008000;">如果事件监听函数没有返回值，才会尝试从自定义数据缓存对象中读取</span>
+        data = jQuery.data( <span style="color: #0000ff;">this</span>[0<span style="color: #000000;">], key );
+        data </span>= dataAttr( <span style="color: #0000ff;">this</span>[0<span style="color: #000000;">], key, data );
+      }
+
+      </span><span style="color: #0000ff;">return</span> data === undefined &amp;&amp; parts[1] ?             <span style="color: #008000;">//</span><span style="color: #008000;">如果从getData()事件监听函数或自定义数据缓存对象或HTML5属性data-中取到了数据，则返回数据;如果没有取到数据，但是指定了命名空间，则去掉命名空间再次尝试读取。</span>
+        <span style="color: #0000ff;">this</span>.data( parts[0<span style="color: #000000;">] ) :
+        data;
+
+    } </span><span style="color: #0000ff;">else</span> {                                          <span style="color: #008000;">//</span><span style="color: #008000;">如果传入了参数key和value,即参数格式是:.data(key,value)，则为每个匹配元素设置任意类型的数据，并触发自定义事件setData()和changeData()。</span>
+      <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span>.each(<span style="color: #0000ff;">function</span><span style="color: #000000;">() {
+        </span><span style="color: #0000ff;">var</span> self = jQuery( <span style="color: #0000ff;">this</span><span style="color: #000000;"> ),
+          args </span>= [ parts[0<span style="color: #000000;">], value ];
+
+        self.triggerHandler( </span>"setData" + parts[1] + "!", args );        <span style="color: #008000;">//</span><span style="color: #008000;">触发自定义事件setData,感叹号表示只执行没有命名控件的事件监听函数</span>
+        jQuery.data( <span style="color: #0000ff;">this</span>, key, value );                                <span style="color: #008000;">//</span><span style="color: #008000;">调用$.data()方法为任意匹配元素设置任意类型的数据</span>
+        self.triggerHandler( "changeData" + parts[1] + "!", args );     <span style="color: #008000;">//</span><span style="color: #008000;">触发自定义事件changeData</span>
+<span style="color: #000000;">      });
+    }
+  },
+  </span><span style="color: #008000;">/*</span><span style="color: #008000;">...</span><span style="color: #008000;">*/</span><span style="color: #000000;">
+})</span></pre>
+</div>
+<p>设置数据缓存就是这样的，理解了设置数据缓存，移除就很好理解了。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

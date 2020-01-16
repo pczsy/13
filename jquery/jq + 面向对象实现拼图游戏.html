@@ -1,0 +1,243 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修jq + 面向对象实现拼图游戏' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>jq + 面向对象实现拼图游戏</center></div><div class='banquan'>原文出处:本文由博客园博主smile_or提供。<br/>
+原文连接:https://www.cnblogs.com/sgs123/p/10808246.html</div><br>
+    <h2 id="jq-面向对象实现拼图游戏">jq + 面向对象实现拼图游戏</h2>
+<h3 id="知识点">知识点</h3>
+<ul>
+<li>拖拽事件</li>
+<li>es6面向对象</li>
+<li>jquery事件</li>
+<li>效果图<br />
+<img src="./images/jq + 面向对象实现拼图游戏0.png" /></li>
+</ul>
+<h3 id="html">html:</h3>
+<pre><code><code>    &lt;div class=&quot;wraper&quot;&gt;
+        &lt;div class=&quot;btn&quot;&gt;
+            &lt;button class=&quot;start&quot;&gt;开始&lt;/button&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;box&quot;&gt;&lt;/div&gt;
+    &lt;/div&gt;</code></pre>
+<h3 id="css">css:</h3>
+<pre class="css"><code>    * {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+    html,
+    body {
+        width: 100%;
+        height: 100%;
+        background: url(&#39;../img/bg_pic.jpg&#39;) no-repeat;
+        background-size: 100% 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+    }
+    .wraper {
+        width: 500px;
+        height: 600px;
+        position: relative;
+    }
+    .wraper .btn {
+        text-align: center;
+        line-height: 80px;
+    }
+    .wraper .btn button {
+        width: 100px;
+        height: 40px;
+        background: yellow;
+        border: none;
+        outline: none;
+        font-size: 14px;
+        color: red;
+        border-radius: 20px;
+        cursor: pointer;
+    }
+    .wraper .box {
+        width: 100%;
+        height: 500px;
+        position: relative;
+        border: 10px solid red;
+        border-radius: 10px;
+    }
+    .wraper .box .pic {
+        position: absolute;
+        background: url(&#39;../img/zy.jpg&#39;) no-repeat;
+        box-shadow: 0 0 5px #fff;
+        background-size: 500px 500px;
+        cursor: pointer;
+    }</code></pre>
+<h3 id="js">js:</h3>
+<pre class="javascript"><code>   class Game {
+        constructor() {
+            this.boxW = parseInt($(&#39;.box&#39;).css(&#39;width&#39;));
+            this.boxH = parseInt($(&#39;.box&#39;).css(&#39;height&#39;));
+            this.imgW = this.boxW / 5;
+            this.imgH = this.boxH / 5;
+            this.flag = true; //true为开始 false为重排
+            this.orArr = []; //标准数组
+            this.randArr = []; //乱序数组 
+            this.init();
+        }
+        init() {
+            this.createDom();
+            this.getState();
+        }
+        createDom() {
+            //行
+            for (var i = 0; i &lt; 5; i++) {
+                //列
+                for (var j = 0; j &lt; 5; j++) {
+                    this.orArr.push(i * 5 + j);
+                    let imgs = $(&quot;&lt;div class=&#39;pic&#39;&gt;&lt;/div&gt;&quot;).css({
+                        width: this.imgW + &#39;px&#39;,
+                        height: this.imgH + &#39;px&#39;,
+                        left: j * this.imgW + &#39;px&#39;,
+                        top: i * this.imgH + &#39;px&#39;,
+                        backgroundPosition: -j * this.imgW + &#39;px &#39; + -i * this.imgH + &#39;px&#39;
+                    });
+                    $(&#39;.box&#39;).append(imgs);
+                }
+            }
+        }
+        getState() {
+            let btn = $(&#39;.btn .start&#39;);
+            let imgs = $(&#39;.pic&#39;);
+            let _this = this;
+            btn.on(&#39;click&#39;, function() {
+                if (_this.flag) {
+                    _this.flag = false;
+                    btn.text(&#39;重排&#39;);
+                    _this.getRandom();
+                    _this.getOrder(_this.randArr);
+                    imgs.on(&#39;mousedown&#39;, function(e) {
+                        let index = $(this).index();
+                        let left = e.pageX - imgs.eq(index).offset().left;
+                        let top = e.pageY - imgs.eq(index).offset().top;
+                        $(document).on(&#39;mousemove&#39;, function(e1) {
+                            let left1 = e1.pageX - left - $(&#39;.box&#39;).offset().left - 10;
+                            let top1 = e1.pageY - top - $(&#39;.box&#39;).offset().top - 10;
+                            imgs.eq(index).css({
+                                &#39;z-index&#39;: &#39;40&#39;,
+                                &#39;left&#39;: left1,
+                                &#39;top&#39;: top1
+                            })
+                        }).on(&#39;mouseup&#39;, function(e2) {
+                            let left2 = e2.pageX - left - $(&#39;.box&#39;).offset().left - 10;
+                            let top2 = e2.pageY - top - $(&#39;.box&#39;).offset().top - 10;
+                            let index2 = _this.changeIndex(left2, top2, index);
+                            if (index === index2) {
+                                _this.picReturn(index);
+                            } else {
+                                _this.picChange(index, index2);
+                            }
+                            $(document).off(&#39;mousemove&#39;).off(&#39;mouseup&#39;).off(&#39;mousedown&#39;);
+                        })
+                        return false;
+                    })
+                } else {
+                    _this.flag = true;
+                    btn.text(&#39;开始&#39;);
+                    _this.getOrder(_this.orArr);
+                    imgs.off(&#39;mousemove&#39;).off(&#39;mouseup&#39;).off(&#39;mousedown&#39;);
+                }
+            })
+        }
+        changeIndex(left, top, index) {
+            if (left &lt; 0 || left &gt; this.boxW || top &lt; 0 || top &gt; this.boxH) {
+                return index;
+            } else {
+                let col = Math.floor(left / this.imgW);
+                let row = Math.floor(top / this.imgH);
+                let moveIndex = 5 * row + col;
+                let i = 0;
+                let len = this.randArr.length;
+                while ((i &lt; len) &amp;&amp; this.randArr[i] !== moveIndex) {
+                    i++;
+                }
+                return i;
+            }
+        }
+        picReturn(index) {
+            let j = this.randArr[index] % 5;
+            let i = Math.floor(this.randArr[index] / 5);
+            $(&#39;.pic&#39;).eq(index).css(&#39;z-index&#39;, &#39;40&#39;).animate({
+                &#39;left&#39;: j * this.imgW,
+                &#39;top&#39;: i * this.imgH
+            }, 300, function() {
+                $(this).css(&#39;z-index&#39;, &#39;10&#39;);
+            })
+        }
+        picChange(index, index2) {
+            let _this = this;
+            let fromJ = _this.randArr[index] % 5;
+            let fromI = Math.floor(_this.randArr[index] / 5);
+            let toJ = _this.randArr[index2] % 5;
+            let toI = Math.floor(_this.randArr[index2] / 5);
+            let temp = _this.randArr[index];
+            $(&#39;.pic&#39;).eq(index).css(&#39;z-index&#39;, &#39;40&#39;).animate({
+                &#39;left&#39;: toJ * _this.imgW + &#39;px&#39;,
+                &#39;top&#39;: toI * _this.imgH + &#39;px&#39;
+            }, 300, function() {
+                $(this).css(&#39;z-index&#39;, &#39;10&#39;);
+            })
+            $(&#39;.pic&#39;).eq(index2).css(&#39;z-index&#39;, &#39;40&#39;).animate({
+                &#39;left&#39;: fromJ * _this.imgW + &#39;px&#39;,
+                &#39;top&#39;: fromI * _this.imgH + &#39;px&#39;
+            }, 300, function() {
+                $(this).css(&#39;z-index&#39;, &#39;10&#39;);
+                _this.randArr[index] = _this.randArr[index2];
+                _this.randArr[index2] = temp;
+                _this.check();
+            })
+        }
+        getRandom() {
+            this.randArr = [...this.orArr];
+            this.randArr.sort(function() {
+                return Math.random() - 0.5;
+            })
+        }
+        getOrder(arr) {
+            let len = arr.length;
+            for (var i = 0; i &lt; len; i++) {
+                $(&#39;.box .pic&#39;).eq(i).animate({
+                    left: arr[i] % 5 * this.imgW,
+                    top: Math.floor(arr[i] / 5) * this.imgH
+                }, 400)
+            }
+        }
+        check() { //判断是否成功
+            if (this.randArr.toString() == this.orArr.toString()) {
+                alert(&#39;拼图成功&#39;);
+                this.flag = true;
+                $(&#39;.btn .start&#39;).text(&#39;开始&#39;);
+                $(&#39;.pic&#39;).off(&#39;mousemove&#39;).off(&#39;mouseup&#39;).off(&#39;mousedown&#39;);
+            }
+        }
+    }
+    new Game();</code></pre>
+<p>参考至腾讯课堂渡一教育</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

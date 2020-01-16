@@ -1,0 +1,108 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修c# autofac结合WebApi的使用' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>c# autofac结合WebApi的使用</center></div><div class='banquan'>原文出处:本文由博客园博主沿途放纵过往不究提供。<br/>
+原文连接:https://www.cnblogs.com/htsboke/p/10956807.html</div><br>
+    <h3>一、下载相关类库引用</h3>
+<p>　　install-package&nbsp;Autofac</p>
+<p>　　install-package&nbsp;Autofac.Mvc4</p>
+<p>　　install-package&nbsp;Autofac.WebApi2</p>
+<p>&nbsp;</p>
+<h3>二、配置autofac</h3>
+<div class="cnblogs_code">
+<pre><code> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> AutofacUtil
+    {
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> Autofac容器对象
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span><span style="color: #000000;"> IContainer _container;
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 初始化autofac
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> InitAutofac()
+        {
+            </span><span style="color: #0000ff;">var</span> builder = <span style="color: #0000ff;">new</span><span style="color: #000000;"> ContainerBuilder();
+
+            builder.RegisterControllers(Assembly.GetCallingAssembly());
+            builder.RegisterApiControllers(Assembly.GetCallingAssembly());
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">配置接口依赖</span>
+            builder.RegisterInstance&lt;IDbConnection&gt;(DBFactory.CreateConnection()).As&lt;IDbConnection&gt;<span style="color: #000000;">();
+            builder.RegisterGeneric(</span><span style="color: #0000ff;">typeof</span>(GenericRepository&lt;&gt;)).As(<span style="color: #0000ff;">typeof</span>(IGenericRepository&lt;&gt;<span style="color: #000000;">));
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">注入仓储类</span>
+            builder.RegisterAssemblyTypes(Assembly.Load(<span style="color: #800000;">"</span><span style="color: #800000;">Demo.Repository</span><span style="color: #800000;">"</span><span style="color: #000000;">))
+                   .Where(x </span>=&gt; x.Name.EndsWith(<span style="color: #800000;">"</span><span style="color: #800000;">Repository</span><span style="color: #800000;">"</span><span style="color: #000000;">))
+                   .AsImplementedInterfaces();
+
+            _container </span>=<span style="color: #000000;"> builder.Build();
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">设置MVC依赖注入</span>
+            DependencyResolver.SetResolver(<span style="color: #0000ff;">new</span><span style="color: #000000;"> AutofacDependencyResolver(_container));
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">设置WebApi依赖注入</span>
+            GlobalConfiguration.Configuration.DependencyResolver = <span style="color: #0000ff;">new</span><span style="color: #000000;"> AutofacWebApiDependencyResolver((IContainer)_container);
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 从Autofac容器获取对象
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;typeparam name="T"&gt;&lt;/typeparam&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> T GetFromFac&lt;T&gt;<span style="color: #000000;">()
+        {
+            </span><span style="color: #0000ff;">return</span> _container.Resolve&lt;T&gt;<span style="color: #000000;">();
+        }
+    }</span></pre>
+</div>
+<p>&nbsp;</p>
+<h3>三、注册autofac</h3>
+<p>　　在Global.asax全局文件中Application_Start方法添加代码</p>
+<div class="cnblogs_code">
+<pre><code>AutofacUtil.InitAutofac();</pre>
+</div>
+<p>&nbsp;</p>
+<h3>四、使用案例</h3>
+<div class="cnblogs_code">
+<pre><code> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> CodeController : BaseApiController
+    {
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">readonly</span><span style="color: #000000;"> ISMCodeRepository _smCodeRepository;
+        </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> CodeController(ISMCodeRepository smCodeRepository)
+        {
+            _smCodeRepository </span>=<span style="color: #000000;"> smCodeRepository;
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 获取数据字典数据列表
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="codeTypeNo"&gt;</span><span style="color: #008000;">数据字典字典类型代码</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+<span style="color: #000000;">        [HttpPost]
+        </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> ApiResult GetCodeList(SMCodeType codeTypeEntity)
+        {
+            </span><span style="color: #0000ff;">var</span> result =<span style="color: #000000;"> _smCodeRepository.GetCodeList(codeTypeEntity.CodeTypeNo);
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span> ApiResult() { Data = result.Select(x =&gt; <span style="color: #0000ff;">new</span><span style="color: #000000;"> { x.CodeNo, x.CodeName }) };
+        }
+    }</span></pre>
+</div>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

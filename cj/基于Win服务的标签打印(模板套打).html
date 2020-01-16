@@ -1,0 +1,581 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修基于Win服务的标签打印(模板套打)' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>基于Win服务的标签打印(模板套打)</center></div><div class='banquan'>原文出处:本文由博客园博主Giant Liu提供。<br/>
+原文连接:https://www.cnblogs.com/liuju150/p/Service_Print_Template_Solution.html</div><br>
+    <p>最近做了几个项目，都有在产品贴标的需求</p>
+<p>基本就是有个证卡类打印机，然后把产品的信息打印在标签上。</p>
+<p>然后通过机器人把标签贴到产品上面</p>
+<p>标签信息包括文本，二维码，条形码之类的，要根据对应的数据生成二维码，条形码。</p>
+<p>打印标签的需求接到手后，开始了我的填坑之旅。</p>
+<p>&nbsp;</p>
+<p>打印3.0源代码：<a href="https://github.com/zeqp/ZEQP.Print">https://github.com/zeqp/ZEQP.Print</a></p>
+<p>&nbsp;</p>
+<p><span style="font-size: 18pt;">打印1.0</span></p>
+<p>第一个项目开始，因为原来没有研究过打印，所以在Bing上查了一下.Net打印机关的资料</p>
+<p>发现基本上都是基于.net的<br />System.Drawing.Printing.PrintDocument<br />这个类来做自定义打印</p>
+<p>大家都用这个做打印，我想按理也没有问题。</p>
+<p>所以开始了我的代码。</p>
+<p>PrintDocument去做打印，无非就是设置好打印机名称，<br />DefaultPageSettings.PrinterSettings.PrinterName<br />打印份数<br />DefaultPageSettings.PrinterSettings.Copies<br />纸张方向<br />DefaultPageSettings.Landscape<br />然后打印的具体的信息就是事件PrintPage写进去<br />然后调用<br />Graphics.DrawString,Graphics.DrawImage来写入具体的文本与图片<br />Graphics.Draw的时候要指定字体，颜色，位置等数据<br />我把这些做成配置数据。<br />然后1.0版本就成了。<br /><img src="./images/基于Win服务的标签打印(模板套打)0.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><br />下图为位置的配置文件<br /><img src="./images/基于Win服务的标签打印(模板套打)1.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;&nbsp;代码一写完，用VS调试的时候。跑得飞起。、</p>
+<p>所有的字体，要打印数据的位置也通过配置文件可以动态的调整。感觉还算完美。<br />但是现实很骨感，马上就拍拍打脸了</p>
+<p><br /><span style="color: #ff0000;">PrintDocument类只能以WinForm的方式运行，不能以服务的方式运行。<br /></span>具体可以参考：<a href="https://docs.microsoft.com/zh-cn/dotnet/api/system.drawing.printing?redirectedfrom=MSDN&amp;view=netframework-4.8" target="_blank">https://docs.microsoft.com/zh-cn/dotnet/api/system.drawing.printing?redirectedfrom=MSDN&amp;view=netframework-4.8</a></p>
+<p><img src="./images/基于Win服务的标签打印(模板套打)2.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;幸好客户方面没有什么要求，而且生产的时候会有一台专门的上位机可以做这个事，所以做了一个无界面的WinForm。在电脑启动的时候运行</p>
+<p>从而解决了不能以服务的方式运行的问题。</p>
+<p>&nbsp;</p>
+<p><span style="font-size: 18pt;">打印2.0</span><br /><br /></p>
+<p>做完打印1.0后，又接到了一个项目。又是有打印相关的功能，自然又分配到我这里来了。</p>
+<p>但是对于上一个版本的打印。不能做为服务运行，做为自己写的一个程序，居然有这么大的瑕疵。总感觉心里不爽</p>
+<p>想去解决这个问题，但是在Bing上找到.Net的所有打印都是这样做的。也找不到什么更好的方法。</p>
+<p>只到问了很多相关的相关人士。最后给了我一个第三方的商业解决方案BarTender<br />相关参考：https://www.bartendersoftware.com/<br />这个有自己的模板编辑器，<br /><img src="./images/基于Win服务的标签打印(模板套打)3.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>有自己的SDK，有编辑器，功能也非学强大。不愧是商业打印解决方案。</p>
+<p>根据他的SDK，同时安装了相关程序，写下几句打印代码。一个基于Win服务的打印出来了</p>
+<p><img src="./images/基于Win服务的标签打印(模板套打)4.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;于是。打印2.0出来了。</p>
+<p>&nbsp;</p>
+<p><span style="font-size: 18pt;">打印3.0</span><br />但是对于一个基于第三方的商业打印方案，所有功能都是很强大。实现也简单。</p>
+<p>就是对于一般公司的小项目。挣的钱还不够买这个商业套件的License</p>
+<p>而且对于一个只会使用别人家的SDK的程序。不是一个有灵魂的程序。</p>
+<p>因为你都不知道人家背后是怎么实现的。原理是什么都不知道。</p>
+<p>对于我，虽然能把这个项目用BarTender完成。但是总是对这个打印方案不是很满意。</p>
+<p>因为我只在这个上面加了一层壳。不知道后面做了什么。</p>
+<p>所以我一直想自己开发一个可以基于Win服务运行的打印程序。最好也要有自己的模板编辑器。</p>
+<p>只到有一天。无意找到一篇文章</p>
+<p>https://docs.aspose.com/display/wordsnet/Print+a+Document</p>
+<p>他这里也解释了有关基于服务的打印有关的问题不能解决。</p>
+<p>并且他们已经找到了对应的解决方案。基于他的解决方案。写了对应一个打印帮助类。</p>
+<p>这个是基于Windows的XPS文档API打印。</p>
+<p>XPS是在Win 7后就是windows支持的打印文档类型 类比PDF</p>
+<p>基本&nbsp;<a class="external-link" href="https://docs.microsoft.com/zh-cn/windows/win32/printdocs/xpsprint-api?redirectedfrom=MSDN" rel="nofollow">XpsPrint API</a>&nbsp; &nbsp;的相关说明</p>
+<p>同时基本他的XPS打印帮助类。我做了测试。可以完美的在Windows服务里面运行关打印。</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('ba91a9f3-2649-4299-847c-1d403a8c0081')"><img id="code_img_closed_ba91a9f3-2649-4299-847c-1d403a8c0081" class="code_img_closed" src="./images/基于Win服务的标签打印(模板套打)5.png" alt="" /><img id="code_img_opened_ba91a9f3-2649-4299-847c-1d403a8c0081" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('ba91a9f3-2649-4299-847c-1d403a8c0081',event)" src="./images/基于Win服务的标签打印(模板套打)6.png" alt="" />
+<div id="cnblogs_code_open_ba91a9f3-2649-4299-847c-1d403a8c0081" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;">  1</span> <span style="color: #0000ff;">namespace</span><span style="color: #000000;"> ZEQP.Print.Framework
+</span><span style="color: #008080;">  2</span> <span style="color: #000000;">{
+</span><span style="color: #008080;">  3</span>     <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">  4</span>     <span style="color: #808080;">///</span><span style="color: #008000;"> A utility class that converts a document to XPS using Aspose.Words and then sends to the XpsPrint API.
+</span><span style="color: #008080;">  5</span>     <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">  6</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> XpsPrintHelper
+</span><span style="color: #008080;">  7</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;">  8</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">  9</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> No ctor.
+</span><span style="color: #008080;"> 10</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;"> 11</span>         <span style="color: #0000ff;">private</span><span style="color: #000000;"> XpsPrintHelper()
+</span><span style="color: #008080;"> 12</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 13</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 14</span> 
+<span style="color: #008080;"> 15</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> ExStart:XpsPrint_PrintDocument       
+</span><span style="color: #008080;"> 16</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> ExSummary:Convert an Aspose.Words document into an XPS stream and print.</span>
+<span style="color: #008080;"> 17</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;"> 18</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> Sends an Aspose.Words document to a printer using the XpsPrint API.
+</span><span style="color: #008080;"> 19</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;"> 20</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="document"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;"> 21</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="printerName"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;"> 22</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="jobName"&gt;</span><span style="color: #008000;">Job name. Can be null.</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;"> 23</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="isWait"&gt;</span><span style="color: #008000;">True to wait for the job to complete. False to return immediately after submitting the job.</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;"> 24</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;exception cref="Exception"&gt;</span><span style="color: #008000;">Thrown if any error occurs.</span><span style="color: #808080;">&lt;/exception&gt;</span>
+<span style="color: #008080;"> 25</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Print(<span style="color: #0000ff;">string</span> xpsFile, <span style="color: #0000ff;">string</span> printerName, <span style="color: #0000ff;">string</span> jobName, <span style="color: #0000ff;">bool</span><span style="color: #000000;"> isWait)
+</span><span style="color: #008080;"> 26</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 27</span>             Console.WriteLine(<span style="color: #800000;">"</span><span style="color: #800000;">Print</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 28</span>             <span style="color: #0000ff;">if</span> (!<span style="color: #000000;">File.Exists(xpsFile))
+</span><span style="color: #008080;"> 29</span>                 <span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> ArgumentNullException(<span style="color: #800000;">"</span><span style="color: #800000;">xpsFile</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 30</span>             <span style="color: #0000ff;">using</span> (<span style="color: #0000ff;">var</span> stream =<span style="color: #000000;"> File.OpenRead(xpsFile))
+</span><span style="color: #008080;"> 31</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 32</span> <span style="color: #000000;">                Print(stream, printerName, jobName, isWait);
+</span><span style="color: #008080;"> 33</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 34</span>             <span style="color: #808080;">///</span><span style="color: #008000;">/ Use Aspose.Words to convert the document to XPS and store in a memory stream.</span>
+<span style="color: #008080;"> 35</span>             <span style="color: #008000;">//</span><span style="color: #008000;">File.OpenRead
+</span><span style="color: #008080;"> 36</span>             <span style="color: #008000;">//</span><span style="color: #008000;">MemoryStream stream = new MemoryStream();
+</span><span style="color: #008080;"> 37</span> 
+<span style="color: #008080;"> 38</span>             <span style="color: #008000;">//</span><span style="color: #008000;">stream.Position = 0;
+</span><span style="color: #008080;"> 39</span>             <span style="color: #008000;">//</span><span style="color: #008000;">Console.WriteLine("Saved as Xps");
+</span><span style="color: #008080;"> 40</span>             <span style="color: #008000;">//</span><span style="color: #008000;">Print(stream, printerName, jobName, isWait);</span>
+<span style="color: #008080;"> 41</span>             Console.WriteLine(<span style="color: #800000;">"</span><span style="color: #800000;">After Print</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 42</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 43</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> ExEnd:XpsPrint_PrintDocument
+</span><span style="color: #008080;"> 44</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> ExStart:XpsPrint_PrintStream        
+</span><span style="color: #008080;"> 45</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> ExSummary:Prints an XPS document using the XpsPrint API.</span>
+<span style="color: #008080;"> 46</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;"> 47</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> Sends a stream that contains a document in the XPS format to a printer using the XpsPrint API.
+</span><span style="color: #008080;"> 48</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> Has no dependency on Aspose.Words, can be used in any project.
+</span><span style="color: #008080;"> 49</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;"> 50</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="stream"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;"> 51</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="printerName"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;"> 52</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="jobName"&gt;</span><span style="color: #008000;">Job name. Can be null.</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;"> 53</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="isWait"&gt;</span><span style="color: #008000;">True to wait for the job to complete. False to return immediately after submitting the job.</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;"> 54</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;exception cref="Exception"&gt;</span><span style="color: #008000;">Thrown if any error occurs.</span><span style="color: #808080;">&lt;/exception&gt;</span>
+<span style="color: #008080;"> 55</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Print(Stream stream, <span style="color: #0000ff;">string</span> printerName, <span style="color: #0000ff;">string</span> jobName, <span style="color: #0000ff;">bool</span><span style="color: #000000;"> isWait)
+</span><span style="color: #008080;"> 56</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 57</span>             <span style="color: #0000ff;">if</span> (stream == <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+</span><span style="color: #008080;"> 58</span>                 <span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> ArgumentNullException(<span style="color: #800000;">"</span><span style="color: #800000;">stream</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 59</span>             <span style="color: #0000ff;">if</span> (printerName == <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+</span><span style="color: #008080;"> 60</span>                 <span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> ArgumentNullException(<span style="color: #800000;">"</span><span style="color: #800000;">printerName</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 61</span> 
+<span style="color: #008080;"> 62</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> Create an event that we will wait on until the job is complete.</span>
+<span style="color: #008080;"> 63</span>             IntPtr completionEvent = CreateEvent(IntPtr.Zero, <span style="color: #0000ff;">true</span>, <span style="color: #0000ff;">false</span>, <span style="color: #0000ff;">null</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 64</span>             <span style="color: #0000ff;">if</span> (completionEvent ==<span style="color: #000000;"> IntPtr.Zero)
+</span><span style="color: #008080;"> 65</span>                 <span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> Win32Exception();
+</span><span style="color: #008080;"> 66</span> 
+<span style="color: #008080;"> 67</span>             <span style="color: #008000;">//</span><span style="color: #008000;">            try
+</span><span style="color: #008080;"> 68</span>             <span style="color: #008000;">//</span><span style="color: #008000;">            {</span>
+<span style="color: #008080;"> 69</span> <span style="color: #000000;">            IXpsPrintJob job;
+</span><span style="color: #008080;"> 70</span> <span style="color: #000000;">            IXpsPrintJobStream jobStream;
+</span><span style="color: #008080;"> 71</span>             Console.WriteLine(<span style="color: #800000;">"</span><span style="color: #800000;">StartJob</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 72</span>             StartJob(printerName, jobName, completionEvent, <span style="color: #0000ff;">out</span> job, <span style="color: #0000ff;">out</span><span style="color: #000000;"> jobStream);
+</span><span style="color: #008080;"> 73</span>             Console.WriteLine(<span style="color: #800000;">"</span><span style="color: #800000;">Done StartJob</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 74</span>             Console.WriteLine(<span style="color: #800000;">"</span><span style="color: #800000;">Start CopyJob</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 75</span> <span style="color: #000000;">            CopyJob(stream, job, jobStream);
+</span><span style="color: #008080;"> 76</span>             Console.WriteLine(<span style="color: #800000;">"</span><span style="color: #800000;">End CopyJob</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 77</span> 
+<span style="color: #008080;"> 78</span>             Console.WriteLine(<span style="color: #800000;">"</span><span style="color: #800000;">Start Wait</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 79</span>             <span style="color: #0000ff;">if</span><span style="color: #000000;"> (isWait)
+</span><span style="color: #008080;"> 80</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 81</span> <span style="color: #000000;">                WaitForJob(completionEvent);
+</span><span style="color: #008080;"> 82</span> <span style="color: #000000;">                CheckJobStatus(job);
+</span><span style="color: #008080;"> 83</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 84</span>             Console.WriteLine(<span style="color: #800000;">"</span><span style="color: #800000;">End Wait</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 85</span>             <span style="color: #008000;">/*</span><span style="color: #008000;">            }
+</span><span style="color: #008080;"> 86</span> <span style="color: #008000;">                        finally
+</span><span style="color: #008080;"> 87</span> <span style="color: #008000;">                        {
+</span><span style="color: #008080;"> 88</span> <span style="color: #008000;">                            if (completionEvent != IntPtr.Zero)
+</span><span style="color: #008080;"> 89</span> <span style="color: #008000;">                                CloseHandle(completionEvent);
+</span><span style="color: #008080;"> 90</span> <span style="color: #008000;">                        }
+</span><span style="color: #008080;"> 91</span>             <span style="color: #008000;">*/</span>
+<span style="color: #008080;"> 92</span>             <span style="color: #0000ff;">if</span> (completionEvent !=<span style="color: #000000;"> IntPtr.Zero)
+</span><span style="color: #008080;"> 93</span> <span style="color: #000000;">                CloseHandle(completionEvent);
+</span><span style="color: #008080;"> 94</span>             Console.WriteLine(<span style="color: #800000;">"</span><span style="color: #800000;">Close Handle</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 95</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 96</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> ExEnd:XpsPrint_PrintStream</span>
+<span style="color: #008080;"> 97</span> 
+<span style="color: #008080;"> 98</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> StartJob(<span style="color: #0000ff;">string</span> printerName, <span style="color: #0000ff;">string</span> jobName, IntPtr completionEvent, <span style="color: #0000ff;">out</span> IXpsPrintJob job, <span style="color: #0000ff;">out</span><span style="color: #000000;"> IXpsPrintJobStream jobStream)
+</span><span style="color: #008080;"> 99</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">100</span>             <span style="color: #0000ff;">int</span> result = StartXpsPrintJob(printerName, jobName, <span style="color: #0000ff;">null</span><span style="color: #000000;">, IntPtr.Zero, completionEvent,
+</span><span style="color: #008080;">101</span>                 <span style="color: #0000ff;">null</span>, <span style="color: #800080;">0</span>, <span style="color: #0000ff;">out</span> job, <span style="color: #0000ff;">out</span><span style="color: #000000;"> jobStream, IntPtr.Zero);
+</span><span style="color: #008080;">102</span>             <span style="color: #0000ff;">if</span> (result != <span style="color: #800080;">0</span><span style="color: #000000;">)
+</span><span style="color: #008080;">103</span>                 <span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> Win32Exception(result);
+</span><span style="color: #008080;">104</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">105</span> 
+<span style="color: #008080;">106</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> CopyJob(Stream stream, IXpsPrintJob job, IXpsPrintJobStream jobStream)
+</span><span style="color: #008080;">107</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">108</span> 
+<span style="color: #008080;">109</span>             <span style="color: #008000;">//</span><span style="color: #008000;">            try
+</span><span style="color: #008080;">110</span>             <span style="color: #008000;">//</span><span style="color: #008000;">            {</span>
+<span style="color: #008080;">111</span>             <span style="color: #0000ff;">byte</span>[] buff = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">byte</span>[<span style="color: #800080;">4096</span><span style="color: #000000;">];
+</span><span style="color: #008080;">112</span>             <span style="color: #0000ff;">while</span> (<span style="color: #0000ff;">true</span><span style="color: #000000;">)
+</span><span style="color: #008080;">113</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">114</span>                 <span style="color: #0000ff;">uint</span> read = (<span style="color: #0000ff;">uint</span>)stream.Read(buff, <span style="color: #800080;">0</span><span style="color: #000000;">, buff.Length);
+</span><span style="color: #008080;">115</span>                 <span style="color: #0000ff;">if</span> (read == <span style="color: #800080;">0</span><span style="color: #000000;">)
+</span><span style="color: #008080;">116</span>                     <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+</span><span style="color: #008080;">117</span> 
+<span style="color: #008080;">118</span>                 <span style="color: #0000ff;">uint</span><span style="color: #000000;"> written;
+</span><span style="color: #008080;">119</span>                 jobStream.Write(buff, read, <span style="color: #0000ff;">out</span><span style="color: #000000;"> written);
+</span><span style="color: #008080;">120</span> 
+<span style="color: #008080;">121</span>                 <span style="color: #0000ff;">if</span> (read !=<span style="color: #000000;"> written)
+</span><span style="color: #008080;">122</span>                     <span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> Exception(<span style="color: #800000;">"</span><span style="color: #800000;">Failed to copy data to the print job stream.</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">123</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">124</span> 
+<span style="color: #008080;">125</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> Indicate that the entire document has been copied.</span>
+<span style="color: #008080;">126</span> <span style="color: #000000;">            jobStream.Close();
+</span><span style="color: #008080;">127</span>             <span style="color: #008000;">//</span><span style="color: #008000;">            }
+</span><span style="color: #008080;">128</span>             <span style="color: #008000;">//</span><span style="color: #008000;">            catch (Exception)
+</span><span style="color: #008080;">129</span>             <span style="color: #008000;">//</span><span style="color: #008000;">            {
+</span><span style="color: #008080;">130</span>             <span style="color: #008000;">//</span>                <span style="color: #008000;">//</span><span style="color: #008000;"> Cancel the job if we had any trouble submitting it.
+</span><span style="color: #008080;">131</span>             <span style="color: #008000;">//</span><span style="color: #008000;">                job.Cancel();
+</span><span style="color: #008080;">132</span>             <span style="color: #008000;">//</span><span style="color: #008000;">                throw;
+</span><span style="color: #008080;">133</span>             <span style="color: #008000;">//</span><span style="color: #008000;">            }</span>
+<span style="color: #008080;">134</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">135</span> 
+<span style="color: #008080;">136</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> WaitForJob(IntPtr completionEvent)
+</span><span style="color: #008080;">137</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">138</span>             <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">int</span> INFINITE = -<span style="color: #800080;">1</span><span style="color: #000000;">;
+</span><span style="color: #008080;">139</span>             <span style="color: #0000ff;">switch</span><span style="color: #000000;"> (WaitForSingleObject(completionEvent, INFINITE))
+</span><span style="color: #008080;">140</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">141</span>                 <span style="color: #0000ff;">case</span><span style="color: #000000;"> WAIT_RESULT.WAIT_OBJECT_0:
+</span><span style="color: #008080;">142</span>                     <span style="color: #008000;">//</span><span style="color: #008000;"> Expected result, do nothing.</span>
+<span style="color: #008080;">143</span>                     <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+</span><span style="color: #008080;">144</span>                 <span style="color: #0000ff;">case</span><span style="color: #000000;"> WAIT_RESULT.WAIT_FAILED:
+</span><span style="color: #008080;">145</span>                     <span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> Win32Exception();
+</span><span style="color: #008080;">146</span>                 <span style="color: #0000ff;">default</span><span style="color: #000000;">:
+</span><span style="color: #008080;">147</span>                     <span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> Exception(<span style="color: #800000;">"</span><span style="color: #800000;">Unexpected result when waiting for the print job.</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">148</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">149</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">150</span> 
+<span style="color: #008080;">151</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> CheckJobStatus(IXpsPrintJob job)
+</span><span style="color: #008080;">152</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">153</span> <span style="color: #000000;">            XPS_JOB_STATUS jobStatus;
+</span><span style="color: #008080;">154</span>             job.GetJobStatus(<span style="color: #0000ff;">out</span><span style="color: #000000;"> jobStatus);
+</span><span style="color: #008080;">155</span>             <span style="color: #0000ff;">switch</span><span style="color: #000000;"> (jobStatus.completion)
+</span><span style="color: #008080;">156</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">157</span>                 <span style="color: #0000ff;">case</span><span style="color: #000000;"> XPS_JOB_COMPLETION.XPS_JOB_COMPLETED:
+</span><span style="color: #008080;">158</span>                     <span style="color: #008000;">//</span><span style="color: #008000;"> Expected result, do nothing.</span>
+<span style="color: #008080;">159</span>                     <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+</span><span style="color: #008080;">160</span>                 <span style="color: #0000ff;">case</span><span style="color: #000000;"> XPS_JOB_COMPLETION.XPS_JOB_FAILED:
+</span><span style="color: #008080;">161</span>                     <span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> Win32Exception(jobStatus.jobStatus);
+</span><span style="color: #008080;">162</span>                 <span style="color: #0000ff;">default</span><span style="color: #000000;">:
+</span><span style="color: #008080;">163</span>                     <span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> Exception(<span style="color: #800000;">"</span><span style="color: #800000;">Unexpected print job status.</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">164</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">165</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">166</span> 
+<span style="color: #008080;">167</span>         [DllImport(<span style="color: #800000;">"</span><span style="color: #800000;">XpsPrint.dll</span><span style="color: #800000;">"</span>, EntryPoint = <span style="color: #800000;">"</span><span style="color: #800000;">StartXpsPrintJob</span><span style="color: #800000;">"</span><span style="color: #000000;">)]
+</span><span style="color: #008080;">168</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">extern</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> StartXpsPrintJob(
+</span><span style="color: #008080;">169</span> <span style="color: #000000;">            [MarshalAs(UnmanagedType.LPWStr)] String printerName,
+</span><span style="color: #008080;">170</span> <span style="color: #000000;">            [MarshalAs(UnmanagedType.LPWStr)] String jobName,
+</span><span style="color: #008080;">171</span> <span style="color: #000000;">            [MarshalAs(UnmanagedType.LPWStr)] String outputFileName,
+</span><span style="color: #008080;">172</span>             IntPtr progressEvent,   <span style="color: #008000;">//</span><span style="color: #008000;"> HANDLE</span>
+<span style="color: #008080;">173</span>             IntPtr completionEvent, <span style="color: #008000;">//</span><span style="color: #008000;"> HANDLE</span>
+<span style="color: #008080;">174</span>             [MarshalAs(UnmanagedType.LPArray)] <span style="color: #0000ff;">byte</span><span style="color: #000000;">[] printablePagesOn,
+</span><span style="color: #008080;">175</span> <span style="color: #000000;">            UInt32 printablePagesOnCount,
+</span><span style="color: #008080;">176</span>             <span style="color: #0000ff;">out</span><span style="color: #000000;"> IXpsPrintJob xpsPrintJob,
+</span><span style="color: #008080;">177</span>             <span style="color: #0000ff;">out</span><span style="color: #000000;"> IXpsPrintJobStream documentStream,
+</span><span style="color: #008080;">178</span>             IntPtr printTicketStream);  <span style="color: #008000;">//</span><span style="color: #008000;"> This is actually "out IXpsPrintJobStream", but we don't use it and just want to pass null, hence IntPtr.</span>
+<span style="color: #008080;">179</span> 
+<span style="color: #008080;">180</span>         [DllImport(<span style="color: #800000;">"</span><span style="color: #800000;">Kernel32.dll</span><span style="color: #800000;">"</span>, SetLastError = <span style="color: #0000ff;">true</span><span style="color: #000000;">)]
+</span><span style="color: #008080;">181</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">extern</span> IntPtr CreateEvent(IntPtr lpEventAttributes, <span style="color: #0000ff;">bool</span> bManualReset, <span style="color: #0000ff;">bool</span> bInitialState, <span style="color: #0000ff;">string</span><span style="color: #000000;"> lpName);
+</span><span style="color: #008080;">182</span> 
+<span style="color: #008080;">183</span>         [DllImport(<span style="color: #800000;">"</span><span style="color: #800000;">Kernel32.dll</span><span style="color: #800000;">"</span>, SetLastError = <span style="color: #0000ff;">true</span>, ExactSpelling = <span style="color: #0000ff;">true</span><span style="color: #000000;">)]
+</span><span style="color: #008080;">184</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">extern</span><span style="color: #000000;"> WAIT_RESULT WaitForSingleObject(IntPtr handle, Int32 milliseconds);
+</span><span style="color: #008080;">185</span> 
+<span style="color: #008080;">186</span>         [DllImport(<span style="color: #800000;">"</span><span style="color: #800000;">Kernel32.dll</span><span style="color: #800000;">"</span>, SetLastError = <span style="color: #0000ff;">true</span><span style="color: #000000;">)]
+</span><span style="color: #008080;">187</span>         [<span style="color: #0000ff;">return</span><span style="color: #000000;">: MarshalAs(UnmanagedType.Bool)]
+</span><span style="color: #008080;">188</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">extern</span> <span style="color: #0000ff;">bool</span><span style="color: #000000;"> CloseHandle(IntPtr hObject);
+</span><span style="color: #008080;">189</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">190</span> 
+<span style="color: #008080;">191</span>     <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">192</span>     <span style="color: #808080;">///</span><span style="color: #008000;"> This interface definition is HACKED.
+</span><span style="color: #008080;">193</span>     <span style="color: #808080;">///</span> 
+<span style="color: #008080;">194</span>     <span style="color: #808080;">///</span><span style="color: #008000;"> It appears that the IID for IXpsPrintJobStream specified in XpsPrint.h as 
+</span><span style="color: #008080;">195</span>     <span style="color: #808080;">///</span><span style="color: #008000;"> MIDL_INTERFACE("7a77dc5f-45d6-4dff-9307-d8cb846347ca") is not correct and the RCW cannot return it.
+</span><span style="color: #008080;">196</span>     <span style="color: #808080;">///</span><span style="color: #008000;"> But the returned object returns the parent ISequentialStream inteface successfully.
+</span><span style="color: #008080;">197</span>     <span style="color: #808080;">///</span> 
+<span style="color: #008080;">198</span>     <span style="color: #808080;">///</span><span style="color: #008000;"> So the hack is that we obtain the ISequentialStream interface but work with it as 
+</span><span style="color: #008080;">199</span>     <span style="color: #808080;">///</span><span style="color: #008000;"> with the IXpsPrintJobStream interface. 
+</span><span style="color: #008080;">200</span>     <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">201</span>     [Guid(<span style="color: #800000;">"</span><span style="color: #800000;">0C733A30-2A1C-11CE-ADE5-00AA0044773D</span><span style="color: #800000;">"</span>)]  <span style="color: #008000;">//</span><span style="color: #008000;"> This is IID of ISequenatialSteam.</span>
+<span style="color: #008080;">202</span> <span style="color: #000000;">    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+</span><span style="color: #008080;">203</span>     <span style="color: #0000ff;">interface</span><span style="color: #000000;"> IXpsPrintJobStream
+</span><span style="color: #008080;">204</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;">205</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> ISequentualStream methods.</span>
+<span style="color: #008080;">206</span>         <span style="color: #0000ff;">void</span> Read([MarshalAs(UnmanagedType.LPArray)] <span style="color: #0000ff;">byte</span>[] pv, <span style="color: #0000ff;">uint</span> cb, <span style="color: #0000ff;">out</span> <span style="color: #0000ff;">uint</span><span style="color: #000000;"> pcbRead);
+</span><span style="color: #008080;">207</span>         <span style="color: #0000ff;">void</span> Write([MarshalAs(UnmanagedType.LPArray)] <span style="color: #0000ff;">byte</span>[] pv, <span style="color: #0000ff;">uint</span> cb, <span style="color: #0000ff;">out</span> <span style="color: #0000ff;">uint</span><span style="color: #000000;"> pcbWritten);
+</span><span style="color: #008080;">208</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> IXpsPrintJobStream methods.</span>
+<span style="color: #008080;">209</span>         <span style="color: #0000ff;">void</span><span style="color: #000000;"> Close();
+</span><span style="color: #008080;">210</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">211</span> 
+<span style="color: #008080;">212</span>     [Guid(<span style="color: #800000;">"</span><span style="color: #800000;">5ab89b06-8194-425f-ab3b-d7a96e350161</span><span style="color: #800000;">"</span><span style="color: #000000;">)]
+</span><span style="color: #008080;">213</span> <span style="color: #000000;">    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+</span><span style="color: #008080;">214</span>     <span style="color: #0000ff;">interface</span><span style="color: #000000;"> IXpsPrintJob
+</span><span style="color: #008080;">215</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;">216</span>         <span style="color: #0000ff;">void</span><span style="color: #000000;"> Cancel();
+</span><span style="color: #008080;">217</span>         <span style="color: #0000ff;">void</span> GetJobStatus(<span style="color: #0000ff;">out</span><span style="color: #000000;"> XPS_JOB_STATUS jobStatus);
+</span><span style="color: #008080;">218</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">219</span> 
+<span style="color: #008080;">220</span> <span style="color: #000000;">    [StructLayout(LayoutKind.Sequential)]
+</span><span style="color: #008080;">221</span>     <span style="color: #0000ff;">struct</span><span style="color: #000000;"> XPS_JOB_STATUS
+</span><span style="color: #008080;">222</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;">223</span>         <span style="color: #0000ff;">public</span><span style="color: #000000;"> UInt32 jobId;
+</span><span style="color: #008080;">224</span>         <span style="color: #0000ff;">public</span><span style="color: #000000;"> Int32 currentDocument;
+</span><span style="color: #008080;">225</span>         <span style="color: #0000ff;">public</span><span style="color: #000000;"> Int32 currentPage;
+</span><span style="color: #008080;">226</span>         <span style="color: #0000ff;">public</span><span style="color: #000000;"> Int32 currentPageTotal;
+</span><span style="color: #008080;">227</span>         <span style="color: #0000ff;">public</span><span style="color: #000000;"> XPS_JOB_COMPLETION completion;
+</span><span style="color: #008080;">228</span>         <span style="color: #0000ff;">public</span> Int32 jobStatus; <span style="color: #008000;">//</span><span style="color: #008000;"> UInt32</span>
+<span style="color: #008080;">229</span> <span style="color: #000000;">    };
+</span><span style="color: #008080;">230</span> 
+<span style="color: #008080;">231</span>     <span style="color: #0000ff;">enum</span><span style="color: #000000;"> XPS_JOB_COMPLETION
+</span><span style="color: #008080;">232</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;">233</span>         XPS_JOB_IN_PROGRESS = <span style="color: #800080;">0</span><span style="color: #000000;">,
+</span><span style="color: #008080;">234</span>         XPS_JOB_COMPLETED = <span style="color: #800080;">1</span><span style="color: #000000;">,
+</span><span style="color: #008080;">235</span>         XPS_JOB_CANCELLED = <span style="color: #800080;">2</span><span style="color: #000000;">,
+</span><span style="color: #008080;">236</span>         XPS_JOB_FAILED = <span style="color: #800080;">3</span>
+<span style="color: #008080;">237</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">238</span> 
+<span style="color: #008080;">239</span>     <span style="color: #0000ff;">enum</span><span style="color: #000000;"> WAIT_RESULT
+</span><span style="color: #008080;">240</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;">241</span>         WAIT_OBJECT_0 = <span style="color: #800080;">0</span><span style="color: #000000;">,
+</span><span style="color: #008080;">242</span>         WAIT_ABANDONED = <span style="color: #800080;">0x80</span><span style="color: #000000;">,
+</span><span style="color: #008080;">243</span>         WAIT_TIMEOUT = <span style="color: #800080;">0x102</span><span style="color: #000000;">,
+</span><span style="color: #008080;">244</span>         WAIT_FAILED = -<span style="color: #800080;">1</span> <span style="color: #008000;">//</span><span style="color: #008000;"> 0xFFFFFFFF</span>
+<span style="color: #008080;">245</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">246</span> }</pre>
+</div>
+<span class="cnblogs_code_collapse">XpsPrintHelper</span></div>
+<p>到此，基于windows服务的打印已经解决。</p>
+<p>就只有模板编辑器的事情了。</p>
+<p>对于原来做过基于Word的邮件合并域的经验。自己开发一个编辑器来说工程量有点大</p>
+<p>所以选择了一个现有的，功能又强大的文档编辑器。Word来做为我的标签编辑器了。</p>
+<p>Word可以完美的解决纸张，格式，位置等问题。只是在对应的地方用&ldquo;文本域&rdquo;来做占位符</p>
+<p>然后用自定义的数据填充就可以了。</p>
+<p>下图为Word模板编辑<br /><img src="./images/基于Win服务的标签打印(模板套打)7.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;编辑占位符（域）<br /><img src="./images/基于Win服务的标签打印(模板套打)8.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>这样的话。一个模板就出来了</p>
+<p>如果是图片的话。就在域名前加Image:</p>
+<p>如果是表格的话。在表格的开始加上TableStart:表名<br />在表格的未尾加上TableEnd:表名</p>
+<p>&nbsp;</p>
+<p>协议的话。走的是所有语言都支持的http，对于以后开发SDK也方便</p>
+<p>对于上面的模板，只要发送这样的请球POST<br /><img src="./images/基于Win服务的标签打印(模板套打)9.png" alt="" /></p>
+<p>对于Get请求</p>
+<p><img src="./images/基于Win服务的标签打印(模板套打)10.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>然后打印出来的效果</p>
+<p><img src="./images/基于Win服务的标签打印(模板套打)11.png" alt="" /></p>
+<p>到此，打印3.0已经完成。</p>
+<p>关键代码<br />根据请求数据生成打印实体</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('3a97a4f5-f518-4b80-8282-2a277821fe0f')"><img id="code_img_closed_3a97a4f5-f518-4b80-8282-2a277821fe0f" class="code_img_closed" src="./images/基于Win服务的标签打印(模板套打)5.png" alt="" /><img id="code_img_opened_3a97a4f5-f518-4b80-8282-2a277821fe0f" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('3a97a4f5-f518-4b80-8282-2a277821fe0f',event)" src="./images/基于Win服务的标签打印(模板套打)6.png" alt="" />
+<div id="cnblogs_code_open_3a97a4f5-f518-4b80-8282-2a277821fe0f" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">private</span><span style="color: #000000;"> PrintModel GetPrintModel(HttpListenerRequest request)
+</span><span style="color: #008080;"> 2</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 3</span>             <span style="color: #0000ff;">var</span> result = <span style="color: #0000ff;">new</span><span style="color: #000000;"> PrintModel();
+</span><span style="color: #008080;"> 4</span>             result.PrintName = ConfigurationManager.AppSettings[<span style="color: #800000;">"</span><span style="color: #800000;">PrintName</span><span style="color: #800000;">"</span><span style="color: #000000;">];
+</span><span style="color: #008080;"> 5</span>             result.Template = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, <span style="color: #800000;">"</span><span style="color: #800000;">Template</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">Default.docx</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 6</span>             result.Action =<span style="color: #000000;"> PrintActionType.Print;
+</span><span style="color: #008080;"> 7</span> 
+<span style="color: #008080;"> 8</span>             <span style="color: #0000ff;">var</span> query =<span style="color: #000000;"> request.Url.Query;
+</span><span style="color: #008080;"> 9</span>             <span style="color: #0000ff;">var</span> dicQuery = <span style="color: #0000ff;">this</span><span style="color: #000000;">.ToNameValueDictionary(query);
+</span><span style="color: #008080;">10</span>             <span style="color: #0000ff;">if</span> (dicQuery.ContainsKey(<span style="color: #800000;">"</span><span style="color: #800000;">PrintName</span><span style="color: #800000;">"</span>)) result.PrintName = dicQuery[<span style="color: #800000;">"</span><span style="color: #800000;">PrintName</span><span style="color: #800000;">"</span><span style="color: #000000;">];
+</span><span style="color: #008080;">11</span>             <span style="color: #0000ff;">if</span> (dicQuery.ContainsKey(<span style="color: #800000;">"</span><span style="color: #800000;">Copies</span><span style="color: #800000;">"</span>)) result.Copies = <span style="color: #0000ff;">int</span>.Parse(dicQuery[<span style="color: #800000;">"</span><span style="color: #800000;">Copies</span><span style="color: #800000;">"</span><span style="color: #000000;">]);
+</span><span style="color: #008080;">12</span>             <span style="color: #0000ff;">if</span> (dicQuery.ContainsKey(<span style="color: #800000;">"</span><span style="color: #800000;">Template</span><span style="color: #800000;">"</span><span style="color: #000000;">))
+</span><span style="color: #008080;">13</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">14</span>                 <span style="color: #0000ff;">var</span> tempPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, <span style="color: #800000;">"</span><span style="color: #800000;">Template</span><span style="color: #800000;">"</span>, dicQuery[<span style="color: #800000;">"</span><span style="color: #800000;">Template</span><span style="color: #800000;">"</span><span style="color: #000000;">]);
+</span><span style="color: #008080;">15</span>                 <span style="color: #0000ff;">if</span><span style="color: #000000;"> (File.Exists(tempPath))
+</span><span style="color: #008080;">16</span>                     result.Template =<span style="color: #000000;"> tempPath;
+</span><span style="color: #008080;">17</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">18</span>             <span style="color: #0000ff;">if</span> (dicQuery.ContainsKey(<span style="color: #800000;">"</span><span style="color: #800000;">Action</span><span style="color: #800000;">"</span>)) result.Action = (PrintActionType)Enum.Parse(<span style="color: #0000ff;">typeof</span>(PrintActionType), dicQuery[<span style="color: #800000;">"</span><span style="color: #800000;">Action</span><span style="color: #800000;">"</span><span style="color: #000000;">]);
+</span><span style="color: #008080;">19</span> 
+<span style="color: #008080;">20</span>             <span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">var</span> item <span style="color: #0000ff;">in</span><span style="color: #000000;"> dicQuery)
+</span><span style="color: #008080;">21</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">22</span>                 <span style="color: #0000ff;">if</span> (item.Key.StartsWith(<span style="color: #800000;">"</span><span style="color: #800000;">Image:</span><span style="color: #800000;">"</span><span style="color: #000000;">))
+</span><span style="color: #008080;">23</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">24</span>                     <span style="color: #0000ff;">var</span> keyName = item.Key.Replace(<span style="color: #800000;">"</span><span style="color: #800000;">Image:</span><span style="color: #800000;">"</span>, <span style="color: #800000;">""</span><span style="color: #000000;">);
+</span><span style="color: #008080;">25</span>                     <span style="color: #0000ff;">if</span> (result.ImageContent.ContainsKey(keyName)) <span style="color: #0000ff;">continue</span><span style="color: #000000;">;
+</span><span style="color: #008080;">26</span>                     <span style="color: #0000ff;">var</span> imageModel = item.Value.ToObject&lt;ImageContentModel&gt;<span style="color: #000000;">();
+</span><span style="color: #008080;">27</span> <span style="color: #000000;">                    result.ImageContent.Add(keyName, imageModel);
+</span><span style="color: #008080;">28</span>                     <span style="color: #0000ff;">continue</span><span style="color: #000000;">;
+</span><span style="color: #008080;">29</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">30</span>                 <span style="color: #0000ff;">if</span> (item.Key.StartsWith(<span style="color: #800000;">"</span><span style="color: #800000;">Table:</span><span style="color: #800000;">"</span><span style="color: #000000;">))
+</span><span style="color: #008080;">31</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">32</span>                     <span style="color: #0000ff;">var</span> keyName = item.Key.Replace(<span style="color: #800000;">"</span><span style="color: #800000;">Table:</span><span style="color: #800000;">"</span>, <span style="color: #800000;">""</span><span style="color: #000000;">);
+</span><span style="color: #008080;">33</span>                     <span style="color: #0000ff;">if</span> (result.TableContent.ContainsKey(keyName)) <span style="color: #0000ff;">continue</span><span style="color: #000000;">;
+</span><span style="color: #008080;">34</span>                     <span style="color: #0000ff;">var</span> table = item.Value.ToObject&lt;DataTable&gt;<span style="color: #000000;">();
+</span><span style="color: #008080;">35</span>                     table.TableName =<span style="color: #000000;"> keyName;
+</span><span style="color: #008080;">36</span> <span style="color: #000000;">                    result.TableContent.Add(keyName, table);
+</span><span style="color: #008080;">37</span>                     <span style="color: #0000ff;">continue</span><span style="color: #000000;">;
+</span><span style="color: #008080;">38</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">39</span>                 <span style="color: #0000ff;">if</span> (result.FieldCotent.ContainsKey(item.Key)) <span style="color: #0000ff;">continue</span><span style="color: #000000;">;
+</span><span style="color: #008080;">40</span> <span style="color: #000000;">                result.FieldCotent.Add(item.Key, item.Value);
+</span><span style="color: #008080;">41</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">42</span> 
+<span style="color: #008080;">43</span>             <span style="color: #0000ff;">if</span> (request.HttpMethod.Equals(<span style="color: #800000;">"</span><span style="color: #800000;">POST</span><span style="color: #800000;">"</span><span style="color: #000000;">, StringComparison.CurrentCultureIgnoreCase))
+</span><span style="color: #008080;">44</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">45</span>                 <span style="color: #0000ff;">var</span> body =<span style="color: #000000;"> request.InputStream;
+</span><span style="color: #008080;">46</span>                 <span style="color: #0000ff;">var</span> encoding =<span style="color: #000000;"> Encoding.UTF8;
+</span><span style="color: #008080;">47</span>                 <span style="color: #0000ff;">var</span> reader = <span style="color: #0000ff;">new</span><span style="color: #000000;"> StreamReader(body, encoding);
+</span><span style="color: #008080;">48</span>                 <span style="color: #0000ff;">var</span> bodyContent =<span style="color: #000000;"> reader.ReadToEnd();
+</span><span style="color: #008080;">49</span>                 <span style="color: #0000ff;">var</span> bodyModel = bodyContent.ToObject&lt;Dictionary&lt;<span style="color: #0000ff;">string</span>, <span style="color: #0000ff;">object</span>&gt;&gt;<span style="color: #000000;">();
+</span><span style="color: #008080;">50</span>                 <span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">var</span> item <span style="color: #0000ff;">in</span><span style="color: #000000;"> bodyModel)
+</span><span style="color: #008080;">51</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">52</span>                     <span style="color: #0000ff;">if</span> (item.Key.StartsWith(<span style="color: #800000;">"</span><span style="color: #800000;">Image:</span><span style="color: #800000;">"</span><span style="color: #000000;">))
+</span><span style="color: #008080;">53</span> <span style="color: #000000;">                    {
+</span><span style="color: #008080;">54</span>                         <span style="color: #0000ff;">var</span> imageModel = item.Value.ToJson().ToObject&lt;ImageContentModel&gt;<span style="color: #000000;">();
+</span><span style="color: #008080;">55</span>                         <span style="color: #0000ff;">var</span> keyName = item.Key.Replace(<span style="color: #800000;">"</span><span style="color: #800000;">Image:</span><span style="color: #800000;">"</span>, <span style="color: #800000;">""</span><span style="color: #000000;">);
+</span><span style="color: #008080;">56</span>                         <span style="color: #0000ff;">if</span><span style="color: #000000;"> (result.ImageContent.ContainsKey(keyName))
+</span><span style="color: #008080;">57</span>                             result.ImageContent[keyName] =<span style="color: #000000;"> imageModel;
+</span><span style="color: #008080;">58</span>                         <span style="color: #0000ff;">else</span>
+<span style="color: #008080;">59</span> <span style="color: #000000;">                            result.ImageContent.Add(keyName, imageModel);
+</span><span style="color: #008080;">60</span>                         <span style="color: #0000ff;">continue</span><span style="color: #000000;">;
+</span><span style="color: #008080;">61</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">62</span>                     <span style="color: #0000ff;">if</span> (item.Key.StartsWith(<span style="color: #800000;">"</span><span style="color: #800000;">Table:</span><span style="color: #800000;">"</span><span style="color: #000000;">))
+</span><span style="color: #008080;">63</span> <span style="color: #000000;">                    {
+</span><span style="color: #008080;">64</span>                         <span style="color: #0000ff;">var</span> table = item.Value.ToJson().ToObject&lt;DataTable&gt;<span style="color: #000000;">();
+</span><span style="color: #008080;">65</span>                         <span style="color: #0000ff;">var</span> keyName = item.Key.Replace(<span style="color: #800000;">"</span><span style="color: #800000;">Table:</span><span style="color: #800000;">"</span>, <span style="color: #800000;">""</span><span style="color: #000000;">);
+</span><span style="color: #008080;">66</span>                         table.TableName =<span style="color: #000000;"> keyName;
+</span><span style="color: #008080;">67</span>                         <span style="color: #0000ff;">if</span><span style="color: #000000;"> (result.TableContent.ContainsKey(keyName))
+</span><span style="color: #008080;">68</span>                             result.TableContent[keyName] =<span style="color: #000000;"> table;
+</span><span style="color: #008080;">69</span>                         <span style="color: #0000ff;">else</span>
+<span style="color: #008080;">70</span> <span style="color: #000000;">                            result.TableContent.Add(keyName, table);
+</span><span style="color: #008080;">71</span>                         <span style="color: #0000ff;">continue</span><span style="color: #000000;">;
+</span><span style="color: #008080;">72</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">73</span>                     <span style="color: #0000ff;">if</span><span style="color: #000000;"> (result.FieldCotent.ContainsKey(item.Key))
+</span><span style="color: #008080;">74</span>                         result.FieldCotent[item.Key] =<span style="color: #000000;"> HttpUtility.UrlDecode(item.Value.ToString());
+</span><span style="color: #008080;">75</span>                     <span style="color: #0000ff;">else</span>
+<span style="color: #008080;">76</span> <span style="color: #000000;">                        result.FieldCotent.Add(item.Key, HttpUtility.UrlDecode(item.Value.ToString()));
+</span><span style="color: #008080;">77</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">78</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">79</span>             <span style="color: #0000ff;">return</span><span style="color: #000000;"> result;
+</span><span style="color: #008080;">80</span>         }</pre>
+</div>
+<span class="cnblogs_code_collapse">GetPrintModel</span></div>
+<p>&nbsp;</p>
+<p>文档邮件合并域</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('e6e7f09e-1dfb-4cb8-98a2-ab1bb1807c18')"><img id="code_img_closed_e6e7f09e-1dfb-4cb8-98a2-ab1bb1807c18" class="code_img_closed" src="./images/基于Win服务的标签打印(模板套打)5.png" alt="" /><img id="code_img_opened_e6e7f09e-1dfb-4cb8-98a2-ab1bb1807c18" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('e6e7f09e-1dfb-4cb8-98a2-ab1bb1807c18',event)" src="./images/基于Win服务的标签打印(模板套打)6.png" alt="" />
+<div id="cnblogs_code_open_e6e7f09e-1dfb-4cb8-98a2-ab1bb1807c18" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;">  1</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> MergeDocument : IDisposable
+</span><span style="color: #008080;">  2</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;">  3</span>         <span style="color: #0000ff;">public</span> PrintModel Model { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+</span><span style="color: #008080;">  4</span>         <span style="color: #0000ff;">public</span> Document Doc { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+</span><span style="color: #008080;">  5</span>         <span style="color: #0000ff;">private</span> PrintFieldMergingCallback FieldCallback { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+</span><span style="color: #008080;">  6</span>         <span style="color: #0000ff;">public</span><span style="color: #000000;"> MergeDocument(PrintModel model)
+</span><span style="color: #008080;">  7</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">  8</span>             <span style="color: #0000ff;">this</span>.Model =<span style="color: #000000;"> model;
+</span><span style="color: #008080;">  9</span>             <span style="color: #0000ff;">this</span>.Doc = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Document(model.Template);
+</span><span style="color: #008080;"> 10</span>             <span style="color: #0000ff;">this</span>.FieldCallback = <span style="color: #0000ff;">new</span> PrintFieldMergingCallback(<span style="color: #0000ff;">this</span><span style="color: #000000;">.Model);
+</span><span style="color: #008080;"> 11</span>             <span style="color: #0000ff;">this</span>.Doc.MailMerge.FieldMergingCallback = <span style="color: #0000ff;">this</span><span style="color: #000000;">.FieldCallback;
+</span><span style="color: #008080;"> 12</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 13</span>         <span style="color: #0000ff;">public</span><span style="color: #000000;"> Stream MergeToStream()
+</span><span style="color: #008080;"> 14</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 15</span>             <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span>.Model.FieldCotent.Count &gt; <span style="color: #800080;">0</span><span style="color: #000000;">)
+</span><span style="color: #008080;"> 16</span>                 <span style="color: #0000ff;">this</span>.Doc.MailMerge.Execute(<span style="color: #0000ff;">this</span>.Model.FieldCotent.Keys.ToArray(), <span style="color: #0000ff;">this</span><span style="color: #000000;">.Model.FieldCotent.Values.ToArray());
+</span><span style="color: #008080;"> 17</span>             <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span>.Model.ImageContent.Count &gt; <span style="color: #800080;">0</span><span style="color: #000000;">)
+</span><span style="color: #008080;"> 18</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 19</span>                 <span style="color: #0000ff;">this</span>.Doc.MailMerge.Execute(<span style="color: #0000ff;">this</span>.Model.ImageContent.Keys.ToArray(), <span style="color: #0000ff;">this</span>.Model.ImageContent.Values.Select(s =&gt;<span style="color: #000000;"> s.Value).ToArray());
+</span><span style="color: #008080;"> 20</span> <span style="color: #000000;">            };
+</span><span style="color: #008080;"> 21</span>             <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span>.Model.TableContent.Count &gt; <span style="color: #800080;">0</span><span style="color: #000000;">)
+</span><span style="color: #008080;"> 22</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 23</span>                 <span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">var</span> item <span style="color: #0000ff;">in</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">.Model.TableContent)
+</span><span style="color: #008080;"> 24</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;"> 25</span>                     <span style="color: #0000ff;">var</span> table =<span style="color: #000000;"> item.Value;
+</span><span style="color: #008080;"> 26</span>                     table.TableName =<span style="color: #000000;"> item.Key;
+</span><span style="color: #008080;"> 27</span>                     <span style="color: #0000ff;">this</span><span style="color: #000000;">.Doc.MailMerge.ExecuteWithRegions(table);
+</span><span style="color: #008080;"> 28</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;"> 29</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 30</span>             <span style="color: #0000ff;">this</span><span style="color: #000000;">.Doc.UpdateFields();
+</span><span style="color: #008080;"> 31</span> 
+<span style="color: #008080;"> 32</span>             <span style="color: #0000ff;">var</span> fileName = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, <span style="color: #800000;">"</span><span style="color: #800000;">PrintDoc</span><span style="color: #800000;">"</span>, $<span style="color: #800000;">"</span><span style="color: #800000;">{DateTime.Now.ToString(</span><span style="color: #800000;">"</span>yyMMddHHmmssfff<span style="color: #800000;">"</span><span style="color: #800000;">)}.docx</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 33</span>             <span style="color: #0000ff;">var</span> ms = <span style="color: #0000ff;">new</span><span style="color: #000000;"> MemoryStream();
+</span><span style="color: #008080;"> 34</span>             <span style="color: #0000ff;">this</span><span style="color: #000000;">.Doc.Save(ms, SaveFormat.Xps);
+</span><span style="color: #008080;"> 35</span>             <span style="color: #0000ff;">return</span><span style="color: #000000;"> ms;
+</span><span style="color: #008080;"> 36</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 37</span> 
+<span style="color: #008080;"> 38</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> Dispose()
+</span><span style="color: #008080;"> 39</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 40</span>             <span style="color: #0000ff;">this</span><span style="color: #000000;">.FieldCallback.Dispose();
+</span><span style="color: #008080;"> 41</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 42</span> 
+<span style="color: #008080;"> 43</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> PrintFieldMergingCallback : IFieldMergingCallback, IDisposable
+</span><span style="color: #008080;"> 44</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 45</span>             <span style="color: #0000ff;">public</span> HttpClient Client { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+</span><span style="color: #008080;"> 46</span>             <span style="color: #0000ff;">public</span> PrintModel Model { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+</span><span style="color: #008080;"> 47</span>             <span style="color: #0000ff;">public</span><span style="color: #000000;"> PrintFieldMergingCallback(PrintModel model)
+</span><span style="color: #008080;"> 48</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 49</span>                 <span style="color: #0000ff;">this</span>.Model =<span style="color: #000000;"> model;
+</span><span style="color: #008080;"> 50</span>                 <span style="color: #0000ff;">this</span>.Client = <span style="color: #0000ff;">new</span><span style="color: #000000;"> HttpClient();
+</span><span style="color: #008080;"> 51</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 52</span>             <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> FieldMerging(FieldMergingArgs args)
+</span><span style="color: #008080;"> 53</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 54</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 55</span> 
+<span style="color: #008080;"> 56</span>             <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> ImageFieldMerging(ImageFieldMergingArgs field)
+</span><span style="color: #008080;"> 57</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 58</span>                 <span style="color: #0000ff;">var</span> fieldName =<span style="color: #000000;"> field.FieldName;
+</span><span style="color: #008080;"> 59</span>                 <span style="color: #0000ff;">if</span> (!<span style="color: #0000ff;">this</span>.Model.ImageContent.ContainsKey(fieldName)) <span style="color: #0000ff;">return</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 60</span>                 <span style="color: #0000ff;">var</span> imageModel = <span style="color: #0000ff;">this</span><span style="color: #000000;">.Model.ImageContent[fieldName];
+</span><span style="color: #008080;"> 61</span>                 <span style="color: #0000ff;">switch</span><span style="color: #000000;"> (imageModel.Type)
+</span><span style="color: #008080;"> 62</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;"> 63</span>                     <span style="color: #0000ff;">case</span><span style="color: #000000;"> ImageType.Local:
+</span><span style="color: #008080;"> 64</span> <span style="color: #000000;">                        {
+</span><span style="color: #008080;"> 65</span>                             field.Image =<span style="color: #000000;"> Image.FromFile(imageModel.Value);
+</span><span style="color: #008080;"> 66</span>                             field.ImageWidth = <span style="color: #0000ff;">new</span><span style="color: #000000;"> MergeFieldImageDimension(imageModel.Width);
+</span><span style="color: #008080;"> 67</span>                             field.ImageHeight = <span style="color: #0000ff;">new</span><span style="color: #000000;"> MergeFieldImageDimension(imageModel.Height);
+</span><span style="color: #008080;"> 68</span> <span style="color: #000000;">                        };
+</span><span style="color: #008080;"> 69</span>                         <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 70</span>                     <span style="color: #0000ff;">case</span><span style="color: #000000;"> ImageType.Network:
+</span><span style="color: #008080;"> 71</span> <span style="color: #000000;">                        {
+</span><span style="color: #008080;"> 72</span>                             <span style="color: #0000ff;">var</span> imageStream = <span style="color: #0000ff;">this</span><span style="color: #000000;">.Client.GetStreamAsync(imageModel.Value).Result;
+</span><span style="color: #008080;"> 73</span>                             <span style="color: #0000ff;">var</span> ms = <span style="color: #0000ff;">new</span><span style="color: #000000;"> MemoryStream();
+</span><span style="color: #008080;"> 74</span> <span style="color: #000000;">                            imageStream.CopyTo(ms);
+</span><span style="color: #008080;"> 75</span>                             ms.Position = <span style="color: #800080;">0</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 76</span>                             field.ImageStream =<span style="color: #000000;"> ms;
+</span><span style="color: #008080;"> 77</span>                             field.ImageWidth = <span style="color: #0000ff;">new</span><span style="color: #000000;"> MergeFieldImageDimension(imageModel.Width);
+</span><span style="color: #008080;"> 78</span>                             field.ImageHeight = <span style="color: #0000ff;">new</span><span style="color: #000000;"> MergeFieldImageDimension(imageModel.Height);
+</span><span style="color: #008080;"> 79</span>                         }; <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 80</span>                     <span style="color: #0000ff;">case</span><span style="color: #000000;"> ImageType.BarCode:
+</span><span style="color: #008080;"> 81</span> <span style="color: #000000;">                        {
+</span><span style="color: #008080;"> 82</span>                             <span style="color: #0000ff;">var</span> barImage = <span style="color: #0000ff;">this</span><span style="color: #000000;">.GenerateImage(BarcodeFormat.CODE_128, imageModel.Value, imageModel.Width, imageModel.Height);
+</span><span style="color: #008080;"> 83</span>                             field.Image =<span style="color: #000000;"> barImage;
+</span><span style="color: #008080;"> 84</span>                         }; <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 85</span>                     <span style="color: #0000ff;">case</span><span style="color: #000000;"> ImageType.QRCode:
+</span><span style="color: #008080;"> 86</span> <span style="color: #000000;">                        {
+</span><span style="color: #008080;"> 87</span>                             <span style="color: #0000ff;">var</span> qrImage = <span style="color: #0000ff;">this</span><span style="color: #000000;">.GenerateImage(BarcodeFormat.QR_CODE, imageModel.Value, imageModel.Width, imageModel.Height);
+</span><span style="color: #008080;"> 88</span>                             field.Image =<span style="color: #000000;"> qrImage;
+</span><span style="color: #008080;"> 89</span>                         }; <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 90</span>                     <span style="color: #0000ff;">default</span>: <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 91</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;"> 92</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 93</span>             <span style="color: #0000ff;">private</span> Bitmap GenerateImage(BarcodeFormat format, <span style="color: #0000ff;">string</span> code, <span style="color: #0000ff;">int</span> width, <span style="color: #0000ff;">int</span><span style="color: #000000;"> height)
+</span><span style="color: #008080;"> 94</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 95</span>                 <span style="color: #0000ff;">var</span> writer = <span style="color: #0000ff;">new</span><span style="color: #000000;"> BarcodeWriter();
+</span><span style="color: #008080;"> 96</span>                 writer.Format =<span style="color: #000000;"> format;
+</span><span style="color: #008080;"> 97</span>                 EncodingOptions options = <span style="color: #0000ff;">new</span><span style="color: #000000;"> EncodingOptions()
+</span><span style="color: #008080;"> 98</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;"> 99</span>                     Width =<span style="color: #000000;"> width,
+</span><span style="color: #008080;">100</span>                     Height =<span style="color: #000000;"> height,
+</span><span style="color: #008080;">101</span>                     Margin = <span style="color: #800080;">2</span><span style="color: #000000;">,
+</span><span style="color: #008080;">102</span>                     PureBarcode = <span style="color: #0000ff;">false</span>
+<span style="color: #008080;">103</span> <span style="color: #000000;">                };
+</span><span style="color: #008080;">104</span>                 writer.Options =<span style="color: #000000;"> options;
+</span><span style="color: #008080;">105</span>                 <span style="color: #0000ff;">if</span> (format ==<span style="color: #000000;"> BarcodeFormat.QR_CODE)
+</span><span style="color: #008080;">106</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">107</span>                     <span style="color: #0000ff;">var</span> qrOption = <span style="color: #0000ff;">new</span><span style="color: #000000;"> QrCodeEncodingOptions()
+</span><span style="color: #008080;">108</span> <span style="color: #000000;">                    {
+</span><span style="color: #008080;">109</span>                         DisableECI = <span style="color: #0000ff;">true</span><span style="color: #000000;">,
+</span><span style="color: #008080;">110</span>                         CharacterSet = <span style="color: #800000;">"</span><span style="color: #800000;">UTF-8</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+</span><span style="color: #008080;">111</span>                         Width =<span style="color: #000000;"> width,
+</span><span style="color: #008080;">112</span>                         Height =<span style="color: #000000;"> height,
+</span><span style="color: #008080;">113</span>                         Margin = <span style="color: #800080;">2</span>
+<span style="color: #008080;">114</span> <span style="color: #000000;">                    };
+</span><span style="color: #008080;">115</span>                     writer.Options =<span style="color: #000000;"> qrOption;
+</span><span style="color: #008080;">116</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">117</span>                 <span style="color: #0000ff;">var</span> codeimg =<span style="color: #000000;"> writer.Write(code);
+</span><span style="color: #008080;">118</span>                 <span style="color: #0000ff;">return</span><span style="color: #000000;"> codeimg;
+</span><span style="color: #008080;">119</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">120</span> 
+<span style="color: #008080;">121</span>             <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> Dispose()
+</span><span style="color: #008080;">122</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">123</span>                 <span style="color: #0000ff;">this</span><span style="color: #000000;">.Client.Dispose();
+</span><span style="color: #008080;">124</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">125</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">126</span>     }</pre>
+</div>
+<span class="cnblogs_code_collapse">MergeDocument</span></div>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><em id="__mceDel">&nbsp;</em></p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,442 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修日志组件Log2Net的介绍和使用（附源码开源地址）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>日志组件Log2Net的介绍和使用（附源码开源地址）</center></div><div class='banquan'>原文出处:本文由博客园博主三河散人提供。<br/>
+原文连接:https://www.cnblogs.com/yuchen1030/p/10992259.html</div><br>
+    <p>　　Log2Net是一个用于收集日志到数据库或文件的组件，支持.NET和.NetCore平台。 此组件自动收集系统的运行日志（服务器运行情况、在线人数等）、异常日志。程序员还可以添加自定义日志。 该组件支持.NET平台和.NETCore平台，支持将日志写入到文本文件、SQL Server、Oracle、MySQL，可以方便地扩展到其他数据库。</p>
+<p>　　针对这个组件的数据，相应地有日志查询网站，它查询日志数据库的数据(Log2Net组件存储的日志数据），显示各服务器/网站的实时数据图表显示，提供操作轨迹数据和监控数据的查询功能，并对异常情况进行告警。</p>
+<h2>Log2Net系列目录</h2>
+<p>1、<strong><a id="CategoryEntryList1_EntryStoryList_ctl00_Entries_TitleUrl_1" class="entrylistItemTitle" href="https://www.cnblogs.com/yuchen1030/p/10992259.html">日志组件Log2Net的介绍和使用（附源码开源地址）</a></strong></p>
+<p>2、<strong><a id="CategoryEntryList1_EntryStoryList_ctl00_Entries_TitleUrl_0" class="entrylistItemTitle" href="https://www.cnblogs.com/yuchen1030/p/10994040.html">Log2Net的架构简介</a></strong></p>
+<p>3、<strong><a id="cb_post_title_url" class="postTitle2" href="https://www.cnblogs.com/yuchen1030/p/11020609.html">Log2Net组件代码详解</a></strong></p>
+<p>4、<strong><a class="postTitle2" href="https://www.cnblogs.com/yuchen1030/p/11153458.html">Log2Net日志查询网站代码解析</a></strong></p>
+<p>5、<strong><a id="cb_post_title_url" class="postTitle2" href="https://www.cnblogs.com/yuchen1030/p/11406454.html">Log2Net的部署和运维</a></strong></p>
+<h2>一、为什么要开发这个组件</h2>
+<p>　　也有有园友要问了，现在的日志组件太多了啊，什么log4net，ELK，Kafka，Grafana，Graylog、facebook scribe，apache chukwa，cloudera flume等。都是国际大厂或知名组织的开源组件，你又何必重复造轮子呢？</p>
+<p>　　确实，这些开源系统不需要代码开发，且功能强大，支持各种类型（例如文本文本、数据库、缓存等）的日志的接入，有图表等多种展现方式，能实现海量数据的快速查询，能存储为多种类型（例如文本文本、数据库、缓存、HDFS等），天生的适合分布式部署。缺点是部署运维较为复杂，需要较多的插件支持（java、nodejs、ErLang等）；这些大都采用开源的java、scala等语言开发，优先应用于linux平台，我们不能灵活自由地定制自己的需求，相对我们.net平台来说，资料较少开发难度较大，相对我们的需求来说较为庞大。log4net组件虽然可以灵活地应用到.net系统中，但依然不满足我们的需求。</p>
+<p>　　我们有众多的业务系统，为公司管理、运营、决策等提供详细详实可靠的信息支持，但这些系统中有些没有详实的日志记录，有些日志分散在各自的系统中，给运维人员、系统管理人员监控系统运行情况、追溯用户操作、查询业务变更等带来很大的不便，开发/运维人员在系统异常时也不能很好的明白异常的上下文信息，且不能保证开发/运维人员都能方便的登录生产服务器。</p>
+<p>　　因此，我们需要一个集中式的日志收集系统，监控用户的操作情况和服务器运行情况，对日志中的关键字进行监控，触发异常时进行报警，协助开发人员查看相关日志 通过这个日志系统，我们能监控和分析系统的用户习惯和用户操作，能保障业务稳定运行，提高系统的健壮性和友好性。<br />　　日志采集分析是由需求驱动，根据某种场景的需要日志采集，采集的日志进行针对性的分析。一般常见的日志分析结果应用场景有：<br />　　a、系统审计：对于应用系统，采集操作日志、业务变更日志，有利于备查及提供相关安全审计功能。<br />　　b、系统分析：分析系统或者平台哪些功能是最受欢迎：什么时候使用最多用户使用，某个区域、某类用户使用最多。有利于功能推广；有利于提升服务器资源从而提高用户体验。<br />　　c、自动化运维和故障排查：场景微服务架构的系统或者平台，对运维投入的要求高，自动化部署和运维，可以减少运维的工作量和压力。系统运行环境日志采集、分析，可实现预警、服务器资源动态调配，有利于快速定位排查故障。<br />　　d、内容推荐：根据用户平常阅读内容，采集相关日志，并通过分析后，将用户感兴趣的内容系统自动推荐给用户，从而提升用户站粘性。</p>
+<p>　　在我们的系统中，我们想知道用户进行了什么操作，想知道网站的运行情况（例如在线人数、异常情况等），想监控服务器的运行情况（如内存情况、磁盘使用情况等），目前没有一个合适的方案来较好地满足满足我们的需求。因此，我们开发了一个日志组件和一个集中式日志查询系统。这个日志组件可以自动地收集系统的运行情况（如服务器内存、磁盘使用、在线人数、日常日志等），可以记录用户操作情况等，可以通过日志查询界面显示各网站/服务器的实时数据图表显示，提供操作轨迹数据和监控数据的查询功能等。</p>
+<h2>二、Log2net组件使用效果展示</h2>
+<p>　　使用Log2net组件后，可以将日志数据以友好的形式展示：显示各服务器/网站的实时数据图表显示，提供操作轨迹数据和监控数据的查询功能，并对异常情况进行告警。</p>
+<h4>1 操作日志查询</h4>
+<p>　　操作日志查询主要用于按照系统名称、服务器名称、时段、日志类型、关键词等条件查询操作轨迹类数据，主要以列表数据的形式展示日志数据。在列表的左侧，可以显示服务器的概况，如cpu使用率，内存使用率等。在列表的上侧，显示日志的分类汇总情况。如下图所示：</p>
+<p><img src="./images/日志组件Log2Net的介绍和使用（附源码开源地址）0.png" alt="" /></p>
+<p>&nbsp;</p>
+<h4>2 系统监控　</h4>
+<p>　　系统监控主要监控各服务器和应用网站的情况，主要以图形化的方面实时显示网站/服务器的运行情况。</p>
+<p>　　(1)、概况实时显示：显示服务器在当前时刻的cpu/内存使用率等情况；</p>
+<p>　　(2)、服务器状态监控：显示服务器在某时段内的cpu/内存使用率等情况；</p>
+<p>　　(3)、系统流量监控：显示系统在某时段内的在线人数、某页面的访问人数等；</p>
+<p>　　(4)、异常告警：在系统新加入监控或失去监控时音乐告警。</p>
+<p>　　如下图所示：</p>
+<p><img src="./images/日志组件Log2Net的介绍和使用（附源码开源地址）1.png" alt="" /></p>
+<p>　　上图中，每台服务器显示一条曲线图。因为本人测试的服务器只有一台，所以只有一个曲线图。随着服务器个数的增加，自动添加曲线图的个数。</p>
+<p>&nbsp; &nbsp; &nbsp; 系统代码参见&nbsp;<a href="https://github.com/yuchen1030/Log2Net-LgWG.LogQuery">https://github.com/yuchen1030/Log2Net-LgWG.LogQuery</a>&nbsp;。</p>
+<h2>三、Log2net组件的使用方法</h2>
+<p>　　看了上面炫酷的效果，是不是有点心动了呢，那么怎么将其应用到自己的网站中呢？别急，跟我一步一步来。</p>
+<p>　　PS. 本组件支持.NET4.5~.NetCore3.0，应该能满足绝大多数筒子们的需求了吧。若微软更新了.NetCore平台，稍后会添加对该平台的支持，尽量做到与.NetCore同步更新。</p>
+<h4>1 引用组件</h4>
+<p>　　在VS开发工具的nuget中，搜索 Log2Net 组件安装即可。</p>
+<p><img src="./images/日志组件Log2Net的介绍和使用（附源码开源地址）2.png" alt="" /></p>
+<p>　　搜索搜索 Log2Net ，log4net出现在第一位，好吧，我承认，名字是参考他们的，也浏览了他们的代码~~</p>
+<p>　　但是，小主，第二个才是我们要安装的，不要搞错了哦~~</p>
+<p>&nbsp; &nbsp; &nbsp; 你也可以通过Nuge官网来下载和安装：&nbsp;<a href="https://www.nuget.org/packages/Log2Net/">https://www.nuget.org/packages/Log2Net/</a>&nbsp; 。但建议使用VS工具的nuget来安装。</p>
+<h4>2 组件的注册</h4>
+<p>　　要使用该组件，需要进行组件的注册：在应用程序初始化的地方，调用&nbsp; LogApi.RegisterLogInitMsg(SysCategory sys, object applicationObj = null, UserCfg userConfig = null, Dictionary&lt;SysCategory, string&gt; webAppName = null, bool bWriteStartLog = true, bool bLogMonitor = true)；</p>
+<p>　　各参数解释如下：&nbsp;</p>
+<p>　　SysCategory&nbsp;sys：业务<span style="font-family: 宋体;">系统的名称，在</span>SysCategory枚举中定义好了。</p>
+<p>　　object Application：程序的Application对象，用于网站在线人数和历史访客统计<span style="font-family: 宋体;">，仅在</span>.net平台中使用。netCore中该参数为null；</p>
+<p>　　UserCfg userConfig：用户在代码中进行的配置；若定义了此参数的值，则可以不使用Log2NetCfg.config配置文件；</p>
+<p>　　Dictionary&lt;SysCategory, string&gt; webAppName：用户对网站名称的个性化定义；</p>
+<p>　　bool&nbsp;bWriteStartLog：<span style="font-family: 宋体;">是否写网站启动的日志，默认为</span>true；</p>
+<p>　　bool&nbsp;bLogMonitor：是否写系统定时<span style="font-family: 宋体;">监控日志，默认为</span>true。</p>
+<p>　　一般地，在调用该方法时，只需要设置第一个参数，后面的参数可以不设置。</p>
+<p><span style="font-family: 宋体;">　　在</span>.net平台中，是&nbsp;Global.asax 中<span style="font-family: 宋体;">的</span>Application_Start()事件中注册；</p>
+<p><span style="font-family: 宋体;">　　在</span>.netCore平台<span style="font-family: 宋体;">中，是</span>Startup.cs<span style="font-family: 宋体;">中</span> Configure中<span style="font-family: 新宋体;">，</span>appLifetime.ApplicationStarted.Register方法中注册。</p>
+<p>　　该方法必须被调用，且必须在应用程序初始化事件中调用，否则调用其他写日志的方法时会出错。</p>
+<p>&nbsp; &nbsp; &nbsp; 此时，若您运行网站，则可以在网站的&nbsp;App_Data/Log_Files 文件夹下看到txt格式的运行日志数据。若您需要将日志记录到数据库，则需要进行下述的日志配置。</p>
+<h4>3 日志组件的配置</h4>
+<p>　　本组件默认将日志数据记录到网站的&nbsp;App_Data/Log_Files 文件夹下，格式为文本文件。若希望将日志数据记录到数据库，则需要进行配置。</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; <strong>1 基础配置</strong></p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('0bc122cc-749d-4541-87f5-3b9984351787')"><img id="code_img_closed_0bc122cc-749d-4541-87f5-3b9984351787" class="code_img_closed" src="./images/日志组件Log2Net的介绍和使用（附源码开源地址）3.png" alt="" /><img id="code_img_opened_0bc122cc-749d-4541-87f5-3b9984351787" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('0bc122cc-749d-4541-87f5-3b9984351787',event)" src="./images/日志组件Log2Net的介绍和使用（附源码开源地址）4.png" alt="" />
+<div id="cnblogs_code_open_0bc122cc-749d-4541-87f5-3b9984351787" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;"> 1</span>   &lt;baseCfg&gt;
+<span style="color: #008080;"> 2</span> 
+<span style="color: #008080;"> 3</span>     &lt;!--日志级别：<span style="color: #800080;">1</span>、Off；<span style="color: #800080;">2</span>、Error；<span style="color: #800080;">3</span>、Warn； <span style="color: #800080;">4</span>、Business ；<span style="color: #800080;">5</span>、DBRec； <span style="color: #800080;">6</span>、Info；<span style="color: #800080;">7</span>、Debug （默认为7）--&gt;
+<span style="color: #008080;"> 4</span>     &lt;add key=<span style="color: #800000;">"</span><span style="color: #800000;">log2NetLevel</span><span style="color: #800000;">"</span> value=<span style="color: #800000;">"</span><span style="color: #800000;">7</span><span style="color: #800000;">"</span> /&gt;
+<span style="color: #008080;"> 5</span> 
+<span style="color: #008080;"> 6</span>     &lt;!--日志记录方式：<span style="color: #800080;">1</span>、写到文件；<span style="color: #800080;">2</span>、直接写到数据库；<span style="color: #800080;">3</span>、通过队列写到数据库；<span style="color: #800080;">4</span>、消息队列写到数据库；默认为1--&gt;
+<span style="color: #008080;"> 7</span>     &lt;add key=<span style="color: #800000;">"</span><span style="color: #800000;">appenderType</span><span style="color: #800000;">"</span> value=<span style="color: #800000;">"</span><span style="color: #800000;">2</span><span style="color: #800000;">"</span> /&gt;
+<span style="color: #008080;"> 8</span> 
+<span style="color: #008080;"> 9</span>     &lt;!--监控日志每隔多少分钟记录一次，若未设置默认为10分钟,若小于0则不监控--&gt;
+<span style="color: #008080;">10</span>     &lt;add key=<span style="color: #800000;">"</span><span style="color: #800000;">logMonitorIntervalMins</span><span style="color: #800000;">"</span> value=<span style="color: #800000;">"</span><span style="color: #800000;">1</span><span style="color: #800000;">"</span>/&gt;
+<span style="color: #008080;">11</span> 
+<span style="color: #008080;">12</span>     &lt;!--是否将info信息（仅供调试，不记录到日志的信息）记录到本地Debug文件：0不记录，1记录（默认为0）--&gt;
+<span style="color: #008080;">13</span>     &lt;add key=<span style="color: #800000;">"</span><span style="color: #800000;">bWriteInfoToDebugFile</span><span style="color: #800000;">"</span> value=<span style="color: #800000;">"</span><span style="color: #800000;">1</span><span style="color: #800000;">"</span>/&gt;
+<span style="color: #008080;">14</span> 
+<span style="color: #008080;">15</span>   &lt;/baseCfg&gt;</pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p><strong>　　2&nbsp;文件方式配置</strong></p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('ce4b857d-3746-40b9-a107-dc5afcd6c9ac')"><img id="code_img_closed_ce4b857d-3746-40b9-a107-dc5afcd6c9ac" class="code_img_closed" src="./images/日志组件Log2Net的介绍和使用（附源码开源地址）3.png" alt="" /><img id="code_img_opened_ce4b857d-3746-40b9-a107-dc5afcd6c9ac" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('ce4b857d-3746-40b9-a107-dc5afcd6c9ac',event)" src="./images/日志组件Log2Net的介绍和使用（附源码开源地址）4.png" alt="" />
+<div id="cnblogs_code_open_ce4b857d-3746-40b9-a107-dc5afcd6c9ac" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;">1</span>   &lt;fileCfg&gt;
+<span style="color: #008080;">2</span>     &lt;!--写文件的路径（仅在日志记录方式为1时有效）--&gt;
+<span style="color: #008080;">3</span>     &lt;add key = <span style="color: #800000;">"</span><span style="color: #800000;">logToFilePath</span><span style="color: #800000;">"</span> value=<span style="color: #800000;">"</span><span style="color: #800000;">App_Data/Log_Files</span><span style="color: #800000;">"</span>/&gt;
+<span style="color: #008080;">4</span> 
+<span style="color: #008080;">5</span>   &lt;/fileCfg&gt;</pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p><strong>　　3 数据库方式配置</strong></p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('6cfbaddd-1c1c-4776-ada4-54a6237b0bf0')"><img id="code_img_closed_6cfbaddd-1c1c-4776-ada4-54a6237b0bf0" class="code_img_closed" src="./images/日志组件Log2Net的介绍和使用（附源码开源地址）3.png" alt="" /><img id="code_img_opened_6cfbaddd-1c1c-4776-ada4-54a6237b0bf0" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('6cfbaddd-1c1c-4776-ada4-54a6237b0bf0',event)" src="./images/日志组件Log2Net的介绍和使用（附源码开源地址）4.png" alt="" />
+<div id="cnblogs_code_open_6cfbaddd-1c1c-4776-ada4-54a6237b0bf0" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;"> 1</span>   &lt;logDBCfg&gt;
+<span style="color: #008080;"> 2</span>     &lt;!-- 访问数据库的方式：ADONET = <span style="color: #800080;">1</span>,  EF = <span style="color: #800080;">2</span>,  NH = <span style="color: #800080;">3</span> 。默认为1--&gt;
+<span style="color: #008080;"> 3</span>     &lt;add key=<span style="color: #800000;">"</span><span style="color: #800000;">DBAccessTypeKey</span><span style="color: #800000;">"</span> value=<span style="color: #800000;">"</span><span style="color: #800000;">1</span><span style="color: #800000;">"</span> /&gt;
+<span style="color: #008080;"> 4</span> 
+<span style="color: #008080;"> 5</span>     &lt;!--trace数据库的类型：SqlServer = <span style="color: #800080;">1</span>,  Oracle = <span style="color: #800080;">2</span>, MySql = <span style="color: #800080;">3</span>,  Access = <span style="color: #800080;">4</span>,   PostgreSQL = <span style="color: #800080;">5</span>,  SQLite = <span style="color: #800080;">6</span>。默认为1--&gt;
+<span style="color: #008080;"> 6</span>     &lt;add key=<span style="color: #800000;">"</span><span style="color: #800000;">UserCfg_TraceDBTypeKey</span><span style="color: #800000;">"</span> value=<span style="color: #800000;">"</span><span style="color: #800000;">1</span><span style="color: #800000;">"</span> /&gt;
+<span style="color: #008080;"> 7</span>     &lt;!--monitor数据库的类型：SqlServer = <span style="color: #800080;">1</span>,  Oracle = <span style="color: #800080;">2</span>, MySql = <span style="color: #800080;">3</span>,  Access = <span style="color: #800080;">4</span>,   PostgreSQL = <span style="color: #800080;">5</span>,  SQLite = <span style="color: #800080;">6</span>。默认为1--&gt;
+<span style="color: #008080;"> 8</span>     &lt;add key=<span style="color: #800000;">"</span><span style="color: #800000;">UserCfg_MonitorDBTypeKey</span><span style="color: #800000;">"</span> value=<span style="color: #800000;">"</span><span style="color: #800000;">1</span><span style="color: #800000;">"</span> /&gt;
+<span style="color: #008080;"> 9</span> 
+<span style="color: #008080;">10</span>     &lt;!--trace数据库的数据库连接字符串name值。默认为logTraceSqlStr--&gt;
+<span style="color: #008080;">11</span>     &lt;add key=<span style="color: #800000;">"</span><span style="color: #800000;">UserCfg_TraceDBConKey</span><span style="color: #800000;">"</span> value=<span style="color: #800000;">"</span><span style="color: #800000;">logTraceSqlStr</span><span style="color: #800000;">"</span> /&gt;
+<span style="color: #008080;">12</span>     &lt;!--monitor数据库的数据库连接字符串name值。默认为logMonitorSqlStr--&gt;
+<span style="color: #008080;">13</span>     &lt;add key=<span style="color: #800000;">"</span><span style="color: #800000;">UserCfg_MonitorDBConKey</span><span style="color: #800000;">"</span> value=<span style="color: #800000;">"</span><span style="color: #800000;">logMonitorSqlStr</span><span style="color: #800000;">"</span> /&gt;
+<span style="color: #008080;">14</span>     
+<span style="color: #008080;">15</span>     &lt;!--是否使用代码中的数据库连接字符串--&gt;
+<span style="color: #008080;">16</span>     &lt;add key=<span style="color: #800000;">"</span><span style="color: #800000;">ConnectStrIsInCode</span><span style="color: #800000;">"</span> value=<span style="color: #800000;">"</span><span style="color: #800000;">0</span><span style="color: #800000;">"</span> /&gt;
+<span style="color: #008080;">17</span>     
+<span style="color: #008080;">18</span>   &lt;/logDBCfg&gt;</pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p><strong>　　4 oracle数据库特殊配置</strong></p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('664d4bc8-d2a3-41fd-a119-ebf9ded8d35d')"><img id="code_img_closed_664d4bc8-d2a3-41fd-a119-ebf9ded8d35d" class="code_img_closed" src="./images/日志组件Log2Net的介绍和使用（附源码开源地址）3.png" alt="" /><img id="code_img_opened_664d4bc8-d2a3-41fd-a119-ebf9ded8d35d" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('664d4bc8-d2a3-41fd-a119-ebf9ded8d35d',event)" src="./images/日志组件Log2Net的介绍和使用（附源码开源地址）4.png" alt="" />
+<div id="cnblogs_code_open_664d4bc8-d2a3-41fd-a119-ebf9ded8d35d" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;"> 1</span>   &lt;oracleCfg&gt;
+<span style="color: #008080;"> 2</span>     &lt;!--是否使用EF初始化数据库Trace 表：0不使用，1使用，默认为0--&gt;
+<span style="color: #008080;"> 3</span>     &lt;add key = <span style="color: #800000;">"</span><span style="color: #800000;">initTraceDBWhenOracle</span><span style="color: #800000;">"</span> value=<span style="color: #800000;">"</span><span style="color: #800000;">0</span><span style="color: #800000;">"</span>/&gt;
+<span style="color: #008080;"> 4</span> 
+<span style="color: #008080;"> 5</span>     &lt;!--是否使用EF初始化数据库 monitor 表：0不使用，1使用，默认为0--&gt;
+<span style="color: #008080;"> 6</span>     &lt;add key = <span style="color: #800000;">"</span><span style="color: #800000;">initMonitorDBWhenOracle</span><span style="color: #800000;">"</span> value=<span style="color: #800000;">"</span><span style="color: #800000;">0</span><span style="color: #800000;">"</span>/&gt;
+<span style="color: #008080;"> 7</span> 
+<span style="color: #008080;"> 8</span>     &lt;!--Oracle数据库驱动方式：<span style="color: #800080;">0</span> oracle驱动， <span style="color: #800080;">1</span> 微软驱动，默认为0--&gt;
+<span style="color: #008080;"> 9</span>     &lt;add key = <span style="color: #800000;">"</span><span style="color: #800000;">OracleDriverType</span><span style="color: #800000;">"</span> value=<span style="color: #800000;">"</span><span style="color: #800000;">0</span><span style="color: #800000;">"</span>/&gt;
+<span style="color: #008080;">10</span>   &lt;/oracleCfg&gt;</pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p><strong>　　5 消息队列配置</strong></p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('56ba84b6-618a-42b8-a98e-6b8ba7d87579')"><img id="code_img_closed_56ba84b6-618a-42b8-a98e-6b8ba7d87579" class="code_img_closed" src="./images/日志组件Log2Net的介绍和使用（附源码开源地址）3.png" alt="" /><img id="code_img_opened_56ba84b6-618a-42b8-a98e-6b8ba7d87579" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('56ba84b6-618a-42b8-a98e-6b8ba7d87579',event)" src="./images/日志组件Log2Net的介绍和使用（附源码开源地址）4.png" alt="" />
+<div id="cnblogs_code_open_56ba84b6-618a-42b8-a98e-6b8ba7d87579" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;">1</span>   &lt;MQCfg&gt;
+<span style="color: #008080;">2</span>     &lt;!--消息队列服务器(地址、用户名、密码)--&gt;
+<span style="color: #008080;">3</span>     &lt;add key=<span style="color: #800000;">"</span><span style="color: #800000;">RabbitMQServer_Log</span><span style="color: #800000;">"</span> value=<span style="color: #800000;">"</span><span style="color: #800000;">localhost:5672;oawxAdmin1;admin123.123</span><span style="color: #800000;">"</span>/&gt;
+<span style="color: #008080;">4</span>   &lt;/MQCfg&gt;</pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p><strong>　　6 InfluxDB数据库方式配置</strong></p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('62dccec7-bd55-4886-b245-fc396afa46f7')"><img id="code_img_closed_62dccec7-bd55-4886-b245-fc396afa46f7" class="code_img_closed" src="./images/日志组件Log2Net的介绍和使用（附源码开源地址）3.png" alt="" /><img id="code_img_opened_62dccec7-bd55-4886-b245-fc396afa46f7" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('62dccec7-bd55-4886-b245-fc396afa46f7',event)" src="./images/日志组件Log2Net的介绍和使用（附源码开源地址）4.png" alt="" />
+<div id="cnblogs_code_open_62dccec7-bd55-4886-b245-fc396afa46f7" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;">1</span>   &lt;InfluxDBCfg&gt;
+<span style="color: #008080;">2</span> 
+<span style="color: #008080;">3</span>     &lt;!--是否需要写到InfluxDB数据库（默认为0）--&gt;
+<span style="color: #008080;">4</span>     &lt;add key=<span style="color: #800000;">"</span><span style="color: #800000;">bWriteToInfluxDB</span><span style="color: #800000;">"</span> value=<span style="color: #800000;">"</span><span style="color: #800000;">0</span><span style="color: #800000;">"</span>/&gt;
+<span style="color: #008080;">5</span> 
+<span style="color: #008080;">6</span>     &lt;!--Influxfu服务器的地址，用户名，密码--&gt;
+<span style="color: #008080;">7</span>     &lt;add key=<span style="color: #800000;">"</span><span style="color: #800000;">InfluxDBServer_Log</span><span style="color: #800000;">"</span> value=<span style="color: #800000;">"</span><span style="color: #800000;">http://127.0.0.1:8086/;logAdmin;sa123.123</span><span style="color: #800000;">"</span>/&gt;
+<span style="color: #008080;">8</span> 
+<span style="color: #008080;">9</span>   &lt;/InfluxDBCfg&gt;</pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p><strong>　　7 缓存配置</strong></p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('04fa42ab-35f1-4f98-87a0-3755ea5f8a7b')"><img id="code_img_closed_04fa42ab-35f1-4f98-87a0-3755ea5f8a7b" class="code_img_closed" src="./images/日志组件Log2Net的介绍和使用（附源码开源地址）3.png" alt="" /><img id="code_img_opened_04fa42ab-35f1-4f98-87a0-3755ea5f8a7b" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('04fa42ab-35f1-4f98-87a0-3755ea5f8a7b',event)" src="./images/日志组件Log2Net的介绍和使用（附源码开源地址）4.png" alt="" />
+<div id="cnblogs_code_open_04fa42ab-35f1-4f98-87a0-3755ea5f8a7b" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;"> 1</span>   &lt;cacheCfg&gt;
+<span style="color: #008080;"> 2</span>     &lt;!--缓存策略：<span style="color: #800080;">0</span>、NET缓存；<span style="color: #800080;">1</span>、CacheManager中的NET系统缓存；<span style="color: #800080;">2</span>、Memcached缓存；<span style="color: #800080;">3</span>、Redis缓存；默认为0--&gt;
+<span style="color: #008080;"> 3</span>     &lt;add key = <span style="color: #800000;">"</span><span style="color: #800000;">CacheStrategy</span><span style="color: #800000;">"</span> value=<span style="color: #800000;">"</span><span style="color: #800000;">0</span><span style="color: #800000;">"</span>/&gt;
+<span style="color: #008080;"> 4</span> 
+<span style="color: #008080;"> 5</span>     &lt;!--Memcache缓存服务器--&gt;
+<span style="color: #008080;"> 6</span>     &lt;add key = <span style="color: #800000;">"</span><span style="color: #800000;">MemCacheServer</span><span style="color: #800000;">"</span> value=<span style="color: #800000;">"</span><span style="color: #800000;">127.0.0.1:11211;127.0.0.2:11211</span><span style="color: #800000;">"</span>/&gt;
+<span style="color: #008080;"> 7</span> 
+<span style="color: #008080;"> 8</span>     &lt;!--Redis缓存服务器--&gt;
+<span style="color: #008080;"> 9</span>     &lt;add key = <span style="color: #800000;">"</span><span style="color: #800000;">RedisCacheServer</span><span style="color: #800000;">"</span> value=<span style="color: #800000;">"</span><span style="color: #800000;">127.0.0.1:6379;127.0.0.2:6379</span><span style="color: #800000;">"</span>/&gt;
+<span style="color: #008080;">10</span>   &lt;/cacheCfg&gt;</pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>　　8<strong>&nbsp;用户业务系统名称定义</strong>&nbsp; &nbsp; &nbsp;&nbsp;</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('2b8077e3-4650-4c9d-8713-ed3bb5fb8a8b')"><img id="code_img_closed_2b8077e3-4650-4c9d-8713-ed3bb5fb8a8b" class="code_img_closed" src="./images/日志组件Log2Net的介绍和使用（附源码开源地址）3.png" alt="" /><img id="code_img_opened_2b8077e3-4650-4c9d-8713-ed3bb5fb8a8b" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('2b8077e3-4650-4c9d-8713-ed3bb5fb8a8b',event)" src="./images/日志组件Log2Net的介绍和使用（附源码开源地址）4.png" alt="" />
+<div id="cnblogs_code_open_2b8077e3-4650-4c9d-8713-ed3bb5fb8a8b" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;">1</span>   &lt;userSystemNames&gt;
+<span style="color: #008080;">2</span>     &lt;add key=<span style="color: #800000;">"</span><span style="color: #800000;">SysA_01</span><span style="color: #800000;">"</span> value=<span style="color: #800000;">"</span><span style="color: #800000;">短信接口网站</span><span style="color: #800000;">"</span> /&gt;
+<span style="color: #008080;">3</span>     &lt;add key=<span style="color: #800000;">"</span><span style="color: #800000;">201</span><span style="color: #800000;">"</span> value=<span style="color: #800000;">"</span><span style="color: #800000;">公司OA系统</span><span style="color: #800000;">"</span> /&gt;
+<span style="color: #008080;">4</span>     &lt;add key=<span style="color: #800000;">"</span><span style="color: #800000;">901</span><span style="color: #800000;">"</span> value=<span style="color: #800000;">"</span><span style="color: #800000;">用户数据网站</span><span style="color: #800000;">"</span> /&gt;
+<span style="color: #008080;">5</span>   &lt;/userSystemNames&gt;</pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p><strong>　　9 WebConfig总体配置</strong></p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('11b58efb-327b-4d2e-87fe-71605e1a4db7')"><img id="code_img_closed_11b58efb-327b-4d2e-87fe-71605e1a4db7" class="code_img_closed" src="./images/日志组件Log2Net的介绍和使用（附源码开源地址）3.png" alt="" /><img id="code_img_opened_11b58efb-327b-4d2e-87fe-71605e1a4db7" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('11b58efb-327b-4d2e-87fe-71605e1a4db7',event)" src="./images/日志组件Log2Net的介绍和使用（附源码开源地址）4.png" alt="" />
+<div id="cnblogs_code_open_11b58efb-327b-4d2e-87fe-71605e1a4db7" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;"> 1</span>   &lt;configSections&gt;
+<span style="color: #008080;"> 2</span>     &lt;!--Log2Net模块声明--&gt;
+<span style="color: #008080;"> 3</span>     &lt;section name=<span style="color: #800000;">"</span><span style="color: #800000;">log2netCfg</span><span style="color: #800000;">"</span> type=<span style="color: #800000;">"</span><span style="color: #800000;">Log2Net.Config.Log2NetConfigurationSectionHandler, Log2Net</span><span style="color: #800000;">"</span> /&gt;
+<span style="color: #008080;"> 4</span>   &lt;/configSections&gt;
+<span style="color: #008080;"> 5</span> 
+<span style="color: #008080;"> 6</span>   &lt;log2netCfg configSource=<span style="color: #800000;">"</span><span style="color: #800000;">Log2NetCfg.config</span><span style="color: #800000;">"</span> /&gt;
+<span style="color: #008080;"> 7</span>   &lt;appSettings&gt;
+<span style="color: #008080;"> 8</span>     &lt;!--你自己代码中需要的配置--&gt;
+<span style="color: #008080;"> 9</span> 
+<span style="color: #008080;">10</span>     &lt;!--Log2Net模块的section名称--&gt;
+<span style="color: #008080;">11</span>     &lt;add key=<span style="color: #800000;">"</span><span style="color: #800000;">log2netCfgSectionName</span><span style="color: #800000;">"</span> value=<span style="color: #800000;">"</span><span style="color: #800000;">log2netCfg</span><span style="color: #800000;">"</span> /&gt;
+<span style="color: #008080;">12</span>     &lt;!--使用哪里的配置：File = <span style="color: #800080;">1</span>,使用文件中的配置；Code = <span style="color: #800080;">2</span>,使用代码中的配置；MixF = <span style="color: #800080;">3</span>,混合使用，冲突时使用文件中的配置；MixC = <span style="color: #800080;">4</span>,混合使用，冲突时使用代码中的配置--&gt;
+<span style="color: #008080;">13</span>     &lt;add key=<span style="color: #800000;">"</span><span style="color: #800000;">ConfigInWhere</span><span style="color: #800000;">"</span> value=<span style="color: #800000;">"</span><span style="color: #800000;">4</span><span style="color: #800000;">"</span> /&gt;
+<span style="color: #008080;">14</span>   &lt;/appSettings&gt;</pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>　　10<strong>&nbsp;日志数据库连接字符串配置</strong>&nbsp; &nbsp; &nbsp; &nbsp;&nbsp;</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('c063fe52-6023-4bc6-a342-f29af23e7b8c')"><img id="code_img_closed_c063fe52-6023-4bc6-a342-f29af23e7b8c" class="code_img_closed" src="./images/日志组件Log2Net的介绍和使用（附源码开源地址）3.png" alt="" /><img id="code_img_opened_c063fe52-6023-4bc6-a342-f29af23e7b8c" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('c063fe52-6023-4bc6-a342-f29af23e7b8c',event)" src="./images/日志组件Log2Net的介绍和使用（附源码开源地址）4.png" alt="" />
+<div id="cnblogs_code_open_c063fe52-6023-4bc6-a342-f29af23e7b8c" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;"> 1</span>   &lt;connectionStrings&gt;
+<span style="color: #008080;"> 2</span>     &lt;!--操作轨迹日志的数据库(Sql Server)--&gt;
+<span style="color: #008080;"> 3</span>     &lt;add name=<span style="color: #800000;">"</span><span style="color: #800000;">logTraceSqlStr</span><span style="color: #800000;">"</span> connectionString=<span style="color: #800000;">"</span><span style="color: #800000;">data source=.;initial catalog=LogTraceW;user id=sa;password=sa123.123;multipleactiveresultsets=True;application name=EntityFramework</span><span style="color: #800000;">"</span> providerName=<span style="color: #800000;">"</span><span style="color: #800000;">System.Data.SqlClient</span><span style="color: #800000;">"</span> /&gt;
+<span style="color: #008080;"> 4</span>     &lt;!--系统监控日志的数据库(Sql Server)--&gt;
+<span style="color: #008080;"> 5</span>     &lt;add name=<span style="color: #800000;">"</span><span style="color: #800000;">logMonitorSqlStr</span><span style="color: #800000;">"</span> connectionString=<span style="color: #800000;">"</span><span style="color: #800000;">data source=.;initial catalog=LogMonitorW;user id=sa;password=sa123.123;MultipleActiveResultSets=True;application name=EntityFramework</span><span style="color: #800000;">"</span> providerName=<span style="color: #800000;">"</span><span style="color: #800000;">System.Data.SqlClient</span><span style="color: #800000;">"</span> /&gt;
+<span style="color: #008080;"> 6</span> 
+<span style="color: #008080;"> 7</span>     &lt;!--操作轨迹日志的数据库(Oracle)--&gt;
+<span style="color: #008080;"> 8</span>     &lt;add name=<span style="color: #800000;">"</span><span style="color: #800000;">logTraceSqlStr2</span><span style="color: #800000;">"</span> connectionString=<span style="color: #800000;">"</span><span style="color: #800000;">User Id=scott;Password=sa123123;Data Source=(DESCRIPTION=(ADDRESS=(PROTOCOL=tcp)(HOST=localhost)(PORT=1521))(CONNECT_DATA=(SERVICE_NAME=LogTraceW)))</span><span style="color: #800000;">"</span> providerName=<span style="color: #800000;">"</span><span style="color: #800000;">Oracle.ManagedDataAccess.Client</span><span style="color: #800000;">"</span> /&gt;
+<span style="color: #008080;"> 9</span>     &lt;!--系统监控日志的数据库(Oracle)--&gt;
+<span style="color: #008080;">10</span>     &lt;add name=<span style="color: #800000;">"</span><span style="color: #800000;">logMonitorSqlStr2</span><span style="color: #800000;">"</span> connectionString=<span style="color: #800000;">"</span><span style="color: #800000;">User Id=scott;Password=sa123123;Data Source=(DESCRIPTION=(ADDRESS=(PROTOCOL=tcp)(HOST=localhost)(PORT=1521))(CONNECT_DATA=(SERVICE_NAME=LogMonitorW)))</span><span style="color: #800000;">"</span> providerName=<span style="color: #800000;">"</span><span style="color: #800000;">Oracle.ManagedDataAccess.Client</span><span style="color: #800000;">"</span> /&gt;
+<span style="color: #008080;">11</span> 
+<span style="color: #008080;">12</span>     &lt;!--操作轨迹日志的数据库(MySql)--&gt;
+<span style="color: #008080;">13</span>     &lt;add name=<span style="color: #800000;">"</span><span style="color: #800000;">logTraceSqlStr3</span><span style="color: #800000;">"</span> connectionString=<span style="color: #800000;">"</span><span style="color: #800000;">Data Source=localhost;port=3306;Initial Catalog=LogTraceW;user id=sa;password=sa123123;</span><span style="color: #800000;">"</span> providerName=<span style="color: #800000;">"</span><span style="color: #800000;">MySql.Data.MySqlClient</span><span style="color: #800000;">"</span> /&gt;
+<span style="color: #008080;">14</span>     &lt;!--系统监控日志的数据库(MySql)--&gt;
+<span style="color: #008080;">15</span>     &lt;add name=<span style="color: #800000;">"</span><span style="color: #800000;">logMonitorSqlStr3</span><span style="color: #800000;">"</span> connectionString=<span style="color: #800000;">"</span><span style="color: #800000;">Data Source=localhost;port=3306;Initial Catalog=LogMonitorW;user id=sa;password=sa123123;</span><span style="color: #800000;">"</span> providerName=<span style="color: #800000;">"</span><span style="color: #800000;">MySql.Data.MySqlClient</span><span style="color: #800000;">"</span> /&gt;
+<span style="color: #008080;">16</span>   &lt;/connectionStrings&gt;</pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>　　一般地，我们只需要在基础配置中配置&nbsp;&nbsp;日志记录方式 appenderType 的值为 3 (通过队列写到数据库)，在数据库方式中配置访问数据库的方式和数据库类型，最后配置数据库连接字符串即可。若需要使用消息队列、缓存、InfluxDB等高级特性时，再进行相应配置即可。</p>
+<p>　　上述1~8的配置，是在单独的文件中进行配置的。是在哪个文件中配置的呢？在配置9的log2netCfg configSource配置中指定，默认为Log2NetCfg.config文件。</p>
+<p>　　在第9项配置中，声明了Log2Net模块，定义了配置文件文件名，定义了section name，定义了使用哪里的配置。该配置项中的section name 的值必须跟 Log2NetCfg.config 中的根节点保持一致。本组件中默认section name为 log2netCfg。</p>
+<p>　　第10项配置是日志数据库的连接字符串配置，注意其name要跟第3项配置UserCfg_TraceDBConKey、 UserCfg_MonitorDBConKey中指定的名称一致。</p>
+<p>&nbsp; &nbsp; &nbsp; 例如，在web.config文件进行如下配置：</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('34001fa3-cdec-472a-a985-509dd746970a')"><img id="code_img_closed_34001fa3-cdec-472a-a985-509dd746970a" class="code_img_closed" src="./images/日志组件Log2Net的介绍和使用（附源码开源地址）3.png" alt="" /><img id="code_img_opened_34001fa3-cdec-472a-a985-509dd746970a" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('34001fa3-cdec-472a-a985-509dd746970a',event)" src="./images/日志组件Log2Net的介绍和使用（附源码开源地址）4.png" alt="" />
+<div id="cnblogs_code_open_34001fa3-cdec-472a-a985-509dd746970a" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;"> 1</span>  &lt;configSections&gt;
+<span style="color: #008080;"> 2</span>  &lt;!--Log2Net模块声明--&gt;
+<span style="color: #008080;"> 3</span>  &lt;section name=<span style="color: #800000;">"</span><span style="color: #800000;">log2netCfg</span><span style="color: #800000;">"</span> type=<span style="color: #800000;">"</span><span style="color: #800000;">Log2Net.Config.Log2NetConfigurationSectionHandler, Log2Net</span><span style="color: #800000;">"</span> /&gt;
+<span style="color: #008080;"> 4</span>  &lt;/configSections&gt;
+<span style="color: #008080;"> 5</span>  
+<span style="color: #008080;"> 6</span>    &lt;log2netCfg configSource=<span style="color: #800000;">"</span><span style="color: #800000;">Log2NetCfg.config</span><span style="color: #800000;">"</span> /&gt;
+<span style="color: #008080;"> 7</span>  
+<span style="color: #008080;"> 8</span>   &lt;appSettings&gt;
+<span style="color: #008080;"> 9</span>     &lt;add key=<span style="color: #800000;">"</span><span style="color: #800000;">UnobtrusiveJavaScriptEnabled</span><span style="color: #800000;">"</span> value=<span style="color: #800000;">"</span><span style="color: #800000;">true</span><span style="color: #800000;">"</span> /&gt;
+<span style="color: #008080;">10</span>     &lt;!--Log2Net模块的section名称--&gt;
+<span style="color: #008080;">11</span>     &lt;add key=<span style="color: #800000;">"</span><span style="color: #800000;">log2netCfgSectionName</span><span style="color: #800000;">"</span> value=<span style="color: #800000;">"</span><span style="color: #800000;">log2netCfg</span><span style="color: #800000;">"</span> /&gt;
+<span style="color: #008080;">12</span>     &lt;!--使用哪里的配置：File = <span style="color: #800080;">1</span>,使用文件中的配置；Code = <span style="color: #800080;">2</span>,使用代码中的配置；MixF = <span style="color: #800080;">3</span>,混合使用，冲突时使用文件中的配置；MixC = <span style="color: #800080;">4</span>,混合使用，冲突时使用代码中的配置--&gt;
+<span style="color: #008080;">13</span>     &lt;add key=<span style="color: #800000;">"</span><span style="color: #800000;">ConfigInWhere</span><span style="color: #800000;">"</span> value=<span style="color: #800000;">"</span><span style="color: #800000;">4</span><span style="color: #800000;">"</span> /&gt;
+<span style="color: #008080;">14</span>   &lt;/appSettings&gt;
+<span style="color: #008080;">15</span> 
+<span style="color: #008080;">16</span>  &lt;connectionStrings&gt;
+<span style="color: #008080;">17</span>  &lt;!--操作轨迹日志的数据库(Sql Server)--&gt;
+<span style="color: #008080;">18</span>  &lt;add name=<span style="color: #800000;">"</span><span style="color: #800000;">logTraceSqlStr</span><span style="color: #800000;">"</span> connectionString=<span style="color: #800000;">"</span><span style="color: #800000;">data source=.;initial catalog=LogTraceW;user id=sa;password=sa123.123;multipleactiveresultsets=True;application name=EntityFramework</span><span style="color: #800000;">"</span> providerName=<span style="color: #800000;">"</span><span style="color: #800000;">System.Data.SqlClient</span><span style="color: #800000;">"</span> /&gt;
+<span style="color: #008080;">19</span>  &lt;!--系统监控日志的数据库(Sql Server)--&gt;
+<span style="color: #008080;">20</span>  &lt;add name=<span style="color: #800000;">"</span><span style="color: #800000;">logMonitorSqlStr</span><span style="color: #800000;">"</span> connectionString=<span style="color: #800000;">"</span><span style="color: #800000;">data source=.;initial catalog=LogMonitorW;user id=sa;password=sa123.123;MultipleActiveResultSets=True;application name=EntityFramework</span><span style="color: #800000;">"</span> providerName=<span style="color: #800000;">"</span><span style="color: #800000;">System.Data.SqlClient</span><span style="color: #800000;">"</span> /&gt;
+<span style="color: #008080;">21</span>  
+<span style="color: #008080;">22</span>  &lt;/connectionStrings&gt;</pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>　　并在网站中添加&nbsp;Log2NetCfg.config 文件，在该文件中添加1~8的配置。</p>
+<p>&nbsp; &nbsp; &nbsp; 以上配置项，值为数字，进行了简单的分组。事实上，您可以在值的位置填写名称。例如&nbsp;&nbsp; &lt;add key="log2NetLevel" value="debug" /&gt;。您可以随意分组，随意明明分组的名称。例如将&nbsp;logDBCfg 分组命名为&nbsp;log2netDBCfg，将&nbsp;appenderType加入到该分组中，都是可以的，只要不改变配置项的名称，配置项名称不重复即可。</p>
+<p>&nbsp;</p>
+<p>　　以上配置介绍，都是基于.net平台。那么，在.netCore平台中，又该如何配置呢？配置方法如下：</p>
+<p>&nbsp; &nbsp; &nbsp; 新建Log2NetCfg.json文件，内容如下：</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('20f2d49f-58ef-41d7-a485-fe6f005a9765')"><img id="code_img_closed_20f2d49f-58ef-41d7-a485-fe6f005a9765" class="code_img_closed" src="./images/日志组件Log2Net的介绍和使用（附源码开源地址）3.png" alt="" /><img id="code_img_opened_20f2d49f-58ef-41d7-a485-fe6f005a9765" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('20f2d49f-58ef-41d7-a485-fe6f005a9765',event)" src="./images/日志组件Log2Net的介绍和使用（附源码开源地址）4.png" alt="" />
+<div id="cnblogs_code_open_20f2d49f-58ef-41d7-a485-fe6f005a9765" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #000000;">{
+</span><span style="color: #008080;"> 2</span>   <span style="color: #800000;">"</span><span style="color: #800000;">ConnectionStrings</span><span style="color: #800000;">"</span><span style="color: #000000;">: {
+</span><span style="color: #008080;"> 3</span>     <span style="color: #800000;">"</span><span style="color: #800000;">logTraceSqlStr</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">Data Source =127.0.0.1;Initial Catalog = LogTraceW;uid=sa;pwd=sa123.123;</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+</span><span style="color: #008080;"> 4</span>     <span style="color: #800000;">"</span><span style="color: #800000;">logMonitorSqlStr</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">Data Source =127.0.0.1;Initial Catalog = LogMonitorW;uid=sa;pwd=sa123.123;</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+</span><span style="color: #008080;"> 5</span>     <span style="color: #800000;">"</span><span style="color: #800000;">logTraceSqlStr2</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">User Id=scott;Password=sa123123;Data Source=(DESCRIPTION=(ADDRESS=(PROTOCOL=tcp)(HOST=localhost)(PORT=1521))(CONNECT_DATA=(SERVICE_NAME=LogTraceW)))</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+</span><span style="color: #008080;"> 6</span>     <span style="color: #800000;">"</span><span style="color: #800000;">logMonitorSqlStr2</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">User Id=scott;Password=sa123123;Data Source=(DESCRIPTION=(ADDRESS=(PROTOCOL=tcp)(HOST=localhost)(PORT=1521))(CONNECT_DATA=(SERVICE_NAME=LogMonitorW)))</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+</span><span style="color: #008080;"> 7</span>     <span style="color: #800000;">"</span><span style="color: #800000;">logTraceSqlStr3</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">Data Source=localhost;port=3306;Initial Catalog=LogTraceW;user id=sa;password=sa123123;</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+</span><span style="color: #008080;"> 8</span>     <span style="color: #800000;">"</span><span style="color: #800000;">logMonitorSqlStr3</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">Data Source=localhost;port=3306;Initial Catalog=LogMonitorW;user id=sa;password=sa123123;</span><span style="color: #800000;">"</span>
+<span style="color: #008080;"> 9</span> <span style="color: #000000;">  },
+</span><span style="color: #008080;">10</span> 
+<span style="color: #008080;">11</span>   <span style="color: #800000;">"</span><span style="color: #800000;">ConfigInWhere</span><span style="color: #800000;">"</span>: <span style="color: #800080;">3</span><span style="color: #000000;">,
+</span><span style="color: #008080;">12</span> 
+<span style="color: #008080;">13</span>   <span style="color: #800000;">"</span><span style="color: #800000;">userSystemNames</span><span style="color: #800000;">"</span><span style="color: #000000;">: {
+</span><span style="color: #008080;">14</span>     <span style="color: #800000;">"</span><span style="color: #800000;">SysA_01</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">短信接口网站</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+</span><span style="color: #008080;">15</span>     <span style="color: #800000;">"</span><span style="color: #800000;">201</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">公司OA系统</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+</span><span style="color: #008080;">16</span>     <span style="color: #800000;">"</span><span style="color: #800000;">901</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">用户数据网站</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+</span><span style="color: #008080;">17</span>     <span style="color: #800000;">"</span><span style="color: #800000;">902</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">my web</span><span style="color: #800000;">"</span>
+<span style="color: #008080;">18</span> <span style="color: #000000;">  },
+</span><span style="color: #008080;">19</span> 
+<span style="color: #008080;">20</span>   <span style="color: #800000;">"</span><span style="color: #800000;">baseCfg</span><span style="color: #800000;">"</span><span style="color: #000000;">: {
+</span><span style="color: #008080;">21</span>     <span style="color: #800000;">"</span><span style="color: #800000;">log2NetLevel</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">Info</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+</span><span style="color: #008080;">22</span>     <span style="color: #800000;">"</span><span style="color: #800000;">appenderType</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">2</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+</span><span style="color: #008080;">23</span>     <span style="color: #800000;">"</span><span style="color: #800000;">logMonitorIntervalMins</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">1</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+</span><span style="color: #008080;">24</span>     <span style="color: #800000;">"</span><span style="color: #800000;">dncSessionTimeoutMins</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">20</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+</span><span style="color: #008080;">25</span>     <span style="color: #800000;">"</span><span style="color: #800000;">bWriteInfoToDebugFile</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">0</span><span style="color: #800000;">"</span>
+<span style="color: #008080;">26</span> <span style="color: #000000;">  },
+</span><span style="color: #008080;">27</span> 
+<span style="color: #008080;">28</span>   <span style="color: #800000;">"</span><span style="color: #800000;">fileCfg</span><span style="color: #800000;">"</span><span style="color: #000000;">: {
+</span><span style="color: #008080;">29</span>     <span style="color: #800000;">"</span><span style="color: #800000;">logToFilePath</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">App_Data/Log_Files</span><span style="color: #800000;">"</span>
+<span style="color: #008080;">30</span> <span style="color: #000000;">  },
+</span><span style="color: #008080;">31</span> 
+<span style="color: #008080;">32</span> 
+<span style="color: #008080;">33</span>   <span style="color: #800000;">"</span><span style="color: #800000;">logDBCfg</span><span style="color: #800000;">"</span><span style="color: #000000;">: {
+</span><span style="color: #008080;">34</span>     <span style="color: #800000;">"</span><span style="color: #800000;">DBAccessTypeKey</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">2</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+</span><span style="color: #008080;">35</span>     <span style="color: #800000;">"</span><span style="color: #800000;">UserCfg_TraceDBTypeKey</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">1</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+</span><span style="color: #008080;">36</span>     <span style="color: #800000;">"</span><span style="color: #800000;">UserCfg_MonitorDBTypeKey</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">1</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+</span><span style="color: #008080;">37</span>     <span style="color: #800000;">"</span><span style="color: #800000;">UserCfg_TraceDBConKey</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">logTraceSqlStr</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+</span><span style="color: #008080;">38</span>     <span style="color: #800000;">"</span><span style="color: #800000;">UserCfg_MonitorDBConKey</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">logMonitorSqlStr</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+</span><span style="color: #008080;">39</span>     <span style="color: #800000;">"</span><span style="color: #800000;">ConnectStrIsInCode</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">0</span><span style="color: #800000;">"</span>
+<span style="color: #008080;">40</span> <span style="color: #000000;">  },
+</span><span style="color: #008080;">41</span> 
+<span style="color: #008080;">42</span>   <span style="color: #800000;">"</span><span style="color: #800000;">oracleCfg</span><span style="color: #800000;">"</span><span style="color: #000000;">: {
+</span><span style="color: #008080;">43</span>     <span style="color: #800000;">"</span><span style="color: #800000;">initTraceDBWhenOracle</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">0</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+</span><span style="color: #008080;">44</span>     <span style="color: #800000;">"</span><span style="color: #800000;">initMonitorDBWhenOracle</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">0</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+</span><span style="color: #008080;">45</span>     <span style="color: #800000;">"</span><span style="color: #800000;">OracleDriverType</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">0</span><span style="color: #800000;">"</span>
+<span style="color: #008080;">46</span> <span style="color: #000000;">  },
+</span><span style="color: #008080;">47</span> 
+<span style="color: #008080;">48</span>   <span style="color: #800000;">"</span><span style="color: #800000;">MQCfg</span><span style="color: #800000;">"</span><span style="color: #000000;">: {
+</span><span style="color: #008080;">49</span>     <span style="color: #800000;">"</span><span style="color: #800000;">RabbitMQServer_Log</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">localhost:5672;oawxAdmin1;admin123.123</span><span style="color: #800000;">"</span>
+<span style="color: #008080;">50</span> <span style="color: #000000;">  },
+</span><span style="color: #008080;">51</span> 
+<span style="color: #008080;">52</span>   <span style="color: #800000;">"</span><span style="color: #800000;">InfluxDBCfg</span><span style="color: #800000;">"</span><span style="color: #000000;">: {
+</span><span style="color: #008080;">53</span>     <span style="color: #800000;">"</span><span style="color: #800000;">bWriteToInfluxDB</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">0</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+</span><span style="color: #008080;">54</span>     <span style="color: #800000;">"</span><span style="color: #800000;">InfluxDBServer_Log</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">http://127.0.0.1:8086/;logAdmin;sa123.123</span><span style="color: #800000;">"</span>
+<span style="color: #008080;">55</span> <span style="color: #000000;">  },
+</span><span style="color: #008080;">56</span> 
+<span style="color: #008080;">57</span>   <span style="color: #800000;">"</span><span style="color: #800000;">cacheCfg</span><span style="color: #800000;">"</span><span style="color: #000000;">: {
+</span><span style="color: #008080;">58</span>     <span style="color: #800000;">"</span><span style="color: #800000;">CacheStrategy</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">0</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+</span><span style="color: #008080;">59</span>     <span style="color: #800000;">"</span><span style="color: #800000;">MemCacheServer</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">127.0.0.1:11211;127.0.0.2:11211</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+</span><span style="color: #008080;">60</span>     <span style="color: #800000;">"</span><span style="color: #800000;">RedisCacheServer</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">127.0.0.1:6379;127.0.0.2:6379</span><span style="color: #800000;">"</span>
+<span style="color: #008080;">61</span> <span style="color: #000000;">  }
+</span><span style="color: #008080;">62</span> }</pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>　　然后在启动代码中声明使用该配置文件：ConfigureAppConfiguration((context, config) =&gt;{config.AddJsonFile("Log2NetCfg.json", false, true);})&nbsp; 。</p>
+<p>&nbsp;</p>
+<p>　　另外，对于系统的名字，系统中默认的名称为Sys字母_两位数字（SysA_01 ~ SysZ_99）。您可以通过配置将其映射为您想要的名称。例如</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('ac0876d2-5281-439c-8e78-fe5c04d8b7ef')"><img id="code_img_closed_ac0876d2-5281-439c-8e78-fe5c04d8b7ef" class="code_img_closed" src="./images/日志组件Log2Net的介绍和使用（附源码开源地址）3.png" alt="" /><img id="code_img_opened_ac0876d2-5281-439c-8e78-fe5c04d8b7ef" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('ac0876d2-5281-439c-8e78-fe5c04d8b7ef',event)" src="./images/日志组件Log2Net的介绍和使用（附源码开源地址）4.png" alt="" />
+<div id="cnblogs_code_open_ac0876d2-5281-439c-8e78-fe5c04d8b7ef" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;">1</span>   &lt;userSystemNames&gt;
+<span style="color: #008080;">2</span>     &lt;add key=<span style="color: #800000;">"</span><span style="color: #800000;">SysA_01</span><span style="color: #800000;">"</span> value=<span style="color: #800000;">"</span><span style="color: #800000;">短信接口网站</span><span style="color: #800000;">"</span> /&gt;
+<span style="color: #008080;">3</span>     &lt;add key=<span style="color: #800000;">"</span><span style="color: #800000;">201</span><span style="color: #800000;">"</span> value=<span style="color: #800000;">"</span><span style="color: #800000;">公司OA系统</span><span style="color: #800000;">"</span> /&gt;
+<span style="color: #008080;">4</span>     &lt;add key=<span style="color: #800000;">"</span><span style="color: #800000;">901</span><span style="color: #800000;">"</span> value=<span style="color: #800000;">"</span><span style="color: #800000;">用户数据网站</span><span style="color: #800000;">"</span> /&gt;
+<span style="color: #008080;">5</span>   &lt;/userSystemNames&gt;</pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp; &nbsp; &nbsp; 这个配置项在查询网站中很有用。该配置也是在&nbsp;Log2NetCfg 文件中配置的。</p>
+<p>&nbsp;</p>
+<p>　　看了这么多配置，也许你早不耐烦了，我的锅，但没办法，考虑到个性化，确实需要这么多配置。但一般地，我们只需要在基础配置中配置&nbsp;&nbsp;日志记录方式 appenderType 的值为 (例如为3：通过队列写到数据库)，在数据库方式中配置访问数据库的方式和数据库类型，最后配置数据库连接字符串。其他的配置不予配置。不予配置的值将会采用系统默认配置。LgWG.LogQuery项目中就是这种配置方法。</p>
+<p>　　若您确实需要进行个性化配置，您也可以采用在代码中进行配置：方法是在初始化方法LogApi.RegisterLogInitMsg中传入UserCfg userConfig参数的值，并设置ConfigInWhere的值为2即可。</p>
+<p>&nbsp;</p>
+<h4>4 .net平台日志记录方法</h4>
+<p>&nbsp;　　(1) 按照上述方法进行组件的注册、web.config文件和Log2NetCfg.config文件的配置；</p>
+<p>　　(2)&nbsp;&nbsp;网站生命周期事件的日志记录</p>
+<table border="1" cellspacing="0">
+<tbody>
+<tr>
+<td valign="top" width="235">
+<p><span style="background-color: #ccffff;"><strong>日志记录</strong><strong>的说明</strong></span></p>
+</td>
+<td valign="top" width="271">
+<p><span style="background-color: #ccffff;"><strong>使用</strong><strong>位置</strong></span></p>
+</td>
+<td valign="top" width="212">
+<p><span style="background-color: #ccffff;"><strong>方法</strong></span></p>
+</td>
+</tr>
+<tr>
+<td valign="top" width="235">
+<p>网站全局错误日志</p>
+</td>
+<td valign="top" width="271">
+<p>Application_Error事件</p>
+</td>
+<td valign="top" width="212">
+<p>HandAndWriteException</p>
+</td>
+</tr>
+<tr>
+<td valign="top" width="235">
+<p>网站停止日志</p>
+</td>
+<td valign="top" width="271">
+<p>Application_End事件</p>
+</td>
+<td valign="top" width="212">
+<p>WriteServerStopLog</p>
+</td>
+</tr>
+<tr>
+<td valign="top" width="235">
+<p>在线人数和历史访客的增加</p>
+</td>
+<td valign="top" width="271">
+<p>Session_Start事件</p>
+</td>
+<td valign="top" width="212">
+<p>IncreaseOnlineVisitNum</p>
+</td>
+</tr>
+<tr>
+<td valign="top" width="235">
+<p>在线人数的减少</p>
+</td>
+<td valign="top" width="271">
+<p>Session_End事件</p>
+</td>
+<td valign="top" width="212">
+<p>ReduceOnlineNum</p>
+</td>
+</tr>
+<tr>
+<td valign="top" width="235">
+<p>网站启动后初次访问</p>
+</td>
+<td valign="top" width="271">
+<p>Application_BeginRequest事件</p>
+</td>
+<td valign="top" width="212">
+<p>WriteFirstVisitLog</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p>　　(3) 在需要进行日志记录的位置调用&nbsp;LogApi.WriteLog ( LogLevel logLevel, params LogTraceEdm[] model)&nbsp; 或&nbsp;&nbsp;LogApi.WriteLog (&nbsp;LogLevel logLevel, params LogMonitorEdm[] model)&nbsp; 方法进行操作轨迹日志或监控日志的记录。你也可以将LogTraceEdm中除UserId、UserName之外的参数封装起来，UserId、UserName从你业务系统的基类中获取，简化LogApi.WriteLog的操作。</p>
+<p>　　具体使用方法可参考&nbsp;<a href="https://github.com/yuchen1030/Log2Net/tree/master/Log2NetWeb_net45">https://github.com/yuchen1030/Log2Net/tree/master/Log2NetWeb_net45</a>&nbsp;。</p>
+<h4>5 .netCore平台日志记录方法</h4>
+<p>&nbsp;　　(1) 按照上述方法进行组件的注册、Log2NetCfg.json文件的配置和声明；</p>
+<p>　　(2) 相关服务配置</p>
+<p>　　&nbsp; &nbsp; a、在Startup.cs的ConfigureServices方法中，调用LogApi.AddLog2netService(services, Configuration);<br />　　&nbsp; &nbsp; b、在 Startup.cs的Configure中，调用LogApi.AddLog2netConfigure(app, env);</p>
+<p>　　(3)&nbsp;在需要进行日志记录的位置调用&nbsp;LogApi.WriteLog ( LogLevel logLevel, params LogTraceEdm[] model)&nbsp; 或&nbsp;&nbsp;LogApi.WriteLog (&nbsp;LogLevel logLevel, params LogMonitorEdm[] model)&nbsp; 方法进行操作轨迹日志或监控日志的记录。你也可以将LogTraceEdm中除UserId、UserName之外的参数封装起来，UserId、UserName从你业务系统的基类中获取，简化LogApi.WriteLog的操作。</p>
+<p>　　具体使用方法可参考&nbsp;<a href="https://github.com/yuchen1030/Log2Net/tree/master/Log2NetWeb_DNC">https://github.com/yuchen1030/Log2Net/tree/master/Log2NetWeb_DNC</a>&nbsp;。</p>
+<h2>四、项目开源地址</h2>
+<p>　　本组件已开源，项目地址为&nbsp;<a href="https://github.com/yuchen1030/Log2Net">https://github.com/yuchen1030/Log2Net</a>&nbsp;。建议使用的VS工具为VS2017。当然，如果你只是使用该组件，随便你使用VS2012，VS2013,VS2015等工具。</p>
+<p><img src="./images/日志组件Log2Net的介绍和使用（附源码开源地址）29.png" alt="" /></p>
+<p>　　查询网站亦开源，项目地址为&nbsp;<a href="https://github.com/yuchen1030/Log2Net-LgWG.LogQuery">https://github.com/yuchen1030/Log2Net-LgWG.LogQuery</a>&nbsp;。该项目使用ABP+EF框架开发，建议使用VS工具为VS2017。</p>
+<p>&nbsp;　&nbsp; 接下来，我会介绍该日志组件的架构和代码实现，敬请期待~~</p>
+<p>&nbsp; &nbsp; &nbsp; Over，sleep.</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

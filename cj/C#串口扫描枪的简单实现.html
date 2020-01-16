@@ -1,0 +1,161 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C#串口扫描枪的简单实现' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C#串口扫描枪的简单实现</center></div><div class='banquan'>原文出处:本文由博客园博主Pater.Pan提供。<br/>
+原文连接:https://www.cnblogs.com/pandefu/p/10795284.html</div><br>
+    <p>串口扫描枪的简单实现</p>
+<p>基于串口通讯的扫描枪的实现,主要借助SerialPort类,<span data-ttu-id="55aef-101">表示串行端口资源。实现很简单:</span></p>
+<p><span data-ttu-id="55aef-101">工具:usb转RS232转接头/个,扫描枪/套,</span></p>
+<p><span data-ttu-id="55aef-101">扫描枪串口接入转接头,转接头插电脑</span></p>
+<p><span data-ttu-id="55aef-101"><img src="./images/C#串口扫描枪的简单实现0.png" alt="" width="533" height="400" /></span></p>
+<p><span data-ttu-id="55aef-101">接下来具体代码实现</span></p>
+<p>&nbsp;</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('2f9363ea-5a32-47fe-9921-731f9dfe6ecd')"><img id="code_img_closed_2f9363ea-5a32-47fe-9921-731f9dfe6ecd" class="code_img_closed" src="./images/C#串口扫描枪的简单实现1.png" alt="" /><img id="code_img_opened_2f9363ea-5a32-47fe-9921-731f9dfe6ecd" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('2f9363ea-5a32-47fe-9921-731f9dfe6ecd',event)" src="./images/C#串口扫描枪的简单实现2.png" alt="" />
+<div id="cnblogs_code_open_2f9363ea-5a32-47fe-9921-731f9dfe6ecd" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;">  1</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System;
+</span><span style="color: #008080;">  2</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Collections.Generic;
+</span><span style="color: #008080;">  3</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.ComponentModel;
+</span><span style="color: #008080;">  4</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Data;
+</span><span style="color: #008080;">  5</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Drawing;
+</span><span style="color: #008080;">  6</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Linq;
+</span><span style="color: #008080;">  7</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Text;
+</span><span style="color: #008080;">  8</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Threading.Tasks;
+</span><span style="color: #008080;">  9</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Windows.Forms;
+</span><span style="color: #008080;"> 10</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Net;
+</span><span style="color: #008080;"> 11</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.IO.Ports;
+</span><span style="color: #008080;"> 12</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Threading;
+</span><span style="color: #008080;"> 13</span> 
+<span style="color: #008080;"> 14</span> <span style="color: #0000ff;">namespace</span><span style="color: #000000;"> SerialScannerDemo
+</span><span style="color: #008080;"> 15</span> <span style="color: #000000;">{
+</span><span style="color: #008080;"> 16</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">partial</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> SerialScanner : Form
+</span><span style="color: #008080;"> 17</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;"> 18</span>         <span style="color: #0000ff;">public</span><span style="color: #000000;"> SerialScanner()
+</span><span style="color: #008080;"> 19</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 20</span> <span style="color: #000000;">            InitializeComponent();
+</span><span style="color: #008080;"> 21</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 22</span> 
+<span style="color: #008080;"> 23</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> Form1_Load(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)
+</span><span style="color: #008080;"> 24</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 25</span> <span style="color: #000000;">            InstanceSerialPort();
+</span><span style="color: #008080;"> 26</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 27</span> 
+<span style="color: #008080;"> 28</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;"> 29</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 实例化串行端口资源
+</span><span style="color: #008080;"> 30</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;"> 31</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> InstanceSerialPort()
+</span><span style="color: #008080;"> 32</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 33</span>             <span style="color: #008000;">//</span><span style="color: #008000;">实例化串行端口</span>
+<span style="color: #008080;"> 34</span>             SerialPort serialPort = <span style="color: #0000ff;">new</span><span style="color: #000000;"> SerialPort();
+</span><span style="color: #008080;"> 35</span>             <span style="color: #008000;">//</span><span style="color: #008000;">端口名  注:因为使用的是USB转RS232 所以去设备管理器中查看一下虚拟com口的名字</span>
+<span style="color: #008080;"> 36</span>             serialPort.PortName = <span style="color: #800000;">"</span><span style="color: #800000;">COM5</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 37</span>             <span style="color: #008000;">//</span><span style="color: #008000;">波特率</span>
+<span style="color: #008080;"> 38</span>             serialPort.BaudRate = <span style="color: #800080;">9600</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 39</span>             <span style="color: #008000;">//</span><span style="color: #008000;">奇偶校验</span>
+<span style="color: #008080;"> 40</span>             serialPort.Parity =<span style="color: #000000;"> Parity.None;
+</span><span style="color: #008080;"> 41</span>             <span style="color: #008000;">//</span><span style="color: #008000;">停止位</span>
+<span style="color: #008080;"> 42</span>             serialPort.StopBits =<span style="color: #000000;"> StopBits.One;
+</span><span style="color: #008080;"> 43</span>             <span style="color: #008000;">//</span><span style="color: #008000;">数据位</span>
+<span style="color: #008080;"> 44</span>             serialPort.DataBits = <span style="color: #800080;">8</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 45</span>             <span style="color: #008000;">//</span><span style="color: #008000;">忽略null字节</span>
+<span style="color: #008080;"> 46</span>             serialPort.DiscardNull = <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 47</span>             <span style="color: #008000;">//</span><span style="color: #008000;">接收事件</span>
+<span style="color: #008080;"> 48</span>             serialPort.DataReceived +=<span style="color: #000000;"> serialPort_DataReceived;
+</span><span style="color: #008080;"> 49</span>             <span style="color: #008000;">//</span><span style="color: #008000;">开启串口</span>
+<span style="color: #008080;"> 50</span> <span style="color: #000000;">            serialPort.Open();
+</span><span style="color: #008080;"> 51</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 52</span> 
+<span style="color: #008080;"> 53</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;"> 54</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 接收数据
+</span><span style="color: #008080;"> 55</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;"> 56</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="sender"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;"> 57</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="e"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;"> 58</span>         <span style="color: #0000ff;">void</span> serialPort_DataReceived(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, SerialDataReceivedEventArgs e)
+</span><span style="color: #008080;"> 59</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 60</span>             <span style="color: #0000ff;">try</span>
+<span style="color: #008080;"> 61</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 62</span>                 SerialPort serialPort =<span style="color: #000000;"> (SerialPort)sender;
+</span><span style="color: #008080;"> 63</span>                 <span style="color: #008000;">//</span><span style="color: #008000;">开启接收数据线程</span>
+<span style="color: #008080;"> 64</span>                 Thread threadReceiveSub = <span style="color: #0000ff;">new</span> Thread(<span style="color: #0000ff;">new</span><span style="color: #000000;"> ParameterizedThreadStart(ReceiveData));
+</span><span style="color: #008080;"> 65</span> <span style="color: #000000;">                threadReceiveSub.Start(serialPort);
+</span><span style="color: #008080;"> 66</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 67</span>             <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception ex)
+</span><span style="color: #008080;"> 68</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 69</span> <span style="color: #000000;">                SetMessage(ex.Message);
+</span><span style="color: #008080;"> 70</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 71</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 72</span> 
+<span style="color: #008080;"> 73</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> ReceiveData(<span style="color: #0000ff;">object</span><span style="color: #000000;"> serialPortobj)
+</span><span style="color: #008080;"> 74</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 75</span>             <span style="color: #0000ff;">try</span>
+<span style="color: #008080;"> 76</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 77</span>                 SerialPort serialPort =<span style="color: #000000;"> (SerialPort)serialPortobj;
+</span><span style="color: #008080;"> 78</span> 
+<span style="color: #008080;"> 79</span>                 <span style="color: #008000;">//</span><span style="color: #008000;">防止数据接收不完整 线程sleep(100)</span>
+<span style="color: #008080;"> 80</span>                 System.Threading.Thread.Sleep(<span style="color: #800080;">100</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 81</span> 
+<span style="color: #008080;"> 82</span>                 <span style="color: #0000ff;">string</span> str =<span style="color: #000000;"> serialPort.ReadExisting();
+</span><span style="color: #008080;"> 83</span> 
+<span style="color: #008080;"> 84</span>                 <span style="color: #0000ff;">if</span> (str == <span style="color: #0000ff;">string</span><span style="color: #000000;">.Empty)
+</span><span style="color: #008080;"> 85</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;"> 86</span>                     <span style="color: #0000ff;">return</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 87</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;"> 88</span>                 <span style="color: #0000ff;">else</span>
+<span style="color: #008080;"> 89</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;"> 90</span> <span style="color: #000000;">                    SetMessage(str);
+</span><span style="color: #008080;"> 91</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;"> 92</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 93</span>             <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception ex)
+</span><span style="color: #008080;"> 94</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 95</span> <span style="color: #000000;">                SetMessage(ex.Message);
+</span><span style="color: #008080;"> 96</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 97</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 98</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;"> 99</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 添加记录
+</span><span style="color: #008080;">100</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">101</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="msg"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;">102</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> SetMessage(<span style="color: #0000ff;">string</span><span style="color: #000000;"> msg)
+</span><span style="color: #008080;">103</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">104</span>             richTextBox1.Invoke(<span style="color: #0000ff;">new</span> Action(() =&gt; { richTextBox1.AppendText(msg + <span style="color: #800000;">"</span><span style="color: #800000;">\r\n</span><span style="color: #800000;">"</span><span style="color: #000000;">); }));
+</span><span style="color: #008080;">105</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">106</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">107</span> }</pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp;</p>
+<p><span style="color: #57a64a;">注:因为使用的是USB转RS232&nbsp;所以去设备管理器中查看一下虚拟com口的名字 </span></p>
+<p>接下来测试</p>
+<p>找一张带有条码的包装袋或者印有条码的纸扫描</p>
+<p><img src="./images/C#串口扫描枪的简单实现3.png" alt="" /></p>
+<p>测试完成</p>
+<p>&nbsp;</p>
+<p>这里说明一下</p>
+<p>serialPort中有6个读的方法</p>
+<p>Read();ReadLine(); ReadByte();ReadChar();这几个读方法是同步读</p>
+<p>ReadExisting();ReadTo();这两个方法是异步读</p>
+<p>在测试过程中发现 执行读方法后 从缓冲区读出的数据长度不够 会拼接到下一次的读结果中,所以代码中在读之前使用了Thread.sleep()方法使线程阻塞,使得从缓冲区读出的数据完整</p>
+<p>&nbsp;</p>
+<p><span style="color: #ff0000;">顺便说一下,基于以太网的扫描枪的实现,其实将扫描枪当做是一个客户端,扫描完成一次相当于发送了一次基于TCP或者UDP的请求,使用的socket服务器略加改变就能实现</span></p>
+<h1 class="postTitle"><span style="font-size: 16px;"><a id="cb_post_title_url" class="postTitle2" href="https://www.cnblogs.com/pandefu/p/10766629.html">c#Socket服务器与客户端的开发(1)</a></span></h1>
+<p><span style="font-size: 16px;">源码:</span></p>
+<p><span style="font-size: 16px;">链接：<a title="C#串口扫描枪的简答开发" href="https://pan.baidu.com/s/1mdcj_I8W0RTi-PIs1YBdhA" target="_blank">https://pan.baidu.com/s/1mdcj_I8W0RTi-PIs1YBdhA</a> <br />提取码：xs8d <br /></span></p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

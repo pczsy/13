@@ -1,0 +1,438 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修.NET Core 3.0之深入源码理解Configuration(二)' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>.NET Core 3.0之深入源码理解Configuration(二)</center></div><div class='banquan'>原文出处:本文由博客园博主艾心❤提供。<br/>
+原文连接:https://www.cnblogs.com/edison0621/p/10889325.html</div><br>
+    <div class="wlWriterHeaderFooter" style="float: right; margin: 0px; padding: 0px 0px 4px 8px;">&nbsp;</div>
+<h1 style="font-size: 200%; border-bottom: #5ea2d6 1px solid; font-weight: bold; color: #0378bb; padding-bottom: 10px; padding-top: 0px; padding-left: 20px; clear: both; border-left: #3d97cb 12px solid; line-height: 1.5em; padding-right: 100px;">文件型配置基本内容</h1>
+<p>上一篇文章讨论了Configuration的几个核心对象，本文继续讨论Configuration中关于文件型配置的相关内容。相比较而言，文件型配置的使用场景更加广泛，用户自定义配置扩展也可以基于文件型配置进行扩展。如果需要查看上一篇文章，可以点击<strong><a href="https://www.cnblogs.com/edison0621/p/10854215.html">移步</a></strong>。</p>
+<p>.NET Core文件型配置中我们提供了三种主要的实现，分别是JSON、XML、INI，请查看下图</p>
+<p><a href="https://img2018.cnblogs.com/blog/533598/201905/533598-20190519150805787-510308491.png"><img style="background-image: none; padding-top: 0px; padding-left: 0px; display: inline; padding-right: 0px; border-width: 0px;" title="file2" src="./images/.NET Core 3.0之深入源码理解Configuration(二)0.png" alt="file2" width="1057" height="509" border="0" /></a></p>
+<p>由图可知，这三种配置的实现方式是一样的，当然了其他的配置比如命令行配置、环境变量配置等也是大同小异，理解了改配置类型的实现方式，后面我们再扩展基于Consul或者ZK的实现，就非常简单了。</p>
+<h1 style="font-size: 200%; border-bottom: #5ea2d6 1px solid; font-weight: bold; color: #0378bb; padding-bottom: 10px; padding-top: 0px; padding-left: 20px; clear: both; border-left: #3d97cb 12px solid; line-height: 1.5em; padding-right: 100px;">文件型配置的抽象扩展</h1>
+<p>文件型配置的抽象扩展位于Microsoft.Extensions.Configuration.FileExtensions组件中，该扩展是一个基础实现。不过其命名空间是Microsoft.Extensions.Configuration，而Micros oft.Extensions.Configuration扩建本身又是整个.NET Core Configuration的基础实现。将File扩展独立于外部，体验了.NET Core的模块化设计。</p>
+<h2 style="font-size: 18px; color: #aa7652; padding-bottom: 5px; padding-top: 5px; padding-left: 30px; padding-right: 8px; background-color: #f5f5f4; border-radius: 5px; border: #d0cfcf 1px solid;">FileConfigurationSource</h2>
+<p>Configuration.FileExtensions组件中，FileConfigurationSource是继承于IConfigurationSource的一个抽象类，包含了一个IConfigurationProvider类型的抽象方法，如下所示</p>
+<div class="csharpcode">
+<pre><code><span class="lnum">   1:  </span><span class="rem">/// &lt;summary&gt;</span></pre>
+<pre><code><span class="lnum">   2:  </span><span class="rem">/// Builds the &lt;see cref="IConfigurationProvider"/&gt; for this source.</span></pre>
+<pre><code><span class="lnum">   3:  </span><span class="rem">/// &lt;/summary&gt;</span></pre>
+<pre><code><span class="lnum">   4:  </span><span class="rem">/// &lt;param name="builder"&gt;The &lt;see cref="IConfigurationBuilder"/&gt;.&lt;/param&gt;</span></pre>
+<pre><code><span class="lnum">   5:  </span><span class="rem">/// &lt;returns&gt;A &lt;see cref="IConfigurationProvider"/&gt;&lt;/returns&gt;</span></pre>
+<pre><code><span class="lnum">   6:  </span><span class="kwrd">public</span> <span class="kwrd">abstract</span> IConfigurationProvider Build(IConfigurationBuilder builder);</pre>
+</div>
+<style><!--
+.csharpcode, .csharpcode pre
+{
+	font-size: small;
+	color: black;
+	font-family: consolas, "Courier New", courier, monospace;
+	background-color: #ffffff;
+	/*white-space: pre;*/
+}
+.csharpcode pre { margin: 0em; }
+.csharpcode .rem { color: #008000; }
+.csharpcode .kwrd { color: #0000ff; }
+.csharpcode .str { color: #006080; }
+.csharpcode .op { color: #0000c0; }
+.csharpcode .preproc { color: #cc6633; }
+.csharpcode .asp { background-color: #ffff00; }
+.csharpcode .html { color: #800000; }
+.csharpcode .attr { color: #ff0000; }
+.csharpcode .alt 
+{
+	background-color: #f4f4f4;
+	width: 100%;
+	margin: 0em;
+}
+.csharpcode .lnum { color: #606060; }
+--></style>
+<p>该抽象类中还包括了几个比较重要的参数，分别用于配置性行为、文件内容访问以及异常处理。</p>
+<p>string Path：文件的路径</p>
+<p>bool Optional：标识加载的文件是否是可选的</p>
+<p>bool ReloadOnChange：如果文件发生修改，是否重新加载配置源</p>
+<p>int ReloadDelay：加载延迟，单位是毫秒，默认是250毫秒</p>
+<p>IFileProvider FileProvider：用于获取文件内容</p>
+<p>Action&lt;FileLoadExceptionContext&gt; OnLoadException：文件加载异常处理</p>
+<p>该类对FileProvider有特殊处理，就是如果没有提供FileProvider实例，则会基于绝对路径，在最近的现有目录中创建物理文件提供程序。源码如下，</p>
+<div class="csharpcode">
+<pre><code><span class="lnum">   1:  </span><span class="rem">/// &lt;summary&gt;</span></pre>
+<pre><code><span class="lnum">   2:  </span><span class="rem">/// If no file provider has been set, for absolute Path, this will creates a physical file provider </span></pre>
+<pre><code><span class="lnum">   3:  </span><span class="rem">/// for the nearest existing directory.</span></pre>
+<pre><code><span class="lnum">   4:  </span><span class="rem">/// &lt;/summary&gt;</span></pre>
+<pre><code><span class="lnum">   5:  </span><span class="kwrd">public</span> <span class="kwrd">void</span> ResolveFileProvider()</pre>
+<pre><code><span class="lnum">   6:  </span>{</pre>
+<pre><code><span class="lnum">   7:  </span>    <span class="kwrd">if</span> (FileProvider == <span class="kwrd">null</span> &amp;&amp; </pre>
+<pre><code><span class="lnum">   8:  </span>        !<span class="kwrd">string</span>.IsNullOrEmpty(Path) &amp;&amp;</pre>
+<pre><code><span class="lnum">   9:  </span>        System.IO.Path.IsPathRooted(Path))</pre>
+<pre><code><span class="lnum">  10:  </span>    {</pre>
+<pre><code><span class="lnum">  11:  </span>    </pre>
+<span style="color: #ff0000;"> <strong>var directory = System.IO.Path.GetDirectoryName(Path);</strong></span>
+<pre><code><span class="lnum">  12:  </span>        var pathToFile = System.IO.Path.GetFileName(Path);</pre>
+<pre><code><span class="lnum">  13:  </span>        <span class="kwrd">while</span> (!<span class="kwrd">string</span>.IsNullOrEmpty(directory) &amp;&amp; !Directory.Exists(directory))</pre>
+<pre><code><span class="lnum">  14:  </span>        {</pre>
+<pre><code><span class="lnum">  15:  </span>            pathToFile = System.IO.Path.Combine(System.IO.Path.GetFileName(directory), pathToFile);</pre>
+<pre><code><span class="lnum">  16:  </span>            directory = System.IO.Path.GetDirectoryName(directory);</pre>
+<pre><code><span class="lnum">  17:  </span>        }</pre>
+<pre><code><span class="lnum">  18:  </span>        <span class="kwrd">if</span> (Directory.Exists(directory))</pre>
+<pre><code><span class="lnum">  19:  </span>        {</pre>
+<pre><code><span class="lnum">  20:  </span>            FileProvider = <span class="kwrd">new</span> PhysicalFileProvider(directory);</pre>
+<pre><code><span class="lnum">  21:  </span>            Path = pathToFile;</pre>
+<pre><code><span class="lnum">  22:  </span>        }</pre>
+<pre><code><span class="lnum">  23:  </span>    }</pre>
+<pre><code><span class="lnum">  24:  </span>}</pre>
+</div>
+<h2 style="font-size: 18px; color: #aa7652; padding-bottom: 5px; padding-top: 5px; padding-left: 30px; padding-right: 8px; background-color: #f5f5f4; border-radius: 5px; border: #d0cfcf 1px solid;">FileConfigurationProvider</h2>
+<p>该类是继承于ConfigurationProvider的抽象类，是从文件系统加载配置的基类，同时还继承了IDisposable，其抽象方法是Load方法，用于从当前的Provider中以Stream方式加载数据</p>
+<div class="csharpcode">
+<pre><code><span class="lnum">   1:  </span><span class="rem">/// &lt;summary&gt;</span></pre>
+<pre><code><span class="lnum">   2:  </span><span class="rem">/// Loads this provider's data from a stream.</span></pre>
+<pre><code><span class="lnum">   3:  </span><span class="rem">/// &lt;/summary&gt;</span></pre>
+<pre><code><span class="lnum">   4:  </span><span class="rem">/// &lt;param name="stream"&gt;The stream to read.&lt;/param&gt;</span></pre>
+<pre><code><span class="lnum">   5:  </span><span class="kwrd">public</span> <span class="kwrd">abstract</span> <span class="kwrd">void</span> Load(Stream stream);</pre>
+</div>
+<style><!--
+.csharpcode, .csharpcode pre
+{
+	font-size: small;
+	color: black;
+	font-family: consolas, "Courier New", courier, monospace;
+	background-color: #ffffff;
+	/*white-space: pre;*/
+}
+.csharpcode pre { margin: 0em; }
+.csharpcode .rem { color: #008000; }
+.csharpcode .kwrd { color: #0000ff; }
+.csharpcode .str { color: #006080; }
+.csharpcode .op { color: #0000c0; }
+.csharpcode .preproc { color: #cc6633; }
+.csharpcode .asp { background-color: #ffff00; }
+.csharpcode .html { color: #800000; }
+.csharpcode .attr { color: #ff0000; }
+.csharpcode .alt 
+{
+	background-color: #f4f4f4;
+	width: 100%;
+	margin: 0em;
+}
+.csharpcode .lnum { color: #606060; }
+--></style>
+<p>该类还重写了ConfigurationProvider的Load方法，并对文件加载中的异常做了处理，Data属性在前文有提到过，此处不再做其他说明。方法源码如下所示：</p>
+<div class="csharpcode">
+<pre><code><span class="lnum">   1:  </span><span class="kwrd">private</span> <span class="kwrd">void</span> Load(<span class="kwrd">bool</span> reload)</pre>
+<pre><code><span class="lnum">   2:  </span>{</pre>
+<pre><code><span class="lnum">   3:  </span>    var file = Source.FileProvider?.GetFileInfo(Source.Path);</pre>
+<pre><code><span class="lnum">   4:  </span>    <span class="kwrd">if</span> (file == <span class="kwrd">null</span> || !file.Exists)</pre>
+<pre><code><span class="lnum">   5:  </span>    {</pre>
+<pre><code><span class="lnum">   6:  </span>        <span class="kwrd">if</span> (Source.Optional || reload) <span class="rem">// Always optional on reload</span></pre>
+<pre><code><span class="lnum">   7:  </span>        {</pre>
+<pre><code><span class="lnum">   8:  </span>            <strong><span style="color: #ff0000;">Data</span></strong> = <span class="kwrd">new</span> Dictionary&lt;<span class="kwrd">string</span>, <span class="kwrd">string</span>&gt;(StringComparer.OrdinalIgnoreCase);</pre>
+<pre><code><span class="lnum">   9:  </span>        }</pre>
+<pre><code><span class="lnum">  10:  </span>        <span class="kwrd">else</span></pre>
+<pre><code><span class="lnum">  11:  </span>        {</pre>
+<pre><code><span class="lnum">  12:  </span>            var error = <span class="kwrd">new</span> StringBuilder($<span class="str">"The configuration file '{Source.Path}' was not found and is not optional."</span>);</pre>
+<pre><code><span class="lnum">  13:  </span>            <span class="kwrd">if</span> (!<span class="kwrd">string</span>.IsNullOrEmpty(file?.PhysicalPath))</pre>
+<pre><code><span class="lnum">  14:  </span>            {</pre>
+<pre><code><span class="lnum">  15:  </span>                error.Append($<span class="str">" The physical path is '{file.PhysicalPath}'."</span>);</pre>
+<pre><code><span class="lnum">  16:  </span>            }</pre>
+<pre><code><span class="lnum">  17:  </span>            HandleException(<span class="kwrd">new</span> FileNotFoundException(error.ToString()));</pre>
+<pre><code><span class="lnum">  18:  </span>        }</pre>
+<pre><code><span class="lnum">  19:  </span>    }</pre>
+<pre><code><span class="lnum">  20:  </span>    <span class="kwrd">else</span></pre>
+<pre><code><span class="lnum">  21:  </span>    {</pre>
+<pre><code><span class="lnum">  22:  </span>        <span class="rem">// Always create new Data on reload to drop old keys</span></pre>
+<pre><code><span class="lnum">  23:  </span>        <span class="kwrd">if</span> (reload)</pre>
+<pre><code><span class="lnum">  24:  </span>        {</pre>
+<pre><code><span class="lnum">  25:  </span>            Data = <span class="kwrd">new</span> Dictionary&lt;<span class="kwrd">string</span>, <span class="kwrd">string</span>&gt;(StringComparer.OrdinalIgnoreCase);</pre>
+<pre><code><span class="lnum">  26:  </span>        }</pre>
+<pre><code><span class="lnum">  27:  </span>        <span class="kwrd">using</span> (var stream = file.CreateReadStream())</pre>
+<pre><code><span class="lnum">  28:  </span>        {</pre>
+<pre><code><span class="lnum">  29:  </span>            <span class="kwrd">try</span></pre>
+<pre><code><span class="lnum">  30:  </span>            {</pre>
+<pre><code><span class="lnum">  31:  </span>                Load(stream);</pre>
+<pre><code><span class="lnum">  32:  </span>            }</pre>
+<pre><code><span class="lnum">  33:  </span>            <span class="kwrd">catch</span> (Exception e)</pre>
+<pre><code><span class="lnum">  34:  </span>            {</pre>
+<pre><code><span class="lnum">  35:  </span>                HandleException(e);</pre>
+<pre><code><span class="lnum">  36:  </span>            }</pre>
+<pre><code><span class="lnum">  37:  </span>        }</pre>
+<pre><code><span class="lnum">  38:  </span>    }</pre>
+<pre><code><span class="lnum">  39:  </span>    <span class="rem"><strong><span style="color: #ff0000;">// REVIEW: Should we raise this in the base as well / instead?，通过注释，我们可以知道OnReload()方法可能会在新版中发生变化</span></strong></span></pre>
+<pre><code><span class="lnum">  40:  </span>    OnReload();</pre>
+<pre><code><span class="lnum">  41:  </span>}</pre>
+<pre><code><span class="lnum">  42:  </span>&nbsp;</pre>
+<pre><code><span class="lnum">  43:  </span><span class="rem">/// &lt;summary&gt;</span></pre>
+<pre><code><span class="lnum">  44:  </span><span class="rem">/// Loads the contents of the file at &lt;see cref="Path"/&gt;.</span></pre>
+<pre><code><span class="lnum">  45:  </span><span class="rem">/// &lt;/summary&gt;</span></pre>
+<pre><code><span class="lnum">  46:  </span><span class="rem">/// &lt;exception cref="FileNotFoundException"&gt;If Optional is &lt;c&gt;false&lt;/c&gt; on the source and a</span></pre>
+<pre><code><span class="lnum">  47:  </span><span class="rem">/// file does not exist at specified Path.&lt;/exception&gt;</span></pre>
+<pre><code><span class="lnum">  48:  </span><span class="kwrd">public</span> <span class="kwrd">override</span> <span class="kwrd">void</span> Load()</pre>
+<pre><code><span class="lnum">  49:  </span>{</pre>
+<pre><code><span class="lnum">  50:  </span>    Load(reload: <span class="kwrd">false</span>);</pre>
+<pre><code><span class="lnum">  51:  </span>}</pre>
+</div>
+<style><!--
+.csharpcode, .csharpcode pre
+{
+	font-size: small;
+	color: black;
+	font-family: consolas, "Courier New", courier, monospace;
+	background-color: #ffffff;
+	/*white-space: pre;*/
+}
+.csharpcode pre { margin: 0em; }
+.csharpcode .rem { color: #008000; }
+.csharpcode .kwrd { color: #0000ff; }
+.csharpcode .str { color: #006080; }
+.csharpcode .op { color: #0000c0; }
+.csharpcode .preproc { color: #cc6633; }
+.csharpcode .asp { background-color: #ffff00; }
+.csharpcode .html { color: #800000; }
+.csharpcode .attr { color: #ff0000; }
+.csharpcode .alt 
+{
+	background-color: #f4f4f4;
+	width: 100%;
+	margin: 0em;
+}
+.csharpcode .lnum { color: #606060; }
+--></style>
+<p>另外它还有一个特殊方法，就是参数类型为FileConfigurationSource的构造函数，其主要功能是监控文件，并在FileConfigurationSource.ReloadDelay设置的时间里重新加载文件并返回一个IDisposable类型的值，以下是该构造函数的源码：</p>
+<div class="csharpcode">
+<pre><code><span class="lnum">   1:  </span><span class="rem">/// &lt;summary&gt;</span></pre>
+<pre><code><span class="lnum">   2:  </span><span class="rem">/// Initializes a new instance with the specified source.</span></pre>
+<pre><code><span class="lnum">   3:  </span><span class="rem">/// &lt;/summary&gt;</span></pre>
+<pre><code><span class="lnum">   4:  </span><span class="rem">/// &lt;param name="source"&gt;The source settings.&lt;/param&gt;</span></pre>
+<pre><code><span class="lnum">   5:  </span><span class="kwrd">public</span> FileConfigurationProvider(FileConfigurationSource source)</pre>
+<pre><code><span class="lnum">   6:  </span>{</pre>
+<pre><code><span class="lnum">   7:  </span>    <span class="kwrd">if</span> (source == <span class="kwrd">null</span>)</pre>
+<pre><code><span class="lnum">   8:  </span>    {</pre>
+<pre><code><span class="lnum">   9:  </span>        <span class="kwrd">throw</span> <span class="kwrd">new</span> ArgumentNullException(nameof(source));</pre>
+<pre><code><span class="lnum">  10:  </span>    }</pre>
+<pre><code><span class="lnum">  11:  </span>    Source = source;</pre>
+<pre><code><span class="lnum">  12:  </span>&nbsp;</pre>
+<pre><code><span class="lnum">  13:  </span>    <span class="kwrd">if</span> (Source.ReloadOnChange &amp;&amp; Source.FileProvider != <span class="kwrd">null</span>)</pre>
+<pre><code><span class="lnum">  14:  </span>    {</pre>
+<pre><code><span class="lnum">  15:  </span>        _changeTokenRegistration = ChangeToken.OnChange(</pre>
+<pre><code><span class="lnum">  16:  </span>            () =&gt; Source.FileProvider.Watch(Source.Path),</pre>
+<pre><code><span class="lnum">  17:  </span>            () =&gt; {</pre>
+<pre><code><span class="lnum">  18:  </span>                Thread.Sleep(Source.ReloadDelay);</pre>
+<pre><code><span class="lnum">  19:  </span>                Load(reload: <span class="kwrd">true</span>);</pre>
+<pre><code><span class="lnum">  20:  </span>            });</pre>
+<pre><code><span class="lnum">  21:  </span>    }</pre>
+<pre><code><span class="lnum">  22:  </span>}</pre>
+</div>
+<h2 style="font-size: 18px; color: #aa7652; padding-bottom: 5px; padding-top: 5px; padding-left: 30px; padding-right: 8px; background-color: #f5f5f4; border-radius: 5px; border: #d0cfcf 1px solid;">FileConfigurationExtensions</h2>
+<p>该类是一个静态类，其提供了的多个扩展方法，主要基于</p>
+<ul>
+<li>IConfigurationBuilder</li>
+<li>IFileProvider</li>
+<li>Action&lt;FileLoadExceptionContext&gt;</li>
+</ul>
+<p>包括主要用于设置或获取IFileProvider对象，前文有介绍过，是存储于字典之中，需要注意的是，在Get的时候如果字典中并不存在IFileProvider对象，则会实例化一个PhysicalFileProvider对象出来，该类位于Microsoft.Extensions.FileProviders.PhysicalFileProvider</p>
+<div class="csharpcode">
+<pre><code><span class="lnum">   1:  </span><span class="rem">/// &lt;summary&gt;</span></pre>
+<pre><code><span class="lnum">   2:  </span><span class="rem">/// Sets the default &lt;see cref="IFileProvider"/&gt; to be used for file-based providers.</span></pre>
+<pre><code><span class="lnum">   3:  </span><span class="rem">/// &lt;/summary&gt;</span></pre>
+<pre><code><span class="lnum">   4:  </span><span class="rem">/// &lt;param name="builder"&gt;The &lt;see cref="IConfigurationBuilder"/&gt; to add to.&lt;/param&gt;</span></pre>
+<pre><code><span class="lnum">   5:  </span><span class="rem">/// &lt;param name="fileProvider"&gt;The default file provider instance.&lt;/param&gt;</span></pre>
+<pre><code><span class="lnum">   6:  </span><span class="rem">/// &lt;returns&gt;The &lt;see cref="IConfigurationBuilder"/&gt;.&lt;/returns&gt;</span></pre>
+<pre><code><span class="lnum">   7:  </span><span class="kwrd">public</span> <span class="kwrd">static</span> IConfigurationBuilder SetFileProvider(<span class="kwrd">this</span> IConfigurationBuilder builder, IFileProvider fileProvider)</pre>
+<pre><code><span class="lnum">   8:  </span>{</pre>
+<pre><code><span class="lnum">   9:  </span>    <span class="kwrd">if</span> (builder == <span class="kwrd">null</span>)</pre>
+<pre><code><span class="lnum">  10:  </span>    {</pre>
+<pre><code><span class="lnum">  11:  </span>        <span class="kwrd">throw</span> <span class="kwrd">new</span> ArgumentNullException(nameof(builder));</pre>
+<pre><code><span class="lnum">  12:  </span>    }</pre>
+<pre><code><span class="lnum">  13:  </span>&nbsp;</pre>
+<pre><code><span class="lnum">  14:  </span>    builder.Properties[FileProviderKey] = fileProvider ?? <span class="kwrd">throw</span> <span class="kwrd">new</span> ArgumentNullException(nameof(fileProvider));</pre>
+<pre><code><span class="lnum">  15:  </span>    <span class="kwrd">return</span> builder;</pre>
+<pre><code><span class="lnum">  16:  </span>}</pre>
+<pre><code><span class="lnum">  17:  </span>&nbsp;</pre>
+<pre><code><span class="lnum">  18:  </span><span class="rem">/// &lt;summary&gt;</span></pre>
+<pre><code><span class="lnum">  19:  </span><span class="rem">/// Gets the default &lt;see cref="IFileProvider"/&gt; to be used for file-based providers.</span></pre>
+<pre><code><span class="lnum">  20:  </span><span class="rem">/// &lt;/summary&gt;</span></pre>
+<pre><code><span class="lnum">  21:  </span><span class="rem">/// &lt;param name="builder"&gt;The &lt;see cref="IConfigurationBuilder"/&gt;.&lt;/param&gt;</span></pre>
+<pre><code><span class="lnum">  22:  </span><span class="rem">/// &lt;returns&gt;The &lt;see cref="IConfigurationBuilder"/&gt;.&lt;/returns&gt;</span></pre>
+<pre><code><span class="lnum">  23:  </span><span class="kwrd">public</span> <span class="kwrd">static</span> IFileProvider GetFileProvider(<span class="kwrd">this</span> IConfigurationBuilder builder)</pre>
+<pre><code><span class="lnum">  24:  </span>{</pre>
+<pre><code><span class="lnum">  25:  </span>    <span class="kwrd">if</span> (builder == <span class="kwrd">null</span>)</pre>
+<pre><code><span class="lnum">  26:  </span>    {</pre>
+<pre><code><span class="lnum">  27:  </span>        <span class="kwrd">throw</span> <span class="kwrd">new</span> ArgumentNullException(nameof(builder));</pre>
+<pre><code><span class="lnum">  28:  </span>    }</pre>
+<pre><code><span class="lnum">  29:  </span>&nbsp;</pre>
+<pre><code><span class="lnum">  30:  </span>    <span class="kwrd">if</span> (builder.Properties.TryGetValue(FileProviderKey, <span class="kwrd">out</span> <span class="kwrd">object</span> provider))</pre>
+<pre><code><span class="lnum">  31:  </span>    {</pre>
+<pre><code><span class="lnum">  32:  </span>        <span class="kwrd">return</span> provider <span class="kwrd">as</span> IFileProvider;</pre>
+<pre><code><span class="lnum">  33:  </span>    }</pre>
+<pre><code><span class="lnum">  34:  </span>&nbsp;</pre>
+<pre><code><span class="lnum">  35:  </span>    <strong><span style="color: #ff0000;"><span class="kwrd">return</span> <span class="kwrd">new</span> PhysicalFileProvider(AppContext.BaseDirectory ?? <span class="kwrd">string</span>.Empty);</span></strong></pre>
+<pre><code><span class="lnum">  36:  </span>}</pre>
+</div>
+<p>为指定路径的物理文件设置文件型Provider，该方法同样基于PhysicalFileProvider，并返回IConfigurationBuilder对象</p>
+<div class="csharpcode">
+<pre><code><span class="lnum">   1:  </span><span class="rem">/// &lt;summary&gt;</span></pre>
+<pre><code><span class="lnum">   2:  </span><span class="rem">/// Sets the FileProvider for file-based providers to a PhysicalFileProvider with the base path.</span></pre>
+<pre><code><span class="lnum">   3:  </span><span class="rem">/// &lt;/summary&gt;</span></pre>
+<pre><code><span class="lnum">   4:  </span><span class="rem">/// &lt;param name="builder"&gt;The &lt;see cref="IConfigurationBuilder"/&gt; to add to.&lt;/param&gt;</span></pre>
+<pre><code><span class="lnum">   5:  </span><span class="rem">/// &lt;param name="basePath"&gt;The absolute path of file-based providers.&lt;/param&gt;</span></pre>
+<pre><code><span class="lnum">   6:  </span><span class="rem">/// &lt;returns&gt;The &lt;see cref="IConfigurationBuilder"/&gt;.&lt;/returns&gt;</span></pre>
+<pre><code><span class="lnum">   7:  </span><span class="kwrd">public</span> <span class="kwrd">static</span> IConfigurationBuilder SetBasePath(<span class="kwrd">this</span> IConfigurationBuilder builder, <span class="kwrd">string</span> basePath)</pre>
+<pre><code><span class="lnum">   8:  </span>{</pre>
+<pre><code><span class="lnum">   9:  </span>    <span class="kwrd">if</span> (builder == <span class="kwrd">null</span>)</pre>
+<pre><code><span class="lnum">  10:  </span>    {</pre>
+<pre><code><span class="lnum">  11:  </span>        <span class="kwrd">throw</span> <span class="kwrd">new</span> ArgumentNullException(nameof(builder));</pre>
+<pre><code><span class="lnum">  12:  </span>    }</pre>
+<pre><code><span class="lnum">  13:  </span>&nbsp;</pre>
+<pre><code><span class="lnum">  14:  </span>    <span class="kwrd">if</span> (basePath == <span class="kwrd">null</span>)</pre>
+<pre><code><span class="lnum">  15:  </span>    {</pre>
+<pre><code><span class="lnum">  16:  </span>        <span class="kwrd">throw</span> <span class="kwrd">new</span> ArgumentNullException(nameof(basePath));</pre>
+<pre><code><span class="lnum">  17:  </span>    }</pre>
+<pre><code><span class="lnum">  18:  </span>&nbsp;</pre>
+<pre><code><span class="lnum">  19:  </span>    <strong><span style="color: #ff0000;"><span class="kwrd">return</span> builder.SetFileProvider(<span class="kwrd">new</span> PhysicalFileProvider(basePath));</span></strong></pre>
+<pre><code><span class="lnum">  20:  </span>}</pre>
+</div>
+<style><!--
+.csharpcode, .csharpcode pre
+{
+	font-size: small;
+	color: black;
+	font-family: consolas, "Courier New", courier, monospace;
+	background-color: #ffffff;
+	/*white-space: pre;*/
+}
+.csharpcode pre { margin: 0em; }
+.csharpcode .rem { color: #008000; }
+.csharpcode .kwrd { color: #0000ff; }
+.csharpcode .str { color: #006080; }
+.csharpcode .op { color: #0000c0; }
+.csharpcode .preproc { color: #cc6633; }
+.csharpcode .asp { background-color: #ffff00; }
+.csharpcode .html { color: #800000; }
+.csharpcode .attr { color: #ff0000; }
+.csharpcode .alt 
+{
+	background-color: #f4f4f4;
+	width: 100%;
+	margin: 0em;
+}
+.csharpcode .lnum { color: #606060; }
+--></style>
+<p>以及异常处理，可以看到其异常处理也会存放于字典中，如果字典中找不到，就会返回空，这个地方如果直接使用，需要注意空指针问题。</p>
+<div class="csharpcode">
+<pre><code><span class="lnum">   1:  </span><span class="rem">/// &lt;summary&gt;</span></pre>
+<pre><code><span class="lnum">   2:  </span><span class="rem">/// Sets a default action to be invoked for file-based providers when an error occurs.</span></pre>
+<pre><code><span class="lnum">   3:  </span><span class="rem">/// &lt;/summary&gt;</span></pre>
+<pre><code><span class="lnum">   4:  </span><span class="rem">/// &lt;param name="builder"&gt;The &lt;see cref="IConfigurationBuilder"/&gt; to add to.&lt;/param&gt;</span></pre>
+<pre><code><span class="lnum">   5:  </span><span class="rem">/// &lt;param name="handler"&gt;The Action to be invoked on a file load exception.&lt;/param&gt;</span></pre>
+<pre><code><span class="lnum">   6:  </span><span class="rem">/// &lt;returns&gt;The &lt;see cref="IConfigurationBuilder"/&gt;.&lt;/returns&gt;</span></pre>
+<pre><code><span class="lnum">   7:  </span><span class="kwrd">public</span> <span class="kwrd">static</span> IConfigurationBuilder SetFileLoadExceptionHandler(<span class="kwrd">this</span> IConfigurationBuilder builder, Action&lt;FileLoadExceptionContext&gt; handler)</pre>
+<pre><code><span class="lnum">   8:  </span>{</pre>
+<pre><code><span class="lnum">   9:  </span>    <span class="kwrd">if</span> (builder == <span class="kwrd">null</span>)</pre>
+<pre><code><span class="lnum">  10:  </span>    {</pre>
+<pre><code><span class="lnum">  11:  </span>        <span class="kwrd">throw</span> <span class="kwrd">new</span> ArgumentNullException(nameof(builder));</pre>
+<pre><code><span class="lnum">  12:  </span>    }</pre>
+<pre><code><span class="lnum">  13:  </span>&nbsp;</pre>
+<pre><code><span class="lnum">  14:  </span>    builder.Properties[FileLoadExceptionHandlerKey] = handler;</pre>
+<pre><code><span class="lnum">  15:  </span>    <span class="kwrd">return</span> builder;</pre>
+<pre><code><span class="lnum">  16:  </span>}</pre>
+<pre><code><span class="lnum">  17:  </span>&nbsp;</pre>
+<pre><code><span class="lnum">  18:  </span><span class="rem">/// &lt;summary&gt;</span></pre>
+<pre><code><span class="lnum">  19:  </span><span class="rem">/// Gets the default &lt;see cref="IFileProvider"/&gt; to be used for file-based providers.</span></pre>
+<pre><code><span class="lnum">  20:  </span><span class="rem">/// &lt;/summary&gt;</span></pre>
+<pre><code><span class="lnum">  21:  </span><span class="rem">/// &lt;param name="builder"&gt;The &lt;see cref="IConfigurationBuilder"/&gt;.&lt;/param&gt;</span></pre>
+<pre><code><span class="lnum">  22:  </span><span class="rem">/// &lt;returns&gt;The &lt;see cref="IConfigurationBuilder"/&gt;.&lt;/returns&gt;</span></pre>
+<pre><code><span class="lnum">  23:  </span><span class="kwrd">public</span> <span class="kwrd">static</span> Action&lt;FileLoadExceptionContext&gt; GetFileLoadExceptionHandler(<span class="kwrd">this</span> IConfigurationBuilder builder)</pre>
+<pre><code><span class="lnum">  24:  </span>{</pre>
+<pre><code><span class="lnum">  25:  </span>    <span class="kwrd">if</span> (builder == <span class="kwrd">null</span>)</pre>
+<pre><code><span class="lnum">  26:  </span>    {</pre>
+<pre><code><span class="lnum">  27:  </span>        <span class="kwrd">throw</span> <span class="kwrd">new</span> ArgumentNullException(nameof(builder));</pre>
+<pre><code><span class="lnum">  28:  </span>    }</pre>
+<pre><code><span class="lnum">  29:  </span>&nbsp;</pre>
+<pre><code><span class="lnum">  30:  </span>    <span class="kwrd">if</span> (builder.Properties.TryGetValue(FileLoadExceptionHandlerKey, <span class="kwrd">out</span> <span class="kwrd">object</span> handler))</pre>
+<pre><code><span class="lnum">  31:  </span>    {</pre>
+<pre><code><span class="lnum">  32:  </span>        <span class="kwrd">return</span> handler <span class="kwrd">as</span> Action&lt;FileLoadExceptionContext&gt;;</pre>
+<pre><code><span class="lnum">  33:  </span>    }</pre>
+<pre><code><span class="lnum">  34:  </span>    </pre>
+<span style="color: #000000;"><strong><span class="kwrd">return</span> <span class="kwrd">null</span>;</strong></span>
+<pre><code><span class="lnum">  35:  </span>}</pre>
+</div>
+<style><!--
+.csharpcode, .csharpcode pre
+{
+	font-size: small;
+	color: black;
+	font-family: consolas, "Courier New", courier, monospace;
+	background-color: #ffffff;
+	/*white-space: pre;*/
+}
+.csharpcode pre { margin: 0em; }
+.csharpcode .rem { color: #008000; }
+.csharpcode .kwrd { color: #0000ff; }
+.csharpcode .str { color: #006080; }
+.csharpcode .op { color: #0000c0; }
+.csharpcode .preproc { color: #cc6633; }
+.csharpcode .asp { background-color: #ffff00; }
+.csharpcode .html { color: #800000; }
+.csharpcode .attr { color: #ff0000; }
+.csharpcode .alt 
+{
+	background-color: #f4f4f4;
+	width: 100%;
+	margin: 0em;
+}
+.csharpcode .lnum { color: #606060; }
+--></style>
+<p>该类还有两个静态私有变量，指定了文件Provider的Key以及文件加载异常处理Key。</p>
+<div class="csharpcode">
+<pre><code><span class="lnum">   1:  </span><span class="kwrd">private</span> <span class="kwrd">static</span> <span class="kwrd">string</span> FileProviderKey = <span class="str">"FileProvider"</span>;</pre>
+<pre><code><span class="lnum">   2:  </span><span class="kwrd">private</span> <span class="kwrd">static</span> <span class="kwrd">string</span> FileLoadExceptionHandlerKey = <span class="str">"FileLoadExceptionHandler"</span>;</pre>
+</div>
+<style><!--
+.csharpcode, .csharpcode pre
+{
+	font-size: small;
+	color: black;
+	font-family: consolas, "Courier New", courier, monospace;
+	background-color: #ffffff;
+	/*white-space: pre;*/
+}
+.csharpcode pre { margin: 0em; }
+.csharpcode .rem { color: #008000; }
+.csharpcode .kwrd { color: #0000ff; }
+.csharpcode .str { color: #006080; }
+.csharpcode .op { color: #0000c0; }
+.csharpcode .preproc { color: #cc6633; }
+.csharpcode .asp { background-color: #ffff00; }
+.csharpcode .html { color: #800000; }
+.csharpcode .attr { color: #ff0000; }
+.csharpcode .alt 
+{
+	background-color: #f4f4f4;
+	width: 100%;
+	margin: 0em;
+}
+.csharpcode .lnum { color: #606060; }
+--></style>
+<h1 style="font-size: 200%; border-bottom: #5ea2d6 1px solid; font-weight: bold; color: #0378bb; padding-bottom: 10px; padding-top: 0px; padding-left: 20px; clear: both; border-left: #3d97cb 12px solid; line-height: 1.5em; padding-right: 100px;">总结</h1>
+<p>文件型配置还依赖于.NET Core的其他组件Microsoft.Extensions.FileProviders和Microsoft.Extensions.Primitives。</p>
+<p>FileProviders组件提供了文件处理的一般方法，Primitives组件提供了监控机制，同时还包括两个比较重要的结构体StringValues和StringSegment，本文暂时不做讨论，有兴趣的朋友，可以自行查看该组件源码。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

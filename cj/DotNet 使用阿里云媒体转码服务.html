@@ -1,0 +1,451 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修DotNet 使用阿里云媒体转码服务' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>DotNet 使用阿里云媒体转码服务</center></div><div class='banquan'>原文出处:本文由博客园博主Charles Zhang提供。<br/>
+原文连接:https://www.cnblogs.com/weisenz/p/11308806.html</div><br>
+    <p>公司项目中一部分文件放到了阿里云 OSS 上，其中有些音频文件是 amr 类型的，在后期使用的时候比较麻烦，所以需要转换成 mp3 的文件，方便以后使用。本来想使用 ffmpeg 处理，但由于文件都存放在阿里云 OSS 上，使用 ffmpeg 就需要把文件从远程下载下来，转码之后再重新传回阿里云上，还需要使用消息组件进行通知，而且转码对服务器的压力也会很大。不如直接使用阿里云的媒体转码服务来的快，阿里云只提供了 OSS 的 DotNet 类库，并没有提供 MTS 的，所以只能自己参考 API 和其他语言的类库来开发，还好 MTS 的 API 并不是很复杂，几次尝试之后就搞定了。</p>
+<p>相关参数需要从阿里云的控制台获取。</p>
+<p>阿里云媒体转码服务类：</p>
+<div class="cnblogs_Highlighter">
+<pre><code>　　 /// &lt;summary&gt;
+    /// 阿里云媒体转码服务助手类。
+    /// &lt;/summary&gt;
+    public class MediaTranscodeHelper
+    {
+
+        private static readonly Encoding ENCODE_TYPE = Encoding.UTF8;
+        private static readonly string ALGORITHM = "HmacSHA1";
+        private static readonly string HTTP_METHOD = "GET";
+        private static readonly string SEPARATOR = "&amp;";
+        private static readonly string EQUAL = "=";
+        private static readonly string ISO8601_DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ss'Z'";
+        private static readonly string RegionId = "cn-beijing";
+        private static readonly string Version = "2014-06-18";
+        private static readonly string Action = "SubmitJobs";
+        private static readonly string Format = "JSON";
+        private static readonly string MtsDomain = "mts.cn-beijing.aliyuncs.com";
+
+
+        private static readonly int MaxRetryNumber = 3;
+        private static readonly bool AutoRetry = true;
+        private static readonly int TimeoutInMilliSeconds = 100000;
+
+
+        private static readonly string AccessKeyId = "you AccessKeyId";
+        private static readonly string AccessKeySecret = "you AccessKeySecret";
+        private static readonly string PipelineId = "you PipelineId";
+
+
+        /// &lt;summary&gt;
+        /// 提交转码任务。
+        /// &lt;/summary&gt;
+        /// &lt;param name="inputFile"&gt;输入文件。&lt;/param&gt;
+        /// &lt;returns&gt;输出文件。&lt;/returns&gt;
+        public static string SubmitTranscodeJob(string inputFile, string ossLocation)
+        {
+            string outputJob = string.Empty;
+
+            return outputJob;
+        }
+
+        /// &lt;summary&gt;
+        /// 提交转码任务。
+        /// &lt;/summary&gt;
+        public async Task&lt;(bool success, string response)&gt; SubmitTranscodeJob()
+        {
+            string SignatureNonce = Guid.NewGuid().ToString();
+            var paramers = new Dictionary&lt;string, string&gt;
+            {
+                { "Action", Action },
+                { "Version", "2014-06-18" },
+                { "AccessKeyId", AccessKeyId },
+                { "Timestamp", FormatIso8601Date(DateTime.Now) },
+                { "SignatureMethod", "HMAC-SHA1" },
+                { "SignatureVersion", "1.0" },
+                { "SignatureNonce", SignatureNonce },
+                { "Format", Format },
+                { "PipelineId", PipelineId },
+                { "Input", "{\"Bucket\":\"charlesbeijng\",\"Location\":\"oss-cn-beijing\",\"Object\":\"3.amr\"}" },
+                { "OutputBucket", "charlesbeijng" },
+                { "OutputLocation", "oss-cn-beijing" },
+                { "Outputs", " [{\"OutputObject\":\"" + Guid.NewGuid().ToString() + ".mp3\",\"TemplateId\":\"1a94dc364cec44708f00367938a0122f\",\"Location\":\"oss-cn-beijing\",\"WaterMarks\":[{\"InputFile\":{\"Bucket\":\"charlesbeijng\",\"Location\":\"oss-cn-beijing\",\"Object\":\"1.png\"},\"WaterMarkTemplateId\":\"c473de87d0504f44be7ebdac1667ab13\"}]}]" }
+            };
+
+            try
+            {
+                string url = GetSignUrl(paramers, AccessKeySecret);
+
+                int retryTimes = 1;
+                var reply = await HttpGetAsync(url);
+                while (500 &lt;= reply.StatusCode &amp;&amp; AutoRetry &amp;&amp; retryTimes &lt; MaxRetryNumber)
+                {
+                    url = GetSignUrl(paramers, AccessKeySecret);
+                    reply = await HttpGetAsync(url);
+                    retryTimes++;
+                }
+
+                if (!string.IsNullOrEmpty(reply.response))
+                {
+                    var res = JsonConvert.DeserializeObject&lt;Dictionary&lt;string, string&gt;&gt;(reply.response);
+                    if (res != null &amp;&amp; res.ContainsKey("Code") &amp;&amp; "OK".Equals(res["Code"]))
+                    {
+                        return (true, reply.response);
+                    }
+                }
+
+                return (false, reply.response);
+            }
+            catch (Exception ex)
+            {
+                return (false, response: ex.Message);
+            }
+        }
+
+        /// &lt;summary&gt;
+        /// 同步请求。
+        /// &lt;/summary&gt;
+        /// &lt;param name="url"&gt;&lt;/param&gt;
+        /// &lt;returns&gt;&lt;/returns&gt;
+        private static string HttpGet(string url)
+        {
+            HttpWebRequest req = (HttpWebRequest)WebRequest.Create(url);
+            req.Method = HTTP_METHOD;
+            req.KeepAlive = true;
+            req.UserAgent = "idui1";
+            req.Timeout = TimeoutInMilliSeconds;
+            req.ContentType = "application/x-www-form-urlencoded;charset=utf-8";
+            HttpWebResponse rsp = null;
+            try
+            {
+                rsp = (HttpWebResponse)req.GetResponse();
+            }
+            catch (WebException webEx)
+            {
+                if (webEx.Status == WebExceptionStatus.Timeout)
+                {
+                    rsp.Close();
+                }
+            }
+
+            if (rsp != null)
+            {
+                if (rsp.CharacterSet != null)
+                {
+                    Encoding encoding = Encoding.GetEncoding(rsp.CharacterSet);
+                    return GetResponseAsString(rsp, encoding);
+                }
+                else
+                {
+                    return string.Empty;
+                }
+            }
+            else
+            {
+                return string.Empty;
+            }
+        }
+
+        /// &lt;summary&gt;
+        /// 异步请求。
+        /// &lt;/summary&gt;
+        /// &lt;param name="url"&gt;&lt;/param&gt;
+        /// &lt;returns&gt;&lt;/returns&gt;
+        private async Task&lt;(int StatusCode, string response)&gt; HttpGetAsync(string url)
+        {
+            HttpClientHandler handler = new HttpClientHandler();
+            handler.Proxy = null;
+            handler.AutomaticDecompression = DecompressionMethods.GZip;
+
+            using (var http = new HttpClient(handler))
+            {
+                http.Timeout = new TimeSpan(TimeSpan.TicksPerMillisecond * TimeoutInMilliSeconds);
+                HttpResponseMessage response = await http.GetAsync(url);
+                return ((int)response.StatusCode, await response.Content.ReadAsStringAsync());
+            }
+        }
+
+        /// &lt;summary&gt;
+        /// 把响应流转换为文本。
+        /// &lt;/summary&gt;
+        /// &lt;param name="rsp"&gt;响应流对象&lt;/param&gt;
+        /// &lt;param name="encoding"&gt;编码方式&lt;/param&gt;
+        /// &lt;returns&gt;响应文本&lt;/returns&gt;
+        private static string GetResponseAsString(HttpWebResponse rsp, Encoding encoding)
+        {
+            StringBuilder result = new StringBuilder();
+            Stream stream = null;
+            StreamReader reader = null;
+
+            try
+            {
+
+                // 以字符流的方式读取HTTP响应
+                stream = rsp.GetResponseStream();
+                //rsp.Close();
+                reader = new StreamReader(stream, encoding);
+
+                // 每次读取不大于256个字符，并写入字符串
+                char[] buffer = new char[256];
+                int readBytes = 0;
+                while ((readBytes = reader.Read(buffer, 0, buffer.Length)) &gt; 0)
+                {
+                    result.Append(buffer, 0, readBytes);
+                }
+            }
+            catch (WebException webEx)
+            {
+                if (webEx.Status == WebExceptionStatus.Timeout)
+                {
+                    result = new StringBuilder();
+                }
+            }
+            finally
+            {
+                // 释放资源
+                if (reader != null) reader.Close();
+                if (stream != null) stream.Close();
+                if (rsp != null) rsp.Close();
+            }
+
+            return result.ToString();
+        }
+
+        /// &lt;summary&gt;
+        /// 处理消息。
+        /// &lt;/summary&gt;
+        /// &lt;param name="message"&gt;消息内容。&lt;/param&gt;
+        public static void HandlingMessage(string message)
+        {
+
+        }
+
+        /// &lt;summary&gt;
+        /// 
+        /// &lt;/summary&gt;
+        /// &lt;param name="dateTime"&gt;&lt;/param&gt;
+        /// &lt;returns&gt;&lt;/returns&gt;
+        private static string FormatIso8601Date(DateTime dateTime)
+        {
+            return dateTime.ToUniversalTime().ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", CultureInfo.CreateSpecificCulture("en-US"));
+        }
+
+
+        /// &lt;summary&gt;
+        /// 签名
+        /// &lt;/summary&gt;
+        public static string SignString(string source, string accessSecret)
+        {
+            using (var algorithm = new HMACSHA1(Encoding.UTF8.GetBytes(accessSecret.ToCharArray())))
+            {
+                return Convert.ToBase64String(algorithm.ComputeHash(Encoding.UTF8.GetBytes(source.ToCharArray())));
+            }
+        }
+
+
+        private string GetSignUrl(Dictionary&lt;string, string&gt; parameters, string accessSecret)
+        {
+            var imutableMap = new Dictionary&lt;string, string&gt;(parameters)
+            {
+                //{ "Timestamp", FormatIso8601Date(DateTime.Now) },
+                //{ "SignatureMethod", "HMAC-SHA1" },
+                //{ "SignatureVersion", "1.0" },
+                //{ "SignatureNonce", Guid.NewGuid().ToString() },
+                //{ "Action", Action },
+                //{ "Version", Version },
+                //{ "Format", Format },
+                //{ "RegionId", RegionId }
+            };
+
+            IDictionary&lt;string, string&gt; sortedDictionary = new SortedDictionary&lt;string, string&gt;(imutableMap, StringComparer.Ordinal);
+            StringBuilder canonicalizedQueryString = new StringBuilder();
+            foreach (var p in sortedDictionary)
+            {
+                canonicalizedQueryString.Append("&amp;")
+                .Append(PercentEncode(p.Key)).Append("=")
+                .Append(PercentEncode(p.Value));
+            }
+
+            StringBuilder stringToSign = new StringBuilder();
+            stringToSign.Append(HTTP_METHOD);
+            stringToSign.Append(SEPARATOR);
+            stringToSign.Append(PercentEncode("/"));
+            stringToSign.Append(SEPARATOR);
+            stringToSign.Append(PercentEncode(canonicalizedQueryString.ToString().Substring(1)));
+
+            string signature = SignString(stringToSign.ToString(), accessSecret + "&amp;");
+
+            imutableMap.Add("Signature", signature);
+
+            return ComposeUrl(MtsDomain, imutableMap);
+        }
+        private static string ComposeUrl(string endpoint, Dictionary&lt;String, String&gt; parameters)
+        {
+            StringBuilder urlBuilder = new StringBuilder("");
+            urlBuilder.Append("http://").Append(endpoint);
+            if (-1 == urlBuilder.ToString().IndexOf("?"))
+            {
+                urlBuilder.Append("/?");
+            }
+            string query = ConcatQueryString(parameters);
+            return urlBuilder.Append(query).ToString();
+        }
+        private static string ConcatQueryString(Dictionary&lt;string, string&gt; parameters)
+        {
+            if (null == parameters)
+            {
+                return null;
+            }
+            StringBuilder sb = new StringBuilder();
+
+            foreach (var entry in parameters)
+            {
+                String key = entry.Key;
+                String val = entry.Value;
+
+                sb.Append(HttpUtility.UrlEncode(key, Encoding.UTF8));
+                if (val != null)
+                {
+                    sb.Append("=").Append(HttpUtility.UrlEncode(val, Encoding.UTF8));
+                }
+                sb.Append("&amp;");
+            }
+
+            int strIndex = sb.Length;
+            if (parameters.Count &gt; 0)
+                sb.Remove(strIndex - 1, 1);
+
+            return sb.ToString();
+        }
+
+        public static string PercentEncode(string value)
+        {
+            StringBuilder stringBuilder = new StringBuilder();
+            string text = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_.~";
+            byte[] bytes = Encoding.GetEncoding("UTF-8").GetBytes(value);
+            foreach (char c in bytes)
+            {
+                if (text.IndexOf(c) &gt;= 0)
+                {
+                    stringBuilder.Append(c);
+                }
+                else
+                {
+                    stringBuilder.Append("%").Append(
+                        string.Format(CultureInfo.InvariantCulture, "{0:X2}", (int)c));
+                }
+            }
+            return stringBuilder.ToString();
+        }
+        /// &lt;summary&gt;
+        /// HMAC-SHA1加密算法
+        /// &lt;/summary&gt;
+        /// &lt;param name="key"&gt;密钥&lt;/param&gt;
+        /// &lt;param name="input"&gt;要加密的串&lt;/param&gt;
+        /// &lt;returns&gt;&lt;/returns&gt;
+        public static string HmacSha1(string key, string input)
+        {
+            byte[] keyBytes = Encoding.UTF8.GetBytes(key);
+            byte[] inputBytes = Encoding.UTF8.GetBytes(input);
+            HMACSHA1 hmac = new HMACSHA1(keyBytes);
+            byte[] hashBytes = hmac.ComputeHash(inputBytes);
+            return Convert.ToBase64String(hashBytes);
+        }
+        /// &lt;summary&gt;
+        /// AES 算法加密(ECB模式) 将明文加密，加密后进行base64编码，返回密文
+        /// &lt;/summary&gt;
+        /// &lt;param name="EncryptStr"&gt;明文&lt;/param&gt;
+        /// &lt;param name="Key"&gt;密钥&lt;/param&gt;
+        /// &lt;returns&gt;加密后base64编码的密文&lt;/returns&gt;
+        public static string Encrypt(string EncryptStr, string Key)
+        {
+            try
+            {
+                //byte[] keyArray = Encoding.UTF8.GetBytes(Key);
+                byte[] keyArray = Convert.FromBase64String(Key);
+                byte[] toEncryptArray = Encoding.UTF8.GetBytes(EncryptStr);
+
+                RijndaelManaged rDel = new RijndaelManaged
+                {
+                    Key = keyArray,
+                    Mode = CipherMode.ECB,
+                    Padding = PaddingMode.PKCS7
+                };
+
+                ICryptoTransform cTransform = rDel.CreateEncryptor();
+                byte[] resultArray = cTransform.TransformFinalBlock(toEncryptArray, 0, toEncryptArray.Length);
+
+                return Convert.ToBase64String(resultArray, 0, resultArray.Length);
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
+        public static string Decrypt(string toDecrypt, string key)
+        {
+            byte[] keyArray = Convert.FromBase64String(key); // 将 TestGenAESByteKey 类输出的字符串转为 byte 数组
+            byte[] toEncryptArray = Convert.FromBase64String(toDecrypt);
+            RijndaelManaged rDel = new RijndaelManaged
+            {
+                Key = keyArray,
+                Mode = CipherMode.ECB,        // 必须设置为 ECB
+                Padding = PaddingMode.PKCS7  // 必须设置为 PKCS7
+            };
+            ICryptoTransform cTransform = rDel.CreateDecryptor();
+            byte[] resultArray = cTransform.TransformFinalBlock(toEncryptArray, 0, toEncryptArray.Length);
+            return Encoding.UTF8.GetString(resultArray);
+        }
+        private static string BuildCanonicalizedQueryString(Dictionary&lt;string, string&gt; parameters)
+        {
+            // 对参数进行排序
+            List&lt;string&gt; sortedKeys = new List&lt;string&gt;(parameters.Keys);
+            sortedKeys.Sort();
+
+            StringBuilder temp = new StringBuilder();
+
+            foreach (var key in sortedKeys)
+            {
+                // 此处需要对 key 和 value 进行编码
+                string value = parameters[key];
+                temp.Append(SEPARATOR).Append(PercentEncode(key)).Append(EQUAL).Append(PercentEncode(value));
+            }
+            return temp.ToString().Substring(1);
+        }
+
+
+        private static string BuildRequestURL(string signature, Dictionary&lt;string, string&gt; parameters)
+        {
+            // 生成请求 URL
+            StringBuilder temp = new StringBuilder("mts.cn-beijing.aliyuncs.com");
+            temp.Append(HttpUtility.UrlEncode("Signature", ENCODE_TYPE)).Append("=").Append(signature);
+            foreach (var item in parameters)
+            {
+                temp.Append("&amp;").Append(PercentEncode(item.Key)).Append("=").Append(PercentEncode(item.Value));
+            }
+            return temp.ToString();
+        }
+    }
+</pre>
+</div>
+<p>使用的时候直接调用 SubmitTranscodeJob 方法就可以了。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

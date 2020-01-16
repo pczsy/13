@@ -1,0 +1,266 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C# HtmlAgilityPack+Selenium爬取需要拉动滚动条的页面内容' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C# HtmlAgilityPack+Selenium爬取需要拉动滚动条的页面内容</center></div><div class='banquan'>原文出处:本文由博客园博主鳕鱼堡提供。<br/>
+原文连接:https://www.cnblogs.com/xueyubao/p/11465348.html</div><br>
+    <p>现在大多数网站都是随着滚动条的滑动加载页面内容的，因此单纯获得静态页面的Html是无法获得全部的页面内容的。使用Selenium就可以模拟浏览器拉动滑动条来加载所有页面内容。<br />
+<!-- more --></p>
+<h2 id="前情提要">前情提要</h2>
+<ul>
+<li><a href="https://tuzilow.github.io/2019/09/04/C-HtmlAgilityPack爬取静态页面/">C#HtmlAgilityPack爬取静态页面</a></li>
+</ul>
+<h2 id="selenium简介">Selenium简介</h2>
+<p>Selenium是一个WEB自动化测试工具。Selenium测试直接运行在浏览器中，就像真正的用户在操作一样。支持的浏览器包括IE（7, 8, 9, 10, 11），Mozilla Firefox，Safari，Google Chrome，Opera等。主要功能包括：测试与浏览器的兼容性——测试你的应用程序看是否能够很好得工作在不同浏览器和操作系统之上。测试系统功能——创建回归测试检验软件功能和用户需求。支持自动录制动作和自动生成 .Net、Java、Perl等不同语言的测试脚本。Selenium也是一款同样使用Apache License 2.0协议发布的开源框架。</p>
+<h2 id="c安装selenium">C#安装Selenium</h2>
+<p>本文仅仅是使用Selenium实现拉动滚动条的功能，所以不对Selenium进行过多的介绍。<br />
+通过Nuget包管理器搜索&quot;Selenium&quot;，分别安装:</p>
+<ul>
+<li>Selenium.WebDriver</li>
+<li>Selenium.Chrome.WebDriver</li>
+</ul>
+<h2 id="实例获取某网站主页所有图片">实例(获取某网站主页所有图片)</h2>
+<h3 id="普通获取网页html">普通获取网页Html</h3>
+<pre><code><code>ChromeDriver driver = new ChromeDriver();
+driver.Navigate().GoToUrl(url);
+string title = driver.Title;//页面title
+string html = driver.PageSource;//页面Html</code></pre>
+<h3 id="不启动chrome窗口及关闭chrome控制台获取网页">不启动Chrome窗口及关闭Chrome控制台获取网页</h3>
+<p>程序执行时会自动打开Chrome窗口和输出控制台中一些信息，我们不需要这些东西。</p>
+<pre><code><code>//不启动chrome窗口
+ChromeOptions options = new ChromeOptions();
+options.AddArgument(&quot;headless&quot;);
+
+//关闭ChromeDriver控制台
+ChromeDriverService driverService = ChromeDriverService.CreateDefaultService();
+driverService.HideCommandPromptWindow = true;
+
+ChromeDriver driver = new ChromeDriver(driverService, options);
+driver.Navigate().GoToUrl(url);</code></pre>
+<h3 id="将页面滚动到底部">将页面滚动到底部</h3>
+<p>如果使用<code>scrollTo(0, document.body.scrollHeight)</code>，直接让将页面滚动到底部会导致页面中间部分读取失败，所以需要分几次滑动并且给页面足够的时间加载</p>
+<pre><code><code>for (int i = 1; i &lt;= 10; i++)
+{
+    string jsCode = &quot;window.scrollTo({top: document.body.scrollHeight / 10 * &quot; + i + &quot;, behavior: \&quot;smooth\&quot;});&quot;;
+    //使用IJavaScriptExecutor接口运行js代码
+    IJavaScriptExecutor js = (IJavaScriptExecutor)driver;
+    js.ExecuteScript(jsCode);
+    //暂停滚动
+    Thread.Sleep(1000);
+}</code></pre>
+<h3 id="使用htmlagilitypack解析读取到的html">使用HtmlAgilityPack解析读取到的Html</h3>
+<p>以下内容与<a href="https://tuzilow.github.io/2019/09/04/C-HtmlAgilityPack爬取静态页面/">上一篇文章</a>基本相同</p>
+<pre><code><code>string title = driver.Title;//页面title
+string html = driver.PageSource;//页面Html
+
+HtmlDocument doc = new HtmlDocument();
+doc.LoadHtml(html);//解析Html字符串
+string imgPath = &quot;//img&quot;;//选择img
+//获取img标签中的图片
+foreach (HtmlNode node in doc.DocumentNode.SelectNodes(imgPath))
+{
+    ······
+}</code></pre>
+<h3 id="完整代码">完整代码</h3>
+<pre><code><code>using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Net;
+using System.IO;
+using HtmlAgilityPack;
+using System.Text.RegularExpressions;
+using OpenQA.Selenium;
+using OpenQA.Selenium.Chrome;
+using System.Threading;
+
+namespace WebCrawlerDemo
+{
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            WebClient wc = new WebClient();
+
+            int imgNum = 0;//图片编号
+            string url = &quot;https://www.bilibili.com&quot;;
+
+
+            string html = FinalHtml.GetFinalHtml(url, 10);
+
+            HtmlDocument doc = new HtmlDocument();
+            doc.LoadHtml(html);
+
+            string imgPath = &quot;//img&quot;;//选择img
+
+            //HtmlNode nodes = hd.DocumentNode.SelectSingleNode(path);
+
+            //获取img标签中的图片
+            foreach (HtmlNode node in doc.DocumentNode.SelectNodes(imgPath))
+            {
+                if (node.Attributes[&quot;src&quot;] != null)
+                {
+                    string imgUrl = node.Attributes[&quot;src&quot;].Value.ToString();
+                    if (imgUrl != &quot;&quot; &amp;&amp; imgUrl != &quot; &quot;)
+                    {
+                        imgNum++;
+
+                        //生成文件名，自动获取后缀
+                        string fileName = GetImgName(imgUrl, imgNum);
+
+                        //Console.WriteLine(fileName);
+                        //Console.WriteLine(imgUrl);
+                        ImgDownloader.DownloadImg(wc, imgUrl, &quot;images/&quot;, fileName);
+                    }
+                }
+            }
+            //获取背景图
+            string bgImgPath = &quot;//*[@style]&quot;;//选择具有style属性的节点
+            foreach (HtmlNode node in doc.DocumentNode.SelectNodes(bgImgPath))
+            {
+                if (node.Attributes[&quot;style&quot;].Value.Contains(&quot;background-image:url&quot;))
+                {
+                    imgNum++;
+                    string bgImgUrl = node.Attributes[&quot;style&quot;].Value;
+                    bgImgUrl = Regex.Match(bgImgUrl, @&quot;(?&lt;=\().+?(?=\))&quot;).Value;//读取url()的内容
+                    //Console.WriteLine(bgImgUrl);
+                    //生成文件名，自动获取后缀
+                    string fileName = GetImgName(bgImgUrl, imgNum);
+
+                    ImgDownloader.DownloadImg(wc, bgImgUrl, &quot;images/bgcImg/&quot;, fileName);
+                }
+            }
+            Console.WriteLine(&quot;----------END----------&quot;);
+            Console.WriteLine($&quot;一共获得: {imgNum}张图&quot;);
+            Console.ReadKey();
+        }
+    }
+    /// &lt;summary&gt;
+    /// 图片下载器
+    /// &lt;/summary&gt;
+    public class ImgDownloader
+    {
+        /// &lt;summary&gt;
+        /// 下载图片
+        /// &lt;/summary&gt;
+        /// &lt;param name=&quot;webClient&quot;&gt;&lt;/param&gt;
+        /// &lt;param name=&quot;url&quot;&gt;图片url&lt;/param&gt;
+        /// &lt;param name=&quot;folderPath&quot;&gt;文件夹路径&lt;/param&gt;
+        /// &lt;param name=&quot;fileName&quot;&gt;图片名&lt;/param&gt;
+        public static void DownloadImg(WebClient webClient, string url, string folderPath, string fileName)
+        {
+            //如果文件夹不存在，则创建一个
+            if (!Directory.Exists(folderPath))
+            {
+                Directory.CreateDirectory(folderPath);
+            }
+            //判断路径是否完整，补全不完整的路径
+            if (url.IndexOf(&quot;https:&quot;) == -1 &amp;&amp; url.IndexOf(&quot;http:&quot;) == -1)
+            {
+                url = &quot;https:&quot; + url;
+            }
+            //下载图片
+            try
+            {
+                webClient.DownloadFile(url, folderPath + fileName);
+                Console.WriteLine(fileName + &quot;下载成功&quot;);
+            }
+            catch (Exception ex)
+            {
+                Console.Write(ex.Message);
+                Console.WriteLine(url);
+            }
+        }
+        /// &lt;summary&gt;
+        /// 生成图片名称
+        /// &lt;/summary&gt;
+        /// &lt;param name=&quot;imageUrl&quot;&gt;图片地址&lt;/param&gt;
+        /// &lt;param name=&quot;imageNum&quot;&gt;图片编号&lt;/param&gt;
+        /// &lt;returns&gt;&lt;/returns&gt;
+        public static string GetImgName(string imageUrl, int imageNum)
+        {
+            string imgExtension;
+            if (imageUrl.LastIndexOf(&quot;.&quot;) != -1)
+            {
+                imgExtension = imageUrl.Substring(imageUrl.LastIndexOf(&quot;.&quot;));
+            }
+            else
+            {
+                imgExtension = &quot;.jpg&quot;;
+            }
+            return imageNum + imgExtension;
+        }
+    }
+    /// &lt;summary&gt;
+    /// 获得执行过js的网址
+    /// &lt;/summary&gt;
+    public class FinalHtml
+    {
+        /// &lt;summary&gt;
+        /// 获得拉动滚动条后的页面
+        /// &lt;/summary&gt;
+        /// &lt;param name=&quot;url&quot;&gt;网址&lt;/param&gt;
+        /// &lt;param name=&quot;sectionNum&quot;&gt;滚动几次&lt;/param&gt;
+        /// &lt;returns&gt;html字符串&lt;/returns&gt;
+        public static string GetFinalHtml(string url, int sectionNum)
+        {
+            //不启动chrome窗口
+            ChromeOptions options = new ChromeOptions();
+            options.AddArgument(&quot;headless&quot;);
+
+            //关闭ChromeDriver控制台
+            ChromeDriverService driverService = ChromeDriverService.CreateDefaultService();
+            driverService.HideCommandPromptWindow = true;
+
+
+            ChromeDriver driver = new ChromeDriver(driverService, options);
+
+            driver.Navigate().GoToUrl(url);
+
+            string title = driver.Title;
+            Console.WriteLine($&quot;Title: {title}&quot;);
+            //将页面滚动到底部
+            Console.Write(&quot;页面滚动中，请稍后&quot;);
+
+            for (int i = 1; i &lt;= sectionNum; i++)
+            {
+                string jsCode = &quot;window.scrollTo({top: document.body.scrollHeight / &quot; + sectionNum + &quot; * &quot; + i + &quot;, behavior: \&quot;smooth\&quot;});&quot;;
+                IJavaScriptExecutor js = (IJavaScriptExecutor)driver;
+                js.ExecuteScript(jsCode);
+                Console.Write(&quot;.&quot;);
+                Thread.Sleep(1000);
+            }
+            Console.WriteLine();
+
+            string html = driver.PageSource;
+            driver.Quit();
+
+            return html;
+        }
+    }
+}</code></pre>
+<h2 id="参考文章">参考文章</h2>
+<ul>
+<li><a href="http://finisky.azurewebsites.net/2019/07/20/selenium/">Selenium爬取网页实战</a></li>
+</ul>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

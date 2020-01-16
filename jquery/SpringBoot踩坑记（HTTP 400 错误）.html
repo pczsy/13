@@ -1,0 +1,104 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修SpringBoot踩坑记（HTTP 400 错误）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>SpringBoot踩坑记（HTTP 400 错误）</center></div><div class='banquan'>原文出处:本文由博客园博主佩奇er提供。<br/>
+原文连接:https://www.cnblogs.com/hxun/p/12105889.html</div><br>
+    <div>
+<p>HTTP 400 错误</p>
+<h3 data-id="heading-0">复现错误</h3>
+<p><img class="lazyload inited loaded" src="./images/SpringBoot踩坑记（HTTP 400 错误）0.png" alt="" data-src="./images/SpringBoot踩坑记（HTTP 400 错误）0.png" data-width="403" data-height="125" /></p>
+<p><strong>ajax请求后台数据时有时会报 HTTP 400 错误 - 请求无效 (Bad request);出现这个请求无效报错说明请求没有进入到后台服务里；<br /></strong><strong>原因：<br /></strong><strong>1）前端提交数据的字段名称或者是字段类型和后台的实体类不一致，导致无法封装；<br /></strong><strong>         2）前端提交的到后台的数据应该是json字符串类型，而前端没有将对象转化为字符串类型；</strong></p>
+<h3 data-id="heading-1">错误代码</h3>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">$.ajax({
+        type: </span>"POST"<span style="color: #000000;">,
+        url: </span>"news/newsAdd"<span style="color: #000000;">,
+        data: <span style="color: #ff0000;">data</span>,
+        dataType:</span>'json'<span style="color: #000000;">,
+        contentType:</span>"application/json"<span style="color: #000000;">,
+        success: </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(data, textStatus, jqXHR) {
+            console.log(data)
+        },
+        error: </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(XMLHttpRequest, textStatus, errorThrown) {
+            </span><span style="color: #0000ff;">if</span> (textStatus &amp;&amp; textStatus == "timeout"<span style="color: #000000;">) {
+                confirm(</span>"网络超时，请重试！"<span style="color: #000000;">);
+            } 
+        }
+    }
+);</span></pre>
+</div>
+<p>&nbsp;</p>
+<h2 data-id="heading-2">原因：直接将json作为参数传入</h2>
+<p>参考&nbsp;&nbsp;<strong><span style="text-decoration: underline;"><a href="https://my.oschina.net/u/182501/blog/1532081?tdsourcetag=s_pctim_aiomsg" rel="nofollow noopener noreferrer" target="_blank">spring @RequestParam, @RequestBody Map注入注意事项</a></span></strong></p>
+<ul>
+<li>@RequestBody需要把所有请求参数作为json解析，因此，不能包含key=value这样的写法在请求url中，所有的请求参数都是一个json</li>
+<li>直接通过浏览器输入url时，@RequestBody获取不到json对象，需要用java编程或者基于ajax的方法请求，将Content-Type设置为application/json</li>
+
+
+
+</ul>
+<ul>
+<li>@RequestParam参数中包含Map时，不要再写其他参数了，否则，map都会包含进去。</li>
+
+
+
+</ul>
+<h2 data-id="heading-3">更正代码</h2>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">$.ajax({
+        type: </span>"POST"<span style="color: #000000;">,
+        url: </span>"news/newsAdd"<span style="color: #000000;">,
+        data: <span style="color: #ff0000;">JSON.stringify(data)</span>,
+        dataType:</span>'json'<span style="color: #000000;">,
+        contentType:</span>"application/json"<span style="color: #000000;">,
+        success: </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(data, textStatus, jqXHR) {
+            console.log(data)
+        },
+        error: </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(XMLHttpRequest, textStatus, errorThrown) {
+            </span><span style="color: #0000ff;">if</span> (textStatus &amp;&amp; textStatus == "timeout"<span style="color: #000000;">) {
+                confirm(</span>"网络超时，请重试！"<span style="color: #000000;">);
+            } 
+        }
+    }
+);</span></pre>
+</div>
+<p>&nbsp;</p>
+<div>
+<div>
+<h1 data-id="heading-4">参考：JSON.stringify()的用法</h1>
+</div>
+<h1 data-id="heading-5"><a href="https://blog.csdn.net/justry_deng/article/details/80972817" rel="nofollow noopener noreferrer" target="_blank">@RequestBody的使用</a></h1>
+
+
+
+</div>
+
+
+
+</div>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><span style="color: #ff0000;">good luck!</span></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><br />链接：https://juejin.im/post/5cd0ea2f6fb9a032076c1ca5</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

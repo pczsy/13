@@ -1,0 +1,183 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Newtonsoft.Json.Linq 常用方法总结' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Newtonsoft.Json.Linq 常用方法总结</center></div><div class='banquan'>原文出处:本文由博客园博主丹枫无迹提供。<br/>
+原文连接:https://www.cnblogs.com/gl1573/p/11660202.html</div><br>
+    <div class="toc">
+    <p class="toc-title">目录</p>
+    <div class="toc-list">
+        <ul>
+        <li><a href="#entity-to-json">1、Entity to Json</a><ul>
+        <li><a href="#准备工作">1.1、准备工作</a></li>
+        <li><a href="#entity-to-json-1">1.2、Entity to Json</a></li>
+        <li><a href="#json-to-entity">1.3、Json to Entity</a></li>
+        </ul></li>
+        <li><a href="#linq-to-json">2、Linq To Json</a><ul>
+        <li><a href="#创建对象">2.1、创建对象</a></li>
+        <li><a href="#从-json-字符串创建-jobject">2.2、从 Json 字符串创建 JObject</a></li>
+        <li><a href="#从-entity-创建-jobject">2.3、从 Entity 创建 JObject</a></li>
+        <li><a href="#获取值">2.2、获取值</a></li>
+        </ul></li>
+        </ul>
+    </div>
+</div>
+<h2 id="entity-to-json">1、Entity to Json</h2>
+<h3 id="准备工作">1.1、准备工作</h3>
+<p>我们以如下的 <code>Person</code> 类举例，其中包含了常用的数据类型：</p>
+<pre><code><code>public class Person
+{
+    public int ID { get; set; }
+
+    public string Name { get; set; }
+
+    public DateTime Birthday { get; set; }
+
+    public bool IsVIP { get; set; }
+    
+    public float Account { get; set; }
+
+    public string[] Favorites { get; set; }
+    
+    public string Remark { get; set; }
+}</code></pre>
+<p>创建一个 <code>Person</code> 实例：</p>
+<pre><code><code>Person person = new Person
+{
+    ID = 1,
+    Name = &quot;张三&quot;,
+    Birthday = DateTime.Parse(&quot;2000-01-02&quot;),
+    IsVIP = true,
+    Account = 12.34f,
+    Favorites = new string[] { &quot;吃饭&quot;, &quot;睡觉&quot; }
+};</code></pre>
+<h3 id="entity-to-json-1">1.2、Entity to Json</h3>
+<h4 id="返回不缩进的-json-字符串">返回不缩进的 Json 字符串</h4>
+<pre><code><code>JsonConvert.SerializeObject(person)</code></pre>
+<p><strong>返回：</strong></p>
+<pre><code><code>{&quot;ID&quot;:1,&quot;Name&quot;:&quot;张三&quot;,&quot;Birthday&quot;:&quot;2000-01-02T00:00:00&quot;,&quot;IsVIP&quot;:true,&quot;Account&quot;:12.34,&quot;Favorites&quot;:[&quot;吃饭&quot;,&quot;睡觉&quot;],&quot;Remark&quot;:null}</code></pre>
+<h4 id="返回缩进的-json-字符串">返回缩进的 Json 字符串</h4>
+<pre><code><code>JsonConvert.SerializeObject(person, Formatting.Indented);</code></pre>
+<p><strong>返回：</strong></p>
+<pre><code><code>{
+    &quot;ID&quot;: 1,
+    &quot;Name&quot;: &quot;张三&quot;,
+    &quot;Birthday&quot;: &quot;2000-01-02T00:00:00&quot;,
+    &quot;IsVIP&quot;: true,
+    &quot;Account&quot;: 12.34,
+    &quot;Favorites&quot;: [
+        &quot;吃饭&quot;,
+        &quot;睡觉&quot;
+    ],
+    &quot;Remark&quot;: null
+}</code></pre>
+<h5 id="json-字符串缩进">Json 字符串缩进</h5>
+<pre><code><code>private string JsonIndentation(string str)
+{
+    //string str = JsonConvert.SerializeObject(entity);
+    JsonSerializer serializer = new JsonSerializer();
+    TextReader tr = new StringReader(str);
+    JsonTextReader jtr = new JsonTextReader(tr);
+    object obj = serializer.Deserialize(jtr);
+    if (obj != null)
+    {
+        StringWriter textWriter = new StringWriter();
+        JsonTextWriter jsonWriter = new JsonTextWriter(textWriter)
+        {
+            Formatting = Formatting.Indented,
+            Indentation = 4,
+            IndentChar = &#39; &#39;
+        };
+        serializer.Serialize(jsonWriter, obj);
+        return textWriter.ToString();
+    }
+    else
+    {
+        return str;
+    }
+}</code></pre>
+<p>或者：</p>
+<pre><code><code>private string JsonIndentation(string json)
+{
+    JObject obj = JObject.Parse(json);
+    return obj.ToString();
+}</code></pre>
+<h4 id="其他设置">其他设置</h4>
+<pre><code><code>JsonSerializerSettings settings = new JsonSerializerSettings();
+// 设置日期格式
+settings.DateFormatString = &quot;yyyy-MM-dd&quot;;
+// 忽略空值
+settings.NullValueHandling = NullValueHandling.Ignore;
+// 缩进
+settings.Formatting = Formatting.Indented;
+
+JsonConvert.SerializeObject(person, settings);</code></pre>
+<p><strong>返回：</strong></p>
+<pre><code><code>{
+  &quot;ID&quot;: 1,
+  &quot;Name&quot;: &quot;张三&quot;,
+  &quot;Birthday&quot;: &quot;2000-01-02&quot;,
+  &quot;IsVIP&quot;: true,
+  &quot;Account&quot;: 12.34,
+  &quot;Favorites&quot;: [
+    &quot;吃饭&quot;,
+    &quot;睡觉&quot;
+  ]
+}</code></pre>
+<h3 id="json-to-entity">1.3、Json to Entity</h3>
+<pre><code><code>JsonConvert.DeserializeObject&lt;Person&gt;(json);</code></pre>
+<h2 id="linq-to-json">2、Linq To Json</h2>
+<h3 id="创建对象">2.1、创建对象</h3>
+<pre><code><code>JObject obj = new JObject();
+obj.Add(&quot;ID&quot;, 1);
+obj.Add(&quot;Name&quot;, &quot;张三&quot;);
+obj.Add(&quot;Birthday&quot;, DateTime.Parse(&quot;2000-01-02&quot;));
+obj.Add(&quot;IsVIP&quot;, true);
+obj.Add(&quot;Account&quot;, 12.34f);
+// 创建数组
+JArray array = new JArray();
+array.Add(new JValue(&quot;吃饭&quot;));
+array.Add(new JValue(&quot;睡觉&quot;));
+obj.Add(&quot;Favorites&quot;, array);
+obj.Add(&quot;Remark&quot;, null);</code></pre>
+<h3 id="从-json-字符串创建-jobject">2.2、从 Json 字符串创建 JObject</h3>
+<pre><code><code>string json = &quot;{\&quot;ID\&quot;:1,\&quot;Name\&quot;:\&quot;张三\&quot;,\&quot;Birthday\&quot;:\&quot;2000-01-02T00:00:00\&quot;,\&quot;IsVIP\&quot;:true,\&quot;Account\&quot;:12.34,\&quot;Favorites\&quot;:[\&quot;吃饭\&quot;,\&quot;睡觉\&quot;],\&quot;Remark\&quot;:null}&quot;;
+
+JObject obj = JObject.Parse(json);</code></pre>
+<h3 id="从-entity-创建-jobject">2.3、从 Entity 创建 JObject</h3>
+<pre><code><code>JObject obj = JObject.FromObject(person);</code></pre>
+<h4 id="用匿名对象创建-jobject">用匿名对象创建 JObject</h4>
+<pre><code><code>JObject obj = JObject.FromObject(new { name = &quot;jack&quot;, age = 18 });</code></pre>
+<p><strong>显示：</strong></p>
+<pre><code><code>{
+  &quot;name&quot;: &quot;jack&quot;,
+  &quot;age&quot;: 18
+}</code></pre>
+<h3 id="获取值">2.2、获取值</h3>
+<pre><code><code>int id;
+if (obj[&quot;ID&quot;] != null)
+    id = obj[&quot;ID&quot;].Value&lt;int&gt;();</code></pre>
+<h4 id="获取数组">获取数组</h4>
+<p>Newtonsoft.Json.Linq 不支持直接获取数组，但是可以获取 <code>List</code>，然后再转化为数组。</p>
+<pre><code><code>string[] favorites;
+if (obj[&quot;Favorites&quot;] != null)
+    favorites = obj[&quot;Favorites&quot;].Value&lt;List&lt;string&gt;&gt;().ToArray();</code></pre>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

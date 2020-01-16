@@ -1,0 +1,125 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修bilibili弹幕爬取与比对分析' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>bilibili弹幕爬取与比对分析</center></div><div class='banquan'>原文出处:本文由博客园博主Code_Roc提供。<br/>
+原文连接:https://www.cnblogs.com/yanpeng19940119/p/11415457.html</div><br>
+    <p>最近受人之托研究了下b站的数据爬取做个小工具，最后朋友说不需要了，本着开源共享的原则，将研究成果与大家分享一波，话不多说直接上干货</p>
+<h1>需求分析</h1>
+<p>给定up主uid和用户uid，爬取用户在该up主所有视频中发的所有弹幕</p>
+<h1>需求拆解</h1>
+<h3>获取up主所有视频</h3>
+<p>打开b站，随便搜索一个up主，打开所有视频页面，f12看异步请求就一目了然了</p>
+<p>接口地址:<a href="https://space.bilibili.com/ajax/member/getSubmitVideos?mid=up%E4%B8%BB%E7%9A%84uid&amp;pagesize=30&amp;tid=0&amp;page=1&amp;keyword=&amp;" data-cke-saved-href="https://space.bilibili.com/ajax/member/getSubmitVideos?mid=up%E4%B8%BB%E7%9A%84uid&amp;pagesize=30&amp;tid=0&amp;page=1&amp;keyword=&amp;">https://space.bilibili.com/ajax/member/getSubmitVideos?mid=up主的uid&amp;pagesize=30&amp;tid=0&amp;page=1&amp;keyword=&amp;</a></p>
+<p>直接通过GET请求访问，该接口限制pagesize为100，数目超过就会返回错误，但是该接口会返回一个总数与页数，所以我们首先请求一次，获取相关参数再分批次请求，获取到数据后对vlist进行json数据解析就可以，我们主要获取的是aid，也就是av号</p>
+<p><span class="cke_widget_wrapper cke_widget_inline cke_widget_image cke_image_nocaption cke_widget_selected" data-cke-widget-wrapper="1" data-cke-filter="off" data-cke-display-name="图像" data-cke-widget-id="5"><img class="has cke_widget_element" src="./images/bilibili弹幕爬取与比对分析0.png" alt="" width="753" height="526" data-cke-saved-src="./images/bilibili弹幕爬取与比对分析0.png" data-cke-widget-data="{&amp;quot;hasCaption&amp;quot;:false,&amp;quot;src&amp;quot;:&amp;quot;./images/bilibili弹幕爬取与比对分析0.png&amp;quot;,&amp;quot;alt&amp;quot;:&amp;quot;&amp;quot;,&amp;quot;width&amp;quot;:&amp;quot;753&amp;quot;,&amp;quot;height&amp;quot;:&amp;quot;526&amp;quot;,&amp;quot;lock&amp;quot;:true,&amp;quot;align&amp;quot;:&amp;quot;none&amp;quot;,&amp;quot;classes&amp;quot;:{&amp;quot;has&amp;quot;:1}}" data-cke-widget-upcasted="1" data-cke-widget-keep-attr="0" data-widget="image" /><span class="cke_reset cke_widget_drag_handler_container"><img class="cke_reset cke_widget_drag_handler" title="点击并拖拽以移动" src="data:image/gif;base64,R0lGODlhAQABAPABAP///wAAACH5BAEKAAAALAAAAAABAAEAAAICRAEAOw==" alt="" width="15" height="15" data-cke-widget-drag-handler="1" /><span class="cke_image_resizer" title="点击并拖拽以改变尺寸">​</span></span></span></p>
+<h3>获取视频所有弹幕</h3>
+<p>使用firefox浏览器打开视频，f12后搜索list.so请求会发现弹幕xml文件，同样也是GET请求</p>
+<p>接口地址:https://api.bilibili.com/x/v1/dm/list.so?oid=112062851 &nbsp;http://comment.bilibili.com/{cid}<a href="http://comment.bilibili.com/112062851.xml" data-cke-saved-href="http://comment.bilibili.com/112062851.xml">.</a>.xml</p>
+<p>但是在百度的过程中发现了一个直接读取xml文件的地址，更加方便</p>
+<p>接口地址：<a href="http://comment.bilibili.com/112062851.xml" data-cke-saved-href="http://comment.bilibili.com/112062851.xml">http://comment.bilibili.com/</a>{cid}<a href="http://comment.bilibili.com/112062851.xml" data-cke-saved-href="http://comment.bilibili.com/112062851.xml">.xml</a></p>
+<p>这个cid就是弹幕xml的文件编号，通过分析异步请求，发现了返回这个cid的返回接口</p>
+<p>接口地址：https://api.bilibili.com/x/player/pagelist?aid=视频av号&amp;jsonp=jsonp</p>
+<p><span class="cke_widget_wrapper cke_widget_inline cke_widget_image cke_image_nocaption cke_widget_selected" data-cke-widget-wrapper="1" data-cke-filter="off" data-cke-display-name="图像" data-cke-widget-id="4"><img class="has cke_widget_element" src="./images/bilibili弹幕爬取与比对分析2.png" alt="" width="1074" height="501" data-cke-saved-src="./images/bilibili弹幕爬取与比对分析2.png" data-cke-widget-data="{&amp;quot;hasCaption&amp;quot;:false,&amp;quot;src&amp;quot;:&amp;quot;./images/bilibili弹幕爬取与比对分析2.png&amp;quot;,&amp;quot;alt&amp;quot;:&amp;quot;&amp;quot;,&amp;quot;width&amp;quot;:&amp;quot;1074&amp;quot;,&amp;quot;height&amp;quot;:&amp;quot;501&amp;quot;,&amp;quot;lock&amp;quot;:true,&amp;quot;align&amp;quot;:&amp;quot;none&amp;quot;,&amp;quot;classes&amp;quot;:{&amp;quot;has&amp;quot;:1}}" data-cke-widget-upcasted="1" data-cke-widget-keep-attr="0" data-widget="image" /><span class="cke_reset cke_widget_drag_handler_container"><img class="cke_reset cke_widget_drag_handler" title="点击并拖拽以移动" src="data:image/gif;base64,R0lGODlhAQABAPABAP///wAAACH5BAEKAAAALAAAAAABAAEAAAICRAEAOw==" alt="" width="15" height="15" data-cke-widget-drag-handler="1" /><span class="cke_image_resizer" title="点击并拖拽以改变尺寸">​</span></span></span></p>
+<p>需要注意的是返回的是一个数组，这说明如果视频弹幕过多的话可能有多个xml文件，我们需要遍历获取</p>
+<h3>弹幕xml文件分析</h3>
+<p>文件格式内容如下所示</p>
+<p><span class="cke_widget_wrapper cke_widget_inline cke_widget_image cke_image_nocaption cke_widget_selected" data-cke-widget-wrapper="1" data-cke-filter="off" data-cke-display-name="图像" data-cke-widget-id="3"><img class="has cke_widget_element" src="./images/bilibili弹幕爬取与比对分析4.png" alt="" width="1065" height="448" data-cke-saved-src="./images/bilibili弹幕爬取与比对分析4.png" data-cke-widget-data="{&amp;quot;hasCaption&amp;quot;:false,&amp;quot;src&amp;quot;:&amp;quot;./images/bilibili弹幕爬取与比对分析4.png&amp;quot;,&amp;quot;alt&amp;quot;:&amp;quot;&amp;quot;,&amp;quot;width&amp;quot;:&amp;quot;1065&amp;quot;,&amp;quot;height&amp;quot;:&amp;quot;448&amp;quot;,&amp;quot;lock&amp;quot;:true,&amp;quot;align&amp;quot;:&amp;quot;none&amp;quot;,&amp;quot;classes&amp;quot;:{&amp;quot;has&amp;quot;:1}}" data-cke-widget-upcasted="1" data-cke-widget-keep-attr="0" data-widget="image" /><span class="cke_reset cke_widget_drag_handler_container"><img class="cke_reset cke_widget_drag_handler" title="点击并拖拽以移动" src="data:image/gif;base64,R0lGODlhAQABAPABAP///wAAACH5BAEKAAAALAAAAAABAAEAAAICRAEAOw==" alt="" width="15" height="15" data-cke-widget-drag-handler="1" /><span class="cke_image_resizer" title="点击并拖拽以改变尺寸">​</span></span></span></p>
+<p>可以看到里面d标签的文字内容就是发送的弹幕，但是我们还需要对弹幕的发送者与我们给定的用户进行对比，所以需要对d标签的属性p进行分析，p属性使用逗号隔开的一系列数据，其中各个参数属性如下</p>
+<p>&lt;d p=&rdquo;弹幕出现时间,模式,字体大小,颜色,发送时间戳,弹幕池,用户Hash,数据库ID&rdquo;&gt;123123&lt;/d&gt;</p>
+<p>我们只需要获取里面的第7个参数用户的唯一标识即可</p>
+<h1>难点分析</h1>
+<h3>用户id转换</h3>
+<p>在弹幕xml文件中获取的用户标识是用户uid经过hash后的编码，所以我们需要进行转换后才能对比校验，经过使用在线hash网站中的一个个hash函数尝试比对，发现hash算法为crc32b，crc32是一个常见算法，用于文件校验，但是crc32b百度了一圈也搜索不到是个啥东西，无奈出国google了一下，crc32b只是将crc32算法加密后的结果转换成了16进制，下面提供c#实现的功能函数</p>
+<div class="cke_widget_wrapper cke_widget_block cke_widget_codeSnippet cke_widget_wrapper_has cke_widget_selected" data-cke-widget-wrapper="1" data-cke-filter="off" data-cke-display-name="代码段" data-cke-widget-id="2">
+<div class="cnblogs_code">
+<pre><code>        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> CRC32校验算法
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">ulong</span><span style="color: #000000;">[] Crc32Table;
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">生成CRC32码表</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> GetCRC32Table()
+        {
+            </span><span style="color: #0000ff;">ulong</span><span style="color: #000000;"> Crc;
+            Crc32Table </span>= <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">ulong</span>[<span style="color: #800080;">256</span><span style="color: #000000;">];
+            </span><span style="color: #0000ff;">int</span><span style="color: #000000;"> i, j;
+            </span><span style="color: #0000ff;">for</span> (i = <span style="color: #800080;">0</span>; i &lt; <span style="color: #800080;">256</span>; i++<span style="color: #000000;">)
+            {
+                Crc </span>= (<span style="color: #0000ff;">ulong</span><span style="color: #000000;">)i;
+                </span><span style="color: #0000ff;">for</span> (j = <span style="color: #800080;">8</span>; j &gt; <span style="color: #800080;">0</span>; j--<span style="color: #000000;">)
+                {
+                    </span><span style="color: #0000ff;">if</span> ((Crc &amp; <span style="color: #800080;">1</span>) == <span style="color: #800080;">1</span><span style="color: #000000;">)
+                        Crc </span>= (Crc &gt;&gt; <span style="color: #800080;">1</span>) ^ <span style="color: #800080;">0xEDB88320</span><span style="color: #000000;">;
+                    </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+                        Crc </span>&gt;&gt;= <span style="color: #800080;">1</span><span style="color: #000000;">;
+                }
+                Crc32Table[i] </span>=<span style="color: #000000;"> Crc;
+            }
+        }
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">获取字符串的CRC32校验值</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">ulong</span> GetCRC32Str(<span style="color: #0000ff;">string</span><span style="color: #000000;"> sInputString)
+        {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">生成码表</span>
+<span style="color: #000000;">            GetCRC32Table();
+            </span><span style="color: #0000ff;">byte</span>[] buffer = System.Text.ASCIIEncoding.ASCII.GetBytes(sInputString); <span style="color: #0000ff;">ulong</span> value = <span style="color: #800080;">0xffffffff</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">int</span> len =<span style="color: #000000;"> buffer.Length;
+            </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; len; i++<span style="color: #000000;">)
+            {
+                value </span>= (value &gt;&gt; <span style="color: #800080;">8</span>) ^ Crc32Table[(value &amp; <span style="color: #800080;">0xFF</span>) ^<span style="color: #000000;"> buffer[i]];
+            }
+            </span><span style="color: #0000ff;">return</span> value ^ <span style="color: #800080;">0xffffffff</span><span style="color: #000000;">;
+        }
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">string</span> GetCRC32bStr(<span style="color: #0000ff;">string</span><span style="color: #000000;"> sInputString)
+        {
+            </span><span style="color: #0000ff;">return</span> GetCRC32Str(sInputString).ToString(<span style="color: #800000;">"</span><span style="color: #800000;">x</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+        }</span></pre>
+</div>
+</div>
+<h3>通过代码GET请求保存xml文件</h3>
+<p>在保存xml文件的过程中发现输出流转为文字永远是乱码，经过查看请求网页中header中的值，发现返回的xml数据流是压缩格式的</p>
+<p><span class="cke_widget_wrapper cke_widget_inline cke_widget_image cke_image_nocaption cke_widget_selected" data-cke-widget-wrapper="1" data-cke-filter="off" data-cke-display-name="图像" data-cke-widget-id="1"><img class="has cke_widget_element" src="./images/bilibili弹幕爬取与比对分析6.png" alt="" width="1126" height="504" data-cke-saved-src="./images/bilibili弹幕爬取与比对分析6.png" data-cke-widget-data="{&amp;quot;hasCaption&amp;quot;:false,&amp;quot;src&amp;quot;:&amp;quot;./images/bilibili弹幕爬取与比对分析6.png&amp;quot;,&amp;quot;alt&amp;quot;:&amp;quot;&amp;quot;,&amp;quot;width&amp;quot;:&amp;quot;1126&amp;quot;,&amp;quot;height&amp;quot;:&amp;quot;504&amp;quot;,&amp;quot;lock&amp;quot;:true,&amp;quot;align&amp;quot;:&amp;quot;none&amp;quot;,&amp;quot;classes&amp;quot;:{&amp;quot;has&amp;quot;:1}}" data-cke-widget-upcasted="1" data-cke-widget-keep-attr="0" data-widget="image" /><span class="cke_reset cke_widget_drag_handler_container"><img class="cke_reset cke_widget_drag_handler" title="点击并拖拽以移动" src="data:image/gif;base64,R0lGODlhAQABAPABAP///wAAACH5BAEKAAAALAAAAAABAAEAAAICRAEAOw==" alt="" width="15" height="15" data-cke-widget-drag-handler="1" /><span class="cke_image_resizer" title="点击并拖拽以改变尺寸">​</span></span></span></p>
+<p>所以我们对GET请求的方法进行了一些设置，首先Accept-Encoding需要与真正的访问请求保持一致，然后设置自动解压，下面提供c#示例</p>
+<div class="cke_widget_wrapper cke_widget_block cke_widget_codeSnippet cke_widget_wrapper_has cke_widget_selected" data-cke-widget-wrapper="1" data-cke-filter="off" data-cke-display-name="代码段" data-cke-widget-id="0">
+<div class="cnblogs_code">
+<pre><code>        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> String HttpGet_BiliBiliXmlFile(<span style="color: #0000ff;">string</span><span style="color: #000000;"> Url)
+        {
+            HttpWebRequest request </span>=<span style="color: #000000;"> (HttpWebRequest)WebRequest.Create(Url);
+            request.Method </span>= <span style="color: #800000;">"</span><span style="color: #800000;">GET</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            request.ContentType </span>= <span style="color: #800000;">"</span><span style="color: #800000;">text/html;charset=UTF-8</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            request.Headers[HttpRequestHeader.AcceptEncoding] </span>= <span style="color: #800000;">"</span><span style="color: #800000;">gzip, deflate, br</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            request.Headers[HttpRequestHeader.AcceptLanguage] </span>= <span style="color: #800000;">"</span><span style="color: #800000;">zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">自动解压</span>
+            request.AutomaticDecompression = DecompressionMethods.GZip |<span style="color: #000000;"> DecompressionMethods.Deflate; 
+            HttpWebResponse response </span>=<span style="color: #000000;"> (HttpWebResponse)request.GetResponse();
+            Stream myResponseStream </span>=<span style="color: #000000;"> response.GetResponseStream();
+            StreamReader myStreamReader </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> StreamReader(myResponseStream, Encoding.UTF8);
+            </span><span style="color: #0000ff;">string</span> retString =<span style="color: #000000;"> myStreamReader.ReadToEnd();
+            myStreamReader.Close();
+            myResponseStream.Close();
+
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> retString;
+        }</span></pre>
+</div>
+</div>
+<p>功能到这里就全部分析完毕了，最后打个广告，自己写的ASP.NET MVC快速开发框架，希望支持一波</p>
+<p>地址：<a href="https://gitee.com/grassprogramming/FastExecutor" data-cke-saved-href="https://gitee.com/grassprogramming/FastExecutor">https://gitee.com/grassprogramming/FastExecutor</a></p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

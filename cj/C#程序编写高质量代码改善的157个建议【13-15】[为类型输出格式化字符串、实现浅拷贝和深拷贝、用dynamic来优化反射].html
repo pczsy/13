@@ -1,0 +1,437 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C#程序编写高质量代码改善的157个建议【13-15】[为类型输出格式化字符串、实现浅拷贝和深拷贝、用dynamic来优化反射]' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C#程序编写高质量代码改善的157个建议【13-15】[为类型输出格式化字符串、实现浅拷贝和深拷贝、用dynamic来优化反射]</center></div><div class='banquan'>原文出处:本文由博客园博主不灬赖提供。<br/>
+原文连接:https://www.cnblogs.com/ljdong7/p/12011931.html</div><br>
+    <h1 class="postTitle">前言</h1>
+<p>　　本文已更新至<a href="http://www.cnblogs.com/aehyok/p/3624579.html">http://www.cnblogs.com/aehyok/p/3624579.html</a>&nbsp;。本文主要学习记录以下内容：</p>
+<p>　　建议13、为类型输出格式化字符串</p>
+<p>　　建议14、正确实现浅拷贝和深拷贝</p>
+<p>　　建议15、使用dynamic来简化反射实现</p>
+<p style="background: #339900; color: #ffffff; font-size: 18pt;">建议13、为类型输出格式化字符串</p>
+<p>&nbsp;　　有两种方法可以为类型提供格式化的字符串输出。</p>
+<p>　　一种是意识到类型会产生格式化字符串输出，于是让类型继承接口IFormattable。这对类型来说，是一种主动实现的方式，要求开发者可以预见类型在格式化方面的要求。</p>
+<p>　　更多的时候，类型的使用者需为类型自定义格式化器，这就是第二种方法，也是最灵活多变的方法，可以根据需求的变化为类型提供多个格式化器。</p>
+<p>　　下面我们就来看一下这两种方式的实现。</p>
+<p>　　最简单的字符串输出是为类型重写ToString()方法，如果没有为类型重写该方法，默认会调用Ojbect的ToString方法，它会返回当前类型的类型名称。但即使是重写了ToString()方法，提供的字符串输出也是非常单一的，而通过实现IFormattable接口的ToString()方法，可以让类型根据用户的输入而格式化输出。</p>
+<p>下面我们来看一个简单的小例子：</p>
+<div class="cnblogs_code">
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#程序编写高质量代码改善的157个建议【13-15】[为类型输出格式化字符串、实现浅拷贝和深拷贝、用dynamic来优化反射]0.png" alt="复制代码" /></a></span></div>
+<pre><code>    <span style="color: #0000ff;">public <span style="color: #0000ff;">class<span style="color: #000000;"> Person:IFormattable
+    {
+        <span style="color: #0000ff;">public <span style="color: #0000ff;">string IDCode { <span style="color: #0000ff;">get; <span style="color: #0000ff;">set<span style="color: #000000;">; }
+        <span style="color: #0000ff;">public <span style="color: #0000ff;">string FirstName { <span style="color: #0000ff;">get; <span style="color: #0000ff;">set<span style="color: #000000;">; }
+        <span style="color: #0000ff;">public <span style="color: #0000ff;">string LastName { <span style="color: #0000ff;">get; <span style="color: #0000ff;">set<span style="color: #000000;">; }
+        <span style="color: #808080;">/// <span style="color: #808080;">&lt;summary&gt;
+        <span style="color: #808080;">///<span style="color: #008000;"> 实现接口Iformattable的方法ToString
+        <span style="color: #808080;">/// <span style="color: #808080;">&lt;/summary&gt;
+        <span style="color: #808080;">/// <span style="color: #808080;">&lt;param name="format"&gt;&lt;/param&gt;
+        <span style="color: #808080;">/// <span style="color: #808080;">&lt;param name="formatProvider"&gt;&lt;/param&gt;
+        <span style="color: #808080;">/// <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;
+        <span style="color: #0000ff;">public <span style="color: #0000ff;">string ToString(<span style="color: #0000ff;">string<span style="color: #000000;"> format, IFormatProvider formatProvider)
+        {
+            <span style="color: #0000ff;">switch<span style="color: #000000;"> (format)
+            { 
+                <span style="color: #0000ff;">case<span style="color: #800000;">"<span style="color: #800000;">Ch<span style="color: #800000;">"<span style="color: #000000;">:
+                    <span style="color: #0000ff;">return <span style="color: #0000ff;">this<span style="color: #000000;">.ToString();
+                <span style="color: #0000ff;">case<span style="color: #800000;">"<span style="color: #800000;">Eg<span style="color: #800000;">"<span style="color: #000000;">:
+                    <span style="color: #0000ff;">return <span style="color: #0000ff;">string.Format(<span style="color: #800000;">"<span style="color: #800000;">{0}{1}<span style="color: #800000;">", <span style="color: #0000ff;">this.FirstName, <span style="color: #0000ff;">this<span style="color: #000000;">.LastName);
+                <span style="color: #0000ff;">default<span style="color: #000000;">:
+                    <span style="color: #0000ff;">return
+                        <span style="color: #0000ff;">this<span style="color: #000000;">.ToString();
+            }
+        }<br />        ///重写Object的方法ToString()
+        <span style="color: #0000ff;">public <span style="color: #0000ff;">override <span style="color: #0000ff;">string<span style="color: #000000;"> ToString()
+        {
+            <span style="color: #0000ff;">return <span style="color: #0000ff;">string.Format(<span style="color: #800000;">"<span style="color: #800000;">{0}{1}<span style="color: #800000;">",<span style="color: #0000ff;">this.LastName,<span style="color: #0000ff;">this<span style="color: #000000;">.FirstName);
+        }
+    }</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#程序编写高质量代码改善的157个建议【13-15】[为类型输出格式化字符串、实现浅拷贝和深拷贝、用dynamic来优化反射]0.png" alt="复制代码" /></a></span></div>
+</div>
+<p>调用代码如下所示：</p>
+<div class="cnblogs_code">
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#程序编写高质量代码改善的157个建议【13-15】[为类型输出格式化字符串、实现浅拷贝和深拷贝、用dynamic来优化反射]0.png" alt="复制代码" /></a></span></div>
+<pre><code>        <span style="color: #0000ff;">static <span style="color: #0000ff;">void Main(<span style="color: #0000ff;">string<span style="color: #000000;">[] args)
+        {
+            Person person = <span style="color: #0000ff;">new Person() { FirstName=<span style="color: #800000;">"<span style="color: #800000;">Kris<span style="color: #800000;">",LastName=<span style="color: #800000;">"<span style="color: #800000;">aehyok<span style="color: #800000;">"<span style="color: #000000;">};
+            Console.WriteLine(person);
+            Console.WriteLine(person.ToString(<span style="color: #800000;">"<span style="color: #800000;">Ch<span style="color: #800000;">",<span style="color: #0000ff;">null<span style="color: #000000;">));
+            Console.WriteLine(person.ToString(<span style="color: #800000;">"<span style="color: #800000;">Eg<span style="color: #800000;">", <span style="color: #0000ff;">null<span style="color: #000000;">));
+            Console.ReadLine();
+        }</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#程序编写高质量代码改善的157个建议【13-15】[为类型输出格式化字符串、实现浅拷贝和深拷贝、用dynamic来优化反射]0.png" alt="复制代码" /></a></span></div>
+</div>
+<p>调用执行结果如下：</p>
+<p><img src="./images/C#程序编写高质量代码改善的157个建议【13-15】[为类型输出格式化字符串、实现浅拷贝和深拷贝、用dynamic来优化反射]4.png" alt="" /></p>
+<p>　　下面我们来继续介绍第二实现方式&mdash;&mdash;格式化器。如果类型本身没有提供格式化的功能，那么格式化器就可以派上用场了。格式化器的好处就是可以根据需求的变化，随时增加或者修改它。</p>
+<p>　　接下来我们继续来看另外的一个小例子：</p>
+<p>首先定义一个实体类Person:</p>
+<div class="cnblogs_code">
+<pre><code>    <span style="color: #0000ff;">public <span style="color: #0000ff;">class<span style="color: #000000;"> Person
+    {
+        <span style="color: #0000ff;">public <span style="color: #0000ff;">string IDCode { <span style="color: #0000ff;">get; <span style="color: #0000ff;">set<span style="color: #000000;">; }
+        <span style="color: #0000ff;">public <span style="color: #0000ff;">string FirstName { <span style="color: #0000ff;">get; <span style="color: #0000ff;">set<span style="color: #000000;">; }
+        <span style="color: #0000ff;">public <span style="color: #0000ff;">string LastName { <span style="color: #0000ff;">get; <span style="color: #0000ff;">set<span style="color: #000000;">; }
+    }</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></pre>
+</div>
+<p>一个典型的格式化器应该继承IFormatProvider和ICustomerFormatter，看代码：</p>
+<div class="cnblogs_code">
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#程序编写高质量代码改善的157个建议【13-15】[为类型输出格式化字符串、实现浅拷贝和深拷贝、用dynamic来优化反射]0.png" alt="复制代码" /></a></span></div>
+<pre><code>    <span style="color: #0000ff;">public <span style="color: #0000ff;">class<span style="color: #000000;"> PersonFomatter:IFormatProvider,ICustomFormatter
+    {
+        <span style="color: #0000ff;">#region IFormatProvider成员
+        <span style="color: #0000ff;">public <span style="color: #0000ff;">object<span style="color: #000000;"> GetFormat(Type formatType)
+        {
+            <span style="color: #0000ff;">if (formatType == <span style="color: #0000ff;">typeof<span style="color: #000000;">(ICustomFormatter))
+            {
+                <span style="color: #0000ff;">return <span style="color: #0000ff;">this<span style="color: #000000;">;
+            }
+            <span style="color: #0000ff;">else<span style="color: #000000;">
+            {
+                <span style="color: #0000ff;">return <span style="color: #0000ff;">null<span style="color: #000000;">;
+            }
+        }
+        <span style="color: #0000ff;">#endregion
+
+        <span style="color: #0000ff;">#region ICustomFormatter成员
+        <span style="color: #0000ff;">public <span style="color: #0000ff;">string Format(<span style="color: #0000ff;">string format, <span style="color: #0000ff;">object<span style="color: #000000;"> arg, IFormatProvider formatProvider)
+        {
+            Person person = arg <span style="color: #0000ff;">as<span style="color: #000000;"> Person;
+            <span style="color: #0000ff;">if (person == <span style="color: #0000ff;">null<span style="color: #000000;">)
+            {
+                <span style="color: #0000ff;">return <span style="color: #0000ff;">string<span style="color: #000000;">.Empty;
+            }
+            <span style="color: #0000ff;">switch<span style="color: #000000;"> (format)
+            { 
+                <span style="color: #0000ff;">case<span style="color: #800000;">"<span style="color: #800000;">Ch<span style="color: #800000;">"<span style="color: #000000;">:
+                    <span style="color: #0000ff;">return <span style="color: #0000ff;">string.Format(<span style="color: #800000;">"<span style="color: #800000;">{0} {1}<span style="color: #800000;">"<span style="color: #000000;">,person.LastName,person.FirstName);
+                <span style="color: #0000ff;">case<span style="color: #800000;">""<span style="color: #000000;">:
+                    <span style="color: #0000ff;">return <span style="color: #0000ff;">string.Format(<span style="color: #800000;">"<span style="color: #800000;">{0} {1}<span style="color: #800000;">"<span style="color: #000000;">,person.FirstName,person.LastName);
+                <span style="color: #0000ff;">case<span style="color: #800000;">"<span style="color: #800000;">CHM<span style="color: #800000;">"<span style="color: #000000;">:
+                    <span style="color: #0000ff;">return <span style="color: #0000ff;">string.Format(<span style="color: #800000;">"<span style="color: #800000;">{0} {1}:{2}<span style="color: #800000;">"<span style="color: #000000;">, person.LastName, person.FirstName, person.IDCode);
+                <span style="color: #0000ff;">default<span style="color: #000000;">:
+                    <span style="color: #0000ff;">return <span style="color: #0000ff;">string.Format(<span style="color: #800000;">"<span style="color: #800000;">{0} {1}<span style="color: #800000;">"<span style="color: #000000;">, person.LastName, person.FirstName);
+            }
+        }
+        <span style="color: #0000ff;">#endregion<span style="color: #000000;">
+    }</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#程序编写高质量代码改善的157个建议【13-15】[为类型输出格式化字符串、实现浅拷贝和深拷贝、用dynamic来优化反射]0.png" alt="复制代码" /></a></span></div>
+</div>
+<p>调用代码如下：</p>
+<div class="cnblogs_code">
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#程序编写高质量代码改善的157个建议【13-15】[为类型输出格式化字符串、实现浅拷贝和深拷贝、用dynamic来优化反射]0.png" alt="复制代码" /></a></span></div>
+<pre><code>    <span style="color: #0000ff;">class<span style="color: #000000;"> Program
+    {
+        <span style="color: #0000ff;">static <span style="color: #0000ff;">void Main(<span style="color: #0000ff;">string<span style="color: #000000;">[] args)
+        {
+            Person person = <span style="color: #0000ff;">new Person() { FirstName=<span style="color: #800000;">"<span style="color: #800000;">Kris<span style="color: #800000;">", LastName=<span style="color: #800000;">"<span style="color: #800000;">aehyok<span style="color: #800000;">", IDCode=<span style="color: #800000;">"<span style="color: #800000;">ID000001<span style="color: #800000;">"<span style="color: #000000;">};
+            Console.WriteLine(person.ToString());
+            PersonFomatter pFomatter = <span style="color: #0000ff;">new<span style="color: #000000;"> PersonFomatter();
+            Console.WriteLine(pFomatter.Format(<span style="color: #800000;">"<span style="color: #800000;">Ch<span style="color: #800000;">", person, <span style="color: #0000ff;">null<span style="color: #000000;">));
+            Console.WriteLine(pFomatter.Format(<span style="color: #800000;">"<span style="color: #800000;">Eg<span style="color: #800000;">", person, <span style="color: #0000ff;">null<span style="color: #000000;">));
+            Console.WriteLine(pFomatter.Format(<span style="color: #800000;">"<span style="color: #800000;">CHM<span style="color: #800000;">", person, <span style="color: #0000ff;">null<span style="color: #000000;">));
+            Console.ReadLine();
+        }
+    }</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#程序编写高质量代码改善的157个建议【13-15】[为类型输出格式化字符串、实现浅拷贝和深拷贝、用dynamic来优化反射]0.png" alt="复制代码" /></a></span></div>
+</div>
+<p>调用执行结果如下：</p>
+<p><img src="./images/C#程序编写高质量代码改善的157个建议【13-15】[为类型输出格式化字符串、实现浅拷贝和深拷贝、用dynamic来优化反射]9.png" alt="" /></p>
+<p>其实还有另外一种变通的形式，就是将这两种方式合并一起使用的过程，下面来看一下具体的实现代码：</p>
+<div class="cnblogs_code">
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#程序编写高质量代码改善的157个建议【13-15】[为类型输出格式化字符串、实现浅拷贝和深拷贝、用dynamic来优化反射]0.png" alt="复制代码" /></a></span></div>
+<pre><code><span style="color: #0000ff;">public <span style="color: #0000ff;">class<span style="color: #000000;"> Person:IFormattable
+    {
+        <span style="color: #0000ff;">public <span style="color: #0000ff;">string IDCode { <span style="color: #0000ff;">get; <span style="color: #0000ff;">set<span style="color: #000000;">; }
+        <span style="color: #0000ff;">public <span style="color: #0000ff;">string FirstName { <span style="color: #0000ff;">get; <span style="color: #0000ff;">set<span style="color: #000000;">; }
+        <span style="color: #0000ff;">public <span style="color: #0000ff;">string LastName { <span style="color: #0000ff;">get; <span style="color: #0000ff;">set<span style="color: #000000;">; }
+                <span style="color: #808080;">/// <span style="color: #808080;">&lt;summary&gt;
+        <span style="color: #808080;">///<span style="color: #008000;"> 实现接口Iformattable的方法ToString
+        <span style="color: #808080;">/// <span style="color: #808080;">&lt;/summary&gt;
+        <span style="color: #808080;">/// <span style="color: #808080;">&lt;param name="format"&gt;&lt;/param&gt;
+        <span style="color: #808080;">/// <span style="color: #808080;">&lt;param name="formatProvider"&gt;&lt;/param&gt;
+        <span style="color: #808080;">/// <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;
+        <span style="color: #0000ff;">public <span style="color: #0000ff;">string ToString(<span style="color: #0000ff;">string<span style="color: #000000;"> format, IFormatProvider formatProvider)
+        {
+            <span style="color: #0000ff;">switch<span style="color: #000000;"> (format)
+            { 
+                <span style="color: #0000ff;">case<span style="color: #800000;">"<span style="color: #800000;">Ch<span style="color: #800000;">"<span style="color: #000000;">:
+                    <span style="color: #0000ff;">return <span style="color: #0000ff;">this<span style="color: #000000;">.ToString();
+                <span style="color: #0000ff;">case<span style="color: #800000;">"<span style="color: #800000;">Eg<span style="color: #800000;">"<span style="color: #000000;">:
+                    <span style="color: #0000ff;">return <span style="color: #0000ff;">string.Format(<span style="color: #800000;">"<span style="color: #800000;">{0}{1}<span style="color: #800000;">", <span style="color: #0000ff;">this.FirstName, <span style="color: #0000ff;">this<span style="color: #000000;">.LastName);
+                <span style="color: #0000ff;">default<span style="color: #000000;">:
+                    <span style="color: #008000;">//<span style="color: #008000;">return this.ToString();
+                    ICustomFormatter customerFormatter = formatProvider <span style="color: #0000ff;">as<span style="color: #000000;"> ICustomFormatter;
+                    <span style="color: #0000ff;">if (formatProvider == <span style="color: #0000ff;">null<span style="color: #000000;">)
+                    {
+                        <span style="color: #0000ff;">return <span style="color: #0000ff;">this<span style="color: #000000;">.ToString();
+                    }
+                    <span style="color: #0000ff;">return customerFormatter.Format(format, <span style="color: #0000ff;">this, <span style="color: #0000ff;">null<span style="color: #000000;">);
+            }
+        }
+        <span style="color: #808080;">///<span style="color: #008000;">重写Object的方法ToString()
+        <span style="color: #0000ff;">public <span style="color: #0000ff;">override <span style="color: #0000ff;">string<span style="color: #000000;"> ToString()
+        {
+            <span style="color: #0000ff;">return <span style="color: #0000ff;">string.Format(<span style="color: #800000;">"<span style="color: #800000;">{0}{1}<span style="color: #800000;">",<span style="color: #0000ff;">this.LastName,<span style="color: #0000ff;">this<span style="color: #000000;">.FirstName);
+        }
+    }</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#程序编写高质量代码改善的157个建议【13-15】[为类型输出格式化字符串、实现浅拷贝和深拷贝、用dynamic来优化反射]0.png" alt="复制代码" /></a></span></div>
+</div>
+<p>PersonFomatter自定义格式化器的代码并没有发生任何的改变。<br />调用代码如下：</p>
+<div class="cnblogs_code">
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#程序编写高质量代码改善的157个建议【13-15】[为类型输出格式化字符串、实现浅拷贝和深拷贝、用dynamic来优化反射]0.png" alt="复制代码" /></a></span></div>
+<pre><code>        <span style="color: #0000ff;">static <span style="color: #0000ff;">void Main(<span style="color: #0000ff;">string<span style="color: #000000;">[] args)
+        {
+            Person person = <span style="color: #0000ff;">new Person() { FirstName=<span style="color: #800000;">"<span style="color: #800000;">Kris<span style="color: #800000;">", LastName=<span style="color: #800000;">"<span style="color: #800000;">aehyok<span style="color: #800000;">", IDCode=<span style="color: #800000;">"<span style="color: #800000;">ID000001<span style="color: #800000;">"<span style="color: #000000;">};
+            Console.WriteLine(person.ToString());
+            PersonFomatter pFomatter = <span style="color: #0000ff;">new<span style="color: #000000;"> PersonFomatter();
+            Console.WriteLine(pFomatter.Format(<span style="color: #800000;">"<span style="color: #800000;">Ch<span style="color: #800000;">", person, <span style="color: #0000ff;">null<span style="color: #000000;">));
+            Console.WriteLine(pFomatter.Format(<span style="color: #800000;">"<span style="color: #800000;">Eg<span style="color: #800000;">", person, <span style="color: #0000ff;">null<span style="color: #000000;">));
+            Console.WriteLine(pFomatter.Format(<span style="color: #800000;">"<span style="color: #800000;">CHM<span style="color: #800000;">", person, <span style="color: #0000ff;">null<span style="color: #000000;">));
+
+            Console.WriteLine(person.ToString(<span style="color: #800000;">"<span style="color: #800000;">Ch<span style="color: #800000;">"<span style="color: #000000;">,pFomatter));
+            Console.WriteLine(person.ToString(<span style="color: #800000;">"<span style="color: #800000;">Eg<span style="color: #800000;">"<span style="color: #000000;">, pFomatter));
+            Console.WriteLine(person.ToString(<span style="color: #800000;">"<span style="color: #800000;">CHM<span style="color: #800000;">"<span style="color: #000000;">, pFomatter));
+            Console.ReadLine();
+        }</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#程序编写高质量代码改善的157个建议【13-15】[为类型输出格式化字符串、实现浅拷贝和深拷贝、用dynamic来优化反射]0.png" alt="复制代码" /></a></span></div>
+</div>
+<p>调用执行结果如下所示：</p>
+<p><img src="./images/C#程序编写高质量代码改善的157个建议【13-15】[为类型输出格式化字符串、实现浅拷贝和深拷贝、用dynamic来优化反射]14.png" alt="" /></p>
+<p style="background: #339900; color: #ffffff; font-size: 18pt;">建议14、正确实现浅拷贝和深拷贝</p>
+<p>为对象创建副本的技术成为拷贝(也叫克隆)。我们将拷贝分为浅拷贝和深拷贝。</p>
+<p><strong>浅拷贝 </strong>将对象中的所有字段复制到新的对象(副本)中。其中，值类型字段的值被复制到副本中后，在副本中的修改不会影响到源对象对应的值。&nbsp;而引用类型的字段被复制到副本中的是引用类型的引用，而不是引用的对象，在副本中对引用类型的字段值做修改会影响到源对象本身。</p>
+<p><strong>深拷贝&nbsp;</strong>同样，将对象中的所有字段复制到新的对象中。不过无论是对象的值类型字段，还是引用类型字段，都会被重新创建并赋值，对于副本的修改，不会影响到源对象本身。</p>
+<p>无论是浅拷贝还是深拷贝，微软都建议用类型继承ICloneable接口的方式明确告诉调用者：该类型可以被拷贝。当然，ICloneable接口只提供了一个声明为Clone的方法，我们可根据需求在Clone方法内实现浅拷贝或深拷贝。一个简答的浅拷贝的实现代码如下所示：</p>
+<p>首先定义实体类：</p>
+<div class="cnblogs_code">
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#程序编写高质量代码改善的157个建议【13-15】[为类型输出格式化字符串、实现浅拷贝和深拷贝、用dynamic来优化反射]0.png" alt="复制代码" /></a></span></div>
+<pre><code>    <span style="color: #0000ff;">public <span style="color: #0000ff;">class<span style="color: #000000;"> Employee:ICloneable
+    {
+        <span style="color: #0000ff;">public <span style="color: #0000ff;">string IDCode { <span style="color: #0000ff;">get; <span style="color: #0000ff;">set<span style="color: #000000;">; }
+        <span style="color: #0000ff;">public <span style="color: #0000ff;">int Age { <span style="color: #0000ff;">get; <span style="color: #0000ff;">set<span style="color: #000000;">; }
+        <span style="color: #0000ff;">public Department Department { <span style="color: #0000ff;">get; <span style="color: #0000ff;">set<span style="color: #000000;">; }
+
+        <span style="color: #0000ff;">#region OCloneable成员
+        <span style="color: #0000ff;">public <span style="color: #0000ff;">object<span style="color: #000000;"> Clone()
+        {
+            return this.MemberwiseClone();<span style="color: #000000;">
+        }
+        <span style="color: #0000ff;">#endregion<span style="color: #000000;">
+    }
+
+    <span style="color: #0000ff;">public <span style="color: #0000ff;">class<span style="color: #000000;"> Department
+    {
+        <span style="color: #0000ff;">public <span style="color: #0000ff;">string Name{<span style="color: #0000ff;">get;<span style="color: #0000ff;">set<span style="color: #000000;">;}
+        <span style="color: #0000ff;">public <span style="color: #0000ff;">override <span style="color: #0000ff;">string<span style="color: #000000;">  ToString()
+        {
+              <span style="color: #0000ff;">return <span style="color: #0000ff;">this<span style="color: #000000;">.Name;
+        }
+    }</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#程序编写高质量代码改善的157个建议【13-15】[为类型输出格式化字符串、实现浅拷贝和深拷贝、用dynamic来优化反射]0.png" alt="复制代码" /></a></span></div>
+</div>
+<p>然后进行调用代码如下：</p>
+<div class="cnblogs_code">
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#程序编写高质量代码改善的157个建议【13-15】[为类型输出格式化字符串、实现浅拷贝和深拷贝、用dynamic来优化反射]0.png" alt="复制代码" /></a></span></div>
+<pre><code>        <span style="color: #0000ff;">static <span style="color: #0000ff;">void Main(<span style="color: #0000ff;">string<span style="color: #000000;">[] args)
+        {
+            Employee Niki = <span style="color: #0000ff;">new<span style="color: #000000;"> Employee()
+            {
+                IDCode = <span style="color: #800000;">"<span style="color: #800000;">IDaehyok<span style="color: #800000;">"<span style="color: #000000;">,
+                Age = <span style="color: #800080;">25<span style="color: #000000;">,
+                Department = <span style="color: #0000ff;">new Department() { Name=<span style="color: #800000;">"<span style="color: #800000;">Depart1<span style="color: #800000;">"<span style="color: #000000;"> }
+            };
+            Employee Kris = Niki.Clone() <span style="color: #0000ff;">as<span style="color: #000000;"> Employee;
+            Console.WriteLine(<span style="color: #0000ff;">string.Format(<span style="color: #800000;">"<span style="color: #800000;">IDCode:{0}\tAge:{1}\tDepartment:{2}<span style="color: #800000;">"<span style="color: #000000;">, Kris.IDCode, Kris.Age, Kris.Department));
+            <span style="color: #808080;">///<span style="color: #008000;">开始改变Niki的值
+            Niki.IDCode = <span style="color: #800000;">"<span style="color: #800000;">IDNiki<span style="color: #800000;">"<span style="color: #000000;">;
+            Niki.Age = <span style="color: #800080;">23<span style="color: #000000;">;
+            Niki.Department.Name = <span style="color: #800000;">"<span style="color: #800000;">Depart2<span style="color: #800000;">"<span style="color: #000000;">;
+            Console.WriteLine(<span style="color: #0000ff;">string.Format(<span style="color: #800000;">"<span style="color: #800000;">IDCode:{0}\tAge:{1}\tDepartment:{2}<span style="color: #800000;">"<span style="color: #000000;">, Kris.IDCode, Kris.Age, Kris.Department));
+            Console.ReadLine();
+        }</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#程序编写高质量代码改善的157个建议【13-15】[为类型输出格式化字符串、实现浅拷贝和深拷贝、用dynamic来优化反射]0.png" alt="复制代码" /></a></span></div>
+</div>
+<p>调用执行结果如下</p>
+<p><img src="./images/C#程序编写高质量代码改善的157个建议【13-15】[为类型输出格式化字符串、实现浅拷贝和深拷贝、用dynamic来优化反射]19.png" alt="" /></p>
+<p>注意到Employee的IDCode属string类型。理论上string类型是引用类型，但是由于该引用类型的特殊性（无论是实际还是语义），Object.MemberwiseClone方法仍旧为其创建了副本。也就是说，在浅拷贝过程，我们应该将字符串看成是值类型。Employee的Department属性是一个引用类型，所以，如果改变了源对象Niki中的值，那么副本Kris中的值也会随之一起变动。</p>
+<p>&nbsp;Employee的深拷贝有多种实现方法，最简单的方式是手动的对字段进行逐个的赋值。但是这种方法容易出错，也就是说，如果类型的字段发生变化或有增减，那么该拷贝方法也要发生相应的变化，所以，建议使用序列化的形式来进行深拷贝。Employee深拷贝的一种实现方式如下：</p>
+<div class="cnblogs_code">
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#程序编写高质量代码改善的157个建议【13-15】[为类型输出格式化字符串、实现浅拷贝和深拷贝、用dynamic来优化反射]0.png" alt="复制代码" /></a></span></div>
+<pre><code><span style="color: #000000;">    [Serializable]
+    <span style="color: #0000ff;">public <span style="color: #0000ff;">class<span style="color: #000000;"> Employee:ICloneable
+    {
+        <span style="color: #0000ff;">public <span style="color: #0000ff;">string IDCode { <span style="color: #0000ff;">get; <span style="color: #0000ff;">set<span style="color: #000000;">; }
+        <span style="color: #0000ff;">public <span style="color: #0000ff;">int Age { <span style="color: #0000ff;">get; <span style="color: #0000ff;">set<span style="color: #000000;">; }
+        <span style="color: #0000ff;">public Department Department { <span style="color: #0000ff;">get; <span style="color: #0000ff;">set<span style="color: #000000;">; }
+
+        <span style="color: #0000ff;">#region OCloneable成员
+        <span style="color: #0000ff;">public <span style="color: #0000ff;">object<span style="color: #000000;"> Clone()
+        {
+            <span style="color: #0000ff;">using (Stream objectstream = <span style="color: #0000ff;">new<span style="color: #000000;"> MemoryStream())
+            {
+                IFormatter formatter = <span style="color: #0000ff;">new<span style="color: #000000;"> BinaryFormatter();
+                formatter.Serialize(objectstream, <span style="color: #0000ff;">this<span style="color: #000000;">);
+                objectstream.Seek(<span style="color: #800080;">0<span style="color: #000000;">, SeekOrigin.Begin);
+                <span style="color: #0000ff;">return formatter.Deserialize(objectstream) <span style="color: #0000ff;">as<span style="color: #000000;"> Employee;
+            }
+        }
+        <span style="color: #0000ff;">#endregion<span style="color: #000000;">
+    }
+
+    [Serializable]
+    <span style="color: #0000ff;">public <span style="color: #0000ff;">class<span style="color: #000000;"> Department
+    {
+        <span style="color: #0000ff;">public <span style="color: #0000ff;">string Name{<span style="color: #0000ff;">get;<span style="color: #0000ff;">set<span style="color: #000000;">;}
+        <span style="color: #0000ff;">public <span style="color: #0000ff;">override <span style="color: #0000ff;">string<span style="color: #000000;"> ToString()
+        {
+              <span style="color: #0000ff;">return <span style="color: #0000ff;">this<span style="color: #000000;">.Name;
+        }
+    }</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#程序编写高质量代码改善的157个建议【13-15】[为类型输出格式化字符串、实现浅拷贝和深拷贝、用dynamic来优化反射]0.png" alt="复制代码" /></a></span></div>
+</div>
+<p>调用方法如下所示：</p>
+<div class="cnblogs_code">
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#程序编写高质量代码改善的157个建议【13-15】[为类型输出格式化字符串、实现浅拷贝和深拷贝、用dynamic来优化反射]0.png" alt="复制代码" /></a></span></div>
+<pre><code>            Employee Niki = <span style="color: #0000ff;">new<span style="color: #000000;"> Employee()
+            {
+                IDCode = <span style="color: #800000;">"<span style="color: #800000;">IDaehyok<span style="color: #800000;">"<span style="color: #000000;">,
+                Age = <span style="color: #800080;">25<span style="color: #000000;">,
+                Department = <span style="color: #0000ff;">new Department() { Name=<span style="color: #800000;">"<span style="color: #800000;">Depart1<span style="color: #800000;">"<span style="color: #000000;"> }
+            };
+            Employee Kris = Niki.Clone() <span style="color: #0000ff;">as<span style="color: #000000;"> Employee;
+            Console.WriteLine(<span style="color: #0000ff;">string.Format(<span style="color: #800000;">"<span style="color: #800000;">IDCode:{0}\tAge:{1}\tDepartment:{2}<span style="color: #800000;">"<span style="color: #000000;">, Kris.IDCode, Kris.Age, Kris.Department));
+            <span style="color: #808080;">///<span style="color: #008000;">开始改变Niki的值
+            Niki.IDCode = <span style="color: #800000;">"<span style="color: #800000;">IDNiki<span style="color: #800000;">"<span style="color: #000000;">;
+            Niki.Age = <span style="color: #800080;">23<span style="color: #000000;">;
+            Niki.Department.Name = <span style="color: #800000;">"<span style="color: #800000;">Depart2<span style="color: #800000;">"<span style="color: #000000;">;
+            Console.WriteLine(<span style="color: #0000ff;">string.Format(<span style="color: #800000;">"<span style="color: #800000;">IDCode:{0}\tAge:{1}\tDepartment:{2}<span style="color: #800000;">"<span style="color: #000000;">, Kris.IDCode, Kris.Age, Kris.Department));
+            Console.ReadLine();</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#程序编写高质量代码改善的157个建议【13-15】[为类型输出格式化字符串、实现浅拷贝和深拷贝、用dynamic来优化反射]0.png" alt="复制代码" /></a></span></div>
+</div>
+<p>最终代码调用结果如下</p>
+<p><img src="./images/C#程序编写高质量代码改善的157个建议【13-15】[为类型输出格式化字符串、实现浅拷贝和深拷贝、用dynamic来优化反射]24.png" alt="" /></p>
+<p>可以发现再次改变Niki的值，不会对副本Kris产生影响。</p>
+<p>由于接口ICloneable,只有一个模棱两可的方法，所以，如果要在一个类中进行浅拷贝和深拷贝，只能由我们额外的实现两个方法。声明为DeepClone和Shallow。那么最终代码如下所示：</p>
+<div class="cnblogs_code">
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#程序编写高质量代码改善的157个建议【13-15】[为类型输出格式化字符串、实现浅拷贝和深拷贝、用dynamic来优化反射]0.png" alt="复制代码" /></a></span></div>
+<pre><code><span style="color: #000000;">    [Serializable]
+    <span style="color: #0000ff;">public <span style="color: #0000ff;">class<span style="color: #000000;"> Employee:ICloneable
+    {
+        <span style="color: #0000ff;">public <span style="color: #0000ff;">string IDCode { <span style="color: #0000ff;">get; <span style="color: #0000ff;">set<span style="color: #000000;">; }
+        <span style="color: #0000ff;">public <span style="color: #0000ff;">int Age { <span style="color: #0000ff;">get; <span style="color: #0000ff;">set<span style="color: #000000;">; }
+        <span style="color: #0000ff;">public Department Department { <span style="color: #0000ff;">get; <span style="color: #0000ff;">set<span style="color: #000000;">; }
+
+        <span style="color: #0000ff;">#region OCloneable成员
+        <span style="color: #0000ff;">public <span style="color: #0000ff;">object<span style="color: #000000;"> Clone()
+        {
+            <span style="color: #0000ff;">return <span style="color: #0000ff;">this<span style="color: #000000;">.MemberwiseClone();
+        }
+        <span style="color: #0000ff;">#endregion
+
+        <span style="color: #0000ff;">public<span style="color: #000000;"> Employee DeeptClone()
+        {
+            <span style="color: #0000ff;">using (Stream objectstream = <span style="color: #0000ff;">new<span style="color: #000000;"> MemoryStream())
+            {
+                IFormatter formatter = <span style="color: #0000ff;">new<span style="color: #000000;"> BinaryFormatter();
+                formatter.Serialize(objectstream, <span style="color: #0000ff;">this<span style="color: #000000;">);
+                objectstream.Seek(<span style="color: #800080;">0<span style="color: #000000;">, SeekOrigin.Begin);
+                <span style="color: #0000ff;">return formatter.Deserialize(objectstream) <span style="color: #0000ff;">as<span style="color: #000000;"> Employee;
+            }
+        }
+
+        <span style="color: #0000ff;">public<span style="color: #000000;"> Employee Shallow()
+        {
+            <span style="color: #0000ff;">return Clone() <span style="color: #0000ff;">as<span style="color: #000000;"> Employee;
+        }
+    }</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#程序编写高质量代码改善的157个建议【13-15】[为类型输出格式化字符串、实现浅拷贝和深拷贝、用dynamic来优化反射]0.png" alt="复制代码" /></a></span></div>
+</div>
+<p>&nbsp;</p>
+<p style="background: #339900; color: #ffffff; font-size: 18pt;">建议15、使用dynamic来简化反射实现</p>
+<p>　　Dynamic是Framework4.0的新特性。dynamic的出现让C#具有了弱类型的特性。编译器在编译的时候不再对类型进行检查，编译器默认dynamic对象支持开发者想要的任何类型。如果运行时不包含指定的特性，运行时程序会抛出一个RuntimeBinderException异常。</p>
+<p>下面我们先来看一个简单的例子</p>
+<div class="cnblogs_code">
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#程序编写高质量代码改善的157个建议【13-15】[为类型输出格式化字符串、实现浅拷贝和深拷贝、用dynamic来优化反射]0.png" alt="复制代码" /></a></span></div>
+<pre><code>    <span style="color: #0000ff;">public <span style="color: #0000ff;">class<span style="color: #000000;"> DynamicSample
+    {
+        <span style="color: #0000ff;">public <span style="color: #0000ff;">string Name { <span style="color: #0000ff;">get; <span style="color: #0000ff;">set<span style="color: #000000;">; }
+        <span style="color: #0000ff;">public <span style="color: #0000ff;">int Add(<span style="color: #0000ff;">int a, <span style="color: #0000ff;">int<span style="color: #000000;"> b)
+        {
+            <span style="color: #0000ff;">return a +<span style="color: #000000;"> b;
+        }
+    }</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#程序编写高质量代码改善的157个建议【13-15】[为类型输出格式化字符串、实现浅拷贝和深拷贝、用dynamic来优化反射]0.png" alt="复制代码" /></a></span></div>
+</div>
+<p>现在我们想调用上面实体类的Add方法，实现方式可以是这样的：</p>
+<div class="cnblogs_code">
+<pre><code>            DynamicSample dynamicSample = <span style="color: #0000ff;">new<span style="color: #000000;"> DynamicSample();
+            <span style="color: #0000ff;">var addMethod = <span style="color: #0000ff;">typeof(DynamicSample).GetMethod(<span style="color: #800000;">"<span style="color: #800000;">Add<span style="color: #800000;">"<span style="color: #000000;">);
+            <span style="color: #0000ff;">int re = (<span style="color: #0000ff;">int)addMethod.Invoke(dynamicSample, <span style="color: #0000ff;">new <span style="color: #0000ff;">object[] { <span style="color: #800080;">1, <span style="color: #800080;">2<span style="color: #000000;"> });
+            Console.WriteLine(re);</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></pre>
+</div>
+<p>下面我们再通过使用dynamic来实现一下：</p>
+<div class="cnblogs_code">
+<pre><code>            dynamic dynamic = <span style="color: #0000ff;">new<span style="color: #000000;"> DynamicSample();
+            <span style="color: #0000ff;">int re2 = dynamic.Add(<span style="color: #800080;">1, <span style="color: #800080;">2<span style="color: #000000;">);
+            Console.WriteLine(re2);</span></span></span></span></span></span></pre>
+</div>
+<p>可以发现dynamic的实现方式很简洁，而且性能也有所提升，当然上面一次的调用我们是看不出什么效果的，假如上面的代码我们进行调用了10000000次。</p>
+<div class="cnblogs_code">
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#程序编写高质量代码改善的157个建议【13-15】[为类型输出格式化字符串、实现浅拷贝和深拷贝、用dynamic来优化反射]0.png" alt="复制代码" /></a></span></div>
+<pre><code>            <span style="color: #0000ff;">int times = <span style="color: #800080;">10000000<span style="color: #000000;">;
+            <span style="color: #808080;">///<span style="color: #008000;">/第一种调用方式
+            DynamicSample reflectSample = <span style="color: #0000ff;">new<span style="color: #000000;"> DynamicSample();
+            <span style="color: #0000ff;">var addMethod = <span style="color: #0000ff;">typeof(DynamicSample).GetMethod(<span style="color: #800000;">"<span style="color: #800000;">Add<span style="color: #800000;">"<span style="color: #000000;">);
+            Stopwatch watch1 = Stopwatch.StartNew();<span style="color: #808080;">///<span style="color: #008000;">用于测试运行时间
+            <span style="color: #0000ff;">for (<span style="color: #0000ff;">var i = <span style="color: #800080;">0; i &lt; times; i++<span style="color: #000000;">)
+            {
+                addMethod.Invoke(reflectSample, <span style="color: #0000ff;">new <span style="color: #0000ff;">object[] { <span style="color: #800080;">1, <span style="color: #800080;">2<span style="color: #000000;"> });
+            }
+            Console.WriteLine(<span style="color: #0000ff;">string.Format(<span style="color: #800000;">"<span style="color: #800000;">普通方法反射耗时：{0} 毫秒<span style="color: #800000;">"<span style="color: #000000;">, watch1.ElapsedMilliseconds));
+
+            <span style="color: #808080;">///<span style="color: #008000;">/第二种调用方式
+            dynamic dynamicSample = <span style="color: #0000ff;">new<span style="color: #000000;"> DynamicSample();
+            Stopwatch watch2 =<span style="color: #000000;"> Stopwatch.StartNew();
+            <span style="color: #0000ff;">for (<span style="color: #0000ff;">int i = <span style="color: #800080;">0; i &lt; times; i++<span style="color: #000000;">)
+            {
+                dynamicSample.Add(<span style="color: #800080;">1, <span style="color: #800080;">2<span style="color: #000000;">);
+            }
+            Console.WriteLine(<span style="color: #0000ff;">string.Format(<span style="color: #800000;">"<span style="color: #800000;">dynamic方式耗时：{0} 毫秒<span style="color: #800000;">"<span style="color: #000000;">, watch2.ElapsedMilliseconds));
+
+            <span style="color: #808080;">///<span style="color: #008000;">/第三种调用方式
+            DynamicSample reflectSampleBetter = <span style="color: #0000ff;">new<span style="color: #000000;"> DynamicSample();
+            <span style="color: #0000ff;">var addMethod2 = <span style="color: #0000ff;">typeof(DynamicSample).GetMethod(<span style="color: #800000;">"<span style="color: #800000;">Add<span style="color: #800000;">"<span style="color: #000000;">);
+            <span style="color: #0000ff;">var delg = (Func&lt;DynamicSample, <span style="color: #0000ff;">int, <span style="color: #0000ff;">int, <span style="color: #0000ff;">int&gt;)Delegate.CreateDelegate(<span style="color: #0000ff;">typeof(Func&lt;DynamicSample, <span style="color: #0000ff;">int, <span style="color: #0000ff;">int, <span style="color: #0000ff;">int&gt;<span style="color: #000000;">), addMethod2);
+            Stopwatch watch3 =<span style="color: #000000;"> Stopwatch.StartNew();
+            <span style="color: #0000ff;">for (<span style="color: #0000ff;">var i = <span style="color: #800080;">0; i &lt; times; i++<span style="color: #000000;">)
+            {
+                delg(reflectSampleBetter, <span style="color: #800080;">1, <span style="color: #800080;">2<span style="color: #000000;">);
+            }
+            Console.WriteLine(<span style="color: #0000ff;">string.Format(<span style="color: #800000;">"<span style="color: #800000;">优化的反射耗时：{0} 毫秒<span style="color: #800000;">"<span style="color: #000000;">, watch3.ElapsedMilliseconds));
+            Console.ReadLine();</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#程序编写高质量代码改善的157个建议【13-15】[为类型输出格式化字符串、实现浅拷贝和深拷贝、用dynamic来优化反射]0.png" alt="复制代码" /></a></span></div>
+</div>
+<p>调用执行后的结果为</p>
+<p><img src="./images/C#程序编写高质量代码改善的157个建议【13-15】[为类型输出格式化字符串、实现浅拷贝和深拷贝、用dynamic来优化反射]31.png" alt="" /></p>
+<p>现在可以看出很明显的区别，普通方法调用发射执行效率远远的低于使用dynamic。第三种方式是我们优化了发射之后的执行时间，比使用dynamic也有所提升，但是并不是特别明显，虽然带来了性能的提升，不过却牺牲了代码的整洁性。这种实现方式在我看来是得不偿失的。所以建议大家使用dynamic来优化发射。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

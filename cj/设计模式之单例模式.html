@@ -1,0 +1,214 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修设计模式之单例模式' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>设计模式之单例模式</center></div><div class='banquan'>原文出处:本文由博客园博主艾心❤提供。<br/>
+原文连接:https://www.cnblogs.com/edison0621/p/10658368.html</div><br>
+    <div class="wlWriterHeaderFooter" style="float: right; margin: 0px; padding: 0px 0px 4px 8px;">&nbsp;</div>
+<h1 style="font-size: 200%; border-bottom: #5ea2d6 1px solid; font-weight: bold; color: #0378bb; padding-bottom: 10px; padding-top: 0px; padding-left: 20px; clear: both; border-left: #3d97cb 12px solid; line-height: 1.5em; padding-right: 100px;">单例模式简介</h1>
+<p>单例模式是GOF 23个设计模式中最简单的模式了，它提供了一种创建唯一对象的最佳实现，注意此处的简单只是表述和意图很简单，但是实现起来，尤其是实现一个<strong><span style="color: #ff0000;">优美的单例模式</span></strong>却没有那么简单。</p>
+<p>单例模式归根结底就是要确保一个类只有一个实例，并提供一个全局方式来访问该实例。具体而言，这种模式涉及到一个类，并由这个类创建自己的对象，同时确保只有单个对象被创建，并提供唯一一种方式来访问该对象的实例。</p>
+<p>在现实生活中，单例的场景有很多，比如一夫一妻制(当然不道德的除外)，比如一个部门只有一个领导等等。</p>
+<h1 style="font-size: 200%; border-bottom: #5ea2d6 1px solid; font-weight: bold; color: #0378bb; padding-bottom: 10px; padding-top: 0px; padding-left: 20px; clear: both; border-left: #3d97cb 12px solid; line-height: 1.5em; padding-right: 100px;">单例模式UML类图</h1>
+<p><a href="https://img2018.cnblogs.com/blog/533598/201904/533598-20190405120316908-933101691.png"><img style="background-image: none; padding-top: 0px; padding-left: 0px; display: inline; padding-right: 0px; border: 0px;" title="danli_thumb[2]" src="./images/设计模式之单例模式0.png" alt="danli_thumb[2]" width="268" height="361" border="0" /></a></p>
+<blockquote>
+<p>&nbsp;如上图所示：</p>
+<p>1、单例类只能有一个实例。</p>
+<p>2、单例类必须自己创建自己的唯一实例。</p>
+<p>3、单例类必须给所有其他对象提供这一实例。</p>
+<p>4、构造函数是私有的。</p>
+</blockquote>
+<h1 style="font-size: 200%; border-bottom: #5ea2d6 1px solid; font-weight: bold; color: #0378bb; padding-bottom: 10px; padding-top: 0px; padding-left: 20px; clear: both; border-left: #3d97cb 12px solid; line-height: 1.5em; padding-right: 100px;">范例</h1>
+<h2 style="font-size: 18px; color: #aa7652; padding-bottom: 5px; padding-top: 5px; padding-left: 30px; padding-right: 8px; background-color: #f5f5f4; border-radius: 5px; border: #d0cfcf 1px solid;">Double-Check</h2>
+<p>我们先看一个非常流行而又简单的实现</p>
+<div class="csharpcode">
+<pre><code><span class="lnum">   1:  </span><span class="kwrd">public</span> <span class="kwrd">sealed</span> <span class="kwrd">class</span> Singleton</pre>
+<pre><code><span class="lnum">   2:  </span>{</pre>
+<pre><code><span class="lnum">   3:  </span>    <span class="kwrd">private</span> <span class="kwrd">static</span> Singleton instance = <span class="kwrd">null</span>;</pre>
+<pre><code><span class="lnum">   4:  </span>    <span class="kwrd">private</span> <span class="kwrd">static</span> <span class="kwrd">readonly</span> <span class="kwrd">object</span> padlock = <span class="kwrd">new</span> <span class="kwrd">object</span>();</pre>
+<pre><code><span class="lnum">   5:  </span>&nbsp;</pre>
+<pre><code><span class="lnum">   6:  </span>    <span class="kwrd">private</span> Singleton()</pre>
+<pre><code><span class="lnum">   7:  </span>    {</pre>
+<pre><code><span class="lnum">   8:  </span>    }</pre>
+<pre><code><span class="lnum">   9:  </span>&nbsp;</pre>
+<pre><code><span class="lnum">  10:  </span>    <span class="kwrd">public</span> <span class="kwrd">static</span> Singleton Instance</pre>
+<pre><code><span class="lnum">  11:  </span>    {</pre>
+<pre><code><span class="lnum">  12:  </span>        get</pre>
+<pre><code><span class="lnum">  13:  </span>        {</pre>
+<pre><code><span class="lnum">  14:  </span>            <span class="kwrd">if</span> (instance == <span class="kwrd">null</span>)</pre>
+<pre><code><span class="lnum">  15:  </span>            {</pre>
+<pre><code><span class="lnum">  16:  </span>                <span class="kwrd">lock</span> (padlock)</pre>
+<pre><code><span class="lnum">  17:  </span>                {</pre>
+<pre><code><span class="lnum">  18:  </span>                    <span class="kwrd">if</span> (instance == <span class="kwrd">null</span>)</pre>
+<pre><code><span class="lnum">  19:  </span>                    {</pre>
+<pre><code><span class="lnum">  20:  </span>                        instance = <span class="kwrd">new</span> Singleton();</pre>
+<pre><code><span class="lnum">  21:  </span>                        <span class="rem">//Do a heavy task</span></pre>
+<pre><code><span class="lnum">  22:  </span>                    }</pre>
+<pre><code><span class="lnum">  23:  </span>                }</pre>
+<pre><code><span class="lnum">  24:  </span>            }</pre>
+<pre><code><span class="lnum">  25:  </span>            <span class="kwrd">return</span> instance;</pre>
+<pre><code><span class="lnum">  26:  </span>        }</pre>
+<pre><code><span class="lnum">  27:  </span>    }</pre>
+<pre><code><span class="lnum">  28:  </span>}</pre>
+</div>
+<p>上述解决方案上，使用到了Double-Check方式，Double-Check方式可以说是盛名已久了，线程A与线程B在Null Check时同时通过，但是在Lock时，只能进入一个线程，其他线程都要等着。</p>
+<p>这种方式在Java中编写单例模式的时候是失效的，具体原因我没有去深究。这一块内存屏障技术（Memory Barrier），不过这段涉及到底层操作，一般很难有人会显式操作，而且这段的控制异常复杂。另外一点就是，如果单例过程中操作的是一个数组或者其他对象，那么在实例化后如果需要进行赋值等运算操作的，那么其他线程在进行Null Check的时候就不会再次进入，如果其他线程调用了这个单例对象的某个属性，<strong>这极有可能出现难以预测的bug</strong>。</p>
+<blockquote>
+<p>单例模式加载数据到内存，那么如果我们需要在使用的时候再去加载到内存，而不是一开始就加载到内存，这样可以节省内存空间。接下来我们看一下如何通过懒加载方式实现单例模式。</p>
+</blockquote>
+<h2 style="font-size: 18px; color: #aa7652; padding-bottom: 5px; padding-top: 5px; padding-left: 30px; padding-right: 8px; background-color: #f5f5f4; border-radius: 5px; border: #d0cfcf 1px solid;">静态类</h2>
+<div class="csharpcode">采用静态类实现单例模式，这并不是一种完全的懒加载，但依然是线程安全的</div>
+<div class="csharpcode">
+<pre><code><span class="lnum">   1:  </span><span class="kwrd">public</span> <span class="kwrd">sealed</span> <span class="kwrd">class</span> Singleton</pre>
+<pre><code><span class="lnum">   2:  </span>{</pre>
+<pre><code><span class="lnum">   3:  </span>    <span class="kwrd">private</span> <span class="kwrd">static</span> <span class="kwrd">readonly</span> Singleton instance = <span class="kwrd">new</span> Singleton();</pre>
+<pre><code><span class="lnum">   4:  </span>&nbsp;</pre>
+<pre><code><span class="lnum">   5:  </span>    <span class="kwrd">static</span> Singleton()</pre>
+<pre><code><span class="lnum">   6:  </span>    {</pre>
+<pre><code><span class="lnum">   7:  </span>&nbsp;</pre>
+<pre><code><span class="lnum">   8:  </span>    }</pre>
+<pre><code><span class="lnum">   9:  </span>&nbsp;</pre>
+<pre><code><span class="lnum">  10:  </span>    <span class="kwrd">private</span> Singleton()</pre>
+<pre><code><span class="lnum">  11:  </span>    {</pre>
+<pre><code><span class="lnum">  12:  </span>&nbsp;</pre>
+<pre><code><span class="lnum">  13:  </span>    }</pre>
+<pre><code><span class="lnum">  14:  </span>&nbsp;</pre>
+<pre><code><span class="lnum">  15:  </span>    <span class="kwrd">public</span> <span class="kwrd">static</span> Singleton Instance</pre>
+<pre><code><span class="lnum">  16:  </span>    {</pre>
+<pre><code><span class="lnum">  17:  </span>        get</pre>
+<pre><code><span class="lnum">  18:  </span>        {</pre>
+<pre><code><span class="lnum">  19:  </span>            <span class="kwrd">return</span> instance;</pre>
+<pre><code><span class="lnum">  20:  </span>        }</pre>
+<pre><code><span class="lnum">  21:  </span>    }</pre>
+<pre><code><span class="lnum">  22:  </span>}</pre>
+</div>
+<p>C＃中的静态构造函数仅在创建类的实例或引用静态成员时执行，并且每个AppDomain只执行一次，因为每次都需要对新构造的类型执行这种检查，所以这种方式要比Double-Check方式更快。然而，也有一些问题：</p>
+<ul>
+<li>它不像其他实现那样懒惰。尤其是，如果您有实例以外的静态成员，那么对这些成员的第一个引用将涉及创建实例。这将在下一个实现中得到纠正。</li>
+<li>如果一个静态构造函数调用另一个静态构造函数，而另一个静态构造函数再次调用第一个静态构造函数，则会出现复杂情况。需要注意，静态构造函数在一个循环中相互引用的后果。</li>
+<li>只有当类型没有被[beforefieldinit]标记时，.NET才能保证类型初始值设定项的惰性。不幸的是，C编译器（至少在.NET 1.1运行时中提供）将没有静态构造函数的所有类型（即看起来像构造函数但被标记为静态的块）标记为beforefieldinit。需要注意beforefieldinit会影响性能，beforefieldinit的具体用法可以参见MSDN。</li>
+</ul>
+<p>对于这个实现，许多人更喜欢拥有一个属性，以防将来需要进一步的操作，并且JIT内联可能使性能相同。另外有一种快捷方式就是，可以将实例设置为公共的静态只读变量，不设置为属性，这样代码的基本框架会显得非常小。（注意，如果需要惰性，静态构造函数本身仍然是必需的。）</p>
+<h2 style="font-size: 18px; color: #aa7652; padding-bottom: 5px; padding-top: 5px; padding-left: 30px; padding-right: 8px; background-color: #f5f5f4; border-radius: 5px; border: #d0cfcf 1px solid;">内部类</h2>
+<p>采用内部类，这是一种完全的懒加载。</p>
+<div class="csharpcode">
+<pre><code><span class="lnum">   1:  </span><span class="kwrd">public</span> <span class="kwrd">sealed</span> <span class="kwrd">class</span> Singleton</pre>
+<pre><code><span class="lnum">   2:  </span>{</pre>
+<pre><code><span class="lnum">   3:  </span>    <span class="kwrd">private</span> Singleton()</pre>
+<pre><code><span class="lnum">   4:  </span>    {</pre>
+<pre><code><span class="lnum">   5:  </span>&nbsp;</pre>
+<pre><code><span class="lnum">   6:  </span>    }</pre>
+<pre><code><span class="lnum">   7:  </span>&nbsp;</pre>
+<pre><code><span class="lnum">   8:  </span>    <span class="kwrd">public</span> <span class="kwrd">static</span> Singleton Instance { get { <span class="kwrd">return</span> Nested.instance; } }</pre>
+<pre><code><span class="lnum">   9:  </span>&nbsp;</pre>
+<pre><code><span class="lnum">  10:  </span>    <span class="kwrd">private</span> <span class="kwrd">class</span> Nested</pre>
+<pre><code><span class="lnum">  11:  </span>    {</pre>
+<pre><code><span class="lnum">  12:  </span>        <span class="kwrd">static</span> Nested()</pre>
+<pre><code><span class="lnum">  13:  </span>        {</pre>
+<pre><code><span class="lnum">  14:  </span>        </pre>
+<pre><code><span class="lnum">  15:  </span>        }</pre>
+<pre><code><span class="lnum">  16:  </span>&nbsp;</pre>
+<pre><code><span class="lnum">  17:  </span>        <span class="kwrd">internal</span> <span class="kwrd">static</span> <span class="kwrd">readonly</span> Singleton instance = <span class="kwrd">new</span> Singleton();</pre>
+<pre><code><span class="lnum">  18:  </span>    }</pre>
+<pre><code><span class="lnum">  19:  </span>}</pre>
+</div>
+<style><!--
+.csharpcode, .csharpcode pre
+{
+    font-size: small;
+    color: black;
+    font-family: consolas, "Courier New", courier, monospace;
+    background-color: #ffffff;
+    /*white-space: pre;*/
+}
+.csharpcode pre { margin: 0em; }
+.csharpcode .rem { color: #008000; }
+.csharpcode .kwrd { color: #0000ff; }
+.csharpcode .str { color: #006080; }
+.csharpcode .op { color: #0000c0; }
+.csharpcode .preproc { color: #cc6633; }
+.csharpcode .asp { background-color: #ffff00; }
+.csharpcode .html { color: #800000; }
+.csharpcode .attr { color: #ff0000; }
+.csharpcode .alt 
+{
+    background-color: #f4f4f4;
+    width: 100%;
+    margin: 0em;
+}
+.csharpcode .lnum { color: #606060; }
+--></style>
+<p>在这里，嵌套类的静态成员在第一次引用的时候会进行实例化操作，并且该引用只在实例中发生。这意味着实现是完全懒惰的，但具有前一个实现的所有性能优势。请注意，尽管嵌套类可以访问内部类的私有成员，但反过来却不是，因此需要在此处对实例进行内部访问。不过，这并不会引发任何问题，因为类本身是私有的。不过此处貌似显得有点复杂。</p>
+<h2 style="font-size: 18px; color: #aa7652; padding-bottom: 5px; padding-top: 5px; padding-left: 30px; padding-right: 8px; background-color: #f5f5f4; border-radius: 5px; border: #d0cfcf 1px solid;">Lazy</h2>
+<p>那么有没有其他方式优雅而又安全的实现单例模式呢，答案是有的，那就是通过Lazy方式，Lazy方式可以拥有更高的性能，因为实例只有在使用的时候才会真正创建对象，这就在很大程度上减少了内存的占用，当然，比较如果是比较简单的单例创建，可以忽略这条不利影响。</p>
+<p>Lazy自带Double-Check，是线程安全的，他就像一个盾牌，在创建过程中，不管是创建简单对象还是复杂对象，都不会允许其他线程使用尚未创建完成的对象，更多的Lazy使用，请参考MSDN。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">sealed</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Singleton
+</span><span style="color: #008080;"> 2</span> <span style="color: #000000;">{
+</span><span style="color: #008080;"> 3</span>     <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">readonly</span> Lazy&lt;Singleton&gt; lazy = <span style="color: #0000ff;">new</span> Lazy&lt;Singleton&gt;(() =&gt; <span style="color: #0000ff;">new</span><span style="color: #000000;"> Singleton());
+</span><span style="color: #008080;"> 4</span> 
+<span style="color: #008080;"> 5</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> Singleton Instance { <span style="color: #0000ff;">get</span> { <span style="color: #0000ff;">return</span><span style="color: #000000;"> lazy.Value; } }
+</span><span style="color: #008080;"> 6</span> 
+<span style="color: #008080;"> 7</span>     <span style="color: #0000ff;">private</span><span style="color: #000000;"> Singleton()
+</span><span style="color: #008080;"> 8</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;"> 9</span> 
+<span style="color: #008080;">10</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">11</span> }</pre>
+</div>
+<p>&nbsp;</p>
+<blockquote>
+<p>优点：</p>
+<p>全局范围内只有一个实例，避免了内存消耗，以及实例频繁的创建和销毁</p>
+<p>避免了对资源的多重占用，比如独占式场景中</p>
+<p>&nbsp;</p>
+<p>缺点：</p>
+<p>一旦对象指向的外部环境发生了变化，比如在网络调用、MQ等场景中一般可以可以采用单例，但是这里需要提醒的是，如果DNS发生异常，在异常期间将会出现极难修复的情况，除非手动重启并指向新的域服务器</p>
+<p>这一点有点违反单一职责原则，通常情况下，一个类应该只关注自身逻辑而不是创建对象</p>
+<p>没有接口，无法继承</p>
+</blockquote>
+<p><em>本文参考了</em><a href="https://csharpindepth.com/articles/Singleton"><em>https://csharpindepth.com/articles/Singleton</em></a><em>，该文也是深入理解C#的作者所写，可以收藏此网站以便更快的获取相关信息。</em></p>
+<style><!--
+.csharpcode, .csharpcode pre
+{
+    font-size: small;
+    color: black;
+    font-family: consolas, "Courier New", courier, monospace;
+    background-color: #ffffff;
+    /*white-space: pre;*/
+}
+.csharpcode pre { margin: 0em; }
+.csharpcode .rem { color: #008000; }
+.csharpcode .kwrd { color: #0000ff; }
+.csharpcode .str { color: #006080; }
+.csharpcode .op { color: #0000c0; }
+.csharpcode .preproc { color: #cc6633; }
+.csharpcode .asp { background-color: #ffff00; }
+.csharpcode .html { color: #800000; }
+.csharpcode .attr { color: #ff0000; }
+.csharpcode .alt 
+{
+    background-color: #f4f4f4;
+    width: 100%;
+    margin: 0em;
+}
+.csharpcode .lnum { color: #606060; }
+--></style>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

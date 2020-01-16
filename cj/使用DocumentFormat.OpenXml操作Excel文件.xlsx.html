@@ -1,0 +1,506 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修使用DocumentFormat.OpenXml操作Excel文件.xlsx' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>使用DocumentFormat.OpenXml操作Excel文件.xlsx</center></div><div class='banquan'>原文出处:本文由博客园博主Cameron提供。<br/>
+原文连接:https://www.cnblogs.com/CameronWu/p/10658198.html</div><br>
+    <h2>1.开始</h2>
+<p><a href="https://www.nuget.org/packages/DocumentFormat.OpenXml/" target="_blank">DocumentFormat.OpenXml</a>是ms官方给一个操作office三大件新版文件格式(.xlsx,.docx,.pptx)的组件；特色是它定义了OpenXml所包含的所有对象（たぶん），能做到精确微调文件内容格式；因此它没有EppPlus那么容易上手，性能也很看使用者的水平。。</p>
+<p>DocumentFormat.OpenXml的语法很接近直接操作xml，所以使用它来操作Excel,得先熟悉Excel的xml文档结构：</p>
+<p><img src="./images/使用DocumentFormat.OpenXml操作Excel文件.xlsx0.png" alt="" /></p>
+<p>&uarr;已经忘记从哪里找来的了; WorkbookPart包含4个重要子节点：</p>
+<ul>
+<li>WorkSheetPart：表格数据内容就在这里面，结构最复杂的部分，Workheet的子节点除了Colmns、SheetData还有合并单元格集合MergeCells(图中缺失)；</li>
+<li>WorkSheet：存放表单id及命名(sheet1, Sheet2...)，这里有excel的坑，如果包含多个Sheet直接Sheets.First()有可能获取到最后一张Sheet，最好根据Name来搜索；</li>
+<li>WorkbootStylePart：存放样式；</li>
+<li>SharedStringTablePart（上图中缺失）：共享字符串集合，字符串默认会存在里面，然后Cell引用其数组下标，这也是类似保存1w行"一二三亖"的.xlsx比.txt小的原因</li>
+</ul>
+<div>
+<div>了解了这些想用DocumentFormat.OpenXml从零开始new一个样式还看得过去的Excel文档依然很麻烦（相信用EppPlus、NPOI也一样），而且OpenXml的同级节点还强调先后顺序，错了用excel打开就会报错，相信没人想这么做；正确的姿势应该是加载模板写入数据另存为，模板中把要用到的样式都定义好，然后用代码拷贝对应单元格的样式。</div>
+<div>&nbsp;</div>
+<div>先定义一些扩展方法，不然用起来会很累：</div>
+<div>
+<div class="cnblogs_code" onclick="cnblogs_code_show('4177ca53-2f8a-48e9-bb9b-647d6d4f14a9')"><img id="code_img_closed_4177ca53-2f8a-48e9-bb9b-647d6d4f14a9" class="code_img_closed" src="./images/使用DocumentFormat.OpenXml操作Excel文件.xlsx1.png" alt="" /><img id="code_img_opened_4177ca53-2f8a-48e9-bb9b-647d6d4f14a9" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('4177ca53-2f8a-48e9-bb9b-647d6d4f14a9',event)" src="./images/使用DocumentFormat.OpenXml操作Excel文件.xlsx2.png" alt="" />
+<div id="cnblogs_code_open_4177ca53-2f8a-48e9-bb9b-647d6d4f14a9" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;">  1</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System;
+</span><span style="color: #008080;">  2</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Collections.Generic;
+</span><span style="color: #008080;">  3</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Linq;
+</span><span style="color: #008080;">  4</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Xml;
+</span><span style="color: #008080;">  5</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> DocumentFormat.OpenXml;
+</span><span style="color: #008080;">  6</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> DocumentFormat.OpenXml.Packaging;
+</span><span style="color: #008080;">  7</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> DocumentFormat.OpenXml.Spreadsheet;
+</span><span style="color: #008080;">  8</span> 
+<span style="color: #008080;">  9</span> <span style="color: #0000ff;">namespace</span><span style="color: #000000;"> EOpenXml
+</span><span style="color: #008080;"> 10</span> <span style="color: #000000;">{
+</span><span style="color: #008080;"> 11</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> OpenXmlExcelExtentions
+</span><span style="color: #008080;"> 12</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;"> 13</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> Sheet GetSheet(<span style="color: #0000ff;">this</span> WorkbookPart workbookPart, <span style="color: #0000ff;">string</span><span style="color: #000000;"> sheetName)
+</span><span style="color: #008080;"> 14</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 15</span>             <span style="color: #0000ff;">return</span><span style="color: #000000;"> workbookPart.Workbook
+</span><span style="color: #008080;"> 16</span>                 .GetFirstChild&lt;Sheets&gt;<span style="color: #000000;">()
+</span><span style="color: #008080;"> 17</span>                 .Elements&lt;Sheet&gt;().Where(s =&gt; s.Name ==<span style="color: #000000;"> sheetName).FirstOrDefault();
+</span><span style="color: #008080;"> 18</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 19</span> 
+<span style="color: #008080;"> 20</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;"> 21</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> Given a worksheet and a row index, return the row.
+</span><span style="color: #008080;"> 22</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;"> 23</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="sheetData"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;"> 24</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="rowIndex"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;"> 25</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+<span style="color: #008080;"> 26</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> Row GetRow(<span style="color: #0000ff;">this</span> SheetData sheetData, <span style="color: #0000ff;">uint</span><span style="color: #000000;"> rowIndex)
+</span><span style="color: #008080;"> 27</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 28</span>             <span style="color: #0000ff;">return</span><span style="color: #000000;"> sheetData.
+</span><span style="color: #008080;"> 29</span>                   Elements&lt;Row&gt;().Where(r =&gt; r.RowIndex ==<span style="color: #000000;"> rowIndex).FirstOrDefault();
+</span><span style="color: #008080;"> 30</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 31</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> Cell GetCell(<span style="color: #0000ff;">this</span> SheetData sheetData, <span style="color: #0000ff;">string</span> columnName, <span style="color: #0000ff;">uint</span><span style="color: #000000;"> rowIndex)
+</span><span style="color: #008080;"> 32</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 33</span>             Row row =<span style="color: #000000;"> GetRow(sheetData, rowIndex);
+</span><span style="color: #008080;"> 34</span> 
+<span style="color: #008080;"> 35</span>             <span style="color: #0000ff;">if</span> (row == <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+</span><span style="color: #008080;"> 36</span>                 <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 37</span> 
+<span style="color: #008080;"> 38</span>             <span style="color: #0000ff;">return</span> row.Elements&lt;Cell&gt;().Where(c =&gt; <span style="color: #0000ff;">string</span><span style="color: #000000;">.Compare
+</span><span style="color: #008080;"> 39</span>                       (c.CellReference.Value, columnName +
+<span style="color: #008080;"> 40</span>                       rowIndex, <span style="color: #0000ff;">true</span>) == <span style="color: #800080;">0</span><span style="color: #000000;">).FirstOrDefault();
+</span><span style="color: #008080;"> 41</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 42</span> 
+<span style="color: #008080;"> 43</span>         <span style="color: #008000;">//</span> <span style="color: #008000; text-decoration: underline;">https://msdn.microsoft.com/en-us/library/office/cc861607.aspx</span>
+<span style="color: #008080;"> 44</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> Given a column name, a row index, and a WorksheetPart, inserts a cell into the worksheet. 
+</span><span style="color: #008080;"> 45</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> If the cell already exists, returns it. </span>
+<span style="color: #008080;"> 46</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> Cell GetOrCreateCell(<span style="color: #0000ff;">this</span> SheetData sheetData, <span style="color: #0000ff;">string</span> columnName, <span style="color: #0000ff;">uint</span><span style="color: #000000;"> rowIndex)
+</span><span style="color: #008080;"> 47</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 48</span>             <span style="color: #0000ff;">string</span> cellReference = columnName +<span style="color: #000000;"> rowIndex;
+</span><span style="color: #008080;"> 49</span> 
+<span style="color: #008080;"> 50</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> If the worksheet does not contain a row with the specified row index, insert one.</span>
+<span style="color: #008080;"> 51</span> <span style="color: #000000;">            Row row;
+</span><span style="color: #008080;"> 52</span>             <span style="color: #0000ff;">if</span> (sheetData.Elements&lt;Row&gt;().Where(r =&gt; r.RowIndex == rowIndex).Count() != <span style="color: #800080;">0</span><span style="color: #000000;">)
+</span><span style="color: #008080;"> 53</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 54</span>                 row = sheetData.Elements&lt;Row&gt;().Where(r =&gt; r.RowIndex ==<span style="color: #000000;"> rowIndex).First();
+</span><span style="color: #008080;"> 55</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 56</span>             <span style="color: #0000ff;">else</span>
+<span style="color: #008080;"> 57</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 58</span>                 row = <span style="color: #0000ff;">new</span> Row() { RowIndex =<span style="color: #000000;"> rowIndex };
+</span><span style="color: #008080;"> 59</span> <span style="color: #000000;">                sheetData.Append(row);
+</span><span style="color: #008080;"> 60</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 61</span> 
+<span style="color: #008080;"> 62</span>             <span style="color: #0000ff;">return</span><span style="color: #000000;"> row.GetOrCreateCell(cellReference);
+</span><span style="color: #008080;"> 63</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 64</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> Cell GetOrCreateCell(<span style="color: #0000ff;">this</span> Row row, <span style="color: #0000ff;">string</span><span style="color: #000000;"> cellReference)
+</span><span style="color: #008080;"> 65</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 66</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> If there is not a cell with the specified column name, insert one.  </span>
+<span style="color: #008080;"> 67</span>             <span style="color: #0000ff;">if</span> (row.Elements&lt;Cell&gt;().Where(c =&gt; c?.CellReference?.Value == cellReference).Count() &gt; <span style="color: #800080;">0</span><span style="color: #000000;">)
+</span><span style="color: #008080;"> 68</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 69</span>                 <span style="color: #0000ff;">return</span> row.Elements&lt;Cell&gt;().Where(c =&gt; c.CellReference.Value ==<span style="color: #000000;"> cellReference).First();
+</span><span style="color: #008080;"> 70</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 71</span>             <span style="color: #0000ff;">else</span>
+<span style="color: #008080;"> 72</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 73</span>                 <span style="color: #008000;">//</span><span style="color: #008000;"> Cells must be in sequential order according to CellReference. Determine where to insert the new cell.</span>
+<span style="color: #008080;"> 74</span>                 Cell refCell = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 75</span>                 <span style="color: #0000ff;">foreach</span> (Cell cell <span style="color: #0000ff;">in</span> row.Elements&lt;Cell&gt;<span style="color: #000000;">())
+</span><span style="color: #008080;"> 76</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;"> 77</span>                     <span style="color: #0000ff;">if</span> (cell.CellReference.Value.Length ==<span style="color: #000000;"> cellReference.Length)
+</span><span style="color: #008080;"> 78</span> <span style="color: #000000;">                    {
+</span><span style="color: #008080;"> 79</span>                         <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">string</span>.Compare(cell.CellReference.Value, cellReference, <span style="color: #0000ff;">true</span>) &gt; <span style="color: #800080;">0</span><span style="color: #000000;">)
+</span><span style="color: #008080;"> 80</span> <span style="color: #000000;">                        {
+</span><span style="color: #008080;"> 81</span>                             refCell =<span style="color: #000000;"> cell;
+</span><span style="color: #008080;"> 82</span>                             <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 83</span> <span style="color: #000000;">                        }
+</span><span style="color: #008080;"> 84</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;"> 85</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;"> 86</span> 
+<span style="color: #008080;"> 87</span>                 Cell newCell = <span style="color: #0000ff;">new</span> Cell() { CellReference =<span style="color: #000000;"> cellReference };
+</span><span style="color: #008080;"> 88</span> <span style="color: #000000;">                row.InsertBefore(newCell, refCell);
+</span><span style="color: #008080;"> 89</span>                 <span style="color: #0000ff;">return</span><span style="color: #000000;"> newCell;
+</span><span style="color: #008080;"> 90</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 91</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 92</span> 
+<span style="color: #008080;"> 93</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">string</span> GetValue(<span style="color: #0000ff;">this</span><span style="color: #000000;"> Cell cell, SharedStringTablePart shareStringPart)
+</span><span style="color: #008080;"> 94</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 95</span>             <span style="color: #0000ff;">if</span> (cell == <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+</span><span style="color: #008080;"> 96</span>                 <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 97</span>             <span style="color: #0000ff;">string</span> cellvalue =<span style="color: #000000;"> cell.InnerText;
+</span><span style="color: #008080;"> 98</span>             <span style="color: #0000ff;">if</span> (cell.DataType != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+</span><span style="color: #008080;"> 99</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">100</span>                 <span style="color: #0000ff;">if</span> (cell.DataType ==<span style="color: #000000;"> CellValues.SharedString)
+</span><span style="color: #008080;">101</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">102</span>                     <span style="color: #0000ff;">int</span> id = -<span style="color: #800080;">1</span><span style="color: #000000;">;
+</span><span style="color: #008080;">103</span>                     <span style="color: #0000ff;">if</span> (Int32.TryParse(cellvalue, <span style="color: #0000ff;">out</span><span style="color: #000000;"> id))
+</span><span style="color: #008080;">104</span> <span style="color: #000000;">                    {
+</span><span style="color: #008080;">105</span>                         SharedStringItem item =<span style="color: #000000;"> GetItem(shareStringPart, id);
+</span><span style="color: #008080;">106</span>                         <span style="color: #0000ff;">if</span> (item.Text != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+</span><span style="color: #008080;">107</span> <span style="color: #000000;">                        {
+</span><span style="color: #008080;">108</span>                             <span style="color: #008000;">//</span><span style="color: #008000;">code to take the string value  </span>
+<span style="color: #008080;">109</span>                             cellvalue =<span style="color: #000000;"> item.Text.Text;
+</span><span style="color: #008080;">110</span> <span style="color: #000000;">                        }
+</span><span style="color: #008080;">111</span>                         <span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (item.InnerText != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+</span><span style="color: #008080;">112</span> <span style="color: #000000;">                        {
+</span><span style="color: #008080;">113</span>                             cellvalue =<span style="color: #000000;"> item.InnerText;
+</span><span style="color: #008080;">114</span> <span style="color: #000000;">                        }
+</span><span style="color: #008080;">115</span>                         <span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (item.InnerXml != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+</span><span style="color: #008080;">116</span> <span style="color: #000000;">                        {
+</span><span style="color: #008080;">117</span>                             cellvalue =<span style="color: #000000;"> item.InnerXml;
+</span><span style="color: #008080;">118</span> <span style="color: #000000;">                        }
+</span><span style="color: #008080;">119</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">120</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">121</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">122</span>             <span style="color: #0000ff;">return</span><span style="color: #000000;"> cellvalue;
+</span><span style="color: #008080;">123</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">124</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">string</span> GetValue(<span style="color: #0000ff;">this</span> Cell cell, <span style="color: #0000ff;">string</span><span style="color: #000000;">[] shareStringPartValues)
+</span><span style="color: #008080;">125</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">126</span>             <span style="color: #0000ff;">if</span> (cell == <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+</span><span style="color: #008080;">127</span>                 <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+</span><span style="color: #008080;">128</span>             <span style="color: #0000ff;">string</span> cellvalue =<span style="color: #000000;"> cell.InnerText;
+</span><span style="color: #008080;">129</span>             <span style="color: #0000ff;">if</span> (cell.DataType != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+</span><span style="color: #008080;">130</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">131</span>                 <span style="color: #0000ff;">if</span> (cell.DataType ==<span style="color: #000000;"> CellValues.SharedString)
+</span><span style="color: #008080;">132</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">133</span>                     <span style="color: #0000ff;">int</span> id = -<span style="color: #800080;">1</span><span style="color: #000000;">;
+</span><span style="color: #008080;">134</span>                     <span style="color: #0000ff;">if</span> (Int32.TryParse(cellvalue, <span style="color: #0000ff;">out</span><span style="color: #000000;"> id))
+</span><span style="color: #008080;">135</span> <span style="color: #000000;">                    {
+</span><span style="color: #008080;">136</span>                         cellvalue =<span style="color: #000000;"> shareStringPartValues[id];
+</span><span style="color: #008080;">137</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">138</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">139</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">140</span>             <span style="color: #0000ff;">return</span><span style="color: #000000;"> cellvalue;
+</span><span style="color: #008080;">141</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">142</span> 
+<span style="color: #008080;">143</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> Cell SetValue(<span style="color: #0000ff;">this</span> Cell cell, <span style="color: #0000ff;">object</span> value = <span style="color: #0000ff;">null</span>, SharedStringTablePart shareStringPart = <span style="color: #0000ff;">null</span>, <span style="color: #0000ff;">int</span> shareStringItemIndex = -<span style="color: #800080;">1</span>, <span style="color: #0000ff;">uint</span> styleIndex = <span style="color: #800080;">0</span><span style="color: #000000;">)
+</span><span style="color: #008080;">144</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">145</span>             <span style="color: #0000ff;">if</span> (value == <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+</span><span style="color: #008080;">146</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">147</span>                 cell.CellValue = <span style="color: #0000ff;">new</span><span style="color: #000000;"> CellValue();
+</span><span style="color: #008080;">148</span>                 <span style="color: #0000ff;">if</span> (shareStringItemIndex != -<span style="color: #800080;">1</span><span style="color: #000000;">)
+</span><span style="color: #008080;">149</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">150</span>                     cell.CellValue = <span style="color: #0000ff;">new</span><span style="color: #000000;"> CellValue(shareStringItemIndex.ToString());
+</span><span style="color: #008080;">151</span>                     cell.DataType = <span style="color: #0000ff;">new</span> EnumValue&lt;CellValues&gt;<span style="color: #000000;">(CellValues.SharedString);
+</span><span style="color: #008080;">152</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">153</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">154</span>             <span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (value <span style="color: #0000ff;">is</span> <span style="color: #0000ff;">string</span><span style="color: #000000;"> str)
+</span><span style="color: #008080;">155</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">156</span>                 <span style="color: #0000ff;">if</span> (shareStringPart == <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+</span><span style="color: #008080;">157</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">158</span>                     cell.CellValue = <span style="color: #0000ff;">new</span><span style="color: #000000;"> CellValue(str);
+</span><span style="color: #008080;">159</span>                     cell.DataType = <span style="color: #0000ff;">new</span> EnumValue&lt;CellValues&gt;<span style="color: #000000;">(CellValues.String);
+</span><span style="color: #008080;">160</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">161</span>                 <span style="color: #0000ff;">else</span>
+<span style="color: #008080;">162</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">163</span>                     <span style="color: #008000;">//</span><span style="color: #008000;"> Insert the text into the SharedStringTablePart.</span>
+<span style="color: #008080;">164</span>                     <span style="color: #0000ff;">int</span> index = shareStringPart.GetOrInsertItem(str, <span style="color: #0000ff;">false</span><span style="color: #000000;">);
+</span><span style="color: #008080;">165</span>                     <span style="color: #008000;">//</span><span style="color: #008000;"> Set the value of cell</span>
+<span style="color: #008080;">166</span>                     cell.CellValue = <span style="color: #0000ff;">new</span><span style="color: #000000;"> CellValue(index.ToString());
+</span><span style="color: #008080;">167</span>                     cell.DataType = <span style="color: #0000ff;">new</span> EnumValue&lt;CellValues&gt;<span style="color: #000000;">(CellValues.SharedString);
+</span><span style="color: #008080;">168</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">169</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">170</span>             <span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (value <span style="color: #0000ff;">is</span> <span style="color: #0000ff;">int</span> || value <span style="color: #0000ff;">is</span> <span style="color: #0000ff;">short</span> || value <span style="color: #0000ff;">is</span> <span style="color: #0000ff;">long</span> ||
+<span style="color: #008080;">171</span>               value <span style="color: #0000ff;">is</span> <span style="color: #0000ff;">float</span> || value <span style="color: #0000ff;">is</span> <span style="color: #0000ff;">double</span> || value <span style="color: #0000ff;">is</span> <span style="color: #0000ff;">uint</span> ||
+<span style="color: #008080;">172</span>               value <span style="color: #0000ff;">is</span> <span style="color: #0000ff;">ulong</span> || value <span style="color: #0000ff;">is</span> <span style="color: #0000ff;">ushort</span> || value <span style="color: #0000ff;">is</span> <span style="color: #0000ff;">decimal</span><span style="color: #000000;">)
+</span><span style="color: #008080;">173</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">174</span>                 cell.CellValue = <span style="color: #0000ff;">new</span><span style="color: #000000;"> CellValue(value.ToString());
+</span><span style="color: #008080;">175</span>                 cell.DataType = <span style="color: #0000ff;">new</span> EnumValue&lt;CellValues&gt;<span style="color: #000000;">(CellValues.Number);
+</span><span style="color: #008080;">176</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">177</span>             <span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (value <span style="color: #0000ff;">is</span><span style="color: #000000;"> DateTime date)
+</span><span style="color: #008080;">178</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">179</span>                 cell.CellValue = <span style="color: #0000ff;">new</span> CellValue(date.ToString(<span style="color: #800000;">"</span><span style="color: #800000;">yyyy-MM-dd</span><span style="color: #800000;">"</span>)); <span style="color: #008000;">//</span><span style="color: #008000;"> ISO 861</span>
+<span style="color: #008080;">180</span>                 cell.DataType = <span style="color: #0000ff;">new</span> EnumValue&lt;CellValues&gt;<span style="color: #000000;">(CellValues.Date);
+</span><span style="color: #008080;">181</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">182</span>             <span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (value <span style="color: #0000ff;">is</span><span style="color: #000000;"> XmlDocument xd)
+</span><span style="color: #008080;">183</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">184</span>                 <span style="color: #0000ff;">if</span> (shareStringPart == <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+</span><span style="color: #008080;">185</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">186</span>                     <span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> Exception(<span style="color: #800000;">"</span><span style="color: #800000;">Param [shareStringPart] can't be null when value type is XmlDocument.</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">187</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">188</span>                 <span style="color: #0000ff;">else</span>
+<span style="color: #008080;">189</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">190</span>                     <span style="color: #0000ff;">int</span> index = shareStringPart.GetOrInsertItem(xd.OuterXml, <span style="color: #0000ff;">true</span><span style="color: #000000;">);
+</span><span style="color: #008080;">191</span>                     <span style="color: #008000;">//</span><span style="color: #008000;"> Set the value of cell</span>
+<span style="color: #008080;">192</span>                     cell.CellValue = <span style="color: #0000ff;">new</span><span style="color: #000000;"> CellValue(index.ToString());
+</span><span style="color: #008080;">193</span>                     cell.DataType = <span style="color: #0000ff;">new</span> EnumValue&lt;CellValues&gt;<span style="color: #000000;">(CellValues.SharedString);
+</span><span style="color: #008080;">194</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">195</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">196</span> 
+<span style="color: #008080;">197</span>             <span style="color: #0000ff;">if</span> (styleIndex != <span style="color: #800080;">0</span><span style="color: #000000;">)
+</span><span style="color: #008080;">198</span>                 cell.StyleIndex =<span style="color: #000000;"> styleIndex;
+</span><span style="color: #008080;">199</span> 
+<span style="color: #008080;">200</span>             <span style="color: #0000ff;">return</span><span style="color: #000000;"> cell;
+</span><span style="color: #008080;">201</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">202</span> 
+<span style="color: #008080;">203</span>         <span style="color: #008000;">//</span> <span style="color: #008000; text-decoration: underline;">https://msdn.microsoft.com/en-us/library/office/gg278314.aspx</span>
+<span style="color: #008080;">204</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> Given text and a SharedStringTablePart, creates a SharedStringItem with the specified text 
+</span><span style="color: #008080;">205</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> and inserts it into the SharedStringTablePart. If the item already exists, returns its index.</span>
+<span style="color: #008080;">206</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">int</span> GetOrInsertItem(<span style="color: #0000ff;">this</span> SharedStringTablePart shareStringPart, <span style="color: #0000ff;">string</span> content, <span style="color: #0000ff;">bool</span><span style="color: #000000;"> isXml)
+</span><span style="color: #008080;">207</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">208</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> If the part does not contain a SharedStringTable, create one.</span>
+<span style="color: #008080;">209</span>             <span style="color: #0000ff;">if</span> (shareStringPart.SharedStringTable == <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+</span><span style="color: #008080;">210</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">211</span>                 shareStringPart.SharedStringTable = <span style="color: #0000ff;">new</span><span style="color: #000000;"> SharedStringTable();
+</span><span style="color: #008080;">212</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">213</span> 
+<span style="color: #008080;">214</span>             <span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span><span style="color: #000000;">;
+</span><span style="color: #008080;">215</span> 
+<span style="color: #008080;">216</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> Iterate through all the items in the SharedStringTable. If the text already exists, return its index.</span>
+<span style="color: #008080;">217</span>             <span style="color: #0000ff;">foreach</span> (SharedStringItem item <span style="color: #0000ff;">in</span> shareStringPart.SharedStringTable.Elements&lt;SharedStringItem&gt;<span style="color: #000000;">())
+</span><span style="color: #008080;">218</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">219</span>                 <span style="color: #0000ff;">if</span> ((!isXml &amp;&amp; item.InnerText == content) || (isXml &amp;&amp; item.OuterXml ==<span style="color: #000000;"> content))
+</span><span style="color: #008080;">220</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">221</span>                     <span style="color: #0000ff;">return</span><span style="color: #000000;"> i;
+</span><span style="color: #008080;">222</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">223</span> 
+<span style="color: #008080;">224</span>                 i++<span style="color: #000000;">;
+</span><span style="color: #008080;">225</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">226</span> 
+<span style="color: #008080;">227</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> The text does not exist in the part. Create the SharedStringItem and return its index.</span>
+<span style="color: #008080;">228</span>             <span style="color: #0000ff;">if</span><span style="color: #000000;"> (isXml)
+</span><span style="color: #008080;">229</span>                 shareStringPart.SharedStringTable.AppendChild(<span style="color: #0000ff;">new</span><span style="color: #000000;"> SharedStringItem(content));
+</span><span style="color: #008080;">230</span>             <span style="color: #0000ff;">else</span>
+<span style="color: #008080;">231</span>                 shareStringPart.SharedStringTable.AppendChild(<span style="color: #0000ff;">new</span> SharedStringItem(<span style="color: #0000ff;">new</span><span style="color: #000000;"> Text(content)));
+</span><span style="color: #008080;">232</span> <span style="color: #000000;">            shareStringPart.SharedStringTable.Save();
+</span><span style="color: #008080;">233</span> 
+<span style="color: #008080;">234</span>             <span style="color: #0000ff;">return</span><span style="color: #000000;"> i;
+</span><span style="color: #008080;">235</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">236</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> SharedStringItem GetItem(<span style="color: #0000ff;">this</span> SharedStringTablePart shareStringPart, <span style="color: #0000ff;">int</span><span style="color: #000000;"> id)
+</span><span style="color: #008080;">237</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">238</span>             <span style="color: #0000ff;">return</span> shareStringPart.SharedStringTable.Elements&lt;SharedStringItem&gt;<span style="color: #000000;">().ElementAt(id);
+</span><span style="color: #008080;">239</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">240</span>         
+<span style="color: #008080;">241</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">242</span>         <span style="color: #808080;">///</span>  <span style="color: #008000; text-decoration: underline;">https://docs.microsoft.com/en-us/office/open-xml/how-to-merge-two-adjacent-cells-in-a-spreadsheet</span>
+<span style="color: #008080;">243</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">244</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="worksheet"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;">245</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+<span style="color: #008080;">246</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> MergeCells GetOrCreateMergeCells(<span style="color: #0000ff;">this</span><span style="color: #000000;"> Worksheet worksheet)
+</span><span style="color: #008080;">247</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">248</span> <span style="color: #000000;">            MergeCells mergeCells;
+</span><span style="color: #008080;">249</span>             <span style="color: #0000ff;">if</span> (worksheet.Elements&lt;MergeCells&gt;().Count() &gt; <span style="color: #800080;">0</span><span style="color: #000000;">)
+</span><span style="color: #008080;">250</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">251</span>                 mergeCells = worksheet.Elements&lt;MergeCells&gt;<span style="color: #000000;">().First();
+</span><span style="color: #008080;">252</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">253</span>             <span style="color: #0000ff;">else</span>
+<span style="color: #008080;">254</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">255</span>                 mergeCells = <span style="color: #0000ff;">new</span><span style="color: #000000;"> MergeCells();
+</span><span style="color: #008080;">256</span> 
+<span style="color: #008080;">257</span>                 <span style="color: #008000;">//</span><span style="color: #008000;"> Insert a MergeCells object into the specified position.</span>
+<span style="color: #008080;">258</span>                 <span style="color: #0000ff;">if</span> (worksheet.Elements&lt;CustomSheetView&gt;().Count() &gt; <span style="color: #800080;">0</span><span style="color: #000000;">)
+</span><span style="color: #008080;">259</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">260</span>                     worksheet.InsertAfter(mergeCells, worksheet.Elements&lt;CustomSheetView&gt;<span style="color: #000000;">().First());
+</span><span style="color: #008080;">261</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">262</span>                 <span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (worksheet.Elements&lt;DataConsolidate&gt;().Count() &gt; <span style="color: #800080;">0</span><span style="color: #000000;">)
+</span><span style="color: #008080;">263</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">264</span>                     worksheet.InsertAfter(mergeCells, worksheet.Elements&lt;DataConsolidate&gt;<span style="color: #000000;">().First());
+</span><span style="color: #008080;">265</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">266</span>                 <span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (worksheet.Elements&lt;SortState&gt;().Count() &gt; <span style="color: #800080;">0</span><span style="color: #000000;">)
+</span><span style="color: #008080;">267</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">268</span>                     worksheet.InsertAfter(mergeCells, worksheet.Elements&lt;SortState&gt;<span style="color: #000000;">().First());
+</span><span style="color: #008080;">269</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">270</span>                 <span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (worksheet.Elements&lt;AutoFilter&gt;().Count() &gt; <span style="color: #800080;">0</span><span style="color: #000000;">)
+</span><span style="color: #008080;">271</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">272</span>                     worksheet.InsertAfter(mergeCells, worksheet.Elements&lt;AutoFilter&gt;<span style="color: #000000;">().First());
+</span><span style="color: #008080;">273</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">274</span>                 <span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (worksheet.Elements&lt;Scenarios&gt;().Count() &gt; <span style="color: #800080;">0</span><span style="color: #000000;">)
+</span><span style="color: #008080;">275</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">276</span>                     worksheet.InsertAfter(mergeCells, worksheet.Elements&lt;Scenarios&gt;<span style="color: #000000;">().First());
+</span><span style="color: #008080;">277</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">278</span>                 <span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (worksheet.Elements&lt;ProtectedRanges&gt;().Count() &gt; <span style="color: #800080;">0</span><span style="color: #000000;">)
+</span><span style="color: #008080;">279</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">280</span>                     worksheet.InsertAfter(mergeCells, worksheet.Elements&lt;ProtectedRanges&gt;<span style="color: #000000;">().First());
+</span><span style="color: #008080;">281</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">282</span>                 <span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (worksheet.Elements&lt;SheetProtection&gt;().Count() &gt; <span style="color: #800080;">0</span><span style="color: #000000;">)
+</span><span style="color: #008080;">283</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">284</span>                     worksheet.InsertAfter(mergeCells, worksheet.Elements&lt;SheetProtection&gt;<span style="color: #000000;">().First());
+</span><span style="color: #008080;">285</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">286</span>                 <span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (worksheet.Elements&lt;SheetCalculationProperties&gt;().Count() &gt; <span style="color: #800080;">0</span><span style="color: #000000;">)
+</span><span style="color: #008080;">287</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">288</span>                     worksheet.InsertAfter(mergeCells, worksheet.Elements&lt;SheetCalculationProperties&gt;<span style="color: #000000;">().First());
+</span><span style="color: #008080;">289</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">290</span>                 <span style="color: #0000ff;">else</span>
+<span style="color: #008080;">291</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">292</span>                     worksheet.InsertAfter(mergeCells, worksheet.Elements&lt;SheetData&gt;<span style="color: #000000;">().First());
+</span><span style="color: #008080;">293</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">294</span> <span style="color: #000000;">                worksheet.Save();
+</span><span style="color: #008080;">295</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">296</span>             <span style="color: #0000ff;">return</span><span style="color: #000000;"> mergeCells;
+</span><span style="color: #008080;">297</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">298</span> 
+<span style="color: #008080;">299</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">300</span>         <span style="color: #808080;">///</span><span style="color: #008000;">  Given the names of two adjacent cells, merges the two cells.
+</span><span style="color: #008080;">301</span>         <span style="color: #808080;">///</span><span style="color: #008000;">  Create the merged cell and append it to the MergeCells collection.
+</span><span style="color: #008080;">302</span>         <span style="color: #808080;">///</span><span style="color: #008000;">  When two cells are merged, only the content from one cell is preserved:
+</span><span style="color: #008080;">303</span>         <span style="color: #808080;">///</span><span style="color: #008000;">  the upper-left cell for left-to-right languages or the upper-right cell for right-to-left languages.
+</span><span style="color: #008080;">304</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">305</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="mergeCells"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;">306</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="cell1Name"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;">307</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="cell2Name"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;">308</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> MergeTwoCells(<span style="color: #0000ff;">this</span> MergeCells mergeCells, <span style="color: #0000ff;">string</span> cell1Name, <span style="color: #0000ff;">string</span><span style="color: #000000;"> cell2Name)
+</span><span style="color: #008080;">309</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">310</span>             MergeCell mergeCell = <span style="color: #0000ff;">new</span> MergeCell() { Reference = <span style="color: #0000ff;">new</span> StringValue(cell1Name + <span style="color: #800000;">"</span><span style="color: #800000;">:</span><span style="color: #800000;">"</span> +<span style="color: #000000;"> cell2Name) };
+</span><span style="color: #008080;">311</span> <span style="color: #000000;">            mergeCells.Append(mergeCell);
+</span><span style="color: #008080;">312</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">313</span> 
+<span style="color: #008080;">314</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> IEnumerable&lt;<span style="color: #0000ff;">string</span>&gt; GetItemValues(<span style="color: #0000ff;">this</span><span style="color: #000000;"> SharedStringTablePart shareStringPart)
+</span><span style="color: #008080;">315</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">316</span>             <span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">var</span> item <span style="color: #0000ff;">in</span> shareStringPart.SharedStringTable.Elements&lt;SharedStringItem&gt;<span style="color: #000000;">())
+</span><span style="color: #008080;">317</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">318</span>                 <span style="color: #0000ff;">if</span> (item.Text != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+</span><span style="color: #008080;">319</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">320</span>                     <span style="color: #008000;">//</span><span style="color: #008000;">code to take the string value  </span>
+<span style="color: #008080;">321</span>                     <span style="color: #0000ff;">yield</span> <span style="color: #0000ff;">return</span><span style="color: #000000;"> item.Text.Text;
+</span><span style="color: #008080;">322</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">323</span>                 <span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (item.InnerText != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+</span><span style="color: #008080;">324</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">325</span>                     <span style="color: #0000ff;">yield</span> <span style="color: #0000ff;">return</span><span style="color: #000000;"> item.InnerText;
+</span><span style="color: #008080;">326</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">327</span>                 <span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (item.InnerXml != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+</span><span style="color: #008080;">328</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">329</span>                     <span style="color: #0000ff;">yield</span> <span style="color: #0000ff;">return</span><span style="color: #000000;"> item.InnerXml;
+</span><span style="color: #008080;">330</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">331</span>                 <span style="color: #0000ff;">else</span>
+<span style="color: #008080;">332</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">333</span>                     <span style="color: #0000ff;">yield</span> <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+</span><span style="color: #008080;">334</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">335</span> <span style="color: #000000;">            };
+</span><span style="color: #008080;">336</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">337</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> XmlDocument GetCellAssociatedSharedStringItemXmlDocument(<span style="color: #0000ff;">this</span> SheetData sheetData, <span style="color: #0000ff;">string</span> columnName, <span style="color: #0000ff;">uint</span><span style="color: #000000;"> rowIndex, SharedStringTablePart shareStringPart)
+</span><span style="color: #008080;">338</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">339</span>             Cell cell =<span style="color: #000000;"> GetCell(sheetData, columnName, rowIndex);
+</span><span style="color: #008080;">340</span>             <span style="color: #0000ff;">if</span> (cell == <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+</span><span style="color: #008080;">341</span>                 <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+</span><span style="color: #008080;">342</span>             <span style="color: #0000ff;">if</span> (cell.DataType ==<span style="color: #000000;"> CellValues.SharedString)
+</span><span style="color: #008080;">343</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">344</span>                 <span style="color: #0000ff;">int</span> id = -<span style="color: #800080;">1</span><span style="color: #000000;">;
+</span><span style="color: #008080;">345</span>                 <span style="color: #0000ff;">if</span> (Int32.TryParse(cell.InnerText, <span style="color: #0000ff;">out</span><span style="color: #000000;"> id))
+</span><span style="color: #008080;">346</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">347</span>                     SharedStringItem ssi =<span style="color: #000000;"> shareStringPart.GetItem(id);
+</span><span style="color: #008080;">348</span>                     <span style="color: #0000ff;">var</span> doc = <span style="color: #0000ff;">new</span><span style="color: #000000;"> XmlDocument();
+</span><span style="color: #008080;">349</span> <span style="color: #000000;">                    doc.LoadXml(ssi.OuterXml);
+</span><span style="color: #008080;">350</span>                     <span style="color: #0000ff;">return</span><span style="color: #000000;"> doc;
+</span><span style="color: #008080;">351</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">352</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">353</span>             <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+</span><span style="color: #008080;">354</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">355</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">356</span> }</pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<h2>2.插入数据</h2>
+</div>
+<div>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> GenerateExcel()
+</span><span style="color: #008080;"> 2</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 3</span>             <span style="color: #0000ff;">using</span> (MemoryStream mem = <span style="color: #0000ff;">new</span><span style="color: #000000;"> MemoryStream())
+</span><span style="color: #008080;"> 4</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 5</span>                 <span style="color: #0000ff;">using</span> (<span style="color: #0000ff;">var</span> temp = File.OpenRead(<span style="color: #800000;">@"</span><span style="color: #800000;">E:\template.xlsx</span><span style="color: #800000;">"</span><span style="color: #000000;">))
+</span><span style="color: #008080;"> 6</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;"> 7</span> <span style="color: #000000;">                    temp.CopyTo(mem);
+</span><span style="color: #008080;"> 8</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;"> 9</span> 
+<span style="color: #008080;">10</span>                 <span style="color: #0000ff;">using</span> (SpreadsheetDocument doc = SpreadsheetDocument.Open(mem, <span style="color: #0000ff;">true</span><span style="color: #000000;">))
+</span><span style="color: #008080;">11</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">12</span>                     WorkbookPart wbPart =<span style="color: #000000;"> doc.WorkbookPart;
+</span><span style="color: #008080;">13</span>                     Worksheet worksheet =<span style="color: #000000;"> wbPart.WorksheetParts.First().Worksheet;
+</span><span style="color: #008080;">14</span>                     <span style="color: #008000;">//</span><span style="color: #008000;">statement to get the sheetdata which contains the rows and cell in table  </span>
+<span style="color: #008080;">15</span>                     SheetData sheetData = worksheet.GetFirstChild&lt;SheetData&gt;<span style="color: #000000;">();
+</span><span style="color: #008080;">16</span> 
+<span style="color: #008080;">17</span> <span style="color: #000000;">                    SharedStringTablePart shareStringPart;
+</span><span style="color: #008080;">18</span>                     <span style="color: #0000ff;">if</span> (wbPart.GetPartsOfType&lt;SharedStringTablePart&gt;<span style="color: #000000;">().Any())
+</span><span style="color: #008080;">19</span>                         shareStringPart = wbPart.GetPartsOfType&lt;SharedStringTablePart&gt;<span style="color: #000000;">().First();
+</span><span style="color: #008080;">20</span>                     <span style="color: #0000ff;">else</span>
+<span style="color: #008080;">21</span>                         shareStringPart = wbPart.AddNewPart&lt;SharedStringTablePart&gt;<span style="color: #000000;">();
+</span><span style="color: #008080;">22</span>                     <span style="color: #008000;">//</span><span style="color: #008000;">假设模板第一行是Title不用动，把要用到的样式都定义在了第二行的单元格里</span>
+<span style="color: #008080;">23</span>                     <span style="color: #0000ff;">var</span> secondRow = sheetData.GetRow(<span style="color: #800080;">2</span><span style="color: #000000;">);
+</span><span style="color: #008080;">24</span>                     <span style="color: #0000ff;">uint</span>[] lineStyles = secondRow.Elements&lt;Cell&gt;().Select(c =&gt;<span style="color: #000000;"> c.StyleIndex.Value).ToArray();
+</span><span style="color: #008080;">25</span> <span style="color: #000000;">                    sheetData.RemoveChild(secondRow);
+</span><span style="color: #008080;">26</span>                     <span style="color: #008000;">//</span><span style="color: #008000;">从第二行开始循环插入4列1000数据</span>
+<span style="color: #008080;">27</span>                     <span style="color: #0000ff;">uint</span> currentRowIndex = <span style="color: #800080;">2</span><span style="color: #000000;">;
+</span><span style="color: #008080;">28</span>                     <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>;i&lt;<span style="color: #800080;">1000</span>;i++<span style="color: #000000;">)
+</span><span style="color: #008080;">29</span> <span style="color: #000000;">                    {
+</span><span style="color: #008080;">30</span>                         Row row = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Row();
+</span><span style="color: #008080;">31</span>                         row.RowIndex = currentRowIndex;<span style="color: #008000;">//</span><span style="color: #008000;">设置行号</span>
+<span style="color: #008080;">32</span>                         row.AppendChild(<span style="color: #0000ff;">new</span> Cell().SetValue(<span style="color: #800080;">1</span>, shareStringPart, styleIndex: lineStyles[<span style="color: #800080;">0</span><span style="color: #000000;">]));
+</span><span style="color: #008080;">33</span>                         row.AppendChild(<span style="color: #0000ff;">new</span> Cell().SetValue(DateTime.Now, shareStringPart, styleIndex: lineStyles[<span style="color: #800080;">1</span><span style="color: #000000;">]));
+</span><span style="color: #008080;">34</span>                         row.AppendChild(<span style="color: #0000ff;">new</span> Cell().SetValue(<span style="color: #800080;">3.1415926535</span>, shareStringPart, styleIndex: lineStyles[<span style="color: #800080;">2</span><span style="color: #000000;">]));
+</span><span style="color: #008080;">35</span>                         row.AppendChild(<span style="color: #0000ff;">new</span> Cell().SetValue(<span style="color: #800000;">"</span><span style="color: #800000;">通商宽衣</span><span style="color: #800000;">"</span>, shareStringPart, styleIndex: lineStyles[<span style="color: #800080;">3</span><span style="color: #000000;">]));<span style="color: #008000;">//</span><span style="color: #008000;">这里慢</span>
+</span><span style="color: #008080;">36</span> <span style="color: #000000;">                        sheetData.AppendChild(row);
+</span><span style="color: #008080;">37</span>                         currentRowIndex++<span style="color: #000000;">;
+</span><span style="color: #008080;">38</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">39</span> <span style="color: #000000;">                    wbPart.Workbook.Save();
+</span><span style="color: #008080;">40</span>                     doc.SaveAs($<span style="color: #800000;">@"</span><span style="color: #800000;">E:\Temp_{DateTime.Now.ToString(</span><span style="color: #800000;">"</span>yyMMddHHmm<span style="color: #800000;">"</span><span style="color: #800000;">)}.xlsx</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">41</span> <span style="color: #000000;">                    doc.Close();
+</span><span style="color: #008080;">42</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">43</span> <span style="color: #000000;">                mem.Close();
+</span><span style="color: #008080;">44</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">45</span>         }</pre>
+</div>
+<p>以上就生成了一个Excel打开不会报任何格式错误提示的标准.xlsx文件；但有需要<strong>优化的地方：在每次插入字符串的时候会去循环共享字符集，调用shareStringPart.GetItemValues().ToArray()可以将集合全部存到数组或Dictionary&lt;string,int&gt;里面会快很多，如果清楚集合内容就不用去判断重复了，当然也可以简单粗暴的保存为CellValues.InlineString，这样在重复字符串比较多的时候两种方式所生成的文件大小会有很大差异</strong>。</p>
+</div>
+<h2>&nbsp;3.快速遍历</h2>
+<div>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> Read()
+</span><span style="color: #008080;"> 2</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 3</span>             <span style="color: #0000ff;">using</span> (<span style="color: #0000ff;">var</span> sd = SpreadsheetDocument.Open(<span style="color: #800000;">@"</span><span style="color: #800000;">E:\temp.xlsx</span><span style="color: #800000;">"</span>, <span style="color: #0000ff;">false</span><span style="color: #000000;">))
+</span><span style="color: #008080;"> 4</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 5</span>                 WorkbookPart wbPart =<span style="color: #000000;"> sd.WorkbookPart;
+</span><span style="color: #008080;"> 6</span> <span style="color: #000000;">                SharedStringTablePart shareStringPart;
+</span><span style="color: #008080;"> 7</span>                 <span style="color: #0000ff;">if</span> (wbPart.GetPartsOfType&lt;SharedStringTablePart&gt;().Count() &gt; <span style="color: #800080;">0</span><span style="color: #000000;">)
+</span><span style="color: #008080;"> 8</span>                     shareStringPart = wbPart.GetPartsOfType&lt;SharedStringTablePart&gt;<span style="color: #000000;">().First();
+</span><span style="color: #008080;"> 9</span>                 <span style="color: #0000ff;">else</span>
+<span style="color: #008080;">10</span>                     shareStringPart = wbPart.AddNewPart&lt;SharedStringTablePart&gt;<span style="color: #000000;">();
+</span><span style="color: #008080;">11</span>                 <span style="color: #0000ff;">string</span>[] shareStringItemValues =<span style="color: #000000;"> shareStringPart.GetItemValues().ToArray();
+</span><span style="color: #008080;">12</span> 
+<span style="color: #008080;">13</span>                 WorksheetPart worksheetPart =<span style="color: #000000;"> wbPart.WorksheetParts.First();
+</span><span style="color: #008080;">14</span>                 <span style="color: #0000ff;">uint</span> dataRowStart = <span style="color: #800080;">2</span>;<span style="color: #008000;">//</span><span style="color: #008000;">数据开始行</span>
+<span style="color: #008080;">15</span>                 OpenXmlReader reader =<span style="color: #000000;"> OpenXmlReader.Create(worksheetPart);
+</span><span style="color: #008080;">16</span>                 <span style="color: #0000ff;">while</span><span style="color: #000000;"> (reader.Read())
+</span><span style="color: #008080;">17</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">18</span>                     <span style="color: #0000ff;">if</span> (reader.ElementType == <span style="color: #0000ff;">typeof</span><span style="color: #000000;">(Worksheet))
+</span><span style="color: #008080;">19</span> <span style="color: #000000;">                    {
+</span><span style="color: #008080;">20</span> <span style="color: #000000;">                        reader.ReadFirstChild();
+</span><span style="color: #008080;">21</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">22</span> 
+<span style="color: #008080;">23</span>                     <span style="color: #0000ff;">if</span> (reader.ElementType == <span style="color: #0000ff;">typeof</span><span style="color: #000000;">(Row))
+</span><span style="color: #008080;">24</span> <span style="color: #000000;">                    {
+</span><span style="color: #008080;">25</span>                         Row r =<span style="color: #000000;"> (Row)reader.LoadCurrentElement();
+</span><span style="color: #008080;">26</span>                         <span style="color: #0000ff;">if</span> (r.RowIndex &lt;<span style="color: #000000;"> dataRowStart)
+</span><span style="color: #008080;">27</span>                             <span style="color: #0000ff;">continue</span><span style="color: #000000;">;
+</span><span style="color: #008080;">28</span>                         <span style="color: #0000ff;">foreach</span> (Cell c <span style="color: #0000ff;">in</span> r.Elements&lt;Cell&gt;<span style="color: #000000;">())
+</span><span style="color: #008080;">29</span> <span style="color: #000000;">                        {
+</span><span style="color: #008080;">30</span>                             <span style="color: #0000ff;">if</span> (c.CellReference != <span style="color: #0000ff;">null</span> &amp;&amp;<span style="color: #000000;"> c.CellReference.HasValue)
+</span><span style="color: #008080;">31</span> <span style="color: #000000;">                            {
+</span><span style="color: #008080;">32</span>                                 <span style="color: #0000ff;">string</span> cv =<span style="color: #000000;"> c.GetValue(shareStringItemValues);
+</span><span style="color: #008080;">33</span> <span style="color: #000000;">                                Console.WriteLine(cv);
+</span><span style="color: #008080;">34</span>                                 <span style="color: #0000ff;">if</span> (c.CellReference.Value == <span style="color: #800000;">"</span><span style="color: #800000;">B</span><span style="color: #800000;">"</span> +<span style="color: #000000;"> r.RowIndex)
+</span><span style="color: #008080;">35</span>                                     Console.WriteLine(<span style="color: #800000;">"</span><span style="color: #800000;">刚读取的是B列</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">36</span> <span style="color: #000000;">                            }
+</span><span style="color: #008080;">37</span> <span style="color: #000000;">                        }
+</span><span style="color: #008080;">38</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">39</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">40</span> <span style="color: #000000;">                sd.Close();
+</span><span style="color: #008080;">41</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">42</span>         }</pre>
+</div>
+<h2>4.总结</h2>
+<p>&nbsp;</p>
+<p>DocumentFormat.OpenXml不友好但操作透明，使用前最好先自行封装下，习惯之后相信能用的很爽。</p>
+<p>以上です。</p>
+</div>
+<div>原文：<a id="Editor_Edit_hlEntryLink" title="view: DocumentFormat.OpenXml 操作 Excel" href="https://www.cnblogs.com/CameronWu/p/10658198.html" target="_blank">https://www.cnblogs.com/CameronWu/p/10658198.html</a></div>
+</div>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

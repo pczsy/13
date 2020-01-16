@@ -1,0 +1,67 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C#实现将字符串转换成代码并执行' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C#实现将字符串转换成代码并执行</center></div><div class='banquan'>原文出处:本文由博客园博主此坑已满提供。<br/>
+原文连接:https://www.cnblogs.com/ckym/p/11624947.html</div><br>
+    <p>我们在写JavaScript程序的时候，有一个函数很有趣，eval()，这个方法非常有趣，他可以编译他内部的字符串，并将字符串按照JS代码执行，例如eval(&lsquo;alert(&ldquo;message&rdquo;)&rsquo;)，执行的结果就是弹窗打印出message这个信息。如下图</p>
+<p>&nbsp;<img src="./images/C#实现将字符串转换成代码并执行0.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>最近我在用C#写一个功能的时候的时候也遇到相似的需求，我的要求是自定义一个对字符串的验证代码，在程序执行的过程中对自定义的代码进行编译并执行，最后返回执行的结果。自定义的验证代码可以保存在文件中，也可以保存到数据库中，在需要的时候取出验证的代码，并执行。</p>
+<p>要执行这样的功能可以有几种方案可以实现。</p>
+<p>方案一、</p>
+<p>通过拼接字符串的方式，生成一个cs类文件，再使用反射的方式调用此cs文件即可，此方式最简单，只需要熟练使用反射的相关知识即可。</p>
+<p>方案二、</p>
+<p>使用CSharpCodeProvider对象来解析字符串并通过反射的方式执行。</p>
+<p>上面两种方案都需要熟练使用反射的技术，方案一相对来说比较简单，这里主要学习使用方案二来是实现相关功能。</p>
+<p>使用方案二需要了解以下几个类。</p>
+<p>CSharpCodeProvider, ICodeCompiler, CompilerParameters, CompilerResults</p>
+<p>下面是一个示例程序</p>
+<p align="left">//1.创建CSharpCodeProvider的实例</p>
+<p align="left">CSharpCodeProvider cs = new CSharpCodeProvider();</p>
+<p align="left">//2.创建一个ICodeComplier对象</p>
+<p align="left">ICodeCompiler cc = cs.CreateCompiler();</p>
+<p align="left">//3.创建一个CompilerParameters的实例</p>
+<p align="left">CompilerParameters cp = new CompilerParameters();</p>
+<p align="left">cp.GenerateInMemory = true;//设定在内存中创建程序集</p>
+<p align="left">cp.GenerateExecutable = false;//设定是否创建可执行文件,也就是exe文件或者dll文件</p>
+<p align="left">cp.ReferencedAssemblies.Add("System.dll");//此处代码是添加对应dll文件的引用</p>
+<p align="left">cp.ReferencedAssemblies.Add("System.Core.dll");//System.Linq存在于System.Core.dll文件中</p>
+<p align="left">//4.创建CompilerResults的实例</p>
+<p align="left">string strExpre= "using System;using System.Collections.Generic;using System.Linq;using System.Text;using System.Threading.Tasks;namespace DynamicCompileTest{public class TestClass1{public bool CheckBool(string source){ return source.Contains(\"SC\"); }}}";</p>
+<p align="left">CompilerResults cr = cc.CompileAssemblyFromSource(cp, strExpre);</p>
+<p align="left">&nbsp;&nbsp; if (cr.Errors.HasErrors)</p>
+<p align="left">&nbsp;&nbsp; {</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Console.WriteLine(cr.Errors.ToString());</p>
+<p align="left">&nbsp; &nbsp;}</p>
+<p align="left">&nbsp;&nbsp; else</p>
+<p align="left">&nbsp;&nbsp; {</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //5.创建一个Assembly对象</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Assembly ass = cr.CompiledAssembly;//动态编译程序集</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; object obj = ass.CreateInstance("DynamicCompileTest.TestClass1");</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; MethodInfo mi = obj.GetType().GetMethod("CheckBool");</p>
+<p align="left">&nbsp;</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; bool result = (bool)mi.Invoke(obj, new object[] { "LYF" });</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp; }</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; Console.ReadKey();</p>
+<p>总体来说，两个方案都是通过拼接字符串最后形成可执行的代码来实现的，与我们平时在VS中写代码的方式相同。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

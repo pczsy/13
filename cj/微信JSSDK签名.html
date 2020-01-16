@@ -1,0 +1,378 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修微信JSSDK签名' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>微信JSSDK签名</center></div><div class='banquan'>原文出处:本文由博客园博主DotNet看世界提供。<br/>
+原文连接:https://www.cnblogs.com/p1024q/p/11323631.html</div><br>
+    <h3 id="title" class="weui-desktop-page__title">微信JS-SDK说明文档</h3>
+<p>&nbsp; &nbsp; &nbsp;https://mp.weixin.qq.com/wiki?t=resource/res_main&amp;id=mp1421141115</p>
+<h3>生成签名</h3>
+<h4>&nbsp; &nbsp;1.签名规则</h4>
+<p>&nbsp; &nbsp; 参与签名的字段包括noncestr（随机字符串）, 有效的jsapi_ticket, timestamp（时间戳）, url（当前网页的URL，不包含#及其后面部分） 。</p>
+<p>&nbsp; &nbsp; 对所有待签名参数按照字段名的ASCII 码从小到大排序（字典序）后，使用URL键值对的格式（即key1=value1&amp;key2=value2&hellip;）拼接成字符串string1。</p>
+<p>&nbsp; &nbsp; 这里需要注意的是所有参数名均为小写字符。对string1作sha1加密，字段名和字段值都采用原始值，不进行URL 转义。</p>
+<h4>&nbsp; &nbsp;2.注意事项</h4>
+<p>&nbsp; &nbsp; 1.签名用的noncestr和timestamp必须与wx.config中的nonceStr和timestamp相同。</p>
+<p>&nbsp; &nbsp; 2.签名用的url必须是调用JS接口页面的完整URL。</p>
+<p>&nbsp; &nbsp; 3.出于安全考虑，开发者必须在服务器端实现签名的逻辑。</p>
+<p>&nbsp; &nbsp; 4.调用接口时，请登录&ldquo;微信公众平台-开发-基本配置&rdquo;提前将服务器IP地址添加到IP白名单中，点击查看设置方法，否则将无法调用成功。小程序无需配置IP白名单。</p>
+<h4>&nbsp; &nbsp;3.签名逻辑</h4>
+<p>&nbsp; &nbsp; 所知，签名字段有noncestr，jsapi_ticket，timestamp，url。那这四个值怎么来呢？</p>
+<p>&nbsp; &nbsp; noncestr：随机字符串，可以直接生成。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">string</span> nonceStr=Guid.NewGuid().ToString(<span style="color: #800000;">"</span><span style="color: #800000;">N</span><span style="color: #800000;">"</span>);</pre>
+</div>
+<p>&nbsp; &nbsp; jsapi_ticket：公众号用于调用微信JS接口的临时票据（签名密钥）。正常情况下，jsapi_ticket的有效期为7200秒，通过access_token来获取。由于获取jsapi_ticket的api调用次数非常有限，频繁刷新jsapi_ticket会导致api调用受限，影响自身业务，开发者必须在自己的服务全局缓存jsapi_ticket 。</p>
+<p>&nbsp; &nbsp; 获取jsapi_ticket时就要用到access_token了，access_token是公众号的全局唯一接口调用凭据，公众号调用各接口时都需使用access_token。</p>
+<p>&nbsp; &nbsp; 我们可以通过下面的接口取得access_token</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">https请求方式: GET
+https:</span><span style="color: #008000;">//</span><span style="color: #008000;">api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&amp;appid=APPID&amp;secret=APPSECRET</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>&nbsp; &nbsp; 这里要用到3个参数（grant_type，appid，secret）;</p>
+<table style="height: 88px; float: left; width: 844px;" border="0">
+<tbody>
+<tr>
+<td style="text-align: center;">参数</td>
+<td style="text-align: center;">是否必须</td>
+<td style="text-align: center;">说明</td>
+</tr>
+<tr>
+<td style="text-align: center;">grant_type</td>
+<td style="text-align: center;">是</td>
+<td style="text-align: center;">获取access_token填写client_credential</td>
+</tr>
+<tr>
+<td style="text-align: center;">appid</td>
+<td style="text-align: center;">是</td>
+<td style="text-align: center;">第三方用户唯一凭证</td>
+</tr>
+<tr>
+<td style="text-align: center;">secret</td>
+<td style="text-align: center;">是</td>
+<td style="text-align: center;">第三方用户唯一凭证密钥，即appsecret</td>
+</tr>
+</tbody>
+</table>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp; &nbsp; 其中，grant_type的值即为client_credential，AppID和AppSecret可在&ldquo;微信公众平台-开发-基本配置&rdquo;页中获得（需要已经成为开发者，且帐号没有异常状态）。</p>
+<p>&nbsp; &nbsp; 我在上篇随笔记录了AppID和AppSecret的获取方式，链接如下:</p>
+<p>&nbsp; &nbsp; &nbsp;https://www.cnblogs.com/p1024q/p/11321864.html</p>
+<p>&nbsp; &nbsp;&nbsp;正常情况下，微信会返回如下JSON数据</p>
+<div class="cnblogs_code">
+<pre><code>{<span style="color: #800000;">"</span><span style="color: #800000;">access_token</span><span style="color: #800000;">"</span>:<span style="color: #800000;">"</span><span style="color: #800000;">ACCESS_TOKEN</span><span style="color: #800000;">"</span>,<span style="color: #800000;">"</span><span style="color: #800000;">expires_in</span><span style="color: #800000;">"</span>:<span style="color: #800080;">7200</span>}</pre>
+</div>
+<p>&nbsp; &nbsp; 其中,&nbsp;access_token的值就是我们要用的值，expires_in 是凭证有效时间（7200秒）</p>
+<p>&nbsp; &nbsp; 取到access_token后，要将值存到缓存不大于7200秒，再调用下面的接口</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">http请求方式: GET
+https:</span><span style="color: #008000;">//</span><span style="color: #008000;">api.weixin.qq.com/cgi-bin/ticket/getticket?access_token=ACCESS_TOKEN&amp;type=jsapi</span></pre>
+</div>
+<p>&nbsp; &nbsp;成功则返回如下JSON</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">{
+</span><span style="color: #800000;">"</span><span style="color: #800000;">errcode</span><span style="color: #800000;">"</span>:<span style="color: #800080;">0</span><span style="color: #000000;">,
+</span><span style="color: #800000;">"</span><span style="color: #800000;">errmsg</span><span style="color: #800000;">"</span>:<span style="color: #800000;">"</span><span style="color: #800000;">ok</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+</span><span style="color: #800000;">"</span><span style="color: #800000;">ticket</span><span style="color: #800000;">"</span>:<span style="color: #800000;">"</span><span style="color: #800000;">bxLdikRXVbTPdHSM05e5u5sUoXNKd8-41ZO3MhKoyN5OfkWITDGgnr2fwJ0m9E8NYzWKVZvdVtaUgWvsdshFKA</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+</span><span style="color: #800000;">"</span><span style="color: #800000;">expires_in</span><span style="color: #800000;">"</span>:<span style="color: #800080;">7200</span><span style="color: #000000;">
+}</span></pre>
+</div>
+<p>&nbsp; &nbsp;ticket值就是要用的jsapi_ticket。</p>
+<p>&nbsp; &nbsp; timestamp：时间戳.。</p>
+<p>&nbsp; &nbsp;&nbsp;url：当前网页的URL，不包含#及其后面部分。作为接口请求参数通过前端传过来。</p>
+<p>&nbsp; &nbsp;有了这四个值，就能根据签名规则进行签名，得到签名值<code>signature。</code></p>
+<p>&nbsp; &nbsp;签名成功，需要返回下面几个参数给前端作验签使用。</p>
+<table style="height: 88px; float: left; width: 960px;" border="0">
+<tbody>
+<tr>
+<td style="text-align: center;">参数名</td>
+<td style="text-align: center;">类型</td>
+<td style="text-align: center;">说明</td>
+</tr>
+<tr>
+<td style="text-align: center;">timestamp</td>
+<td style="text-align: center;">int</td>
+<td style="text-align: center;">生成签名的时间戳</td>
+</tr>
+<tr>
+<td style="text-align: center;">noncestr</td>
+<td style="text-align: center;">string</td>
+<td style="text-align: center;">生成签名的随机串</td>
+</tr>
+<tr>
+<td style="text-align: center;">signature</td>
+<td style="text-align: center;">string</td>
+<td style="text-align: center;">签名</td>
+</tr>
+</tbody>
+</table>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp; &nbsp;废话不多说，直接上后端签名代码：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">static</span> NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();<span style="color: #008000;">//</span><span style="color: #008000;">日志</span>
+<span style="color: #008080;"> 2</span> 
+<span style="color: #008080;"> 3</span> <span style="color: #0000ff;">public</span> WXShare GetWxShareInfo(<span style="color: #0000ff;">string</span><span style="color: #000000;"> url)
+</span><span style="color: #008080;"> 4</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 5</span>             DateTime now =<span style="color: #000000;"> DateTime.Now;
+</span><span style="color: #008080;"> 6</span>             <span style="color: #0000ff;">var</span> timestamp = DateTimeHelper.GetTimeStamp(now);<span style="color: #008000;">//</span><span style="color: #008000;">取十位时间戳</span>
+<span style="color: #008080;"> 7</span>             <span style="color: #0000ff;">var</span> guid = Guid.NewGuid().ToString(<span style="color: #800000;">"</span><span style="color: #800000;">N</span><span style="color: #800000;">"</span>);<span style="color: #008000;">//</span><span style="color: #008000;">随机串</span>
+<span style="color: #008080;"> 8</span>             <span style="color: #0000ff;">var</span> ticket = <span style="color: #800000;">""</span><span style="color: #000000;">;<span style="color: #008000;">//签名密钥
+</span></span><span style="color: #008080;"> 9</span>             <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">10</span>                 WXShare s= <span style="color: #0000ff;">new</span><span style="color: #000000;"> WXShare();
+</span><span style="color: #008080;">11</span> <span style="color: #008000;">//</span><span style="color: #008000;">取缓存中的Ticket，没有则重新生成Ticket值（也可以将Ticket值保存到文件中，此时从文件中读取Ticket）</span>
+<span style="color: #008080;">12</span>                 WxShareCache Cache = <span style="color: #0000ff;">new</span> WxShareCache(Key).GetCache&lt;WxShareCache&gt;<span style="color: #000000;">();
+</span><span style="color: #008080;">13</span>                 <span style="color: #0000ff;">if</span> (Cache == <span style="color: #0000ff;">null</span> || <span style="color: #0000ff;">string</span><span style="color: #000000;">.IsNullOrWhiteSpace(Cache.Ticket)) {
+</span><span style="color: #008080;">14</span>                     Cache = <span style="color: #0000ff;">new</span><span style="color: #000000;"> WxShareCache(Key);
+</span><span style="color: #008080;">15</span>                     Cache.Ticket = GetTicket();<span style="color: #008000;">//</span><span style="color: #008000;">获取Ticket值</span>
+<span style="color: #008080;">16</span> <span style="color: #000000;">                    Cache.SetCache(Cache);<span style="color: #008000;">//添加缓存
+</span></span><span style="color: #008080;">17</span>                     ticket =<span style="color: #000000;"> Cache.Ticket;
+</span><span style="color: #008080;">18</span>                 } <span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">19</span>                     ticket =<span style="color: #000000;"> Cache.Ticket;
+</span><span style="color: #008080;">20</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">21</span>                 url = HttpUtility.UrlDecode(url);<span style="color: #008000;">//</span><span style="color: #008000;">url解码</span>
+<span style="color: #008080;">22</span>                 <span style="color: #0000ff;">string</span> sign =<span style="color: #000000;"> GetSignature(ticket,guid,timestamp,url);
+</span><span style="color: #008080;">23</span>                 s.noncestr =<span style="color: #000000;"> guid;
+</span><span style="color: #008080;">24</span>                 s.timestamp =<span style="color: #000000;"> timestamp;
+</span><span style="color: #008080;">25</span>                 s.sign =<span style="color: #000000;"> sign;
+</span><span style="color: #008080;">26</span>                 logger.Warn($<span style="color: #800000;">"</span><span style="color: #800000;">url:{url},时间戳:{timestamp},随机数:{guid},ticket:{ticket},sign值:{sign}</span><span style="color: #800000;">"</span>);<span style="color: #008000;">//</span><span style="color: #008000;">记录日志</span>
+<span style="color: #008080;">27</span>                 <span style="color: #0000ff;">return</span><span style="color: #000000;"> s;
+</span><span style="color: #008080;">28</span>             } <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception ex) {
+</span><span style="color: #008080;">29</span> <span style="color: #000000;">                logger.Warn(ex);
+</span><span style="color: #008080;">30</span>                 <span style="color: #0000ff;">throw</span><span style="color: #000000;"> ex;
+</span><span style="color: #008080;">31</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">32</span>         }</pre>
+</div>
+<p>&nbsp;</p>
+<p>&nbsp; &nbsp;返回给前端的对象</p>
+<div class="cnblogs_code">
+<pre><code>        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 返回实体
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> WXShare
+        {
+            </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+            <span style="color: #808080;">///</span><span style="color: #008000;"> 随机码
+            </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+            <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> noncestr { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+            </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+            <span style="color: #808080;">///</span><span style="color: #008000;"> 时间戳
+            </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+            <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span> timestamp { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+           </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+           <span style="color: #808080;">///</span><span style="color: #008000;"> 签名值
+           </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+            <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> signature { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+        }</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>时间戳</p>
+<div class="cnblogs_code">
+<pre><code>        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 十位时间戳
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="dt"&gt;&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> GetTimeStamp(DateTime dt)
+        {
+            DateTime dateStart </span>= <span style="color: #0000ff;">new</span> DateTime(<span style="color: #800080;">1970</span>, <span style="color: #800080;">1</span>, <span style="color: #800080;">1</span>, <span style="color: #800080;">8</span>, <span style="color: #800080;">0</span>, <span style="color: #800080;">0</span><span style="color: #000000;">);
+            </span><span style="color: #0000ff;">int</span> timeStamp = Convert.ToInt32((dt -<span style="color: #000000;"> dateStart).TotalSeconds);
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> timeStamp;
+        }</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>请求方法</p>
+<div class="cnblogs_code">
+<pre><code>        <span style="color: #008000;">//</span><span style="color: #008000;">请求基类</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> HttpClient _client = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span><span style="color: #000000;"> HttpClient Client {
+            </span><span style="color: #0000ff;">get</span><span style="color: #000000;"> {
+                </span><span style="color: #0000ff;">if</span> (_client == <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+                    </span><span style="color: #0000ff;">var</span> handler = <span style="color: #0000ff;">new</span><span style="color: #000000;"> HttpClientHandler() {
+                        AutomaticDecompression </span>=<span style="color: #000000;"> DecompressionMethods.GZip,
+                        AllowAutoRedirect </span>= <span style="color: #0000ff;">false</span><span style="color: #000000;">,
+                        UseCookies </span>= <span style="color: #0000ff;">false</span><span style="color: #000000;">,
+                    };
+                    _client </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> HttpClient(handler);
+                    _client.Timeout </span>= TimeSpan.FromSeconds(<span style="color: #800080;">5</span><span style="color: #000000;">);
+                    _client.DefaultRequestHeaders.Add(</span><span style="color: #800000;">"</span><span style="color: #800000;">Accept</span><span style="color: #800000;">"</span>,<span style="color: #800000;">"</span><span style="color: #800000;">application/json</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+
+                }
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> _client;
+            }
+        }</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>签名密钥</p>
+<div class="cnblogs_code">
+<pre><code>        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> GetTicket
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">string</span><span style="color: #000000;"> GetTicket()
+        {
+            </span><span style="color: #0000ff;">string</span> token =<span style="color: #000000;"> GetAccessToken();<span style="color: #008000;">//获取AccessToken</span>
+            IDictionary</span>&lt;<span style="color: #0000ff;">string</span>,<span style="color: #0000ff;">string</span>&gt; dic = <span style="color: #0000ff;">new</span> Dictionary&lt;<span style="color: #0000ff;">string</span>,<span style="color: #0000ff;">string</span>&gt;<span style="color: #000000;">();
+            dic[</span><span style="color: #800000;">"</span><span style="color: #800000;">access_token</span><span style="color: #800000;">"</span>] =<span style="color: #000000;"> token;
+            dic[</span><span style="color: #800000;">"</span><span style="color: #800000;">type</span><span style="color: #800000;">"</span>] = <span style="color: #800000;">"</span><span style="color: #800000;">jsapi</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            FormUrlEncodedContent content </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> FormUrlEncodedContent(dic);
+            </span><span style="color: #0000ff;">var</span> response = Client.PostAsync(<span style="color: #800000;">"</span><span style="color: #800000;">https://api.weixin.qq.com/cgi-bin/ticket/getticket</span><span style="color: #800000;">"</span><span style="color: #000000;">,content).Result;
+            </span><span style="color: #0000ff;">if</span> (response.StatusCode !=<span style="color: #000000;"> HttpStatusCode.OK)
+                </span><span style="color: #0000ff;">return</span> <span style="color: #800000;">""</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">var</span> result =<span style="color: #000000;"> response.Content.ReadAsStringAsync().Result;
+            JObject obj </span>=<span style="color: #000000;"> JObject.Parse(result);
+            </span><span style="color: #0000ff;">string</span> ticket = obj[<span style="color: #800000;">"</span><span style="color: #800000;">ticket</span><span style="color: #800000;">"</span>]?.ToString()??<span style="color: #800000;">""</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> ticket;
+        }</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>AccessToken</p>
+<div class="cnblogs_code">
+<pre><code>        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> GetAccessToken
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">string</span><span style="color: #000000;"> GetAccessToken()
+        {
+            IDictionary</span>&lt;<span style="color: #0000ff;">string</span>,<span style="color: #0000ff;">string</span>&gt; dic = <span style="color: #0000ff;">new</span> Dictionary&lt;<span style="color: #0000ff;">string</span>,<span style="color: #0000ff;">string</span>&gt;<span style="color: #000000;">();
+            dic[</span><span style="color: #800000;">"</span><span style="color: #800000;">grant_type</span><span style="color: #800000;">"</span>] = <span style="color: #800000;">"</span><span style="color: #800000;">client_credential</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            dic[</span><span style="color: #800000;">"</span><span style="color: #800000;">appid</span><span style="color: #800000;">"</span>] = <span style="color: #800000;">""</span>;<span style="color: #008000;">//</span><span style="color: #008000;">自己的appid</span>
+            dic[<span style="color: #800000;">"</span><span style="color: #800000;">secret</span><span style="color: #800000;">"</span>] = <span style="color: #800000;">""</span>;<span style="color: #008000;">//</span><span style="color: #008000;">自己的appsecret</span>
+<span style="color: #000000;">
+            FormUrlEncodedContent content </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> FormUrlEncodedContent(dic);
+            </span><span style="color: #0000ff;">var</span> response = Client.PostAsync(<span style="color: #800000;">"</span><span style="color: #800000;">https://api.weixin.qq.com/cgi-bin/token</span><span style="color: #800000;">"</span><span style="color: #000000;">,content).Result;
+            </span><span style="color: #0000ff;">if</span> (response.StatusCode !=<span style="color: #000000;"> HttpStatusCode.OK)
+                </span><span style="color: #0000ff;">return</span> <span style="color: #800000;">""</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">var</span> result =<span style="color: #000000;"> response.Content.ReadAsStringAsync().Result;
+            JObject obj </span>=<span style="color: #000000;"> JObject.Parse(result);
+            </span><span style="color: #0000ff;">string</span> token = obj[<span style="color: #800000;">"</span><span style="color: #800000;">access_token</span><span style="color: #800000;">"</span>]?.ToString()??<span style="color: #800000;">""</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> token;
+        }</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>签名算法</p>
+<div class="cnblogs_code">
+<pre><code>        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 签名算法
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="ticket"&gt;</span><span style="color: #008000;">ticket</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="noncestr"&gt;</span><span style="color: #008000;">随机字符串</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="timestamp"&gt;</span><span style="color: #008000;">时间戳</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="url"&gt;&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">string</span> GetSignature(<span style="color: #0000ff;">string</span> ticket,<span style="color: #0000ff;">string</span> noncestr,<span style="color: #0000ff;">long</span> timestamp,<span style="color: #0000ff;">string</span><span style="color: #000000;"> url)
+        {
+            </span><span style="color: #0000ff;">var</span> string1Builder = <span style="color: #0000ff;">new</span><span style="color: #000000;"> StringBuilder();
+</span><span style="color: #008000;">            //</span><span style="color: #008000;">拼接字符串</span>
+            string1Builder.Append(<span style="color: #800000;">"</span><span style="color: #800000;">jsapi_ticket=</span><span style="color: #800000;">"</span>).Append(ticket).Append(<span style="color: #800000;">"</span><span style="color: #800000;">&amp;</span><span style="color: #800000;">"</span><span style="color: #000000;">)
+                          .Append(</span><span style="color: #800000;">"</span><span style="color: #800000;">noncestr=</span><span style="color: #800000;">"</span>).Append(noncestr).Append(<span style="color: #800000;">"</span><span style="color: #800000;">&amp;</span><span style="color: #800000;">"</span><span style="color: #000000;">)
+                          .Append(</span><span style="color: #800000;">"</span><span style="color: #800000;">timestamp=</span><span style="color: #800000;">"</span>).Append(timestamp).Append(<span style="color: #800000;">"</span><span style="color: #800000;">&amp;</span><span style="color: #800000;">"</span><span style="color: #000000;">)
+                          .Append(</span><span style="color: #800000;">"</span><span style="color: #800000;">url=</span><span style="color: #800000;">"</span>).Append(url.IndexOf(<span style="color: #800000;">"</span><span style="color: #800000;">#</span><span style="color: #800000;">"</span>) &gt;= <span style="color: #800080;">0</span> ? url.Substring(<span style="color: #800080;">0</span>,url.IndexOf(<span style="color: #800000;">"</span><span style="color: #800000;">#</span><span style="color: #800000;">"</span><span style="color: #000000;">)) : url);
+            </span><span style="color: #0000ff;">string</span> str =<span style="color: #000000;"> string1Builder.ToString();
+            </span><span style="color: #0000ff;">return</span> SHA1(str);<span style="color: #008000;">//</span><span style="color: #008000;">加密</span>
+        }</pre>
+</div>
+<p>&nbsp;</p>
+<p>SHA1加密</p>
+<div class="cnblogs_code">
+<pre><code>        
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">string</span> SHA1(<span style="color: #0000ff;">string</span><span style="color: #000000;"> content)
+        {
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> SHA1(content,Encoding.UTF8);
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> SHA1 加密
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="content"&gt;</span><span style="color: #008000;">需要加密字符串</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="encode"&gt;</span><span style="color: #008000;">指定加密编码</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;</span><span style="color: #008000;">返回40位小写字符串</span><span style="color: #808080;">&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">string</span> SHA1(<span style="color: #0000ff;">string</span><span style="color: #000000;"> content,Encoding encode)
+        {
+            </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+                SHA1 sha1 </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> SHA1CryptoServiceProvider();
+                </span><span style="color: #0000ff;">byte</span>[] bytes_in =<span style="color: #000000;"> encode.GetBytes(content);
+                </span><span style="color: #0000ff;">byte</span>[] bytes_out =<span style="color: #000000;"> sha1.ComputeHash(bytes_in);
+                sha1.Dispose();
+                </span><span style="color: #0000ff;">string</span> result =<span style="color: #000000;"> BitConverter.ToString(bytes_out);
+                result </span>= result.Replace(<span style="color: #800000;">"</span><span style="color: #800000;">-</span><span style="color: #800000;">"</span>,<span style="color: #800000;">""</span>).ToLower();<span style="color: #008000;">//</span><span style="color: #008000;">转小写</span>
+                <span style="color: #0000ff;">return</span><span style="color: #000000;"> result;
+            } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception ex) {
+                </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> Exception(<span style="color: #800000;">"</span><span style="color: #800000;">SHA1加密出错：</span><span style="color: #800000;">"</span> +<span style="color: #000000;"> ex.Message);
+            }
+        }</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h3>前端验签</h3>
+<h4>&nbsp; &nbsp;1.引入JS文件</h4>
+<p>&nbsp; &nbsp;&nbsp;在需要调用JS接口的页面引入如下JS文件，（支持https）：<a href="http://res.wx.qq.com/open/js/jweixin-1.4.0.js">http://res.wx.qq.com/open/js/jweixin-1.4.0.js</a></p>
+<h4>&nbsp; &nbsp;2.调用后端接口并注入权限验证</h4>
+<div class="cnblogs_code">
+<pre><code>$(<span style="color: #0000ff;">function</span><span style="color: #000000;">(){  </span>
+    <span style="color: #0000ff;">var</span> url=encodeURIComponent(location.href.split('#')[0]); <span style="color: #008000;">//</span><span style="color: #008000;">对当前url编码</span>
+    <span style="color: #008000;">//</span><span style="color: #008000;">ajax注入权限验证  </span>
+<span style="color: #000000;">    $.ajax({  
+        url:</span>"ajax"<span style="color: #000000;">,  
+        type:</span>'GET'<span style="color: #000000;">,
+        data: {url:url},   
+        error: </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(XMLHttpRequest, textStatus, errorThrown){  
+            alert(</span>"发生错误："+<span style="color: #000000;">errorThrown);  
+        },  
+        success: </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(res){
+            </span><span style="color: #0000ff;">var</span> appId = "";<span style="color: #008000;">//</span><span style="color: #008000;">与后端的appid相同  </span>
+            <span style="color: #0000ff;">var</span> noncestr =<span style="color: #000000;"> res.noncestr;  
+            </span><span style="color: #0000ff;">var</span> timestamp =<span style="color: #000000;"> res.timestamp;  
+            </span><span style="color: #0000ff;">var</span> signature =<span style="color: #000000;"> res.signature;  
+            wx.config({  
+                debug: </span><span style="color: #0000ff;">true</span>, <span style="color: #008000;">//</span><span style="color: #008000;">开启调试模式,调用的所有api的返回值会在客户端alert出来，若要查看传入的参数，可以在pc端打开，参数信息会通过log打出，仅在pc端时才会打印。  </span>
+                appId: appId, <span style="color: #008000;">//</span><span style="color: #008000;">必填，公众号的唯一标识  </span>
+                timestamp: timestamp, <span style="color: #008000;">//</span><span style="color: #008000;"> 必填，生成签名的时间戳  </span>
+                nonceStr: noncestr, <span style="color: #008000;">//</span><span style="color: #008000;">必填，生成签名的随机串  </span>
+                signature: signature,<span style="color: #008000;">//</span><span style="color: #008000;"> 必填，签名  </span>
+                jsApiList: ['onMenuShareTimeline','onMenuShareAppMessage','onMenuShareQQ'<span style="color: #000000;">,  
+                            </span>'onMenuShareWeibo','onMenuShareQZone','chooseImage'<span style="color: #000000;">,  
+                            </span>'uploadImage','downloadImage','startRecord','stopRecord'<span style="color: #000000;">,  
+                            </span>'onVoiceRecordEnd','playVoice','pauseVoice','stopVoice'<span style="color: #000000;">,  
+                            </span>'translateVoice','openLocation','getLocation','hideOptionMenu'<span style="color: #000000;">,  
+                            </span>'showOptionMenu','closeWindow','hideMenuItems','showMenuItems'<span style="color: #000000;">,  
+                            </span>'showAllNonBaseMenuItem','hideAllNonBaseMenuItem','scanQRCode'] <span style="color: #008000;">//</span><span style="color: #008000;">必填，需要使用的JS接口列表，所有JS接口列表   </span>
+<span style="color: #000000;">            });  
+        }  
+    });  
+  
+}); </span></pre>
+</div>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp; &nbsp; 至此，后端签名，前端验签过程结束。</p>
+<p>&nbsp; &nbsp; 在这过程中，掉过几次坑。最让我印象深刻的是测试的时候怎么样都是签名错误（返回invalid signature）。考虑到可能是url的问题，所以在前端做了编码，后端做了解码，然后验签成功。</p>
+<p>&nbsp; &nbsp; 测试签名正确与否，微信有个校验工具，如下：</p>
+<p>&nbsp; &nbsp;&nbsp;https://mp.weixin.qq.com/debug/cgi-bin/sandbox?t=jsapisign</p>
+<p>&nbsp; &nbsp; 将签名的四个参数输入，生成的签名与后端生成的签名作对比，sign值一致说明签名是正确的，不一致就需要检查程序逻辑问题了。</p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

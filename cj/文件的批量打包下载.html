@@ -1,0 +1,124 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修文件的批量打包下载' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>文件的批量打包下载</center></div><div class='banquan'>原文出处:本文由博客园博主Coding&amp;Now提供。<br/>
+原文连接:https://www.cnblogs.com/xtflz/p/10762115.html</div><br>
+    <p><span style="font-size: 18px;">注意：首先引入dll文件ICSharpCode.SharpZipLib.dll</span></p>
+<p><strong><span style="font-size: 18px;">压缩文件</span></strong></p>
+<div class="cnblogs_Highlighter">
+<pre><code>    /// &lt;summary&gt;
+    /// 压缩文件
+    /// &lt;/summary&gt;
+    /// &lt;param name="fileName"&gt;要压缩的所有文件（完全路径)&lt;/param&gt;
+    /// &lt;param name="fileName"&gt;文件名称&lt;/param&gt;
+    /// &lt;param name="name"&gt;压缩后文件路径&lt;/param&gt;
+    /// &lt;param name="Level"&gt;压缩级别&lt;/param&gt;
+    public void ZipFileMain(string[] filenames, string[] fileName, string name, int Level)
+    {
+        ZipOutputStream s = new ZipOutputStream(File.Create(name));
+        Crc32 crc = new Crc32();
+        //压缩级别
+        s.SetLevel(Level); // 0 - store only to 9 - means best compression
+        try
+        {
+            int m = 0;
+            foreach (string file in filenames)
+            {
+                //打开压缩文件
+                FileStream fs = File.OpenRead(file);//文件地址
+                byte[] buffer = new byte[fs.Length];
+                fs.Read(buffer, 0, buffer.Length);
+                //建立压缩实体
+                ZipEntry entry = new ZipEntry(fileName[m].ToString());//原文件名
+                //时间
+                entry.DateTime = DateTime.Now;
+                //空间大小
+                entry.Size = fs.Length;
+                fs.Close();
+                crc.Reset();
+                crc.Update(buffer);
+                entry.Crc = crc.Value;
+                s.PutNextEntry(entry);
+                s.Write(buffer, 0, buffer.Length);
+                m++;
+            }
+        }
+        catch
+        {
+            throw;
+        }
+        finally
+        {
+            s.Finish();
+            s.Close();
+        }
+    }
+</pre>
+</div>
+<p><strong><span style="font-size: 18px;">文件下载</span></strong></p>
+<div class="cnblogs_Highlighter">
+<pre><code>//下载打包文件
+    private void DownloadFile(string fileName, string filePath)
+    {
+        FileInfo fileInfo = new FileInfo(filePath);
+        Response.Clear();
+        Response.ClearContent();
+        Response.ClearHeaders();
+        Response.AddHeader("Content-Disposition", "attachment;filename=" + fileName);
+        Response.AddHeader("Content-Length", fileInfo.Length.ToString());
+        Response.AddHeader("Content-Transfer-Encoding", "binary");
+        Response.ContentType = "application/octet-stream";
+        Response.ContentEncoding = System.Text.Encoding.GetEncoding("gb2312");
+        Response.WriteFile(fileInfo.FullName);
+        Response.Flush();
+        File.Delete(filePath);//删除已下载文件
+        Response.End();
+    }
+</pre>
+</div>
+<p><strong><span style="font-size: 18px;">具体使用</span></strong></p>
+<div class="cnblogs_Highlighter">
+<pre><code>protected void BtnDownloadFiles_Click(object sender, EventArgs e)
+    {
+        List&lt;string&gt; listFJ = new List&lt;string&gt;();//保存附件路径
+        List&lt;string&gt; listFJName = new List&lt;string&gt;();//保存附件名字
+        for (int i = 0; i &lt; gridView.Rows.Count; i++)
+        {
+            HtmlInputCheckBox chk = (Page.Master.FindControl("ContentPlaceHolder1").FindControl("gridView") as GridView).Rows[i].FindControl("checkboxname") as HtmlInputCheckBox;
+            if (chk != null &amp;&amp; chk.Checked)
+            {
+                string temp = gridView.Rows[i].Cells[14].Text.ToString().Trim();
+                if (temp != "&nbsp;")
+                {
+                    listFJ.Add(Server.MapPath("~") + temp);
+                    listFJName.Add(temp);
+                }
+            }
+        }
+        string time = DateTime.Now.Ticks.ToString();
+        ZipFileMain(listFJ.ToArray(), listFJName.ToArray(), Server.MapPath("~/uploadfiles/" + time + ".zip"), 9);//压缩文件
+        DownloadFile(Server.UrlEncode("附件.zip"), Server.MapPath("~/uploadfiles/" + time + ".zip"));//下载文件
+    }
+</pre>
+</div>
+<p>　　</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

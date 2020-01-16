@@ -1,0 +1,139 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C#使用sqlite-net搭建简易的ORM' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C#使用sqlite-net搭建简易的ORM</center></div><div class='banquan'>原文出处:本文由博客园博主kiba518提供。<br/>
+原文连接:https://www.cnblogs.com/kiba/p/11149685.html</div><br>
+    <p style="width: 100%; background: #4169E1; color: #ffffff; height: 50px; font-size: 30px; line-height: 50px;"><strong>SQLite简易版ORM</strong></p>
+<p>首先打开项目，使用nuget搜索sqlite-net,如下图：</p>
+<p><img src="./images/C#使用sqlite-net搭建简易的ORM0.png" alt="" /></p>
+<p>下载完成后，我们会多出两个文件，SQLite.cs和SQLiteAsync.cs。</p>
+<p>我们新建一个文件夹SQLiteResources，把这俩文件放进去。</p>
+<p><img src="./images/C#使用sqlite-net搭建简易的ORM1.png" alt="" /></p>
+<p>然后我们创建两个表实体，如下：</p>
+<div class="cnblogs_Highlighter">
+<pre><code>public class Valuation
+{
+    [PrimaryKey, AutoIncrement]
+    public int Id { get; set; }
+    [Indexed("ValuationStockId2",1)] //索引，注意，该索引在表创建时，会创建，如果索引改名，旧索引依然存在，并未被删除
+    public int StockId { get; set; }
+    public DateTime Time { get; set; }
+    public decimal Price { get; set; }
+}
+public class Stock
+{
+　　[PrimaryKey, AutoIncrement]
+　　public int Id { get; set; }
+　　public string Symbol { get; set; }
+}</pre>
+</div>
+<p>接下来我们创建一个SQLiteHelper，用来管理Sqlite数据库，如下：</p>
+<div class="cnblogs_Highlighter">
+<pre><code>public class SQLiteHelper
+{
+    public string connstr = Path.Combine(Environment.CurrentDirectory, "User.db");//没有数据库会创建数据库
+    public SQLiteConnection db;
+    public SQLiteHelper()
+    {
+        db = new SQLiteConnection(connstr);
+        db.CreateTable&lt;Stock&gt;();//表已存在不会重复创建
+        db.CreateTable&lt;Valuation&gt;();
+    }
+
+    public int Add&lt;T&gt;(T model)
+    { 
+       return db.Insert(model);
+    }
+
+    public int Update&lt;T&gt;(T model)
+    {
+        return db.Update(model);
+    }
+
+    public int Delete&lt;T&gt;(T model)
+    {
+        return db.Update(model);
+    }
+    public List&lt;T&gt; Query&lt;T&gt;(string sql) where T : new()
+    {
+        return db.Query&lt;T&gt;(sql);
+    }
+    public int Execute(string sql) 
+    {
+        return db.Execute(sql);
+    }
+} 
+</pre>
+</div>
+<p>到此，我们的简易版ORM就搭建好了，下面让我们一起试用下这个ORM。</p>
+<p>首先我们添加一个项目，SqliteTestConsole。</p>
+<p>然后在Main函数中写上测试代码如下：</p>
+<div class="cnblogs_Highlighter">
+<pre><code>static void Main(string[] args)
+{
+    SQLiteHelper sqliteHelper = new SQLiteHelper();
+    var list = sqliteHelper.Query&lt;Stock&gt;("select * from Stock");
+    sqliteHelper.Add(new Valuation() { Price = 100, StockId = 1, Time = DateTime.Now });
+    var list2 = sqliteHelper.Query&lt;Valuation&gt;("select *  from Valuation");
+    var list3 = sqliteHelper.Query&lt;Valuation&gt;("select *   from Valuation INDEXED BY ValuationStockId2 WHERE StockId &gt; 2");//使用索引ValuationStockId2查询
+    try
+    {
+        sqliteHelper.Execute("drop index ValuationStockId");//删除索引，因为该索引已被删除，所以抛异常
+    }
+    catch (Exception ex)
+    {
+
+    }
+}</pre>
+</div>
+<p>&nbsp;然后运行调试，会抛出异常如下：</p>
+<p><img src="./images/C#使用sqlite-net搭建简易的ORM2.png" alt="" /></p>
+<p>那么我们到底缺少什么依赖文件呢？</p>
+<p>打开SQLite.cs文件，我们会发现如下代码：</p>
+<p><img src="./images/C#使用sqlite-net搭建简易的ORM3.png" alt="" /></p>
+<p>如上图所示，我们缺少了依赖dll&mdash;sqlite3.dll。</p>
+<p>下面我们打开sqlite的官网寻找并下载依赖动态库【<a href="https://www.sqlite.org/download.html" target="_blank">Sqlite官网下载网址</a>】</p>
+<p>因为项目使用x86的Framework4.6.1，所以我们要找到对应的sqlite版本。</p>
+<p><img src="./images/C#使用sqlite-net搭建简易的ORM4.png" alt="" /></p>
+<p>下载完成后，我们可看到如下文件。</p>
+<p>&nbsp;<img src="./images/C#使用sqlite-net搭建简易的ORM5.png" alt="" /></p>
+<p>我们把其中的sqlite3.dll移动到项目的输出目录【X盘\SqliteTestConsole\bin\Debug】下面。</p>
+<p>然后我们运行项目，项目依然提示错误。</p>
+<p><img src="./images/C#使用sqlite-net搭建简易的ORM6.png" alt="" /></p>
+<p>&nbsp;这是因为我们的下载的sqllite3.dll是x86的版本，所以我们要把Any CPU修改为x86，选择【配置管理器】，如下图：</p>
+<p><img src="./images/C#使用sqlite-net搭建简易的ORM7.png" alt="" /></p>
+<p><img src="./images/C#使用sqlite-net搭建简易的ORM8.png" alt="" /></p>
+<p>然后我们再运行测试项目就可以正常编译通过了。</p>
+<p>现在，我们再使用sqlitebrowser打开我们创建的User.db查看数据。</p>
+<p>sqlitebrowser是一个sqlite的开源管理工具，下载地址：<a href="https://github.com/sqlitebrowser/sqlitebrowser" target="_blank">https://github.com/sqlitebrowser/sqlitebrowser</a>。</p>
+<p><img src="./images/C#使用sqlite-net搭建简易的ORM9.png" alt="" /></p>
+<p>&nbsp;<img src="./images/C#使用sqlite-net搭建简易的ORM10.png" alt="" /></p>
+<p>&nbsp;如图所示，我们已经成功创建了表，并完成了插入数据操作。</p>
+<p>----------------------------------------------------------------------------------------------------</p>
+<p>到此SQLite的简易ORM就已经搭建完成了。</p>
+<p>代码已经传到Github上了，欢迎大家下载。</p>
+<p style="border: 2px solid #73bf00; padding: 10px 40px; background: #ccff80; border-radius: 15px; -moz-border-radius: 15px;">Github地址：<a href="https://github.com/kiba518/SQLite_net.Helper" target="_blank">https://github.com/kiba518/SQLite_net.Helper</a></p>
+<p>----------------------------------------------------------------------------------------------------</p>
+<p>注：此文章为原创，任何形式的转载都请联系作者获得授权并注明出处！<br />若您觉得这篇文章还不错，请点击下方的<span style="color: #ff0000;">【<strong>推荐】</strong></span>，非常感谢！
+</p>
+<p>&nbsp;<img src="./images/C#使用sqlite-net搭建简易的ORM11.png" alt="" /></p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,131 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修简单实用的PCM音频播放器--沉寂几年之后回归的第一份笔记' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>简单实用的PCM音频播放器--沉寂几年之后回归的第一份笔记</center></div><div class='banquan'>原文出处:本文由博客园博主yunxizfj提供。<br/>
+原文连接:https://www.cnblogs.com/yunxizfj/p/11402538.html</div><br>
+    <p>---恢复内容开始---</p>
+<p>PCM音频网络流播放，至于用处，就不多解释了。</p>
+<p>一个简单的类，基于NAudio，一个简单的拼装类，实例化时三个参数，依次是采样率，系统播放设备Index，播放声道，调用PlayData方法传入PCM的音频流即可，有流就传进去，数据断了，播放自动停。</p>
+<p>接下来把代码贴出来：</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('9144cb9a-bcb8-45a4-b9fc-ddf5ef633958')"><img id="code_img_closed_9144cb9a-bcb8-45a4-b9fc-ddf5ef633958" class="code_img_closed" src="./images/简单实用的PCM音频播放器--沉寂几年之后回归的第一份笔记0.png" alt="" /><img id="code_img_opened_9144cb9a-bcb8-45a4-b9fc-ddf5ef633958" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('9144cb9a-bcb8-45a4-b9fc-ddf5ef633958',event)" src="./images/简单实用的PCM音频播放器--沉寂几年之后回归的第一份笔记1.png" alt="" />
+<div id="cnblogs_code_open_9144cb9a-bcb8-45a4-b9fc-ddf5ef633958" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> PCMPlayer
+</span><span style="color: #008080;"> 2</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;"> 3</span>         <span style="color: #0000ff;">private</span><span style="color: #000000;"> MonoToStereoProvider16 monoToStereoProvider16;
+</span><span style="color: #008080;"> 4</span>         <span style="color: #0000ff;">private</span><span style="color: #000000;"> BufferedWaveProvider bufferedWaveProvider;
+</span><span style="color: #008080;"> 5</span>         <span style="color: #0000ff;">private</span><span style="color: #000000;"> WaveOut waveOut;
+</span><span style="color: #008080;"> 6</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">bool</span> isRunning = <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 7</span>         <span style="color: #0000ff;">private</span><span style="color: #000000;"> PCMPlayerChannel currentChannel;
+</span><span style="color: #008080;"> 8</span> 
+<span style="color: #008080;"> 9</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">10</span>         <span style="color: #808080;">///</span> 
+<span style="color: #008080;">11</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">12</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="sampleRate"&gt;</span><span style="color: #008000;">采样率8K至64K</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;">13</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="deviceNumber"&gt;</span><span style="color: #008000;">通过GetPlayDevices来获取字典的KEY值</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;">14</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="playerChannel"&gt;</span><span style="color: #008000;">初始化时播放的声道</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;">15</span>         <span style="color: #0000ff;">public</span> PCMPlayer(<span style="color: #0000ff;">int</span> sampleRate, <span style="color: #0000ff;">int</span> deviceNumber = <span style="color: #800080;">0</span>, PCMPlayerChannel playerChannel =<span style="color: #000000;"> PCMPlayerChannel.Both)
+</span><span style="color: #008080;">16</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">17</span>             currentChannel =<span style="color: #000000;"> playerChannel;
+</span><span style="color: #008080;">18</span>             WaveFormat = <span style="color: #0000ff;">new</span> WaveFormat(sampleRate, <span style="color: #800080;">16</span>, <span style="color: #800080;">1</span><span style="color: #000000;">);
+</span><span style="color: #008080;">19</span>             bufferedWaveProvider = <span style="color: #0000ff;">new</span><span style="color: #000000;"> BufferedWaveProvider(WaveFormat);
+</span><span style="color: #008080;">20</span>             monoToStereoProvider16 = <span style="color: #0000ff;">new</span><span style="color: #000000;"> MonoToStereoProvider16(bufferedWaveProvider);
+</span><span style="color: #008080;">21</span>             waveOut = <span style="color: #0000ff;">new</span><span style="color: #000000;"> WaveOut();
+</span><span style="color: #008080;">22</span>             waveOut.DeviceNumber =<span style="color: #000000;"> deviceNumber;
+</span><span style="color: #008080;">23</span> <span style="color: #000000;">            waveOut.Init(monoToStereoProvider16);
+</span><span style="color: #008080;">24</span> <span style="color: #000000;">            waveOut.Play();
+</span><span style="color: #008080;">25</span>             isRunning = <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+</span><span style="color: #008080;">26</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">27</span> 
+<span style="color: #008080;">28</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> PlayData(<span style="color: #0000ff;">byte</span><span style="color: #000000;">[] data)
+</span><span style="color: #008080;">29</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">30</span>             <span style="color: #0000ff;">if</span> (!isRunning) <span style="color: #0000ff;">return</span><span style="color: #000000;">;
+</span><span style="color: #008080;">31</span>             bufferedWaveProvider.AddSamples(data, <span style="color: #800080;">0</span><span style="color: #000000;">, data.Length);
+</span><span style="color: #008080;">32</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">33</span> 
+<span style="color: #008080;">34</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> ClosePlay()
+</span><span style="color: #008080;">35</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">36</span>             isRunning = <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+</span><span style="color: #008080;">37</span> <span style="color: #000000;">            waveOut.Stop();
+</span><span style="color: #008080;">38</span> <span style="color: #000000;">            waveOut.Dispose();
+</span><span style="color: #008080;">39</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">40</span> 
+<span style="color: #008080;">41</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">bool</span><span style="color: #000000;"> SetPlayChannel(PCMPlayerChannel playerChannel)
+</span><span style="color: #008080;">42</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">43</span>             <span style="color: #0000ff;">if</span> (!isRunning || waveOut == <span style="color: #0000ff;">null</span> || monoToStereoProvider16 == <span style="color: #0000ff;">null</span>) <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+</span><span style="color: #008080;">44</span>             <span style="color: #0000ff;">switch</span><span style="color: #000000;"> (playerChannel)
+</span><span style="color: #008080;">45</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">46</span>                 <span style="color: #0000ff;">case</span><span style="color: #000000;"> PCMPlayerChannel.Left:
+</span><span style="color: #008080;">47</span> <span style="color: #000000;">                    {
+</span><span style="color: #008080;">48</span>                         monoToStereoProvider16.LeftVolume = <span style="color: #800080;">1.0f</span><span style="color: #000000;">;
+</span><span style="color: #008080;">49</span>                         monoToStereoProvider16.RightVolume = <span style="color: #800080;">0.0f</span><span style="color: #000000;">;
+</span><span style="color: #008080;">50</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">51</span>                     <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+</span><span style="color: #008080;">52</span>                 <span style="color: #0000ff;">case</span><span style="color: #000000;"> PCMPlayerChannel.Right:
+</span><span style="color: #008080;">53</span> <span style="color: #000000;">                    {
+</span><span style="color: #008080;">54</span>                         monoToStereoProvider16.LeftVolume = <span style="color: #800080;">0.0f</span><span style="color: #000000;">;
+</span><span style="color: #008080;">55</span>                         monoToStereoProvider16.RightVolume = <span style="color: #800080;">1.0f</span><span style="color: #000000;">;
+</span><span style="color: #008080;">56</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">57</span>                     <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+</span><span style="color: #008080;">58</span>                 <span style="color: #0000ff;">case</span><span style="color: #000000;"> PCMPlayerChannel.Both:
+</span><span style="color: #008080;">59</span> <span style="color: #000000;">                    {
+</span><span style="color: #008080;">60</span>                         monoToStereoProvider16.LeftVolume = <span style="color: #800080;">1.0f</span><span style="color: #000000;">;
+</span><span style="color: #008080;">61</span>                         monoToStereoProvider16.RightVolume = <span style="color: #800080;">1.0f</span><span style="color: #000000;">;
+</span><span style="color: #008080;">62</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">63</span>                     <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+</span><span style="color: #008080;">64</span>                 <span style="color: #0000ff;">default</span>: <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+</span><span style="color: #008080;">65</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">66</span>             <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+</span><span style="color: #008080;">67</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">68</span> 
+<span style="color: #008080;">69</span>         <span style="color: #0000ff;">public</span> WaveFormat WaveFormat { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+</span><span style="color: #008080;">70</span> 
+<span style="color: #008080;">71</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> Dictionary&lt;<span style="color: #0000ff;">int</span>, WaveOutCapabilities&gt;<span style="color: #000000;"> GetPlayDevices
+</span><span style="color: #008080;">72</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">73</span>             <span style="color: #0000ff;">get</span>
+<span style="color: #008080;">74</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">75</span>                 Dictionary&lt;<span style="color: #0000ff;">int</span>, WaveOutCapabilities&gt; result = <span style="color: #0000ff;">new</span> Dictionary&lt;<span style="color: #0000ff;">int</span>, WaveOutCapabilities&gt;<span style="color: #000000;">();
+</span><span style="color: #008080;">76</span>                 <span style="color: #0000ff;">try</span>
+<span style="color: #008080;">77</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">78</span>                     <span style="color: #0000ff;">int</span> count =<span style="color: #000000;"> WaveOut.DeviceCount;
+</span><span style="color: #008080;">79</span>                     <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; count; i++<span style="color: #000000;">)
+</span><span style="color: #008080;">80</span> <span style="color: #000000;">                    {
+</span><span style="color: #008080;">81</span>                         <span style="color: #0000ff;">var</span> item =<span style="color: #000000;"> WaveOut.GetCapabilities(i);
+</span><span style="color: #008080;">82</span> <span style="color: #000000;">                        result.Add(i, item);
+</span><span style="color: #008080;">83</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">84</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">85</span>                 <span style="color: #0000ff;">catch</span><span style="color: #000000;"> { }
+</span><span style="color: #008080;">86</span>                 <span style="color: #0000ff;">return</span><span style="color: #000000;"> result;
+</span><span style="color: #008080;">87</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">88</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">89</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">90</span> 
+<span style="color: #008080;">91</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">enum</span><span style="color: #000000;"> PCMPlayerChannel
+</span><span style="color: #008080;">92</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;">93</span> <span style="color: #000000;">        Left,
+</span><span style="color: #008080;">94</span> <span style="color: #000000;">        Right,
+</span><span style="color: #008080;">95</span> <span style="color: #000000;">        Both
+</span><span style="color: #008080;">96</span>     }</pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp;</p>
+<p>预告：下一篇简单讲一下音频流网络传输时压缩与解压（基于NSpeex的音频10倍压缩，肉耳听不出损耗）</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,206 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修金额数字语音播报' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>金额数字语音播报</center></div><div class='banquan'>原文出处:本文由博客园博主CHild.提供。<br/>
+原文连接:https://www.cnblogs.com/jiangbiao/p/11531899.html</div><br>
+    <p>最近在做一个语音播报功能，开始是用Speech做的。感觉效果还不错，直接可以文字转语音，然后播报出来。但是后面再测试机器上，发现播放的是英语，搜索过后发现需要语音支持。还有可能有些系统整个语音功能都可能被阉割了，所以只能另外想办法了。</p>
+<p>另起思路：其实只有数字变化的，其他语音文字一般是固定的。那么我们可以把0-9单独录制为10个wav文件，然后把金额数字拆分为char，播放对应的文件不就OK了吗！说干就干：</p>
+<p><img src="./images/金额数字语音播报0.png" alt="" /></p>
+<p>&nbsp;先把需要的文件录制出来，具体实现代码如下：</p>
+<div class="cnblogs_code">
+<pre><code>Task.Run(() =&gt;<span style="color: #000000;">
+            {
+                </span><span style="color: #0000ff;">decimal</span> payAmt = <span style="color: #800080;">123.56M</span><span style="color: #000000;">;
+                </span><span style="color: #0000ff;">string</span> payString = payAmt.ToString(<span style="color: #800000;">"</span><span style="color: #800000;">F2</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">播放固定的前缀语音&ldquo;龙支付收款&rdquo;</span>
+                <span style="color: #0000ff;">using</span> (SoundPlayer simpleSound = <span style="color: #0000ff;">new</span> SoundPlayer($<span style="color: #800000;">"</span><span style="color: #800000;">{Application.StartupPath}\\auido\\ccb.wav</span><span style="color: #800000;">"</span><span style="color: #000000;">))
+                {
+                    simpleSound.Play();
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">这里需要等待，具体时间为语音文件的长度</span>
+                    System.Threading.Thread.Sleep(<span style="color: #800080;">1450</span><span style="color: #000000;">);
+                    </span><span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">var</span> item <span style="color: #0000ff;">in</span><span style="color: #000000;"> payString.ToArray())
+                    {
+                        </span><span style="color: #008000;">//</span><span style="color: #008000;">播放具体数字</span>
+                        simpleSound.SoundLocation = $<span style="color: #800000;">"</span><span style="color: #800000;">{Application.StartupPath}\\auido\\{item}.wav</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+                        simpleSound.Play();
+                        System.Threading.Thread.Sleep(</span><span style="color: #800080;">400</span><span style="color: #000000;">);
+                    }
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">播放元</span>
+                    simpleSound.SoundLocation = $<span style="color: #800000;">"</span><span style="color: #800000;">{Application.StartupPath}\\auido\\yuan.wav</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+                    simpleSound.Play();
+                }
+            });</span></pre>
+</div>
+<p>看起来功能已经实现了，只是听起来感觉有点迟钝的样纸，但是先这样吧。提交给测试了，后面测试过来说这个声音怎么没有单位啊，能不能加上单位呢。嗯！！！可以。</p>
+<p>于是开始实现数字播报加单位，先去找了段数字转大字文字的功能代码参考了下，其实逻辑差不多，然后稍微改造下就OK了，思路还是一样的，先录制语音文件，需要增加单位语音文件：十百千万</p>
+<p><img src="./images/金额数字语音播报1.png" alt="" /></p>
+<p>&nbsp;然后把需要转换的数字Tostring("F2")，这里不要转N2，不然会有逗号分隔的，我这里设计只支持到小于一亿元的播报。</p>
+<p>直接上代码<span style="color: #0000ff;"><br /></span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> PayAuido(<span style="color: #0000ff;">decimal</span><span style="color: #000000;"> payMoney)
+        { 
+            </span><span style="color: #0000ff;">if</span> (payMoney &gt;= <span style="color: #800080;">100000000</span> || payMoney == <span style="color: #800080;">0</span><span style="color: #000000;">)
+            {
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;">;
+            }
+            Task.Run(() </span>=&gt;<span style="color: #000000;">
+            {
+                List</span>&lt;<span style="color: #0000ff;">string</span>&gt; payAuidoUrls = <span style="color: #0000ff;">new</span> List&lt;<span style="color: #0000ff;">string</span>&gt;<span style="color: #000000;">();
+                </span><span style="color: #0000ff;">string</span> payString = payMoney.ToString(<span style="color: #800000;">"</span><span style="color: #800000;">F2</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">如果小于11位，则补零</span>
+                <span style="color: #0000ff;">if</span> (payString.Length &lt; <span style="color: #800080;">11</span><span style="color: #000000;">)
+                {
+                    payString </span>= payString.PadLeft(<span style="color: #800080;">11</span>, <span style="color: #800000;">'</span><span style="color: #800000;">0</span><span style="color: #800000;">'</span><span style="color: #000000;">);
+                }
+                </span><span style="color: #0000ff;">string</span> payWan = payString.Substring(<span style="color: #800080;">0</span>, <span style="color: #800080;">4</span>);<span style="color: #008000;">//</span><span style="color: #008000;">取得'万'单元</span>
+                <span style="color: #0000ff;">string</span> payYuan = payString.Substring(<span style="color: #800080;">4</span>, <span style="color: #800080;">4</span>);<span style="color: #008000;">//</span><span style="color: #008000;">取得'元'单元</span>
+                <span style="color: #0000ff;">string</span> payNum = payString.Substring(<span style="color: #800080;">9</span>, <span style="color: #800080;">2</span>);<span style="color: #008000;">//</span><span style="color: #008000;">取得小数部分
+
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">处理万</span>
+                List&lt;<span style="color: #0000ff;">string</span>&gt; payAuidoUrlsWan =<span style="color: #000000;"> Convert(payWan);
+                </span><span style="color: #0000ff;">if</span> (payAuidoUrlsWan.Count &gt; <span style="color: #800080;">0</span><span style="color: #000000;">)
+                { 
+                    payAuidoUrlsWan.Add($</span><span style="color: #800000;">"</span><span style="color: #800000;">{Application.StartupPath}\\auido\\wan.wav</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                }
+
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">处理元</span>
+                List&lt;<span style="color: #0000ff;">string</span>&gt; payAuidoUrlsYuan =<span style="color: #000000;"> Convert(payYuan);
+
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">元第一个字符是否为&lsquo;零&rsquo;</span>
+                <span style="color: #0000ff;">if</span> (payAuidoUrlsWan.Count &gt; <span style="color: #800080;">0</span> &amp;&amp; payAuidoUrlsYuan.Count &gt; <span style="color: #800080;">0</span> &amp;&amp; payString[<span style="color: #800080;">4</span>] == <span style="color: #800000;">'</span><span style="color: #800000;">0</span><span style="color: #800000;">'</span><span style="color: #000000;">)
+                {
+                    payAuidoUrlsWan.Add($</span><span style="color: #800000;">"</span><span style="color: #800000;">{Application.StartupPath}\\auido\\0.wav</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                }
+                payAuidoUrls.AddRange(payAuidoUrlsWan);
+                payAuidoUrls.AddRange(payAuidoUrlsYuan);
+
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">处理小数位</span>
+                <span style="color: #0000ff;">if</span> (payNum != <span style="color: #800000;">"</span><span style="color: #800000;">00</span><span style="color: #800000;">"</span><span style="color: #000000;">)
+                {
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">如果只有小数，则添加&lsquo;零&rsquo;</span>
+                    <span style="color: #0000ff;">if</span> (payAuidoUrls.Count == <span style="color: #800080;">0</span><span style="color: #000000;">)
+                    {
+                        payAuidoUrls.Add($</span><span style="color: #800000;">"</span><span style="color: #800000;">{Application.StartupPath}\\auido\\0.wav</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                    }
+                    payAuidoUrls.Add($</span><span style="color: #800000;">"</span><span style="color: #800000;">{Application.StartupPath}\\auido\\..wav</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                    payAuidoUrls.Add($</span><span style="color: #800000;">"</span><span style="color: #800000;">{Application.StartupPath}\\auido\\{payNum[0]}.wav</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">如果最后一位为&lsquo;零&rsquo;，则不需要播报</span>
+                    <span style="color: #0000ff;">if</span> (payNum[<span style="color: #800080;">1</span>] != <span style="color: #800000;">'</span><span style="color: #800000;">0</span><span style="color: #800000;">'</span><span style="color: #000000;">)
+                    {
+                        payAuidoUrls.Add($</span><span style="color: #800000;">"</span><span style="color: #800000;">{Application.StartupPath}\\auido\\{payNum[1]}.wav</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                    }
+                }
+
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">添加元</span>
+                payAuidoUrls.Add($<span style="color: #800000;">"</span><span style="color: #800000;">{Application.StartupPath}\\auido\\yuan.wav</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">播放&ldquo;龙支付收款&rdquo;</span>
+                <span style="color: #0000ff;">using</span> (SoundPlayer simpleSound = <span style="color: #0000ff;">new</span> SoundPlayer($<span style="color: #800000;">"</span><span style="color: #800000;">{Application.StartupPath}\\auido\\ccb.wav</span><span style="color: #800000;">"</span><span style="color: #000000;">))
+                { 
+                    simpleSound.Play();
+                    System.Threading.Thread.Sleep(</span><span style="color: #800080;">1450</span><span style="color: #000000;">); 
+                    </span><span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">string</span> payAuidoUrl <span style="color: #0000ff;">in</span><span style="color: #000000;"> payAuidoUrls)
+                    {
+                        </span><span style="color: #008000;">//</span><span style="color: #008000;">播放每个数字</span>
+                        simpleSound.SoundLocation =<span style="color: #000000;"> payAuidoUrl; 
+                        simpleSound.Play();
+                        System.Threading.Thread.Sleep(</span><span style="color: #800080;">400</span><span style="color: #000000;">); 
+                    }
+                }
+            });
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 每四位数转换一次
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="payValue"&gt;</span><span style="color: #008000;">当前转换的金额</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">public</span> List&lt;<span style="color: #0000ff;">string</span>&gt; Convert(<span style="color: #0000ff;">string</span><span style="color: #000000;"> payValue)
+        {
+            List</span>&lt;<span style="color: #0000ff;">string</span>&gt; payAuidos = <span style="color: #0000ff;">new</span> List&lt;<span style="color: #0000ff;">string</span>&gt;<span style="color: #000000;">();
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">如果为四个零，则不需要播报</span>
+            <span style="color: #0000ff;">if</span> (payValue == <span style="color: #800000;">"</span><span style="color: #800000;">0000</span><span style="color: #800000;">"</span><span style="color: #000000;">)
+            {
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> payAuidos;
+            }
+
+            </span><span style="color: #0000ff;">char</span> tmp0 = payValue[<span style="color: #800080;">0</span><span style="color: #000000;">];
+            </span><span style="color: #0000ff;">char</span> tmp1 = payValue[<span style="color: #800080;">1</span><span style="color: #000000;">];
+            </span><span style="color: #0000ff;">char</span> tmp2 = payValue[<span style="color: #800080;">2</span><span style="color: #000000;">];
+            </span><span style="color: #0000ff;">char</span> tmp3 = payValue[<span style="color: #800080;">3</span><span style="color: #000000;">];
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">千位</span>
+            <span style="color: #0000ff;">if</span> (tmp0 != <span style="color: #800000;">'</span><span style="color: #800000;">0</span><span style="color: #800000;">'</span><span style="color: #000000;">)
+            {
+                payAuidos.Add($</span><span style="color: #800000;">"</span><span style="color: #800000;">{Application.StartupPath}\\auido\\{tmp0}.wav</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                payAuidos.Add($</span><span style="color: #800000;">"</span><span style="color: #800000;">{Application.StartupPath}\\auido\\qian.wav</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            }
+            </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+            {
+                payAuidos.Add($</span><span style="color: #800000;">"</span><span style="color: #800000;">{Application.StartupPath}\\auido\\0.wav</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            }
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">百位</span>
+            <span style="color: #0000ff;">if</span> (tmp1 != <span style="color: #800000;">'</span><span style="color: #800000;">0</span><span style="color: #800000;">'</span><span style="color: #000000;">)
+            {
+                payAuidos.Add($</span><span style="color: #800000;">"</span><span style="color: #800000;">{Application.StartupPath}\\auido\\{tmp1}.wav</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                payAuidos.Add($</span><span style="color: #800000;">"</span><span style="color: #800000;">{Application.StartupPath}\\auido\\bai.wav</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            }
+            </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+            {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">只添加一个零</span>
+                <span style="color: #0000ff;">if</span> (tmp0 != <span style="color: #800000;">'</span><span style="color: #800000;">0</span><span style="color: #800000;">'</span><span style="color: #000000;">)
+                {
+                    payAuidos.Add($</span><span style="color: #800000;">"</span><span style="color: #800000;">{Application.StartupPath}\\auido\\0.wav</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                }
+            }
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">十位</span>
+            <span style="color: #0000ff;">if</span> (tmp2 != <span style="color: #800000;">'</span><span style="color: #800000;">0</span><span style="color: #800000;">'</span><span style="color: #000000;">)
+            {
+                payAuidos.Add($</span><span style="color: #800000;">"</span><span style="color: #800000;">{Application.StartupPath}\\auido\\{tmp2}.wav</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                payAuidos.Add($</span><span style="color: #800000;">"</span><span style="color: #800000;">{Application.StartupPath}\\auido\\shi.wav</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            }
+            </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+            {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">只添加一个零</span>
+                <span style="color: #0000ff;">if</span> (tmp1 != <span style="color: #800000;">'</span><span style="color: #800000;">0</span><span style="color: #800000;">'</span><span style="color: #000000;">)
+                {
+                    payAuidos.Add($</span><span style="color: #800000;">"</span><span style="color: #800000;">{Application.StartupPath}\\auido\\0.wav</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                }
+            }
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">个位</span>
+            <span style="color: #0000ff;">if</span> (tmp3 != <span style="color: #800000;">'</span><span style="color: #800000;">0</span><span style="color: #800000;">'</span><span style="color: #000000;">)
+            {
+                payAuidos.Add($</span><span style="color: #800000;">"</span><span style="color: #800000;">{Application.StartupPath}\\auido\\{tmp3}.wav</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            }
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">如果第一个音频为零，则去掉</span>
+            <span style="color: #0000ff;">if</span> (payAuidos[<span style="color: #800080;">0</span>].Contains(<span style="color: #800000;">"</span><span style="color: #800000;">0.wav</span><span style="color: #800000;">"</span><span style="color: #000000;">))
+            {
+                payAuidos.RemoveAt(</span><span style="color: #800080;">0</span><span style="color: #000000;">);
+            }
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">如果最后一个音频为零，则去掉</span>
+            <span style="color: #0000ff;">if</span> (payAuidos[payAuidos.Count - <span style="color: #800080;">1</span>].Contains(<span style="color: #800000;">"</span><span style="color: #800000;">0.wav</span><span style="color: #800000;">"</span><span style="color: #000000;">))
+            {
+                payAuidos.RemoveAt(payAuidos.Count </span>- <span style="color: #800080;">1</span><span style="color: #000000;">);
+            }
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> payAuidos; 
+        }</span></pre>
+</div>
+<p>输入数字，既可转换为语音播报，其实思路很简单，就是把每个数字及单位对应的语音文件连续播放出来即可。<a href="https://files.cnblogs.com/files/jiangbiao/AuidoDemo.rar" target="_blank">DEMO下载</a></p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

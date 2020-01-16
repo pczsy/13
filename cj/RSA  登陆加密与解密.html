@@ -1,0 +1,73 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修RSA  登陆加密与解密' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>RSA  登陆加密与解密</center></div><div class='banquan'>原文出处:本文由博客园博主wuyong360提供。<br/>
+原文连接:https://www.cnblogs.com/w1-y2-q5/p/11695070.html</div><br>
+    <p>&nbsp; 最近公司项目验收后，客户请来的信息安全技术人员对我们的网站进行了各种安全测试与排查问题，其中就有一个登陆时的加密问题。本来如果只是单纯的加密，可以直接在前台用MD5加密，将加密的值添加到数据库即可。但是现在的项目里有很多的用户，密码也是后台MD5加密了的。这样就不能单纯在前台用MD5加密，可能是本人能力有限，使用的前台MD5加密与后台的MD5加密的值不一致，用户登陆在密码比对的时候就会失败登陆不了。只能使用非对称加密，前台加密后台解密后使用MD5加密再作对比，这种做法才能使用改动最少。网上查资料后就使用了RSA非对称加密。</p>
+<p><a href="https://www.cnblogs.com/amylis_chen/p/6054414.html">https://www.cnblogs.com/amylis_chen/p/6054414.html</a></p>
+<p>前端代码</p>
+<p>&nbsp;&lt;script src="http://code.jquery.com/jquery-1.8.3.min.js"&gt;&lt;/script&gt;</p>
+<p>&nbsp;&lt;script src="http://passport.cnblogs.com/scripts/jsencrypt.min.js"&gt;&lt;/script&gt;</p>
+<p><em>&lt;script&gt;</em></p>
+<p><em>&nbsp; &nbsp;</em><em id="__mceDel">var encrypt = new JSEncrypt();</em></p>
+<p><em id="__mceDel">&nbsp; &nbsp; encrypt.setPublicKey("公钥可以用工具生成");<br />&nbsp; &nbsp; var userPwd = encrypt.encrypt(输入的密码);&nbsp; &nbsp; &nbsp;//加密后的密码</em></p>
+<p><em>&lt;/script&gt;</em></p>
+<p><em>后端代码</em></p>
+<p>var publicKey = "<em id="__mceDel">公钥可以用工具生成"</em></p>
+<p><em>var privateKey = "私<em id="__mceDel">钥可以用工具生成&ldquo;</em></em></p>
+<p>RSACrypto rsaCrypto = new RSACrypto(privateKey, publicKey);<br />            userPwd = rsaCrypto.Decrypt(userPwd);&nbsp; &nbsp; //解密后的密码，就是输入密码的值</p>
+<p>&nbsp;</p>
+<p> /// &lt;summary&gt;<br />    /// RSA非对称加密<br />    /// &lt;/summary&gt;<br />    public class RSACrypto<br />    {<br />        private RSACryptoServiceProvider _privateKeyRsaProvider;<br />        private RSACryptoServiceProvider _publicKeyRsaProvider;<br />         <br />        public RSACrypto(string privateKey, string publicKey = null)<br />        {<br />            if (!string.IsNullOrEmpty(privateKey))<br />            {<br />                _privateKeyRsaProvider = CreateRsaProviderFromPrivateKey(privateKey);<br />            }</p>
+<p>            if (!string.IsNullOrEmpty(publicKey))<br />            {<br />                _publicKeyRsaProvider = CreateRsaProviderFromPublicKey(publicKey);<br />            }<br />        }</p>
+<p>        public string Decrypt(string cipherText)<br />        {<br />            if (_privateKeyRsaProvider == null)<br />            {<br />                throw new Exception("_privateKeyRsaProvider is null");<br />            }<br />            return Encoding.UTF8.GetString(_privateKeyRsaProvider.Decrypt(System.Convert.FromBase64String(cipherText), false));<br />        }</p>
+<p>        public string Encrypt(string text)<br />        {<br />            if (_publicKeyRsaProvider == null)<br />            {<br />                throw new Exception("_publicKeyRsaProvider is null");<br />            }<br />            return Convert.ToBase64String(_publicKeyRsaProvider.Encrypt(Encoding.UTF8.GetBytes(text), false));<br />        }</p>
+<p>        private RSACryptoServiceProvider CreateRsaProviderFromPrivateKey(string privateKey)<br />        {<br />            var privateKeyBits = System.Convert.FromBase64String(privateKey);</p>
+<p>            var RSA = new RSACryptoServiceProvider();<br />            var RSAparams = new RSAParameters();</p>
+<p>            using (BinaryReader binr = new BinaryReader(new MemoryStream(privateKeyBits)))<br />            {<br />                byte bt = 0;<br />                ushort twobytes = 0;<br />                twobytes = binr.ReadUInt16();<br />                if (twobytes == 0x8130)<br />                    binr.ReadByte();<br />                else if (twobytes == 0x8230)<br />                    binr.ReadInt16();<br />                else<br />                    throw new Exception("Unexpected value read binr.ReadUInt16()");</p>
+<p>                twobytes = binr.ReadUInt16();<br />                if (twobytes != 0x0102)<br />                    throw new Exception("Unexpected version");</p>
+<p>                bt = binr.ReadByte();<br />                if (bt != 0x00)<br />                    throw new Exception("Unexpected value read binr.ReadByte()");</p>
+<p>                RSAparams.Modulus = binr.ReadBytes(GetIntegerSize(binr));<br />                RSAparams.Exponent = binr.ReadBytes(GetIntegerSize(binr));<br />                RSAparams.D = binr.ReadBytes(GetIntegerSize(binr));<br />                RSAparams.P = binr.ReadBytes(GetIntegerSize(binr));<br />                RSAparams.Q = binr.ReadBytes(GetIntegerSize(binr));<br />                RSAparams.DP = binr.ReadBytes(GetIntegerSize(binr));<br />                RSAparams.DQ = binr.ReadBytes(GetIntegerSize(binr));<br />                RSAparams.InverseQ = binr.ReadBytes(GetIntegerSize(binr));<br />            }</p>
+<p>            RSA.ImportParameters(RSAparams);<br />            return RSA;<br />        }</p>
+<p>        private int GetIntegerSize(BinaryReader binr)<br />        {<br />            byte bt = 0;<br />            byte lowbyte = 0x00;<br />            byte highbyte = 0x00;<br />            int count = 0;<br />            bt = binr.ReadByte();<br />            if (bt != 0x02)<br />                return 0;<br />            bt = binr.ReadByte();</p>
+<p>            if (bt == 0x81)<br />                count = binr.ReadByte();<br />            else<br />                if (bt == 0x82)<br />            {<br />                highbyte = binr.ReadByte();<br />                lowbyte = binr.ReadByte();<br />                byte[] modint = { lowbyte, highbyte, 0x00, 0x00 };<br />                count = BitConverter.ToInt32(modint, 0);<br />            }<br />            else<br />            {<br />                count = bt;<br />            }</p>
+<p>            while (binr.ReadByte() == 0x00)<br />            {<br />                count -= 1;<br />            }<br />            binr.BaseStream.Seek(-1, SeekOrigin.Current);<br />            return count;<br />        }</p>
+<p>        private RSACryptoServiceProvider CreateRsaProviderFromPublicKey(string publicKeyString)<br />        {<br />            // encoded OID sequence for  PKCS #1 rsaEncryption szOID_RSA_RSA = "1.2.840.113549.1.1.1"<br />            byte[] SeqOID = { 0x30, 0x0D, 0x06, 0x09, 0x2A, 0x86, 0x48, 0x86, 0xF7, 0x0D, 0x01, 0x01, 0x01, 0x05, 0x00 };<br />            byte[] x509key;<br />            byte[] seq = new byte[15];<br />            int x509size;</p>
+<p>            x509key = Convert.FromBase64String(publicKeyString);<br />            x509size = x509key.Length;</p>
+<p>            // ---------  Set up stream to read the asn.1 encoded SubjectPublicKeyInfo blob  ------<br />            using (MemoryStream mem = new MemoryStream(x509key))<br />            {<br />                using (BinaryReader binr = new BinaryReader(mem))  //wrap Memory Stream with BinaryReader for easy reading<br />                {<br />                    byte bt = 0;<br />                    ushort twobytes = 0;</p>
+<p>                    twobytes = binr.ReadUInt16();<br />                    if (twobytes == 0x8130) //data read as little endian order (actual data order for Sequence is 30 81)<br />                        binr.ReadByte();    //advance 1 byte<br />                    else if (twobytes == 0x8230)<br />                        binr.ReadInt16();   //advance 2 bytes<br />                    else<br />                        return null;</p>
+<p>                    seq = binr.ReadBytes(15);       //read the Sequence OID<br />                    if (!CompareBytearrays(seq, SeqOID))    //make sure Sequence for OID is correct<br />                        return null;</p>
+<p>                    twobytes = binr.ReadUInt16();<br />                    if (twobytes == 0x8103) //data read as little endian order (actual data order for Bit String is 03 81)<br />                        binr.ReadByte();    //advance 1 byte<br />                    else if (twobytes == 0x8203)<br />                        binr.ReadInt16();   //advance 2 bytes<br />                    else<br />                        return null;</p>
+<p>                    bt = binr.ReadByte();<br />                    if (bt != 0x00)     //expect null byte next<br />                        return null;</p>
+<p>                    twobytes = binr.ReadUInt16();<br />                    if (twobytes == 0x8130) //data read as little endian order (actual data order for Sequence is 30 81)<br />                        binr.ReadByte();    //advance 1 byte<br />                    else if (twobytes == 0x8230)<br />                        binr.ReadInt16();   //advance 2 bytes<br />                    else<br />                        return null;</p>
+<p>                    twobytes = binr.ReadUInt16();<br />                    byte lowbyte = 0x00;<br />                    byte highbyte = 0x00;</p>
+<p>                    if (twobytes == 0x8102) //data read as little endian order (actual data order for Integer is 02 81)<br />                        lowbyte = binr.ReadByte();  // read next bytes which is bytes in modulus<br />                    else if (twobytes == 0x8202)<br />                    {<br />                        highbyte = binr.ReadByte(); //advance 2 bytes<br />                        lowbyte = binr.ReadByte();<br />                    }<br />                    else<br />                        return null;<br />                    byte[] modint = { lowbyte, highbyte, 0x00, 0x00 };   //reverse byte order since asn.1 key uses big endian order<br />                    int modsize = BitConverter.ToInt32(modint, 0);</p>
+<p>                    int firstbyte = binr.PeekChar();<br />                    if (firstbyte == 0x00)<br />                    {   //if first byte (highest order) of modulus is zero, don't include it<br />                        binr.ReadByte();    //skip this null byte<br />                        modsize -= 1;   //reduce modulus buffer size by 1<br />                    }</p>
+<p>                    byte[] modulus = binr.ReadBytes(modsize);   //read the modulus bytes</p>
+<p>                    if (binr.ReadByte() != 0x02)            //expect an Integer for the exponent data<br />                        return null;<br />                    int expbytes = (int)binr.ReadByte();        // should only need one byte for actual exponent data (for all useful values)<br />                    byte[] exponent = binr.ReadBytes(expbytes);</p>
+<p>                    // ------- create RSACryptoServiceProvider instance and initialize with public key -----<br />                    RSACryptoServiceProvider RSA = new RSACryptoServiceProvider();<br />                    RSAParameters RSAKeyInfo = new RSAParameters();<br />                    RSAKeyInfo.Modulus = modulus;<br />                    RSAKeyInfo.Exponent = exponent;<br />                    RSA.ImportParameters(RSAKeyInfo);</p>
+<p>                    return RSA;<br />                }</p>
+<p>            }<br />        }</p>
+<p>        private bool CompareBytearrays(byte[] a, byte[] b)<br />        {<br />            if (a.Length != b.Length)<br />                return false;<br />            int i = 0;<br />            foreach (byte c in a)<br />            {<br />                if (c != b[i])<br />                    return false;<br />                i++;<br />            }<br />            return true;<br />        }<br />    }</p>
+<p>RSA密钥对生成工具---------<a href="http://web.chacuo.net/netrsakeypair">http://web.chacuo.net/netrsakeypair</a></p>
+<p>请选用PKCS#1来生成公钥与私钥</p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

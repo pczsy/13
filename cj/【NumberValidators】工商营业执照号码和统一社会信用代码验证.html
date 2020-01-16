@@ -1,0 +1,185 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修【NumberValidators】工商营业执照号码和统一社会信用代码验证' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>【NumberValidators】工商营业执照号码和统一社会信用代码验证</center></div><div class='banquan'>原文出处:本文由博客园博主胡萝卜星星提供。<br/>
+原文连接:https://www.cnblogs.com/starfd/p/10713068.html</div><br>
+    <p>从本质上讲，工商营业执照号码和统一社会信用代码是两套完全不一样的编码规则，识别结果也仅有行政区划部分为两者共有，但因为这两种编码同时存在的原因，所以如果需要在系统中唯一标志一家企业时，还是可以通过工商营业执照号码或统一社会信用代码来进行识别。</p>
+<p>工商营业执照号码长度按工商规定为15位，统一社会信用代码按国家规定是18位，你可以在此类库的验证基础上，通过其它网站（比如<a href="https://www.qichacha.com">企查查</a>）来进一步查验企业是否真实存在。</p>
+<p>在<code>NumberValidators</code>中，该部分验证相关的内容均在<code>NumberValidators.BusinessRegistrationNos</code>下，你可以在<a href="https://github.com/fdstar/NumberValidators">此处</a>查看具体源代码。</p>
+<p><code>IRegistrationNoValidator</code>约定了要实现的验证的规范。</p>
+<pre><code><code>    /// &lt;summary&gt;
+    /// 工商注册码/统一社会信用代码验证接口
+    /// &lt;/summary&gt;
+    public interface IRegistrationNoValidator&lt;out TResult&gt; : IValidator&lt;TResult&gt;
+        where TResult : RegistrationNoValidationResult, new()
+    {
+        /// &lt;summary&gt;
+        /// 用于验证的行政区划字典数据
+        /// &lt;/summary&gt;
+        IValidationDictionary&lt;int, string&gt; Dictionary { get; set; }
+        /// &lt;summary&gt;
+        /// 号码长度
+        /// &lt;/summary&gt;
+        RegistrationNoLength RegistrationNoLength { get; }
+        /// &lt;summary&gt;
+        /// 验证号码是否正确
+        /// &lt;/summary&gt;
+        /// &lt;param name=&quot;code&quot;&gt;待验证的工商注册码/统一社会信用代码&lt;/param&gt;
+        /// &lt;param name=&quot;validLimit&quot;&gt;行政区划验证限制，因为存在工商管理机构代码，所以默认为null&lt;/param&gt;
+        /// &lt;returns&gt;&lt;/returns&gt;
+        TResult Validate(string code, AreaValidLimit? validLimit = null);
+    }</code></pre>
+<p>验证结果定义如下：</p>
+<ul>
+<li><code>RegistrationNoValidationResult</code> 默认验证结果类</li>
+<li><code>RegistrationNo15ValidationResult</code> 工商营业执照特有的验证结果类</li>
+<li><code>RegistrationNo18ValidationResult</code> 统一社会信用代码特有的验证结果类</li>
+</ul>
+<p><code>RegistrationNoValidationResult</code>代码如下</p>
+<pre><code><code>    /// &lt;summary&gt;
+    /// 注册码通用验证结果类
+    /// &lt;/summary&gt;
+    public class RegistrationNoValidationResult : ValidationResult
+    {
+        /// &lt;summary&gt;
+        /// 行政区划或工商行政管理机关编码
+        /// &lt;/summary&gt;
+        public int AreaNumber { get; internal set; }
+        /// &lt;summary&gt;
+        /// 身份证颁发行政区域或工商行政管理机关（识别出Depth最深的区域），可通过FullName来获取完整的名称
+        /// 注意此处有可能为null
+        /// &lt;/summary&gt;
+        public Area RecognizableArea { get; internal set; }
+        /// &lt;summary&gt;
+        /// 号码长度
+        /// &lt;/summary&gt;
+        public RegistrationNoLength RegistrationNoLength { get; internal set; }
+        /// &lt;summary&gt;
+        /// 校验码
+        /// &lt;/summary&gt;
+        public char CheckBit { get; internal set; }
+    }</code></pre>
+<p><code>RegistrationNo15ValidationResult</code>在<code>RegistrationNoValidationResult</code>的基础上额外包含了工商营业执照专有的识别信息，你可以通过该部分得知该企业是<code>内资企业、外资企业还是个体户</code>。</p>
+<pre><code><code>   /// &lt;summary&gt;
+    /// 工商行政管理市场主体注册号 专用验证结果类
+    /// &lt;/summary&gt;
+    public class RegistrationNo15ValidationResult : RegistrationNoValidationResult
+    {
+        /// &lt;summary&gt;
+        /// 顺序码
+        /// &lt;/summary&gt;
+        public int SequenceNumber { get; internal set; }
+        /// &lt;summary&gt;
+        /// 企业类型
+        /// &lt;/summary&gt;
+        public EnterpriseType EnterpriseType
+        {
+            get
+            {
+                var comp = this.SequenceNumber / 10000000;
+                if (comp &lt;= (int)EnterpriseType.Domestic)
+                {
+                    return EnterpriseType.Domestic;
+                }
+                else if (comp &lt;= (int)EnterpriseType.Foreign)
+                {
+                    return EnterpriseType.Foreign;
+                }
+                else { return EnterpriseType.Individual; }
+            }
+        }
+    }</code></pre>
+<p><code>RegistrationNo18ValidationResult</code>则是在<code>RegistrationNoValidationResult</code>的基础上额外包含了社会统一信用代码的专有信息，你可以通过该部分信息得知其<code>登记管理部门</code>，以及其<code>组织机构代码</code>。</p>
+<pre><code><code>    /// &lt;summary&gt;
+    /// 法人和其他组织统一社会信用代码 专用验证结果类
+    /// &lt;/summary&gt;
+    public class RegistrationNo18ValidationResult : RegistrationNoValidationResult
+    {
+        /// &lt;summary&gt;
+        /// 登记管理部门代码标志
+        /// &lt;/summary&gt;
+        public ManagementCode ManagementCode { get; internal set; }
+        /// &lt;summary&gt;
+        /// 登记管理部门下机构类别代码标志
+        /// &lt;/summary&gt;
+        public ManagementKindCode ManagementKindCode { get; internal set; } = ManagementKindCode.NonSpecific;
+        /// &lt;summary&gt;
+        /// 组织机构代码，遵循GB/T 11714-1997
+        /// &lt;/summary&gt;
+        public string OrganizationCode { get; internal set; }
+    }</code></pre>
+<p>可根据<code>IsValid</code>来判断验证是否成功，如果验证失败，<code>Errors</code> 属性则包含了验证失败的原因，具体的错误原因列表如下</p>
+<pre><code><code>    /// &lt;summary&gt;
+    /// 错误提示信息类
+    /// &lt;/summary&gt;
+    internal class ErrorMessage
+    {
+        /// &lt;summary&gt;
+        /// 字符串为空
+        /// &lt;/summary&gt;
+        public const string Empty = &quot;工商注册码/统一社会信用代码为空&quot;;
+        /// &lt;summary&gt;
+        /// 号码错误
+        /// &lt;/summary&gt;
+        public const string Error = &quot;错误的工商注册码/统一社会信用代码&quot;;
+        /// &lt;summary&gt;
+        /// 无效的登记管理部门代码
+        /// &lt;/summary&gt;
+        public const string InvalidManagement = &quot;无效的登记管理部门代码&quot;;
+        /// &lt;summary&gt;
+        /// 无效的登记管理部门机构类别代码
+        /// &lt;/summary&gt;
+        public const string InvalidManagementKind = &quot;无效的登记管理部门机构类别代码&quot;;
+        /// &lt;summary&gt;
+        /// 无效的组织机构代码
+        /// &lt;/summary&gt;
+        public const string InvalidOrganizationCode = &quot;无效的组织机构代码&quot;;
+        /// &lt;summary&gt;
+        /// 行政区划识别失败
+        /// &lt;/summary&gt;
+        public const string InvalidArea = &quot;工商管理机关或行政区划识别失败&quot;;
+        /// &lt;summary&gt;
+        /// 错误的校验码
+        /// &lt;/summary&gt;
+        public const string InvalidCheckBit = &quot;错误的校验码&quot;;
+        /// &lt;summary&gt;
+        /// 无效实现
+        /// &lt;/summary&gt;
+        public const string InvalidImplement = &quot;未能找到或无效的 {0} 位工商注册码/统一社会信用代码实现&quot;;
+        /// &lt;summary&gt;
+        /// 长度错误
+        /// &lt;/summary&gt;
+        public const string LengthOutOfRange = &quot;工商注册码/统一社会信用代码非 {0} 位&quot;;
+    }</code></pre>
+<p>同其它验证类一致，<code>RegistrationNoValidatorHelper</code>可自动识别待识别号码究竟为工商营业执照号码还是社会统一信用代码，当然因为有可能待识别号码哪种号码都不是，所以最终识别结果可能为<code>RegistrationNoValidationResult</code>、<code>RegistrationNo15ValidationResult</code>和<code>RegistrationNo18ValidationResult</code>中的某一种。</p>
+<p>最后是简单的使用示例</p>
+<pre><code><code>            Console.WriteLine(&quot;***工商注册码/统一社会信用代码***&quot;);
+            string[] rnArr = { &quot;110108000000016&quot;, &quot;91320621MA1MRHG205&quot; };
+            foreach (var rn in rnArr)
+            {
+                var valid = RegistrationNoValidatorHelper.Validate(rn, validLimit: null);
+                Console.WriteLine(&quot;{0}验证结果：{1} 长度{2} 行政区划名称({3}) 验证结果类型:{4}&quot;, rn, valid.IsValid, valid.RegistrationNoLength, valid.RecognizableArea.FullName, valid);
+            }
+            Console.WriteLine(&quot;随机的工商注册码：&quot; + new RegistrationNo15Validator().GenerateRandomNumber());
+            Console.WriteLine(&quot;随机的统一社会信用代码：&quot; + new RegistrationNo18Validator().GenerateRandomNumber());</code></pre>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

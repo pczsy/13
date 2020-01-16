@@ -1,0 +1,260 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Ajax跨域问题及解决方案' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Ajax跨域问题及解决方案</center></div><div class='banquan'>原文出处:本文由博客园博主炭烧生蚝提供。<br/>
+原文连接:https://www.cnblogs.com/tanshaoshenghao/p/10799042.html</div><br>
+    <div class="toc">
+    <p class="toc-title">目录</p>
+    <div class="toc-list">
+        <ul>
+        <li><a href="#复现ajax跨域问题">复现Ajax跨域问题</a></li>
+        <li><a href="#ajax跨域介绍">Ajax跨域介绍</a></li>
+        <li><a href="#ajax跨域解决方案">Ajax跨域解决方案</a><ul>
+        <li><a href="#一.-在服务端添加响应头access-control-allow-origin">一. 在服务端添加响应头<code>Access-Control-Allow-Origin</code></a></li>
+        <li><a href="#二.-使用jsonp解决">二. 使用JSONP解决</a></li>
+        <li><a href="#小结">小结</a></li>
+        </ul></li>
+        </ul>
+    </div>
+</div>
+<h1 id="复现ajax跨域问题">复现Ajax跨域问题</h1>
+<ul>
+<li>做两个简单的小项目复现Ajax跨域问题. 后端语言使用Java</li>
+<li>首先是一个简单的订单系统, 通过访问<code>/loadOrderList</code>, 最终以json串形式返回订单集合. 该项目使用Tomcat发布在7070端口.</li>
+</ul>
+<pre><code><code>@RequestMapping(&quot;/loadOrderList&quot;)
+@ResponseBody
+public List&lt;Order&gt; loadOrderList(String uid){
+    //模拟订单数据
+    Order o1 = new Order();
+    o1.setId(&quot;111&quot;);
+    o1.setTotal(333.33);
+    o1.setDate(&quot;2019-4-29&quot;);
+
+    Order o2 = new Order();
+    o2.setId(&quot;222&quot;);
+    o2.setTotal(444.44);
+    o2.setDate(&quot;2019-5-29&quot;);
+
+    Order o3 = new Order();
+    o3.setId(&quot;333&quot;);
+    o3.setTotal(555.55);
+    o3.setDate(&quot;2019-6-29&quot;);
+
+    List&lt;Order&gt; list = new ArrayList&lt;&gt;();
+    list.add(o1);
+    list.add(o2);
+    list.add(o3);
+
+    return list;
+}</code></pre>
+<ul>
+<li>在另一个项目中做一个向订单系统发送一个ajax请求, 获取订单集合. 该项目使用Tomcat插件发布在9090端口.</li>
+</ul>
+<pre><code><code>//index.jsp
+
+&lt;%@ page contentType=&quot;text/html;charset=UTF-8&quot; language=&quot;java&quot; %&gt;
+&lt;html&gt;
+&lt;head&gt;
+    &lt;title&gt;Title&lt;/title&gt;
+    &lt;script type=&quot;text/javascript&quot; src=&quot;https://code.jquery.com/jquery-1.11.3.js&quot;&gt;&lt;/script&gt;
+    &lt;script type=&quot;text/javascript&quot;&gt;
+        function sendAjax() {
+            $.post(&quot;http://localhost:7070/order/loadOrderList&quot;, &quot;uid=1234&quot;, function (data) {
+                alert(data);
+            });
+        }
+    &lt;/script&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;a href=&quot;javascript:sendAjax()&quot;&gt;sendAjax&lt;/a&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+<p> </p>
+<ul>
+<li>点击<code>sendAjax</code>超链接向订单系统发送ajax请求.<br />
+<img src="./images/Ajax跨域问题及解决方案0.png" alt="在这里插入图片描述" /></li>
+<li>通过开发者工具发现虽然服务器以状态码200响应回来, 但是控制台却报错了.<br />
+<img src="./images/Ajax跨域问题及解决方案1.png" alt="在这里插入图片描述" /><br />
+<img src="./images/Ajax跨域问题及解决方案2.png" alt="在这里插入图片描述" /></li>
+<li>这就是Ajax跨域出错的一种表现, 下面分析原因.</li>
+</ul>
+<p> </p>
+<h1 id="ajax跨域介绍">Ajax跨域介绍</h1>
+<ul>
+<li>Ajax跨域问题是由浏览器的同源策略造成的, 首先要理解<code>源</code>这个概念.</li>
+<li>我们可以通过协议+域名+端口确定一个源. 在上面的示例中, 你可以把一个项目理解为一个源. Ajax请求可以对源内的资源发起访问, 但是不同源之间进行Ajax就会有问题.</li>
+<li>当向不同源的资源发起Ajax请求时, 浏览器会加上<code>Origin</code>字段来标识源</li>
+</ul>
+<pre><code><code>Accept: */*
+Accept-Encoding: gzip, deflate, br
+Accept-Language: zh-CN,zh;q=0.9
+Connection: keep-alive
+Content-Length: 8
+Content-Type: application/x-www-form-urlencoded; charset=UTF-8
+Host: localhost:7070
+Origin: http://localhost:9090   协议+域名+端口</code></pre>
+<ul>
+<li>服务器会根据<code>Origin</code>字段决定是否同意这次请求, 如果<code>Origin</code>指定的源不在许可范围内, 服务器会返回一个不带有<code>Access-Control-Allow-Origin</code>字段的响应. 浏览器解析时发现缺少了这个字段, 就会报错. 这种错误不能通过状态码识别, 因为状态码很有可能就是200(见上面的案例).</li>
+</ul>
+<p> </p>
+<h1 id="ajax跨域解决方案">Ajax跨域解决方案</h1>
+<ul>
+<li>下面介绍最常用Ajax跨域解决方案.</li>
+</ul>
+<h2 id="一.-在服务端添加响应头access-control-allow-origin">一. 在服务端添加响应头<code>Access-Control-Allow-Origin</code></h2>
+<ul>
+<li>既然我们已经知道了Ajax跨域失败是因为响应中缺少了响应头<code>Access-Control-Allow-Origin</code>, 那么就想办法加上去.</li>
+<li>以Java项目为例, 在后端我们使用<code>CORSFilter</code>过滤器加上该响应头.</li>
+<li>(假设是Maven项目), 首先在<code>pom.xml</code>中添加坐标</li>
+</ul>
+<pre><code><code>&lt;dependency&gt;
+    &lt;groupId&gt;com.thetransactioncompany&lt;/groupId&gt;
+    &lt;artifactId&gt;cors-filter&lt;/artifactId&gt;
+    &lt;version&gt;2.5&lt;/version&gt;
+    &lt;scope&gt;runtime&lt;/scope&gt;
+&lt;/dependency&gt;</code></pre>
+<ul>
+<li>然后在<code>web.xml</code>中对过滤器进行配置.</li>
+</ul>
+<pre><code><code>    &lt;filter&gt;
+        &lt;filter-name&gt;CORS&lt;/filter-name&gt;
+        &lt;filter-class&gt;com.thetransactioncompany.cors.CORSFilter&lt;/filter-class&gt;
+        &lt;init-param&gt;
+            &lt;param-name&gt;cors.allowOrigin&lt;/param-name&gt;&lt;!--这个标签是关键, *代表所有源都能访问--&gt;
+            &lt;param-value&gt;*&lt;/param-value&gt;
+        &lt;/init-param&gt;
+        &lt;init-param&gt;
+            &lt;param-name&gt;cors.supportedMethods&lt;/param-name&gt;
+            &lt;param-value&gt;GET, POST, HEAD, PUT, DELETE&lt;/param-value&gt;
+        &lt;/init-param&gt;
+        &lt;init-param&gt;
+            &lt;param-name&gt;cors.supportedHeaders&lt;/param-name&gt;
+            &lt;param-value&gt;Accept, Origin, X-Requested-With, Content-Type, Last-Modified&lt;/param-value&gt;
+        &lt;/init-param&gt;
+        &lt;init-param&gt;
+            &lt;param-name&gt;cors.exposedHeaders&lt;/param-name&gt;
+            &lt;param-value&gt;Set-Cookie&lt;/param-value&gt;
+        &lt;/init-param&gt;
+        &lt;init-param&gt;
+            &lt;param-name&gt;cors.supportsCredentials&lt;/param-name&gt;
+            &lt;param-value&gt;true&lt;/param-value&gt;
+        &lt;/init-param&gt;
+    &lt;/filter&gt;
+
+    &lt;filter-mapping&gt;
+        &lt;filter-name&gt;CORS&lt;/filter-name&gt;
+        &lt;url-pattern&gt;/*&lt;/url-pattern&gt;
+    &lt;/filter-mapping&gt;</code></pre>
+<p> </p>
+<ul>
+<li>配置后重启订单项目, 再次发起Ajax请求可以看到成功返回数据, 响应头中包含了<code>Access-Control-Allow-Origin</code>, 值为发起Ajax请求的源.<br />
+<img src="./images/Ajax跨域问题及解决方案3.png" alt="在这里插入图片描述" /><br />
+<img src="./images/Ajax跨域问题及解决方案4.png" alt="在这里插入图片描述" /><br />
+ </li>
+</ul>
+<h2 id="二.-使用jsonp解决">二. 使用JSONP解决</h2>
+<ul>
+<li>上面直接通过过滤器添加响应头的方法可以说是对症下药, 那么还有没有什么偏方呢?</li>
+<li>还真的有. 在jsp文件中经常通过通过<code>&lt;script&gt;</code>标签引入一段js代码, 这段代码通常来源于网络, 也就是不同源. 那么我们不妨通过<code>&lt;srcipt&gt;</code>标签完成Ajax请求, 这样便顺带解决了跨域问题.</li>
+<li>下面还是沿用上面的案例进行演示.</li>
+<li>我们对发送ajax的jsp进行修改</li>
+</ul>
+<pre><code><code>&lt;%@ page contentType=&quot;text/html;charset=UTF-8&quot; language=&quot;java&quot; %&gt;
+&lt;html&gt;
+&lt;head&gt;
+    &lt;title&gt;Title&lt;/title&gt;
+    &lt;script type=&quot;text/javascript&quot; src=&quot;https://code.jquery.com/jquery-1.11.3.js&quot;&gt;&lt;/script&gt;
+    &lt;script&gt;
+        function doCallBack(data){
+            var str = JSON.stringify(data);
+            alert(str);
+        }
+    &lt;/script&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;script src=&quot;http://localhost:7070/order/loadOrderList3?uid=111&amp;callBack=doCallBack&quot;&gt;&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+<ul>
+<li>上面的代码中, 我们首先定义了<code>doCallBack()</code>函数, 它接收一个字符串参数, 并且会把接收到的字符串显示出来.</li>
+<li>然后在<code>&lt;body&gt;</code>标签中编写<code>&lt;script&gt;</code>标签, 我们将通过<code>&lt;script&gt;</code>标签请求订单系统, 订单系统将会返回一段js代码, 这段js代码会调用<code>doCallBack()</code>方法.</li>
+<li>为了能够拼接出<code>doCallBack(字符串参数...)</code>js代码, 我们在订单系统中作如下操作.</li>
+</ul>
+<pre><code><code>@RequestMapping(&quot;/loadOrderList3&quot;)
+@ResponseBody
+public String loadOrderList3(String uid, String callBack){
+    //模拟订单数据
+    Order o1 = new Order();
+    o1.setId(&quot;111&quot;);
+    o1.setTotal(333.33);
+    o1.setDate(&quot;2019-4-29&quot;);
+
+    Order o2 = new Order();
+    o2.setId(&quot;222&quot;);
+    o2.setTotal(444.44);
+    o2.setDate(&quot;2019-5-29&quot;);
+
+    Order o3 = new Order();
+    o3.setId(&quot;333&quot;);
+    o3.setTotal(555.55);
+    o3.setDate(&quot;2019-6-29&quot;);
+
+    List&lt;Order&gt; list = new ArrayList&lt;&gt;();
+    list.add(o1);
+    list.add(o2);
+    list.add(o3);
+
+    //拼接js代码
+    String result = callBack + &quot;(&quot; + JSON.toJSONString(list) + &quot;)&quot;;
+    return result;
+}</code></pre>
+<p> </p>
+<ul>
+<li>这个想法是不是很妙? 明白这个原理之后, 我们可以使用jQuery方便进行JSONP操作, 在上面的代码中我们人为指定了一个名为<code>doCallBack</code>的函数, 而jQuery会随机用时间戳生成一个函数名, 原理和上面是一样的.</li>
+<li>所以完成一开时点击超链接发送Ajax请求只需要如下几步.</li>
+</ul>
+<pre><code><code>&lt;%@ page contentType=&quot;text/html;charset=UTF-8&quot; language=&quot;java&quot; %&gt;
+&lt;html&gt;
+&lt;head&gt;
+    &lt;title&gt;Title&lt;/title&gt;
+    &lt;script type=&quot;text/javascript&quot; src=&quot;https://code.jquery.com/jquery-1.11.3.js&quot;&gt;&lt;/script&gt;
+    &lt;script&gt;
+        function sendAjax(){
+            $.getJSON(&quot;http://localhost:7070/order/loadOrderList3?callBack=?&quot;,&quot;uid=111&quot;,
+            function (data) {
+                var str = JSON.stringify(data);
+                alert(str);
+            });
+        }
+    &lt;/script&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;a href=&quot;javascript:sendAjax()&quot;&gt;sendAjax&lt;/a&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+<p> </p>
+<h2 id="小结">小结</h2>
+<ul>
+<li>上面两种解决办法在思路上有着本质的不同. 方案一抓住<code>CORS</code>跨域访问问题的本质, 在后端加上响应头解决跨域问题. 方案二<code>JSONP</code>利用的是<code>&lt;script&gt;</code>标签能够跨域获取js代码的特性, 绕过跨域问题.</li>
+</ul>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

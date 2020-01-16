@@ -1,0 +1,80 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Dapper use Table Value Parameter in C# (Sql Server 数组参数)' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Dapper use Table Value Parameter in C# (Sql Server 数组参数)</center></div><div class='banquan'>原文出处:本文由博客园博主StoneLeee提供。<br/>
+原文连接:https://www.cnblogs.com/leestone/p/11483216.html</div><br>
+    <h4 id="dapper-也可以使用-数组参数">Dapper 也可以使用 数组参数</h4>
+<p><a href='https://gist.github.com/taylorkj/9012616#file-gistfile1-cs-L88' >参考:Blog on Github</a></p>
+<h5 id="dapper-调用存储过程-单个参数">Dapper 调用存储过程 ：单个参数</h5>
+<pre><code><code>  static void Main(string[] args)
+        {
+            var connection = new SqlConnection(&quot;Data Source=.;Initial Catalog=Datamip;Integrated Security=True;MultipleActiveResultSets=True&quot;);
+
+            var info = connection.Query&lt;Users&gt;(&quot;sp_GetUsers&quot;, new { id = 5 },
+                                   commandType: CommandType.StoredProcedure);
+        }</code></pre>
+<h5 id="dapper-调用存储过程-数组参数">Dapper 调用存储过程 ：数组参数</h5>
+<p>需要使用 Sql Server 的自定义类型 ： <strong>dbo.IDList</strong></p>
+<pre><code><code>CREATE TYPE dbo.IDList
+AS TABLE
+(
+  ID INT
+);
+GO</code></pre>
+<h5 id="c-code">c# code</h5>
+<pre><code><code>  public static List&lt;WorkLog&gt; QueryWithTVP()
+        {
+            int[] idList = new int[] { 1, 2 };
+            var results = new List&lt;WorkLog&gt;();
+            try
+            {
+                var typeIdsParameter = new List&lt;SqlDataRecord&gt;();
+                // TypeID  数组参数对应的字段
+                var myMetaData = new SqlMetaData[] { new SqlMetaData(&quot;TypeID&quot;, SqlDbType.Int) };
+                foreach (var num in idList)
+                {
+                    // Create a new record, i.e. row.
+                    var record = new SqlDataRecord(myMetaData);
+                    // Set the 1st colunm, i.e., position 0 with the correcponding value:
+                    record.SetInt32(0, num);
+                    // Add the new row to the table rows array:
+                    typeIdsParameter.Add(record);
+                }
+                using (IDbConnection conn = new SqlConnection(DBConfig.ConnectionString))
+                {
+                    conn.Open();
+                   //调用存储过程，IDList： 自定义类型
+                    results =  conn.Query&lt;WorkLog&gt;(&quot;dbo.GetWorkLog_ByTypeIds&quot;,
+                                        new TableValueParameter(&quot;@TypeIds&quot;, &quot;IDList&quot;, typeIdsParameter)
+                                        , commandType: CommandType.StoredProcedure).ToList();
+                }
+            }
+            catch (Exception)
+            {
+
+                throw;
+            }
+
+            return results;
+        }</code></pre>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

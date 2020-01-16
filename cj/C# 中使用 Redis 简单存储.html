@@ -1,0 +1,89 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C# 中使用 Redis 简单存储' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C# 中使用 Redis 简单存储</center></div><div class='banquan'>原文出处:本文由博客园博主三人行工作室提供。<br/>
+原文连接:https://www.cnblogs.com/timeddd/p/11117787.html</div><br>
+    <blockquote>
+<p>Redis 是一个开源的使用 ANSI C语言编写的支持网络、可基于内存也可持久化的日志型、Key-Value 数据库。</p>
+</blockquote>
+<p>常用它来存储缓存数据，能非常轻松的实现缓存过期刷新机制。</p>
+<p>多种语言都可以连接到 Redis 数据库服务器，本文将推荐一个非常简洁的 C# 连接 Redis 数据库的开源项目。</p>
+<h3 id="一般推荐">一般推荐</h3>
+<p>通常，C# 使用 Redis 会推荐使用添加 NuGet 包 StackExchange.Redis 的方式来使用。</p>
+<p>使用时代码形式如下：</p>
+<pre><code><code>ConnectionMultiplexer redis = ConnectionMultiplexer.Connect(&quot;127.0.0.1:6379,password=CeshiPassword&quot;);
+IDatabase db = redis.GetDatabase();
+string value = &quot;name&quot;;
+db.StringSet(&quot;mykey&quot;, value);
+Console.WriteLine(db.StringGet(&quot;mykey&quot;));</code></pre>
+<p>个人觉得，其使用方式不够直观。<br />
+如 ConnectionMultiplexer 这个名称不是可猜测的，甚至看到它也想不起它与 Redis 有什么关系。然后，从最简使用的角度，它还需要用户了解到里边 Database 的概念。</p>
+<h3 id="推荐一个简洁版本-csredis">推荐一个简洁版本 csredis</h3>
+<p>项目地址：<a href="https://github.com/ctstone/csredis" class="uri">https://github.com/ctstone/csredis</a></p>
+<p>其名称接地气，使用方便，形式如下。</p>
+<pre><code><code>using (var redis = new RedisClient(&quot;localhost&quot;))
+{
+   redis.Auth(&quot;password&quot;);
+   redis.Set(&quot;mykey&quot;, &quot;name&quot;, 25);  // 有效期25秒
+   Console.WriteLine(redis.Get(&quot;mykey&quot;));
+} </code></pre>
+<h3 id="一个简单的辅助类">一个简单的辅助类</h3>
+<p>这里进行简单的封装，使得使用时只关心键与值，以及其有效时长，这样一样，普通的 token 缓存场景就可以满足了。</p>
+<pre><code><code>public class RedisHelper
+{
+    private static RedisClient _RedisCli;
+    private static RedisClient RedisCli
+    {
+        get
+        {
+            if (_RedisCli == null)
+            {
+                _RedisCli = new RedisClient(&quot;192.168.0.100&quot;);
+                _RedisCli.Auth(&quot;redispassword&quot;);
+            }
+            return _RedisCli;
+        }
+    }
+
+    /// &lt;summary&gt;
+    /// 取得缓存值
+    /// &lt;/summary&gt;
+    /// &lt;param name=&quot;key&quot;&gt;&lt;/param&gt;
+    /// &lt;returns&gt;&lt;/returns&gt;
+    public static string GetKey(string key)
+    {
+        return RedisCli.Get(key);
+    }
+
+    /// &lt;summary&gt;
+    /// 保存值并设置有效期（second）
+    /// &lt;/summary&gt;
+    /// &lt;param name=&quot;key&quot;&gt;&lt;/param&gt;
+    /// &lt;param name=&quot;value&quot;&gt;&lt;/param&gt;
+    /// &lt;param name=&quot;expireSeconds&quot;&gt;&lt;/param&gt;
+    public static void SetKey(String key, String value, int expireSeconds)
+    {
+        RedisCli.Set(key, value, expireSeconds);
+    }
+}</code></pre>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

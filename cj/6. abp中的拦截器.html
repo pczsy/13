@@ -1,0 +1,279 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修6. abp中的拦截器' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>6. abp中的拦截器</center></div><div class='banquan'>原文出处:本文由博客园博主又见阿郎提供。<br/>
+原文连接:https://www.cnblogs.com/zhiyong-ITNote/p/11965930.html</div><br>
+    <h6 id="abp拦截器基本定义">abp拦截器基本定义</h6>
+<p>拦截器接口定义：</p>
+<pre><code><code>public interface IAbpInterceptor
+{
+    void Intercept(IAbpMethodInvocation invocation);
+
+    Task InterceptAsync(IAbpMethodInvocation invocation);
+}</code></pre>
+<p>默认抽象类定义：</p>
+<pre><code><code>public abstract class AbpInterceptor : IAbpInterceptor
+{
+    public abstract void Intercept(IAbpMethodInvocation invocation);
+
+    public virtual Task InterceptAsync(IAbpMethodInvocation invocation)
+    {
+        Intercept(invocation);
+        return Task.CompletedTask;
+    }
+}</code></pre>
+<p>abp的拦截器实现是基于Autofac.Extras.DynamicProxy，这个包依赖两个组件：Autofac、Castle.Core(实质上是调用内部组件DynamicProxy实现动态代理)。关于此组件的资料参考</p>
+<p><a href="https://www.cnblogs.com/stulzq/p/6880394.html">.NET 通过 Autofac 和 DynamicProxy 实现AOP</a></p>
+<p><a href="https://autofaccn.readthedocs.io/zh/latest/advanced/interceptors.html">Type Interceptors</a></p>
+<h6 id="abp拦截器的设计轨迹">Abp拦截器的设计轨迹</h6>
+<p>此类的作用就是将aspnetcore默认的DI服务容器(ServiceCollection)替换为Autofac。</p>
+<pre><code><code>public static IServiceProvider BuildServiceProviderFromFactory&lt;TContainerBuilder&gt;([NotNull] this IServiceCollection services, Action&lt;TContainerBuilder&gt; builderAction = null)
+{
+    Check.NotNull(services, nameof(services));
+
+    var serviceProviderFactory = services.GetSingletonInstanceOrNull&lt;IServiceProviderFactory&lt;TContainerBuilder&gt;&gt;();
+    if (serviceProviderFactory == null)
+    {
+        throw new AbpException($&quot;Could not find {typeof(IServiceProviderFactory&lt;TContainerBuilder&gt;).FullName} in {services}.&quot;);
+    }
+
+    var builder = serviceProviderFactory.CreateBuilder(services);
+    builderAction?.Invoke(builder);
+    return serviceProviderFactory.CreateServiceProvider(builder);
+}</code></pre>
+<p>CreateBuilder函数源码：</p>
+<pre><code><code>/// &lt;summary&gt;
+/// Creates a container builder from an &lt;see cref=&quot;T:Microsoft.Extensions.DependencyInjection.IServiceCollection&quot; /&gt;.
+/// &lt;/summary&gt;
+/// &lt;param name=&quot;services&quot;&gt;The collection of services&lt;/param&gt;
+/// &lt;returns&gt;A container builder that can be used to create an &lt;see cref=&quot;T:System.IServiceProvider&quot; /&gt;.&lt;/returns&gt;
+public ContainerBuilder CreateBuilder(IServiceCollection services)
+{
+    _services = services;
+    
+    _builder.Populate(services);
+    
+    return _builder;
+}</code></pre>
+<p>Populate函数源码：</p>
+<pre><code><code>public static void Populate(
+        this ContainerBuilder builder,
+        IServiceCollection services)
+{
+    builder.RegisterType&lt;AutofacServiceProvider&gt;().As&lt;IServiceProvider&gt;();
+    builder.RegisterType&lt;AutofacServiceScopeFactory&gt;().As&lt;IServiceScopeFactory&gt;();
+
+    Register(builder, services);
+}</code></pre>
+<p>Register函数：</p>
+<pre><code><code>/// 注册拦截器
+private static void Register(
+        ContainerBuilder builder,
+        IServiceCollection services)
+{
+    var moduleContainer = services.GetSingletonInstance&lt;IModuleContainer&gt;();
+    var registrationActionList = services.GetRegistrationActionList();
+
+    // 遍历DI服务容器中的服务
+    foreach (var service in services)
+    {
+        if (service.ImplementationType != null)
+        {
+            // 判断服务是否是泛型
+            var serviceTypeInfo = service.ServiceType.GetTypeInfo();
+            if (serviceTypeInfo.IsGenericTypeDefinition)
+            {
+                builder
+                    .RegisterGeneric(service.ImplementationType)
+                    .As(service.ServiceType)
+                    .ConfigureLifecycle(service.Lifetime)
+                    .ConfigureAbpConventions(moduleContainer, registrationActionList);
+            }
+            else
+            {
+                builder
+                    .RegisterType(service.ImplementationType)
+                    .As(service.ServiceType)
+                    .ConfigureLifecycle(service.Lifetime)
+                    .ConfigureAbpConventions(moduleContainer, registrationActionList);
+            }
+        }
+        // 其余实现
+        ......
+    }
+}</code></pre>
+<p>ConfigureAbpConventions函数源码：</p>
+<pre><code><code>public static IRegistrationBuilder&lt;TLimit, TActivatorData, TRegistrationStyle&gt; ConfigureAbpConventions&lt;TLimit, TActivatorData, TRegistrationStyle&gt;(
+    this IRegistrationBuilder&lt;TLimit, TActivatorData, TRegistrationStyle&gt; registrationBuilder, 
+    IModuleContainer moduleContainer, 
+    ServiceRegistrationActionList registrationActionList)
+where TActivatorData : ReflectionActivatorData
+{
+    // 其余实现
+    .....
+    
+    // 这里就是调用OnRegistred函数里面的Action委托
+    registrationBuilder = registrationBuilder.InvokeRegistrationActions(registrationActionList, serviceType, implementationType);
+
+    return registrationBuilder;
+}</code></pre>
+<p>InvokeRegistrationActions函数源码：</p>
+<pre><code><code>private static IRegistrationBuilder&lt;TLimit, TActivatorData, TRegistrationStyle&gt; InvokeRegistrationActions&lt;TLimit, TActivatorData, TRegistrationStyle&gt;(this IRegistrationBuilder&lt;TLimit, TActivatorData, TRegistrationStyle&gt; registrationBuilder, ServiceRegistrationActionList registrationActionList, Type serviceType, Type implementationType) 
+    where TActivatorData : ReflectionActivatorData
+{
+    var serviceRegistredArgs = new OnServiceRegistredContext(serviceType, implementationType);
+
+    foreach (var registrationAction in registrationActionList)
+    {
+        // 调用OnRegistred函数里面的Action委托，注入拦截器
+        registrationAction.Invoke(serviceRegistredArgs);
+    }
+
+    //如果有拦截器
+    if (serviceRegistredArgs.Interceptors.Any())
+    {
+        // 在某个服务类型(ServiceType)类上注册拦截器
+        registrationBuilder = registrationBuilder.AddInterceptors(
+            serviceType,
+            serviceRegistredArgs.Interceptors
+        );
+    }
+
+    return registrationBuilder;
+}</code></pre>
+<p>AddInterceptors函数源码：</p>
+<pre><code><code>private static IRegistrationBuilder&lt;TLimit, TActivatorData, TRegistrationStyle&gt; AddInterceptors&lt;TLimit, TActivatorData, TRegistrationStyle&gt;(
+    this IRegistrationBuilder&lt;TLimit, TActivatorData, TRegistrationStyle&gt; registrationBuilder, 
+    Type serviceType,
+    IEnumerable&lt;Type&gt; interceptors)
+    where TActivatorData : ReflectionActivatorData
+    {
+        // 启用拦截器
+        // 如果是接口类型，那么动态创建一个接口代理
+        // 否则 创建一个目标类的子类代理类，这里需要注意的是只会拦截虚方法，重写方法
+        if (serviceType.IsInterface)
+        {
+            registrationBuilder = registrationBuilder.EnableInterfaceInterceptors();
+        }
+        else
+        {
+            (registrationBuilder as IRegistrationBuilder&lt;TLimit, ConcreteReflectionActivatorData, TRegistrationStyle&gt;)?.EnableClassInterceptors();
+        }
+    
+        foreach (var interceptor in interceptors)
+        {
+            // 动态注入拦截器，指定拦截器类型为传入的拦截器
+            registrationBuilder.InterceptedBy(
+               typeof(CastleAbpInterceptorAdapter&lt;&gt;).MakeGenericType(interceptor)
+            );
+        }
+    
+        return registrationBuilder;
+    }</code></pre>
+<p>CastleAbpInterceptorAdapter是Castle.Core库通过适配器来定义了一个标准、针对IAbpInterceptor的实现。源码：</p>
+<pre><code><code>// 泛型拦截器为 基于AbpIterceptor的拦截器类型
+public class CastleAbpInterceptorAdapter&lt;TInterceptor&gt; : IInterceptor
+    where TInterceptor : IAbpInterceptor
+{
+    private static readonly MethodInfo MethodExecuteWithoutReturnValueAsync =
+        typeof(CastleAbpInterceptorAdapter&lt;TInterceptor&gt;)
+            .GetMethod(
+                nameof(ExecuteWithoutReturnValueAsync),
+                BindingFlags.NonPublic | BindingFlags.Instance
+            );
+
+    private static readonly MethodInfo MethodExecuteWithReturnValueAsync =
+        typeof(CastleAbpInterceptorAdapter&lt;TInterceptor&gt;)
+            .GetMethod(
+                nameof(ExecuteWithReturnValueAsync),
+                BindingFlags.NonPublic | BindingFlags.Instance
+            );
+
+    // 这里的TInterceptor就是在InterceptedBy方法那里传入的拦截器类型
+    // 也就是我们基于AbpInterceptor抽象类创建的拦截器
+    private readonly TInterceptor _abpInterceptor;
+
+    public CastleAbpInterceptorAdapter(TInterceptor abpInterceptor)
+    {
+        _abpInterceptor = abpInterceptor;
+    }
+    
+    // 其余代码
+}</code></pre>
+<p>IAbpMethodInvocation接口封装了被拦截方法调用时的各种参数，例如，被拦截方法在调用时所传递的参数，返回值类型，方法定义等。Castle.Core库通过适配器来定义了一个标准、针对IAbpMethodInvocation的实现。源码：</p>
+<pre><code><code>public class CastleAbpMethodInvocationAdapter : IAbpMethodInvocation
+{
+    public object[] Arguments =&gt; Invocation.Arguments;
+
+    public IReadOnlyDictionary&lt;string, object&gt; ArgumentsDictionary =&gt; _lazyArgumentsDictionary.Value;
+    private readonly Lazy&lt;IReadOnlyDictionary&lt;string, object&gt;&gt; _lazyArgumentsDictionary;
+
+    public Type[] GenericArguments =&gt; Invocation.GenericArguments;
+
+    public object TargetObject =&gt; Invocation.InvocationTarget ?? Invocation.MethodInvocationTarget;
+
+    public MethodInfo Method =&gt; Invocation.MethodInvocationTarget ?? Invocation.Method;
+
+    public object ReturnValue
+    {
+        get =&gt; _actualReturnValue ?? Invocation.ReturnValue;
+        set =&gt; Invocation.ReturnValue = value;
+    }
+
+    private object _actualReturnValue;
+
+    protected IInvocation Invocation { get; }
+    protected IInvocationProceedInfo ProceedInfo { get; }
+
+    public CastleAbpMethodInvocationAdapter(IInvocation invocation, IInvocationProceedInfo proceedInfo)
+    {
+        Invocation = invocation;
+        ProceedInfo = proceedInfo;
+
+        _lazyArgumentsDictionary = new Lazy&lt;IReadOnlyDictionary&lt;string, object&gt;&gt;(GetArgumentsDictionary);
+    }
+
+    // 内部调用 Castle.DynamicProxy
+    public void Proceed()
+    {
+        // 省略实现
+    }
+
+    public Task ProceedAsync()
+    {
+        // 省略实现
+    }
+
+    private IReadOnlyDictionary&lt;string, object&gt; GetArgumentsDictionary()
+    {
+        // 省略实现
+    }
+}</code></pre>
+<p>CastleAbpMethodInvocationAdapter适配器的调用处在CastleAbpInterceptorAdapter适配器类的Intercept函数：</p>
+<pre><code><code>// 调用自定义、基于AbpInterceptor的拦截器
+private void InterceptSyncMethod(IInvocation invocation, IInvocationProceedInfo proceedInfo)
+{
+    _abpInterceptor.Intercept(new CastleAbpMethodInvocationAdapter(invocation, proceedInfo));
+}</code></pre>
+<p>参考：<a href="https://www.cnblogs.com/myzony/p/10755010.html">[Abp vNext 源码分析] - 3. 依赖注入与拦截器</a></p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

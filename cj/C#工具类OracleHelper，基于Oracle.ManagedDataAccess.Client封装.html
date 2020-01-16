@@ -1,0 +1,410 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C#工具类OracleHelper，基于Oracle.ManagedDataAccess.Client封装' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C#工具类OracleHelper，基于Oracle.ManagedDataAccess.Client封装</center></div><div class='banquan'>原文出处:本文由博客园博主abcd123456789提供。<br/>
+原文连接:https://www.cnblogs.com/Jun168/p/11249993.html</div><br>
+    <p>基于Oracle.ManagedDataAccess.Client封装的Oracle工具类OracleHelper，代码如下：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">using</span><span style="color: #000000;"> System;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Data;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Collections.Generic;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Configuration;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Text;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.IO;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> Oracle.ManagedDataAccess.Client;
+</span><span style="color: #008000;">//</span><span style="color: #008000;">using System.Data.OracleClient;    System.Data.OracleClient类已经不推荐使用</span>
+
+<span style="color: #0000ff;">namespace</span><span style="color: #000000;"> Fly.Util.DataBase
+{
+    </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+    <span style="color: #808080;">///</span><span style="color: #008000;"> Oracle数据库操作类
+    </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> OracleHelper
+    {
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>  
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 执行数据库非查询操作,返回受影响的行数  
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>  
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="connectionString"&gt;</span><span style="color: #008000;">数据库连接字符串</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="cmdType"&gt;</span><span style="color: #008000;">命令的类型</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="cmdText"&gt;</span><span style="color: #008000;">Oracle存储过程名称或PL/SQL命令</span><span style="color: #808080;">&lt;/param&gt;</span>  
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="cmdParms"&gt;</span><span style="color: #008000;">命令参数集合</span><span style="color: #808080;">&lt;/param&gt;</span>  
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;</span><span style="color: #008000;">当前操作影响的数据行数</span><span style="color: #808080;">&lt;/returns&gt;</span>  
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">int</span> ExecuteNonQuery(<span style="color: #0000ff;">string</span> connectionString, CommandType cmdType, <span style="color: #0000ff;">string</span> cmdText, <span style="color: #0000ff;">params</span><span style="color: #000000;"> OracleParameter[] cmdParms)
+        {
+            OracleCommand cmd </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> OracleCommand();
+            </span><span style="color: #0000ff;">using</span> (OracleConnection conn = <span style="color: #0000ff;">new</span><span style="color: #000000;"> OracleConnection(connectionString))
+            {
+                PrepareCommand(cmd, conn, </span><span style="color: #0000ff;">null</span><span style="color: #000000;">, cmdType, cmdText, cmdParms);
+                </span><span style="color: #0000ff;">int</span> val =<span style="color: #000000;"> cmd.ExecuteNonQuery();
+                cmd.Parameters.Clear();
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> val;
+            }
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>  
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 执行数据库事务非查询操作,返回受影响的行数  
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>  
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="transaction"&gt;</span><span style="color: #008000;">数据库事务对象</span><span style="color: #808080;">&lt;/param&gt;</span>  
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="cmdType"&gt;</span><span style="color: #008000;">Command类型</span><span style="color: #808080;">&lt;/param&gt;</span>  
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="cmdText"&gt;</span><span style="color: #008000;">Oracle存储过程名称或PL/SQL命令</span><span style="color: #808080;">&lt;/param&gt;</span>  
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="cmdParms"&gt;</span><span style="color: #008000;">命令参数集合</span><span style="color: #808080;">&lt;/param&gt;</span>  
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;</span><span style="color: #008000;">当前事务操作影响的数据行数</span><span style="color: #808080;">&lt;/returns&gt;</span>  
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">int</span> ExecuteNonQuery(OracleTransaction trans, CommandType cmdType, <span style="color: #0000ff;">string</span> cmdText, <span style="color: #0000ff;">params</span><span style="color: #000000;"> OracleParameter[] cmdParms)
+        {
+            OracleCommand cmd </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> OracleCommand();
+            PrepareCommand(cmd, trans.Connection, trans, cmdType, cmdText, cmdParms);
+            </span><span style="color: #0000ff;">int</span> val =<span style="color: #000000;"> cmd.ExecuteNonQuery();
+            cmd.Parameters.Clear();
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> val;
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>  
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 执行数据库非查询操作,返回受影响的行数  
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>  
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="connection"&gt;</span><span style="color: #008000;">Oracle数据库连接对象</span><span style="color: #808080;">&lt;/param&gt;</span>  
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="cmdType"&gt;</span><span style="color: #008000;">Command类型</span><span style="color: #808080;">&lt;/param&gt;</span>  
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="cmdText"&gt;</span><span style="color: #008000;">Oracle存储过程名称或PL/SQL命令</span><span style="color: #808080;">&lt;/param&gt;</span>  
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="cmdParms"&gt;</span><span style="color: #008000;">命令参数集合</span><span style="color: #808080;">&lt;/param&gt;</span>  
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;</span><span style="color: #008000;">当前操作影响的数据行数</span><span style="color: #808080;">&lt;/returns&gt;</span>  
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">int</span> ExecuteNonQuery(OracleConnection connection, CommandType cmdType, <span style="color: #0000ff;">string</span> cmdText, <span style="color: #0000ff;">params</span><span style="color: #000000;"> OracleParameter[] cmdParms)
+        {
+            </span><span style="color: #0000ff;">if</span> (connection == <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+                </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> ArgumentNullException(<span style="color: #800000;">"</span><span style="color: #800000;">当前数据库连接不存在</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            OracleCommand cmd </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> OracleCommand();
+            PrepareCommand(cmd, connection, </span><span style="color: #0000ff;">null</span><span style="color: #000000;">, cmdType, cmdText, cmdParms);
+            </span><span style="color: #0000ff;">int</span> val =<span style="color: #000000;"> cmd.ExecuteNonQuery();
+            cmd.Parameters.Clear();
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> val;
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>  
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 执行数据库查询操作,返回OracleDataReader类型的内存结果集  
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>  
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="connectionString"&gt;</span><span style="color: #008000;">数据库连接字符串</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="cmdType"&gt;</span><span style="color: #008000;">命令的类型</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="cmdText"&gt;</span><span style="color: #008000;">Oracle存储过程名称或PL/SQL命令</span><span style="color: #808080;">&lt;/param&gt;</span>  
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="cmdParms"&gt;</span><span style="color: #008000;">命令参数集合</span><span style="color: #808080;">&lt;/param&gt;</span>  
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;</span><span style="color: #008000;">当前查询操作返回的OracleDataReader类型的内存结果集</span><span style="color: #808080;">&lt;/returns&gt;</span>  
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> OracleDataReader ExecuteReader(<span style="color: #0000ff;">string</span> connectionString, CommandType cmdType, <span style="color: #0000ff;">string</span> cmdText, <span style="color: #0000ff;">params</span><span style="color: #000000;"> OracleParameter[] cmdParms)
+        {
+            OracleCommand cmd </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> OracleCommand();
+            OracleConnection conn </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> OracleConnection(connectionString);
+            </span><span style="color: #0000ff;">try</span><span style="color: #000000;">
+            {
+                PrepareCommand(cmd, conn, </span><span style="color: #0000ff;">null</span><span style="color: #000000;">, cmdType, cmdText, cmdParms);
+                OracleDataReader reader </span>=<span style="color: #000000;"> cmd.ExecuteReader(CommandBehavior.CloseConnection);
+                cmd.Parameters.Clear();
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> reader;
+            }
+            </span><span style="color: #0000ff;">catch</span><span style="color: #000000;">
+            {
+                cmd.Dispose();
+                conn.Close();
+                </span><span style="color: #0000ff;">throw</span><span style="color: #000000;">;
+            }
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>  
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 执行数据库查询操作,返回DataSet类型的结果集  
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>  
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="connectionString"&gt;</span><span style="color: #008000;">数据库连接字符串</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="cmdType"&gt;</span><span style="color: #008000;">命令的类型</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="cmdText"&gt;</span><span style="color: #008000;">Oracle存储过程名称或PL/SQL命令</span><span style="color: #808080;">&lt;/param&gt;</span>  
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="cmdParms"&gt;</span><span style="color: #008000;">命令参数集合</span><span style="color: #808080;">&lt;/param&gt;</span>  
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;</span><span style="color: #008000;">当前查询操作返回的DataSet类型的结果集</span><span style="color: #808080;">&lt;/returns&gt;</span>  
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> DataSet ExecuteDataSet(<span style="color: #0000ff;">string</span> connectionString, CommandType cmdType, <span style="color: #0000ff;">string</span> cmdText, <span style="color: #0000ff;">params</span><span style="color: #000000;"> OracleParameter[] cmdParms)
+        {
+            OracleCommand cmd </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> OracleCommand();
+            OracleConnection conn </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> OracleConnection(connectionString);
+            DataSet ds </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">try</span><span style="color: #000000;">
+            {
+                PrepareCommand(cmd, conn, </span><span style="color: #0000ff;">null</span><span style="color: #000000;">, cmdType, cmdText, cmdParms);
+                OracleDataAdapter adapter </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> OracleDataAdapter();
+                adapter.SelectCommand </span>=<span style="color: #000000;"> cmd;
+                ds </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> DataSet();
+                adapter.Fill(ds);
+                cmd.Parameters.Clear();
+            }
+            </span><span style="color: #0000ff;">catch</span><span style="color: #000000;">
+            {
+                </span><span style="color: #0000ff;">throw</span><span style="color: #000000;">;
+            }
+            </span><span style="color: #0000ff;">finally</span><span style="color: #000000;">
+            {
+                cmd.Dispose();
+                conn.Close();
+                conn.Dispose();
+            }
+
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> ds;
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>  
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 执行数据库查询操作,返回DataTable类型的结果集  
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>  
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="connectionString"&gt;</span><span style="color: #008000;">数据库连接字符串</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="cmdType"&gt;</span><span style="color: #008000;">命令的类型</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="cmdText"&gt;</span><span style="color: #008000;">Oracle存储过程名称或PL/SQL命令</span><span style="color: #808080;">&lt;/param&gt;</span>  
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="cmdParms"&gt;</span><span style="color: #008000;">命令参数集合</span><span style="color: #808080;">&lt;/param&gt;</span>  
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;</span><span style="color: #008000;">当前查询操作返回的DataTable类型的结果集</span><span style="color: #808080;">&lt;/returns&gt;</span>  
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> DataTable ExecuteDataTable(<span style="color: #0000ff;">string</span> connectionString, CommandType cmdType, <span style="color: #0000ff;">string</span> cmdText, <span style="color: #0000ff;">params</span><span style="color: #000000;"> OracleParameter[] cmdParms)
+        {
+            OracleCommand cmd </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> OracleCommand();
+            OracleConnection conn </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> OracleConnection(connectionString);
+            DataTable dt </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+
+            </span><span style="color: #0000ff;">try</span><span style="color: #000000;">
+            {
+                PrepareCommand(cmd, conn, </span><span style="color: #0000ff;">null</span><span style="color: #000000;">, cmdType, cmdText, cmdParms);
+                OracleDataAdapter adapter </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> OracleDataAdapter();
+                adapter.SelectCommand </span>=<span style="color: #000000;"> cmd;
+                dt </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> DataTable();
+                adapter.Fill(dt);
+                cmd.Parameters.Clear();
+            }
+            </span><span style="color: #0000ff;">catch</span><span style="color: #000000;">
+            {
+                </span><span style="color: #0000ff;">throw</span><span style="color: #000000;">;
+            }
+            </span><span style="color: #0000ff;">finally</span><span style="color: #000000;">
+            {
+                cmd.Dispose();
+                conn.Close();
+                conn.Dispose();
+            }
+
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> dt;
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>  
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 执行数据库查询操作,返回结果集中位于第一行第一列的Object类型的值  
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>  
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="connectionString"&gt;</span><span style="color: #008000;">数据库连接字符串</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="cmdType"&gt;</span><span style="color: #008000;">命令的类型</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="cmdText"&gt;</span><span style="color: #008000;">Oracle存储过程名称或PL/SQL命令</span><span style="color: #808080;">&lt;/param&gt;</span>  
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="cmdParms"&gt;</span><span style="color: #008000;">命令参数集合</span><span style="color: #808080;">&lt;/param&gt;</span>  
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;</span><span style="color: #008000;">当前查询操作返回的结果集中位于第一行第一列的Object类型的值</span><span style="color: #808080;">&lt;/returns&gt;</span>  
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">object</span> ExecuteScalar(<span style="color: #0000ff;">string</span> connectionString, CommandType cmdType, <span style="color: #0000ff;">string</span> cmdText, <span style="color: #0000ff;">params</span><span style="color: #000000;"> OracleParameter[] cmdParms)
+        {
+            OracleCommand cmd </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> OracleCommand();
+            OracleConnection conn </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> OracleConnection(connectionString);
+            </span><span style="color: #0000ff;">object</span> result = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">try</span><span style="color: #000000;">
+            {
+                PrepareCommand(cmd, conn, </span><span style="color: #0000ff;">null</span><span style="color: #000000;">, cmdType, cmdText, cmdParms);
+                result </span>=<span style="color: #000000;"> cmd.ExecuteScalar();
+                cmd.Parameters.Clear();
+            }
+            </span><span style="color: #0000ff;">catch</span><span style="color: #000000;">
+            {
+                </span><span style="color: #0000ff;">throw</span><span style="color: #000000;">;
+            }
+            </span><span style="color: #0000ff;">finally</span><span style="color: #000000;">
+            {
+                cmd.Dispose();
+                conn.Close();
+                conn.Dispose();
+            }
+
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> result;
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>  
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 执行数据库事务查询操作,返回结果集中位于第一行第一列的Object类型的值  
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>  
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="trans"&gt;</span><span style="color: #008000;">一个已存在的数据库事务对象</span><span style="color: #808080;">&lt;/param&gt;</span>  
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="commandType"&gt;</span><span style="color: #008000;">命令类型</span><span style="color: #808080;">&lt;/param&gt;</span>  
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="commandText"&gt;</span><span style="color: #008000;">Oracle存储过程名称或PL/SQL命令</span><span style="color: #808080;">&lt;/param&gt;</span>  
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="cmdParms"&gt;</span><span style="color: #008000;">命令参数集合</span><span style="color: #808080;">&lt;/param&gt;</span>  
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;</span><span style="color: #008000;">当前事务查询操作返回的结果集中位于第一行第一列的Object类型的值</span><span style="color: #808080;">&lt;/returns&gt;</span>  
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">object</span> ExecuteScalar(OracleTransaction trans, CommandType cmdType, <span style="color: #0000ff;">string</span> cmdText, <span style="color: #0000ff;">params</span><span style="color: #000000;"> OracleParameter[] cmdParms)
+        {
+            </span><span style="color: #0000ff;">if</span> (trans == <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+                </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> ArgumentNullException(<span style="color: #800000;">"</span><span style="color: #800000;">当前数据库事务不存在</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            OracleConnection conn </span>=<span style="color: #000000;"> trans.Connection;
+            </span><span style="color: #0000ff;">if</span> (conn == <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+                </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> ArgumentException(<span style="color: #800000;">"</span><span style="color: #800000;">当前事务所在的数据库连接不存在</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+
+            OracleCommand cmd </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> OracleCommand();
+            </span><span style="color: #0000ff;">object</span> result = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+
+            </span><span style="color: #0000ff;">try</span><span style="color: #000000;">
+            {
+                PrepareCommand(cmd, conn, trans, cmdType, cmdText, cmdParms);
+                result </span>=<span style="color: #000000;"> cmd.ExecuteScalar();
+                cmd.Parameters.Clear();
+            }
+            </span><span style="color: #0000ff;">catch</span><span style="color: #000000;">
+            {
+                </span><span style="color: #0000ff;">throw</span><span style="color: #000000;">;
+            }
+            </span><span style="color: #0000ff;">finally</span><span style="color: #000000;">
+            {
+                trans.Dispose();
+                cmd.Dispose();
+                conn.Close();
+                conn.Dispose();
+            }
+
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> result;
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>  
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 执行数据库查询操作,返回结果集中位于第一行第一列的Object类型的值  
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>  
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="conn"&gt;</span><span style="color: #008000;">数据库连接对象</span><span style="color: #808080;">&lt;/param&gt;</span>  
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="cmdType"&gt;</span><span style="color: #008000;">Command类型</span><span style="color: #808080;">&lt;/param&gt;</span>  
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="cmdText"&gt;</span><span style="color: #008000;">Oracle存储过程名称或PL/SQL命令</span><span style="color: #808080;">&lt;/param&gt;</span>  
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="cmdParms"&gt;</span><span style="color: #008000;">命令参数集合</span><span style="color: #808080;">&lt;/param&gt;</span>  
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;</span><span style="color: #008000;">当前查询操作返回的结果集中位于第一行第一列的Object类型的值</span><span style="color: #808080;">&lt;/returns&gt;</span>  
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">object</span> ExecuteScalar(OracleConnection conn, CommandType cmdType, <span style="color: #0000ff;">string</span> cmdText, <span style="color: #0000ff;">params</span><span style="color: #000000;"> OracleParameter[] cmdParms)
+        {
+            </span><span style="color: #0000ff;">if</span> (conn == <span style="color: #0000ff;">null</span>) <span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> ArgumentException(<span style="color: #800000;">"</span><span style="color: #800000;">当前数据库连接不存在</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            OracleCommand cmd </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> OracleCommand();
+            </span><span style="color: #0000ff;">object</span> result = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+
+            </span><span style="color: #0000ff;">try</span><span style="color: #000000;">
+            {
+                PrepareCommand(cmd, conn, </span><span style="color: #0000ff;">null</span><span style="color: #000000;">, cmdType, cmdText, cmdParms);
+                result </span>=<span style="color: #000000;"> cmd.ExecuteScalar();
+                cmd.Parameters.Clear();
+            }
+            </span><span style="color: #0000ff;">catch</span><span style="color: #000000;">
+            {
+                </span><span style="color: #0000ff;">throw</span><span style="color: #000000;">;
+            }
+            </span><span style="color: #0000ff;">finally</span><span style="color: #000000;">
+            {
+                cmd.Dispose();
+                conn.Close();
+                conn.Dispose();
+            }
+
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> result;
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>  
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 执行数据库命令前的准备工作  
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>  
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="cmd"&gt;</span><span style="color: #008000;">Command对象</span><span style="color: #808080;">&lt;/param&gt;</span>  
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="conn"&gt;</span><span style="color: #008000;">数据库连接对象</span><span style="color: #808080;">&lt;/param&gt;</span>  
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="trans"&gt;</span><span style="color: #008000;">事务对象</span><span style="color: #808080;">&lt;/param&gt;</span>  
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="cmdType"&gt;</span><span style="color: #008000;">Command类型</span><span style="color: #808080;">&lt;/param&gt;</span>  
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="cmdText"&gt;</span><span style="color: #008000;">Oracle存储过程名称或PL/SQL命令</span><span style="color: #808080;">&lt;/param&gt;</span>  
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="cmdParms"&gt;</span><span style="color: #008000;">命令参数集合</span><span style="color: #808080;">&lt;/param&gt;</span>  
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> PrepareCommand(OracleCommand cmd, OracleConnection conn, OracleTransaction trans, CommandType cmdType, <span style="color: #0000ff;">string</span><span style="color: #000000;"> cmdText, OracleParameter[] cmdParms)
+        {
+            </span><span style="color: #0000ff;">if</span> (conn.State !=<span style="color: #000000;"> ConnectionState.Open)
+                conn.Open();
+
+            cmd.Connection </span>=<span style="color: #000000;"> conn;
+            cmd.CommandText </span>=<span style="color: #000000;"> cmdText;
+
+            </span><span style="color: #0000ff;">if</span> (trans != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+                cmd.Transaction </span>=<span style="color: #000000;"> trans;
+
+            cmd.CommandType </span>=<span style="color: #000000;"> cmdType;
+
+            </span><span style="color: #0000ff;">if</span> (cmdParms != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+            {
+                </span><span style="color: #0000ff;">foreach</span> (OracleParameter parm <span style="color: #0000ff;">in</span><span style="color: #000000;"> cmdParms)
+                    cmd.Parameters.Add(parm);
+            }
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>  
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 将.NET日期时间类型转化为Oracle兼容的日期时间格式字符串  
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>  
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="date"&gt;</span><span style="color: #008000;">.NET日期时间类型对象</span><span style="color: #808080;">&lt;/param&gt;</span>  
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;</span><span style="color: #008000;">Oracle兼容的日期时间格式字符串（如该字符串：TO_DATE('2007-12-1','YYYY-MM-DD')）</span><span style="color: #808080;">&lt;/returns&gt;</span>  
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">string</span><span style="color: #000000;"> GetOracleDateFormat(DateTime date)
+        {
+            </span><span style="color: #0000ff;">return</span> <span style="color: #800000;">"</span><span style="color: #800000;">TO_DATE('</span><span style="color: #800000;">"</span> + date.ToString(<span style="color: #800000;">"</span><span style="color: #800000;">yyyy-M-dd</span><span style="color: #800000;">"</span>) + <span style="color: #800000;">"</span><span style="color: #800000;">','YYYY-MM-DD')</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>  
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 将.NET日期时间类型转化为Oracle兼容的日期格式字符串  
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>  
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="date"&gt;</span><span style="color: #008000;">.NET日期时间类型对象</span><span style="color: #808080;">&lt;/param&gt;</span>  
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="format"&gt;</span><span style="color: #008000;">Oracle日期时间类型格式化限定符</span><span style="color: #808080;">&lt;/param&gt;</span>  
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;</span><span style="color: #008000;">Oracle兼容的日期时间格式字符串（如该字符串：TO_DATE('2007-12-1','YYYY-MM-DD')）</span><span style="color: #808080;">&lt;/returns&gt;</span>  
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">string</span> GetOracleDateFormat(DateTime date, <span style="color: #0000ff;">string</span><span style="color: #000000;"> format)
+        {
+            </span><span style="color: #0000ff;">if</span> (format == <span style="color: #0000ff;">null</span> || format.Trim() == <span style="color: #800000;">""</span>) format = <span style="color: #800000;">"</span><span style="color: #800000;">YYYY-MM-DD</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">return</span> <span style="color: #800000;">"</span><span style="color: #800000;">TO_DATE('</span><span style="color: #800000;">"</span> + date.ToString(<span style="color: #800000;">"</span><span style="color: #800000;">yyyy-M-dd</span><span style="color: #800000;">"</span>) + <span style="color: #800000;">"</span><span style="color: #800000;">','</span><span style="color: #800000;">"</span> + format + <span style="color: #800000;">"</span><span style="color: #800000;">')</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>  
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 将指定的关键字处理为模糊查询时的合法参数值  
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>  
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="source"&gt;</span><span style="color: #008000;">待处理的查询关键字</span><span style="color: #808080;">&lt;/param&gt;</span>  
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;</span><span style="color: #008000;">过滤后的查询关键字</span><span style="color: #808080;">&lt;/returns&gt;</span>  
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">string</span> HandleLikeKey(<span style="color: #0000ff;">string</span><span style="color: #000000;"> source)
+        {
+            </span><span style="color: #0000ff;">if</span> (source == <span style="color: #0000ff;">null</span> || source.Trim() == <span style="color: #800000;">""</span>) <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+
+            source </span>= source.Replace(<span style="color: #800000;">"</span><span style="color: #800000;">[</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">[]]</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            source </span>= source.Replace(<span style="color: #800000;">"</span><span style="color: #800000;">_</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">[_]</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            source </span>= source.Replace(<span style="color: #800000;">"</span><span style="color: #800000;">%</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">[%]</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+
+            </span><span style="color: #0000ff;">return</span> (<span style="color: #800000;">"</span><span style="color: #800000;">%</span><span style="color: #800000;">"</span> + source + <span style="color: #800000;">"</span><span style="color: #800000;">%</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 执行存储过程
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="connection"&gt;</span><span style="color: #008000;">SqlServer数据库连接对象</span><span style="color: #808080;">&lt;/param&gt;</span>  
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="storedProcName"&gt;</span><span style="color: #008000;">存储过程名</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="parameters"&gt;</span><span style="color: #008000;">存储过程参数</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;</span><span style="color: #008000;">SqlDataReader对象</span><span style="color: #808080;">&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> OracleDataReader RunStoredProcedure(OracleConnection connection, <span style="color: #0000ff;">string</span><span style="color: #000000;"> storedProcName, IDataParameter[] parameters)
+        {
+            OracleDataReader returnReader </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+            connection.Open();
+            OracleCommand command </span>=<span style="color: #000000;"> BuildSqlCommand(connection, storedProcName, parameters);
+            returnReader </span>=<span style="color: #000000;"> command.ExecuteReader(CommandBehavior.CloseConnection);
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> returnReader;
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 构建SqlCommand对象
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="connection"&gt;</span><span style="color: #008000;">数据库连接</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="storedProcName"&gt;</span><span style="color: #008000;">存储过程名</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="parameters"&gt;</span><span style="color: #008000;">存储过程参数</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;</span><span style="color: #008000;">SqlCommand</span><span style="color: #808080;">&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> OracleCommand BuildSqlCommand(OracleConnection connection, <span style="color: #0000ff;">string</span><span style="color: #000000;"> storedProcName, IDataParameter[] parameters)
+        {
+            OracleCommand command </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> OracleCommand(storedProcName, connection);
+            command.CommandType </span>=<span style="color: #000000;"> CommandType.StoredProcedure;
+            </span><span style="color: #0000ff;">foreach</span> (OracleParameter parameter <span style="color: #0000ff;">in</span><span style="color: #000000;"> parameters)
+            {
+                command.Parameters.Add(parameter);
+            }
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> command;
+        }
+    }
+}</span></pre>
+</div>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

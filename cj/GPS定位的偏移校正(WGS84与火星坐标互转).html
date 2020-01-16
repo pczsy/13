@@ -1,0 +1,159 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修GPS定位的偏移校正(WGS84与火星坐标互转)' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>GPS定位的偏移校正(WGS84与火星坐标互转)</center></div><div class='banquan'>原文出处:本文由博客园博主古道轻风提供。<br/>
+原文连接:https://www.cnblogs.com/88223100/p/Wgs-Mars.html</div><br>
+    <div>
+<h2>地图坐标系目前包括:</h2>
+<h3>地球坐标 (WGS84)</h3>
+<p>WGS84:World Geodetic System 1984，是为GPS全球定位系统使用而建立的坐标系统。</p>
+<ul>
+<li>国际标准，从 GPS 设备中取出的数据的坐标系</li>
+<li>国际地图提供商使用的坐标系</li>
+</ul>
+<h3>火星坐标 (GCJ-02)也叫国测局坐标系</h3>
+<p>GCJ-02是由中国国家测绘局（民间说的火星坐标系）制订的地理信息系统的坐标系统。<br />
+它是一种对经纬度数据的加密算法，即加入随机的偏差。<br />
+国内出版的各种地图系统（包括电子形式），必须至少采用GCJ-02对地理位置进行首次加密。</p>
+<ul>
+<li>中国标准，从国行移动设备中定位获取的坐标数据使用这个坐标系</li>
+<li>国家规定： 国内出版的各种地图系统（包括电子形式），必须至少采用GCJ-02对地理位置进行首次加密。</li>
+
+
+</ul>
+
+
+</div>
+<p>&nbsp;</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Wgs2MarsService
+    {
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">readonly</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">double</span>[] Lx = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">double</span>[<span style="color: #800080;">297000</span><span style="color: #000000;">];
+
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">readonly</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">double</span>[] Ly = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">double</span>[<span style="color: #800080;">297000</span><span style="color: #000000;">];
+
+        </span><span style="color: #0000ff;">static</span><span style="color: #000000;"> Wgs2MarsService()
+        {
+            </span><span style="color: #0000ff;">string</span> str = <span style="color: #0000ff;">string</span><span style="color: #000000;">.Empty;
+            List</span>&lt;<span style="color: #0000ff;">string</span>&gt; points = <span style="color: #0000ff;">new</span> List&lt;<span style="color: #0000ff;">string</span>&gt;<span style="color: #000000;">();
+            </span><span style="color: #0000ff;">using</span> (StreamReader sr = <span style="color: #0000ff;">new</span> StreamReader(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, <span style="color: #800000;">"</span><span style="color: #800000;">GPS.CoordinatesTransformation.txt</span><span style="color: #800000;">"</span><span style="color: #000000;">)))
+            {
+                str </span>=<span style="color: #000000;"> sr.ReadLine();
+                </span><span style="color: #0000ff;">while</span> (!<span style="color: #0000ff;">string</span><span style="color: #000000;">.IsNullOrEmpty(str))
+                {
+                    points.Add(str);
+                    str </span>=<span style="color: #000000;"> sr.ReadLine();
+                }
+            }
+            </span><span style="color: #0000ff;">int</span> num = <span style="color: #800080;">0</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">string</span> s <span style="color: #0000ff;">in</span><span style="color: #000000;"> points)
+            {
+                </span><span style="color: #0000ff;">if</span> (Lx[num] == <span style="color: #800080;">0.0</span><span style="color: #000000;">)
+                {
+                    Lx[num] </span>= (<span style="color: #0000ff;">double</span>)<span style="color: #0000ff;">int</span>.Parse(s) / <span style="color: #800080;">100000.0</span><span style="color: #000000;">;
+                }
+                </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+                {
+                    Ly[num] </span>= (<span style="color: #0000ff;">double</span>)<span style="color: #0000ff;">int</span>.Parse(s) / <span style="color: #800080;">100000.0</span><span style="color: #000000;">;
+                    num</span>++<span style="color: #000000;">;
+                }
+            }
+        }
+
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">int</span> ID(<span style="color: #0000ff;">int</span> i, <span style="color: #0000ff;">int</span><span style="color: #000000;"> j)
+        {
+            </span><span style="color: #0000ff;">return</span> i + <span style="color: #800080;">660</span> *<span style="color: #000000;"> j;
+        }
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">bool</span> Wgs2Mars(<span style="color: #0000ff;">double</span> latwgs, <span style="color: #0000ff;">double</span> lngwgs, <span style="color: #0000ff;">out</span> <span style="color: #0000ff;">double</span> latmars, <span style="color: #0000ff;">out</span> <span style="color: #0000ff;">double</span><span style="color: #000000;"> lngmars)
+        {
+            </span><span style="color: #0000ff;">double</span> num =<span style="color: #000000;"> lngwgs;
+            </span><span style="color: #0000ff;">double</span> num2 =<span style="color: #000000;"> latwgs;
+            </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">long</span> num3 = <span style="color: #800080;">0L</span>; num3 &lt; <span style="color: #800080;">10</span>; num3++<span style="color: #000000;">)
+            {
+                </span><span style="color: #0000ff;">if</span> (num &lt; <span style="color: #800080;">72.0</span> || num &gt; <span style="color: #800080;">137.9</span> || num2 &lt; <span style="color: #800080;">10.0</span> || num2 &gt; <span style="color: #800080;">54.9</span><span style="color: #000000;">)
+                {
+                    latmars </span>=<span style="color: #000000;"> latwgs;
+                    lngmars </span>=<span style="color: #000000;"> lngwgs;
+                    </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+                }
+                </span><span style="color: #0000ff;">int</span> num4 = (<span style="color: #0000ff;">int</span>)Math.Floor((num - <span style="color: #800080;">72.0</span>) * <span style="color: #800080;">10.0</span><span style="color: #000000;">);
+                </span><span style="color: #0000ff;">int</span> num5 = (<span style="color: #0000ff;">int</span>)Math.Floor((num2 - <span style="color: #800080;">10.0</span>) * <span style="color: #800080;">10.0</span><span style="color: #000000;">);
+                </span><span style="color: #0000ff;">double</span> num6 =<span style="color: #000000;"> Lx[ID(num4, num5)];
+                </span><span style="color: #0000ff;">double</span> num7 =<span style="color: #000000;"> Ly[ID(num4, num5)];
+                </span><span style="color: #0000ff;">double</span> num8 = Lx[ID(num4 + <span style="color: #800080;">1</span><span style="color: #000000;">, num5)];
+                </span><span style="color: #0000ff;">double</span> num9 = Ly[ID(num4 + <span style="color: #800080;">1</span><span style="color: #000000;">, num5)];
+                </span><span style="color: #0000ff;">double</span> num10 = Lx[ID(num4 + <span style="color: #800080;">1</span>, num5 + <span style="color: #800080;">1</span><span style="color: #000000;">)];
+                </span><span style="color: #0000ff;">double</span> num11 = Ly[ID(num4 + <span style="color: #800080;">1</span>, num5 + <span style="color: #800080;">1</span><span style="color: #000000;">)];
+                </span><span style="color: #0000ff;">double</span> num12 = Lx[ID(num4, num5 + <span style="color: #800080;">1</span><span style="color: #000000;">)];
+                </span><span style="color: #0000ff;">double</span> num13 = Ly[ID(num4, num5 + <span style="color: #800080;">1</span><span style="color: #000000;">)];
+                </span><span style="color: #0000ff;">double</span> num14 = (num - <span style="color: #800080;">72.0</span> - <span style="color: #800080;">0.1</span> * (<span style="color: #0000ff;">double</span>)num4) * <span style="color: #800080;">10.0</span><span style="color: #000000;">;
+                </span><span style="color: #0000ff;">double</span> num15 = (num2 - <span style="color: #800080;">10.0</span> - <span style="color: #800080;">0.1</span> * (<span style="color: #0000ff;">double</span>)num5) * <span style="color: #800080;">10.0</span><span style="color: #000000;">;
+                </span><span style="color: #0000ff;">double</span> num16 = (<span style="color: #800080;">1.0</span> - num14) * (<span style="color: #800080;">1.0</span> - num15) * num6 + num14 * (<span style="color: #800080;">1.0</span> - num15) * num8 + num14 * num15 * num10 + (<span style="color: #800080;">1.0</span> - num14) * num15 * num12 -<span style="color: #000000;"> num;
+                </span><span style="color: #0000ff;">double</span> num17 = (<span style="color: #800080;">1.0</span> - num14) * (<span style="color: #800080;">1.0</span> - num15) * num7 + num14 * (<span style="color: #800080;">1.0</span> - num15) * num9 + num14 * num15 * num11 + (<span style="color: #800080;">1.0</span> - num14) * num15 * num13 -<span style="color: #000000;"> num2;
+                num </span>= (num + lngwgs + num16) / <span style="color: #800080;">2.0</span><span style="color: #000000;">;
+                num2 </span>= (num2 + latwgs + num17) / <span style="color: #800080;">2.0</span><span style="color: #000000;">;
+            }
+            lngmars </span>= Math.Round(num, <span style="color: #800080;">6</span><span style="color: #000000;">);
+            latmars </span>= Math.Round(num2, <span style="color: #800080;">6</span><span style="color: #000000;">);
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+        }
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">bool</span> Mars2Wgs(<span style="color: #0000ff;">double</span> latmars, <span style="color: #0000ff;">double</span> lngmars, <span style="color: #0000ff;">out</span> <span style="color: #0000ff;">double</span> latwgs, <span style="color: #0000ff;">out</span> <span style="color: #0000ff;">double</span><span style="color: #000000;"> lngwgs)
+        {
+            </span><span style="color: #0000ff;">double</span> num =<span style="color: #000000;"> lngmars;
+            </span><span style="color: #0000ff;">double</span> num2 =<span style="color: #000000;"> latmars;
+            </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">long</span> num3 = <span style="color: #800080;">0L</span>; num3 &lt; <span style="color: #800080;">10</span>; num3++<span style="color: #000000;">)
+            {
+                </span><span style="color: #0000ff;">if</span> (num &lt; <span style="color: #800080;">72.0</span> || num &gt; <span style="color: #800080;">137.9</span> || num2 &lt; <span style="color: #800080;">10.0</span> || num2 &gt; <span style="color: #800080;">54.9</span><span style="color: #000000;">)
+                {
+                    latwgs </span>=<span style="color: #000000;"> latmars;
+                    lngwgs </span>=<span style="color: #000000;"> lngmars;
+                    </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+                }
+                </span><span style="color: #0000ff;">int</span> num4 = (<span style="color: #0000ff;">int</span>)Math.Floor((num - <span style="color: #800080;">72.0</span>) * <span style="color: #800080;">10.0</span><span style="color: #000000;">);
+                </span><span style="color: #0000ff;">int</span> num5 = (<span style="color: #0000ff;">int</span>)Math.Floor((num2 - <span style="color: #800080;">10.0</span>) * <span style="color: #800080;">10.0</span><span style="color: #000000;">);
+                </span><span style="color: #0000ff;">double</span> num6 =<span style="color: #000000;"> Lx[ID(num4, num5)];
+                </span><span style="color: #0000ff;">double</span> num7 =<span style="color: #000000;"> Ly[ID(num4, num5)];
+                </span><span style="color: #0000ff;">double</span> num8 = Lx[ID(num4 + <span style="color: #800080;">1</span><span style="color: #000000;">, num5)];
+                </span><span style="color: #0000ff;">double</span> num9 = Ly[ID(num4 + <span style="color: #800080;">1</span><span style="color: #000000;">, num5)];
+                </span><span style="color: #0000ff;">double</span> num10 = Lx[ID(num4 + <span style="color: #800080;">1</span>, num5 + <span style="color: #800080;">1</span><span style="color: #000000;">)];
+                </span><span style="color: #0000ff;">double</span> num11 = Ly[ID(num4 + <span style="color: #800080;">1</span>, num5 + <span style="color: #800080;">1</span><span style="color: #000000;">)];
+                </span><span style="color: #0000ff;">double</span> num12 = Lx[ID(num4, num5 + <span style="color: #800080;">1</span><span style="color: #000000;">)];
+                </span><span style="color: #0000ff;">double</span> num13 = Ly[ID(num4, num5 + <span style="color: #800080;">1</span><span style="color: #000000;">)];
+                </span><span style="color: #0000ff;">double</span> num14 = (num - <span style="color: #800080;">72.0</span> - <span style="color: #800080;">0.1</span> * (<span style="color: #0000ff;">double</span>)num4) * <span style="color: #800080;">10.0</span><span style="color: #000000;">;
+                </span><span style="color: #0000ff;">double</span> num15 = (num2 - <span style="color: #800080;">10.0</span> - <span style="color: #800080;">0.1</span> * (<span style="color: #0000ff;">double</span>)num5) * <span style="color: #800080;">10.0</span><span style="color: #000000;">;
+                </span><span style="color: #0000ff;">double</span> num16 = (<span style="color: #800080;">1.0</span> - num14) * (<span style="color: #800080;">1.0</span> - num15) * num6 + num14 * (<span style="color: #800080;">1.0</span> - num15) * num8 + num14 * num15 * num10 + (<span style="color: #800080;">1.0</span> - num14) * num15 * num12 -<span style="color: #000000;"> num;
+                </span><span style="color: #0000ff;">double</span> num17 = (<span style="color: #800080;">1.0</span> - num14) * (<span style="color: #800080;">1.0</span> - num15) * num7 + num14 * (<span style="color: #800080;">1.0</span> - num15) * num9 + num14 * num15 * num11 + (<span style="color: #800080;">1.0</span> - num14) * num15 * num13 -<span style="color: #000000;"> num2;
+                num </span>= (num + lngmars - num16) / <span style="color: #800080;">2.0</span><span style="color: #000000;">;
+                num2 </span>= (num2 + latmars - num17) / <span style="color: #800080;">2.0</span><span style="color: #000000;">;
+            }
+            lngwgs </span>= Math.Round(num, <span style="color: #800080;">6</span><span style="color: #000000;">);
+            latwgs </span>= Math.Round(num2, <span style="color: #800080;">6</span><span style="color: #000000;">);
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+        }
+    }<br /><br /><br />参考文档:<a href="https://github.com/shenqiliang/WGS2Mars">https://github.com/shenqiliang/WGS2Mars</a></span></pre>
+<pre><code>GPS.CoordinatesTransformation下载地址:<a href="https://files.cnblogs.com/files/88223100/GPS.CoordinatesTransformation.txt.7z" target="_blank">GPS.CoordinatesTransformation.txt</a></pre>
+<pre><code><span style="color: #000000;">&nbsp;</span></pre>
+</div>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

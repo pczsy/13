@@ -1,0 +1,178 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C#表达式树' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C#表达式树</center></div><div class='banquan'>原文出处:本文由博客园博主旗木卡卡罗特提供。<br/>
+原文连接:https://www.cnblogs.com/zhouyg2017/p/11989790.html</div><br>
+    <h3>前言</h3>
+<p>　　在使用 EF 开中我们经常使用 xx.Where(p=&gt;p.Name="张三") 查询数据，之把能这样是因为 EF 框架会把这些C#代码转成Sql语句， 其中主要用到的就是表达式树，今天就来学习一下表达式树。</p>
+<h3>认识表达式树</h3>
+<div class="cnblogs_code">
+<pre><code>Func&lt;<span style="color: #0000ff;">int</span>,<span style="color: #0000ff;">int</span>,<span style="color: #0000ff;">int</span>&gt; func = (a, b) =&gt; a +<span style="color: #000000;"> b;</span>
+Expression&lt;Func&lt;<span style="color: #0000ff;">int</span>,<span style="color: #0000ff;">int</span>,<span style="color: #0000ff;">int</span>&gt;&gt; expression = (a, b) =&gt; a + b;</pre>
+</div>
+<p>上面分别是 Func 委托和表达式树，看上去很相似，左边只多了 Expression&lt;&gt; 右边完全一样，其实还是有很大区别的，对于委托我们只能传递参数来调用，内部的代码在程序运行中是无从得知的，而表达式树在这点上相反，表达式树是一种数据结构，可以通过 C# 代码清晰的获取内部的细节。</p>
+<h3>表达式树的另一种写法</h3>
+<p>上面的例子中是使用 Lambda 为表达式树赋值，其实还有另一种写法</p>
+<div class="cnblogs_code">
+<pre><code>ParameterExpression parameterA = Expression.Parameter(<span style="color: #0000ff;">typeof</span>(<span style="color: #0000ff;">int</span>),<span style="color: #800000;">"</span><span style="color: #800000;">a</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+ParameterExpression parameterB </span>= Expression.Parameter(<span style="color: #0000ff;">typeof</span>(<span style="color: #0000ff;">int</span>),<span style="color: #800000;">"</span><span style="color: #800000;">b</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+BinaryExpression binaryExpression </span>=<span style="color: #000000;"> Expression.Add(parameterA, parameterB);
+Expression</span>&lt;Func&lt;<span style="color: #0000ff;">int</span>, <span style="color: #0000ff;">int</span>, <span style="color: #0000ff;">int</span>&gt;&gt; expression = Expression.Lambda&lt;Func&lt;<span style="color: #0000ff;">int</span>, <span style="color: #0000ff;">int</span>, <span style="color: #0000ff;">int</span>&gt;&gt;<span style="color: #000000;">(binaryExpression,parameterA,parameterB);<br /></span></pre>
+</div>
+<p>上面的例子对应于第一种写法，第一种写法是语法糖，其实编译器最终生成还是这种代码，可以通过反编译软件来验证。</p>
+<h3>&nbsp;解析表达式树</h3>
+<p>认识一下表达式树的主要部分</p>
+<p>Body：表达式主体，例子中是二元表达式，常用的还有</p>
+<ul>
+<li>ConstantExpression：常量表达式</li>
+<li>ParameterExpression：参数表达式</li>
+<li>UnaryExpression：一元运算符表达式</li>
+<li>BinaryExpression：二元运算符表达式</li>
+<li>TypeBinaryExpression：is运算符表达式</li>
+<li>ConditionalExpression：条件表达式</li>
+<li>MemberExpression：访问字段或属性表达式</li>
+<li>MethodCallExpression：调用成员函数表达式</li>
+<li>Expression&lt;TDelegate&gt;：委托表达式</li>
+</ul>
+<p>&nbsp;</p>
+<p>NodeType：节点类型，例子中是 Lambda ，常用还有的+，-，*，/，&gt;，=，&lt;，&amp;&amp;，|| 等都有，不过并不是符号而是对应的英文，详情查看 ExpressionType 枚举<br />Parameters：表达式的参数，a 和 b</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">Console.WriteLine(expression.Body);
+Console.WriteLine(expression.NodeType);
+Console.WriteLine(expression.Parameters[</span><span style="color: #800080;">0</span><span style="color: #000000;">]);
+Console.WriteLine(expression.Parameters[</span><span style="color: #800080;">1</span>]);</pre>
+</div>
+<p>输出是</p>
+<p>(a + b)<br />Lambda<br />a<br />b</p>
+<p>Body 的类型是 Expression，例子中的是二元表达式，所以要转换成 BinaryExpression 类来查看信息</p>
+<div class="cnblogs_code">
+<pre><code>BinaryExpression binaryExpression =<span style="color: #000000;"> (BinaryExpression)expression.Body;
+Console.WriteLine(binaryExpression.Left);
+Console.WriteLine(binaryExpression.Right);
+Console.WriteLine(binaryExpression.NodeType);</span></pre>
+</div>
+<p>输出是</p>
+<p>a<br />b<br />Add</p>
+<p>&nbsp;</p>
+<p>&nbsp;刚才是一个简单表达式，再来看两个复杂点的，经过第一次解析后 Left 和 Right 就是第一种解析的表达式，可以把 Left 和 Right 再解析一次，最终完全解析，不管多复杂的表达式都可以像这样解析出来</p>
+<p><img src="./images/C#表达式树0.png" alt="" /></p>
+<p>&nbsp;<img src="./images/C#表达式树1.png" alt="" /></p>
+<p>&nbsp;<img src="./images/C#表达式树2.png" alt="" /></p>
+<p>&nbsp;<img src="./images/C#表达式树3.png" alt="" /></p>
+<p>&nbsp;上面的例子只是为了了解表达式树结构，用这种方法解析存在两个问题</p>
+<p>一是&nbsp;BinaryExpression 这里固定了只能解析二元表达式，如果是其它表达式就会报错</p>
+<p>二是不知道需要解析多少层才解析完</p>
+<p>要解析表达式树要用 C# 里的&nbsp;ExpressionVisitor 类，这个类就是专门解析表达式树的，它是一个抽象类，需要建个类继承它，使用过程如下，首先调用父类 Visit 方法，在 Visit 中会判断表达式的类型是一元（对应VisitUnary）、二元（对应VisitBinary），常量（对应VisitConstant）、参数（对应VisitParameter）等表达式，然后就会进对应的解析方法中支解析，比如二元表达式的解析方法就是&nbsp;VisitBinary，然后我们重写 VisitBinary&nbsp;</p>
+<p>下面是使用 ExpressionVisitor 解析表达式树的例子，这么说并不完全对，解析代码是&nbsp;ExpressionVisitor 已经写好的，我们做的只解析过程中加入一些自己的代码而已</p>
+<p><img src="./images/C#表达式树4.png" alt="" /></p>
+<p><img src="./images/C#表达式树5.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;<img src="./images/C#表达式树6.png" alt="" /></p>
+<p>&nbsp;</p>
+<h3>&nbsp;首尾呼应</h3>
+<p>最后来实现一个简单的由表达式树生成sql语句的功能</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">class</span><span style="color: #000000;"> MyVisitor : ExpressionVisitor
+    {
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">string</span><span style="color: #000000;"> tableName;
+        </span><span style="color: #0000ff;">private</span> StringBuilder sbSql = <span style="color: #0000ff;">new</span><span style="color: #000000;"> StringBuilder();
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">override</span><span style="color: #000000;"> Expression Visit(Expression node)
+        {
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">base</span><span style="color: #000000;">.Visit(node);
+        }
+        </span><span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">override</span><span style="color: #000000;"> Expression VisitBinary(BinaryExpression node)
+        {
+            </span><span style="color: #0000ff;">base</span><span style="color: #000000;">.Visit(node.Left);
+            sbSql.Append(ExpressionTypeToSql(node.NodeType));
+            </span><span style="color: #0000ff;">base</span><span style="color: #000000;">.Visit(node.Right);
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> node;
+        }
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span><span style="color: #000000;"> GetSqlString()
+        {
+            </span><span style="color: #0000ff;">return</span> <span style="color: #800000;">"</span><span style="color: #800000;">select * from </span><span style="color: #800000;">"</span>+tableName+<span style="color: #800000;">"</span><span style="color: #800000;"> where </span><span style="color: #800000;">"</span>+<span style="color: #000000;">sbSql.ToString();
+        }
+        </span><span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">override</span><span style="color: #000000;"> Expression VisitConstant(ConstantExpression node)
+        {
+            </span><span style="color: #0000ff;">if</span> (node.Type == <span style="color: #0000ff;">typeof</span>(<span style="color: #0000ff;">int</span><span style="color: #000000;">))
+            {
+                sbSql.Append( node.Value);
+            }
+            </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+            {
+                sbSql.Append(</span><span style="color: #800000;">"</span><span style="color: #800000;">'</span><span style="color: #800000;">"</span>+node.Value+<span style="color: #800000;">"</span><span style="color: #800000;">'</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            }
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">base</span><span style="color: #000000;">.VisitConstant(node);
+        }
+        </span><span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">override</span><span style="color: #000000;"> Expression VisitParameter(ParameterExpression node)
+        {
+            </span><span style="color: #0000ff;">if</span> (tableName == <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+            {
+                tableName </span>= <span style="color: #800000;">"</span><span style="color: #800000;">[</span><span style="color: #800000;">"</span> + node.Type.Name + <span style="color: #800000;">"</span><span style="color: #800000;">]</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            }
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">base</span><span style="color: #000000;">.VisitParameter(node);
+        }
+        </span><span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">override</span><span style="color: #000000;"> Expression VisitMember(MemberExpression node)
+        {
+            sbSql.Append(</span><span style="color: #800000;">"</span><span style="color: #800000;">[</span><span style="color: #800000;">"</span> + node.Member.Name + <span style="color: #800000;">"</span><span style="color: #800000;">]</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">base</span><span style="color: #000000;">.VisitMember(node);
+        }
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span><span style="color: #000000;"> ExpressionTypeToSql(ExpressionType expressionType)
+        {
+            </span><span style="color: #0000ff;">switch</span><span style="color: #000000;"> (expressionType)
+            {
+                </span><span style="color: #0000ff;">case</span><span style="color: #000000;"> ExpressionType.Add:
+                    </span><span style="color: #0000ff;">return</span> <span style="color: #800000;">"</span><span style="color: #800000;"> + </span><span style="color: #800000;">"</span><span style="color: #000000;">;
+                </span><span style="color: #0000ff;">case</span><span style="color: #000000;"> ExpressionType.And:
+                </span><span style="color: #0000ff;">case</span><span style="color: #000000;"> ExpressionType.AndAlso:
+                    </span><span style="color: #0000ff;">return</span> <span style="color: #800000;">"</span><span style="color: #800000;"> and </span><span style="color: #800000;">"</span><span style="color: #000000;">;
+                </span><span style="color: #0000ff;">case</span><span style="color: #000000;"> ExpressionType.Equal:
+                    </span><span style="color: #0000ff;">return</span> <span style="color: #800000;">"</span><span style="color: #800000;"> = </span><span style="color: #800000;">"</span><span style="color: #000000;">;
+                </span><span style="color: #0000ff;">case</span><span style="color: #000000;"> ExpressionType.NotEqual:
+                    </span><span style="color: #0000ff;">return</span> <span style="color: #800000;">"</span><span style="color: #800000;"> != </span><span style="color: #800000;">"</span><span style="color: #000000;">;
+                </span><span style="color: #0000ff;">case</span><span style="color: #000000;"> ExpressionType.GreaterThan:
+                    </span><span style="color: #0000ff;">return</span> <span style="color: #800000;">"</span><span style="color: #800000;"> &gt; </span><span style="color: #800000;">"</span><span style="color: #000000;">;
+                </span><span style="color: #0000ff;">case</span><span style="color: #000000;"> ExpressionType.GreaterThanOrEqual:
+                    </span><span style="color: #0000ff;">return</span> <span style="color: #800000;">"</span><span style="color: #800000;"> &gt;= </span><span style="color: #800000;">"</span><span style="color: #000000;">;
+                </span><span style="color: #0000ff;">case</span><span style="color: #000000;"> ExpressionType.LessThan:
+                    </span><span style="color: #0000ff;">return</span> <span style="color: #800000;">"</span><span style="color: #800000;"> &lt; </span><span style="color: #800000;">"</span><span style="color: #000000;">;
+                </span><span style="color: #0000ff;">case</span><span style="color: #000000;"> ExpressionType.LessThanOrEqual:
+                    </span><span style="color: #0000ff;">return</span> <span style="color: #800000;">"</span><span style="color: #800000;"> &lt;= </span><span style="color: #800000;">"</span><span style="color: #000000;">;
+                </span><span style="color: #0000ff;">case</span><span style="color: #000000;"> ExpressionType.Multiply:
+                    </span><span style="color: #0000ff;">return</span> <span style="color: #800000;">"</span><span style="color: #800000;"> * </span><span style="color: #800000;">"</span><span style="color: #000000;">;
+                </span><span style="color: #0000ff;">case</span><span style="color: #000000;"> ExpressionType.Or:
+                </span><span style="color: #0000ff;">case</span><span style="color: #000000;"> ExpressionType.OrElse:
+                    </span><span style="color: #0000ff;">return</span> <span style="color: #800000;">"</span><span style="color: #800000;"> or </span><span style="color: #800000;">"</span><span style="color: #000000;">;
+                </span><span style="color: #0000ff;">default</span><span style="color: #000000;">:
+                    </span><span style="color: #0000ff;">return</span> <span style="color: #800000;">""</span><span style="color: #000000;">;
+            }
+        }
+    }</span></pre>
+</div>
+<div class="cnblogs_code">
+<pre><code>Expression&lt;Func&lt;Person, <span style="color: #0000ff;">bool</span>&gt;&gt; expression = p=&gt;p.Name==<span style="color: #800000;">"</span><span style="color: #800000;">张三</span><span style="color: #800000;">"</span>&amp;&amp;p.Name!=<span style="color: #800000;">"</span><span style="color: #800000;">李四</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+MyVisitor myVisitor </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> MyVisitor();
+myVisitor.Visit(expression);
+Console.WriteLine(myVisitor.GetSqlString());</span></pre>
+</div>
+<p>&nbsp;<img src="./images/C#表达式树7.png" alt="" /></p>
+<p>写得有点乱，忘见谅</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

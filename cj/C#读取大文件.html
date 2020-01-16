@@ -1,0 +1,87 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C#读取大文件' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C#读取大文件</center></div><div class='banquan'>原文出处:本文由博客园博主lingfeng95提供。<br/>
+原文连接:https://www.cnblogs.com/zhao123/p/10985340.html</div><br>
+    <p>有些时候需要读取文件，小文件的时候效率的影响可以忽略，但是当文件上M，上G的时候，这个时候，效率问题就非常重要了，下面将对一个3G的文件，用C#的方式读取，对比效率的影响。</p>
+<p>1. FileStream对象表示在磁盘或网络路径上指向文件的流，操作的是字节和字节数组，可以用于任何数据文件，而不仅仅是文本文件，也可以读取类似图像和声音的文件<br />2. BufferedStream类主要用来处理流数据的，减少某些流直接操作存储设备的时间，提高读写效率，也可以读取字节，当读取文件的时候，用字节读取有可能会把字符分开，最后转换而成的字符可能就有问题。<br />3. StreamReader，StreamWriter 类操作的是字符数据，一般用于读写文件</p>
+<p>#FileMode<br />1. Create：创建新文件；如果存在这样的文件，将重写<br />2. CreateNew：创建新文件，但是如果已经存在此文件，则抛出异常<br />3. Open：打开现有的文件，但是不存在所指定的文件，则抛出异常<br />4. OpenOrCreate：如果文件存在，则规定打开文件，否则就创建新文件<br />5. Truncate：打开现有文件，清除其内容<br />6. Append：如果文件存在，就打开文件，将文件位置移动到文件的末尾，否则创建一个新文件。</p>
+<p>以下代码是在.net core环境下运行的</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">Stopwatch watch = new Stopwatch();<br />watch.Restart();
+</span><span style="color: #0000ff;">using</span> (StreamWriter newFile = <span style="color: #0000ff;">new</span> StreamWriter(<span style="color: #800000;">@"</span><span style="color: #800000;">D:\gitPublic\NetFrameTest\NetFrameTest\NetCore\big4.txt</span><span style="color: #800000;">"</span><span style="color: #000000;">))
+</span><span style="color: #0000ff;">using</span> (StreamReader reader = <span style="color: #0000ff;">new</span> StreamReader(<span style="color: #800000;">@"</span><span style="color: #800000;">D:\gitPublic\NetFrameTest\NetFrameTest\NetCore\test.txt</span><span style="color: #800000;">"</span><span style="color: #000000;">))
+{
+    </span><span style="color: #0000ff;">string</span><span style="color: #000000;"> line;
+    </span><span style="color: #0000ff;">while</span> ((line = reader.ReadLine()) != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+    {
+        newFile.WriteLine(line);
+    }
+}
+watch.Stop();
+Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">StreamReader StreamWriter 程序运行花费的时间:{(double)watch.ElapsedMilliseconds / 1000:0.000} secs</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+
+watch.Restart();
+</span><span style="color: #0000ff;">int</span> length = <span style="color: #800080;">2048</span><span style="color: #000000;">;
+</span><span style="color: #0000ff;">byte</span>[] array = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">byte</span><span style="color: #000000;">[length];
+</span><span style="color: #0000ff;">int</span> bytesRead = <span style="color: #800080;">0</span><span style="color: #000000;">;
+</span><span style="color: #0000ff;">using</span> (FileStream fileStream = <span style="color: #0000ff;">new</span> FileStream(<span style="color: #800000;">@"</span><span style="color: #800000;">D:\gitPublic\NetFrameTest\NetFrameTest\NetCore\test.txt</span><span style="color: #800000;">"</span><span style="color: #000000;">, FileMode.Open))
+</span><span style="color: #0000ff;">using</span> (FileStream newFile = <span style="color: #0000ff;">new</span> FileStream(<span style="color: #800000;">@"</span><span style="color: #800000;">D:\gitPublic\NetFrameTest\NetFrameTest\NetCore\test5.txt</span><span style="color: #800000;">"</span><span style="color: #000000;">, FileMode.Create))
+</span><span style="color: #0000ff;">using</span> (BufferedStream bufferedStream = <span style="color: #0000ff;">new</span><span style="color: #000000;"> BufferedStream(fileStream))
+{
+    </span><span style="color: #0000ff;">while</span> ((bytesRead = bufferedStream.Read(array, <span style="color: #800080;">0</span>, length)) &gt; <span style="color: #800080;">0</span><span style="color: #000000;">)
+    {
+        </span><span style="color: #0000ff;">if</span> (bytesRead ==<span style="color: #000000;"> length)
+            newFile.Write(array);
+        </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+            newFile.Write(array, </span><span style="color: #800080;">0</span><span style="color: #000000;">, bytesRead);
+    }
+}
+watch.Stop();
+Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">BufferedStream FileStream 程序运行花费的时间:{(double)watch.ElapsedMilliseconds / 1000:0.000} secs</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+
+watch.Restart();
+</span><span style="color: #0000ff;">using</span> (FileStream fileStream = <span style="color: #0000ff;">new</span> FileStream(<span style="color: #800000;">@"</span><span style="color: #800000;">D:\gitPublic\NetFrameTest\NetFrameTest\NetCore\test.txt</span><span style="color: #800000;">"</span><span style="color: #000000;">, FileMode.Open))
+</span><span style="color: #0000ff;">using</span> (StreamWriter newFile = <span style="color: #0000ff;">new</span> StreamWriter(<span style="color: #800000;">@"</span><span style="color: #800000;">D:\gitPublic\NetFrameTest\NetFrameTest\NetCore\test6.txt</span><span style="color: #800000;">"</span><span style="color: #000000;">))
+</span><span style="color: #0000ff;">using</span> (BufferedStream bufferedStream = <span style="color: #0000ff;">new</span><span style="color: #000000;"> BufferedStream(fileStream))
+</span><span style="color: #0000ff;">using</span> (StreamReader reader = <span style="color: #0000ff;">new</span><span style="color: #000000;"> StreamReader(fileStream))
+{
+    </span><span style="color: #0000ff;">string</span><span style="color: #000000;"> line;
+    </span><span style="color: #0000ff;">while</span> ((line = reader.ReadLine()) != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+    {
+        newFile.WriteLine(line);
+    }
+}
+watch.Stop();
+Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">StreamReader StreamWriter(结合BufferedStream) 程序运行花费的时间:{(double)watch.ElapsedMilliseconds / 1000:0.000} secs</span><span style="color: #800000;">"</span>);</pre>
+</div>
+<p>没有读写文件的计算机性能</p>
+<p><img src="./images/C#读取大文件0.png" alt="" /></p>
+<p>读写文件的时候计算机性能</p>
+<p><img src="./images/C#读取大文件1.png" alt="" /></p>
+<p>当读写文件的时候，CPU和磁盘使用率提高，如果服务器经常读写文件的话，需要好的CPU和硬盘</p>
+<p>3G的文件读写运行效率对比</p>
+<p><img src="./images/C#读取大文件2.png" alt="" /></p>
+<p>小文件运行效率对比</p>
+<p><img src="./images/C#读取大文件3.png" alt="" /></p>
+<p>对比以上结果，读取字节效率最高，增加BufferedStream的时候效率要比不增加的时候快</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

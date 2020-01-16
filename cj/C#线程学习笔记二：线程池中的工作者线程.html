@@ -1,0 +1,429 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C#线程学习笔记二：线程池中的工作者线程' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C#线程学习笔记二：线程池中的工作者线程</center></div><div class='banquan'>原文出处:本文由博客园博主缥缈的尘埃提供。<br/>
+原文连接:https://www.cnblogs.com/atomy/p/11946785.html</div><br>
+    <p>&nbsp; &nbsp; 本笔记摘抄自：<a href="https://www.cnblogs.com/zhili/archive/2012/07/18/ThreadPool.html">https://www.cnblogs.com/zhili/archive/2012/07/18/ThreadPool.html</a>，记录一下学习过程以备后续查用。</p>
+<p>&nbsp; &nbsp; 一<strong>、线程池基础</strong></p>
+<p>&nbsp; &nbsp; 首先，创建和销毁线程是一个要耗费大量时间的过程，其次，太多的线程也会浪费内存资源，所以通过Thread类来创建过多的线程反而有损于性能。为了改善这样</p>
+<p>的问题 ，.NET中就引入了线程池。</p>
+<p>&nbsp; &nbsp; 线程池形象的表示就是存放应用程序中使用的线程的一个集合（就是放线程的地方，这样线程都放在一个地方就好管理了）。</p>
+<p>&nbsp; &nbsp; CLR初始化时，线程池中是没有线程的，在内部， 线程池维护了一个操作请求队列。当应用程序想执行一个异步操作时，就调用一个方法，将一个任务放到线程池</p>
+<p>的队列中，线程池代码从队列中提取任务，将这个任务委派给一个线程池线程去执行，当线程池线程完成任务时，线程不会被销毁，而是返回到线程池中，等待响应另</p>
+<p>一个请求。由于线程不被销毁， 这样就可以避免因为创建线程所产生的性能损失。</p>
+<p>&nbsp; &nbsp; MSDN表述：</p>
+<p>&nbsp; &nbsp; &ldquo;线程池经常用在服务器应用程序中，每一个新进来的需求被分配给一个线程池中的线程，这样该需求能被异步的执行，没有阻碍主线程或推迟后继需求的处理。&rdquo;</p>
+<p><strong>&nbsp; &nbsp; 注意：通过线程池创建的线程默认为后台线程，优先级默认为Normal。</strong></p>
+<p><strong>&nbsp; &nbsp; 二、通过线程池的工作者线程实现异步</strong></p>
+<p>&nbsp; &nbsp; <strong>2.1创建工作者线程的方法</strong></p>
+<p>&nbsp; &nbsp; public static bool QueueUserWorkItem (WaitCallback callback);</p>
+<p>&nbsp; &nbsp; public static bool QueueUserWorkItem(WaitCallback callback, Object state);</p>
+<p>&nbsp; &nbsp; 这两个方法向线程池的队列添加一个工作项（work item）以及一个可选的状态数据，然后，这两个方法就会立即返回。</p>
+<p>&nbsp; &nbsp; 工作项其实就是由callback参数标识的一个方法，该方法将由线程池线程执行。同时写的回调方法必须匹配System.Threading.WaitCallback委托类型，定义为：</p>
+<p>&nbsp; &nbsp; public delegate void WaitCallback(Object state);</p>
+<p>&nbsp; &nbsp; 下面演示如何通过线程池线程来实现异步调用：</p>
+<div class="cnblogs_code">
+<pre><code>    <span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            </span><span style="color: #0000ff;">#region</span> 通过线程池的工作者线程实现异步
+            <span style="color: #008000;">//</span><span style="color: #008000;">设置线程池中工作者线程最大数量为1000，I/O线程最大数量为1000。</span>
+            ThreadPool.SetMaxThreads(<span style="color: #800080;">1000</span>, <span style="color: #800080;">1000</span><span style="color: #000000;">);
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Main thread: queue an asynchronous method.</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            PrintMessage(</span><span style="color: #800000;">"</span><span style="color: #800000;">Main thread start.</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">把工作项添加到队列中，此时线程池会用工作者线程去执行回调方法。</span>
+<span style="color: #000000;">            ThreadPool.QueueUserWorkItem(AsyncMethod);
+            Console.Read();
+            </span><span style="color: #0000ff;">#endregion</span><span style="color: #000000;">
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 打印线程池信息
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="data"&gt;&lt;/param&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> PrintMessage(<span style="color: #0000ff;">string</span><span style="color: #000000;"> data)
+        {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">获得线程池中可用的工作者线程数量及I/O线程数量</span>
+            ThreadPool.GetAvailableThreads(<span style="color: #0000ff;">out</span> <span style="color: #0000ff;">int</span> workThreadNumber, <span style="color: #0000ff;">out</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> ioThreadNumber);
+
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">{0}\n CurrentThreadId is:{1}\n CurrentThread is background:{2}\n WorkerThreadNumber is:{3}\n IOThreadNumbers is:{4}\n</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+                data,
+                Thread.CurrentThread.ManagedThreadId,
+                Thread.CurrentThread.IsBackground.ToString(),
+                workThreadNumber.ToString(),
+                ioThreadNumber.ToString());
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 异步方法：必须匹配WaitCallback委托
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="state"&gt;&lt;/param&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> AsyncMethod(<span style="color: #0000ff;">object</span><span style="color: #000000;"> state)
+        {
+            Thread.Sleep(</span><span style="color: #800080;">1000</span><span style="color: #000000;">);
+            PrintMessage(</span><span style="color: #800000;">"</span><span style="color: #800000;">Asynchoronous method.</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Asynchoronous thread has worked.</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+        }
+    }</span></pre>
+</div>
+<p>&nbsp; &nbsp; 运行结果如下：</p>
+<p><img src="./images/C#线程学习笔记二：线程池中的工作者线程0.png" alt="" /></p>
+<p>&nbsp; &nbsp; 从结果中可以看出，线程池中的可用的工作者线程少了一个，用去执行回调方法了。</p>
+<p>&nbsp; &nbsp; ThreadPool.QueueUserWorkItem(WaitCallback callback,Object state) 方法可以把object对象作为参数传送到回调函数中，使用方法与</p>
+<p>ThreadPool.QueueUserWorkItem(WaitCallback callback)类似，这里就不列出了。</p>
+<p><strong>&nbsp; &nbsp; 2.2</strong>&nbsp;<strong>协作式取消</strong></p>
+<p>&nbsp; &nbsp; .NET Framework提供了<strong>取消操作</strong>的模式， 这个模式是协作式的。为了取消一个操作，首先必须创建一个<strong>System.Threading.CancellationTokenSource</strong>对象。</p>
+<p>&nbsp; &nbsp; 下面代码演示协作式取消的使用，主要实现当用户在控制台敲下回车键后就停止数数方法。</p>
+<div class="cnblogs_code">
+<pre><code>    <span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            </span><span style="color: #0000ff;">#region</span> 协作式取消<span style="color: #000000;">
+            ThreadPool.SetMaxThreads(</span><span style="color: #800080;">1000</span>, <span style="color: #800080;">1000</span><span style="color: #000000;">);
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Main thread run.</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            PrintMessage(</span><span style="color: #800000;">"</span><span style="color: #800000;">Start</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            Run();
+            Console.ReadKey();
+            </span><span style="color: #0000ff;">#endregion</span><span style="color: #000000;">
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 打印线程池信息
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="data"&gt;&lt;/param&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> PrintMessage(<span style="color: #0000ff;">string</span><span style="color: #000000;"> data)
+        {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">获得线程池中可用的工作者线程数量及I/O线程数量</span>
+            ThreadPool.GetAvailableThreads(<span style="color: #0000ff;">out</span> <span style="color: #0000ff;">int</span> workThreadNumber, <span style="color: #0000ff;">out</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> ioThreadNumber);
+
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">{0}\n CurrentThreadId is:{1}\n CurrentThread is background:{2}\n WorkerThreadNumber is:{3}\n IOThreadNumbers is:{4}\n</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+                data,
+                Thread.CurrentThread.ManagedThreadId,
+                Thread.CurrentThread.IsBackground.ToString(),
+                workThreadNumber.ToString(),
+                ioThreadNumber.ToString());
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 运行工作者线程(包含协作式取消)
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> Run()
+        {
+            CancellationTokenSource cts </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> CancellationTokenSource();
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">这里是用Lambda表达式的写法，效果一样。
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">ThreadPool.QueueUserWorkItem(obj =&gt; Count(cts.Token, 1000));</span>
+<span style="color: #000000;">
+            ThreadPool.QueueUserWorkItem(Callback, cts.Token);
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Press enter key to cancel the operation.\n</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            Console.ReadLine();
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">传达取消请求</span>
+<span style="color: #000000;">            cts.Cancel();
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 回调函数
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="state"&gt;&lt;/param&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Callback(<span style="color: #0000ff;">object</span><span style="color: #000000;"> state)
+        {
+            Thread.Sleep(</span><span style="color: #800080;">1000</span><span style="color: #000000;">);
+            PrintMessage(</span><span style="color: #800000;">"</span><span style="color: #800000;">Asynchoronous method start.</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            CancellationToken token </span>=<span style="color: #000000;"> (CancellationToken)state;
+            Count(token, </span><span style="color: #800080;">1000</span><span style="color: #000000;">);
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 数数
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="token"&gt;&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="countTo"&gt;&lt;/param&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Count(CancellationToken token, <span style="color: #0000ff;">int</span><span style="color: #000000;"> countTo)
+        {
+            </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = 1; i &lt;= countTo; i++<span style="color: #000000;">)
+            {
+                </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (token.IsCancellationRequested)
+                {
+                    Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Count is canceled.</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                    </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+                }
+
+                Console.WriteLine(i);
+                Thread.Sleep(</span><span style="color: #800080;">300</span><span style="color: #000000;">);
+            }
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Count has done.</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+        }
+    }</span></pre>
+</div>
+<p>&nbsp; &nbsp; 运行结果如下：</p>
+<p><img src="./images/C#线程学习笔记二：线程池中的工作者线程1.png" alt="" /></p>
+<p>&nbsp; &nbsp; 三<strong>、使用委托实现异步</strong></p>
+<p><strong>&nbsp; &nbsp; </strong>涉及术语解释--异步编程模型：</p>
+<p><span lang="EN-US">&nbsp; &nbsp; APM&nbsp;<span class="Apple-converted-space"><span class="Apple-converted-space">异步编程模型(<span class="Apple-converted-space"><span lang="EN-US">Asynchronous Programming Model)</span></span></span></span></span></p>
+<p><span lang="EN-US">&nbsp; &nbsp; EAP&nbsp;<span class="Apple-converted-space"><span class="Apple-converted-space">基于事件的异步编程模式(<span class="Apple-converted-space"><span lang="EN-US">Event-based Asynchronous Pattern)</span></span></span></span></span></p>
+<p><span lang="EN-US">&nbsp; &nbsp; TAP&nbsp;<span class="Apple-converted-space"><span class="Apple-converted-space">基于任务的异步编程模式(<span class="Apple-converted-space"><span lang="EN-US">Task-based Asynchronous Pattern)</span></span></span></span></span></p>
+<p>&nbsp; &nbsp; 通过调用ThreadPool的QueueUserWorkItem方法来来启动工作者线程非常方便，但委托WaitCallback指向的是带有一个参数的无返回值的方法。如果我们实际操作中</p>
+<p>需要有返回值，或者需要带有多个参数， 这时通过这样的方式就难以实现了。 为了解决这样的问题，我们可以通过委托来建立工作这线程。</p>
+<p>&nbsp; &nbsp; 下面代码演示使用委托实现异步：</p>
+<div class="cnblogs_code">
+<pre><code>    <span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">使用委托实现异步，是使用了异步编程模型APM。</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">delegate</span> <span style="color: #0000ff;">string</span><span style="color: #000000;"> ThreadDelegate();
+
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            </span><span style="color: #0000ff;">#region</span> 使用委托实现异步<span style="color: #000000;">
+            ThreadPool.SetMaxThreads(</span><span style="color: #800080;">1000</span>, <span style="color: #800080;">1000</span><span style="color: #000000;">);
+            PrintMessage(</span><span style="color: #800000;">"</span><span style="color: #800000;">Main thread start.</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">实例化委托</span>
+            ThreadDelegate threadDelegate = <span style="color: #0000ff;">new</span><span style="color: #000000;"> ThreadDelegate(AsyncMethod);
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">异步调用委托</span>
+            IAsyncResult result = threadDelegate.BeginInvoke(<span style="color: #0000ff;">null</span>, <span style="color: #0000ff;">null</span><span style="color: #000000;">);
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">获取结果并打印</span>
+            <span style="color: #0000ff;">string</span> returnData =<span style="color: #000000;"> threadDelegate.EndInvoke(result);
+            Console.WriteLine(returnData);
+            Console.ReadLine();
+            </span><span style="color: #0000ff;">#endregion</span><span style="color: #000000;">
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 打印线程池信息
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="data"&gt;&lt;/param&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> PrintMessage(<span style="color: #0000ff;">string</span><span style="color: #000000;"> data)
+        {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">获得线程池中可用的工作者线程数量及I/O线程数量</span>
+            ThreadPool.GetAvailableThreads(<span style="color: #0000ff;">out</span> <span style="color: #0000ff;">int</span> workThreadNumber, <span style="color: #0000ff;">out</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> ioThreadNumber);
+
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">{0}\n CurrentThreadId is:{1}\n CurrentThread is background:{2}\n WorkerThreadNumber is:{3}\n IOThreadNumbers is:{4}\n</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+                data,
+                Thread.CurrentThread.ManagedThreadId,
+                Thread.CurrentThread.IsBackground.ToString(),
+                workThreadNumber.ToString(),
+                ioThreadNumber.ToString());
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 异步方法
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">string</span><span style="color: #000000;"> AsyncMethod()
+        {
+            Thread.Sleep(</span><span style="color: #800080;">1000</span><span style="color: #000000;">);
+            PrintMessage(</span><span style="color: #800000;">"</span><span style="color: #800000;">Asynchoronous method.</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            </span><span style="color: #0000ff;">return</span> <span style="color: #800000;">"</span><span style="color: #800000;">Method has completed.</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+        }
+    }</span></pre>
+</div>
+<p>&nbsp; &nbsp; 运行结果如下：</p>
+<p><img src="./images/C#线程学习笔记二：线程池中的工作者线程2.png" alt="" /></p>
+<p><strong>&nbsp; &nbsp; 四、任务</strong></p>
+<p>&nbsp; &nbsp; 同样，任务的引入也是为了解决通过ThreadPool.QueueUserWorkItem中限制的问题。</p>
+<p><strong>&nbsp; &nbsp; 4.1&nbsp;</strong><strong>使用任务来实现异步</strong></p>
+<div class="cnblogs_code">
+<pre><code>    <span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            </span><span style="color: #0000ff;">#region</span> 使用任务实现异步<span style="color: #000000;">
+            ThreadPool.SetMaxThreads(</span><span style="color: #800080;">1000</span>, <span style="color: #800080;">1000</span><span style="color: #000000;">);
+            PrintMessage(</span><span style="color: #800000;">"</span><span style="color: #800000;">Main thread start.</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">调用构造函数创建Task对象</span>
+            Task&lt;<span style="color: #0000ff;">int</span>&gt; task = <span style="color: #0000ff;">new</span> Task&lt;<span style="color: #0000ff;">int</span>&gt;(n =&gt; AsyncMethod((<span style="color: #0000ff;">int</span>)n), <span style="color: #800080;">10</span><span style="color: #000000;">);
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">启动任务 </span>
+<span style="color: #000000;">            task.Start();
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">等待任务完成</span>
+<span style="color: #000000;">            task.Wait();
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">The method result is: </span><span style="color: #800000;">"</span> +<span style="color: #000000;"> task.Result);
+            Console.ReadLine();
+            </span><span style="color: #0000ff;">#endregion</span><span style="color: #000000;">
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 打印线程池信息
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="data"&gt;&lt;/param&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> PrintMessage(<span style="color: #0000ff;">string</span><span style="color: #000000;"> data)
+        {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">获得线程池中可用的工作者线程数量及I/O线程数量</span>
+            ThreadPool.GetAvailableThreads(<span style="color: #0000ff;">out</span> <span style="color: #0000ff;">int</span> workThreadNumber, <span style="color: #0000ff;">out</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> ioThreadNumber);
+
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">{0}\n CurrentThreadId is:{1}\n CurrentThread is background:{2}\n WorkerThreadNumber is:{3}\n IOThreadNumbers is:{4}\n</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+                data,
+                Thread.CurrentThread.ManagedThreadId,
+                Thread.CurrentThread.IsBackground.ToString(),
+                workThreadNumber.ToString(),
+                ioThreadNumber.ToString());
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 异步方法
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="n"&gt;&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">int</span> AsyncMethod(<span style="color: #0000ff;">int</span><span style="color: #000000;"> n)
+        {
+            Thread.Sleep(</span><span style="color: #800080;">1000</span><span style="color: #000000;">);
+            PrintMessage(</span><span style="color: #800000;">"</span><span style="color: #800000;">Asynchoronous method.</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+
+            </span><span style="color: #0000ff;">int</span> sum = <span style="color: #800080;">0</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">1</span>; i &lt; n; i++<span style="color: #000000;">)
+            {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">运算溢出检查</span>
+                <span style="color: #0000ff;">checked</span><span style="color: #000000;">
+                {
+                    sum </span>+=<span style="color: #000000;"> i;
+                }
+            }
+
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> sum;
+        }
+    }</span></pre>
+</div>
+<p>&nbsp; &nbsp; 运行结果如下：</p>
+<p><img src="./images/C#线程学习笔记二：线程池中的工作者线程3.png" alt="" /></p>
+<p><strong>&nbsp; &nbsp; 4.2 取消任务</strong></p>
+<p>&nbsp; &nbsp; 如果要取消任务， 同样也可以CancellationTokenSource对象来取消。</p>
+<p>&nbsp; &nbsp; 下面代码演示取消一个任务：</p>
+<div class="cnblogs_code">
+<pre><code>    <span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            </span><span style="color: #0000ff;">#region</span> 取消任务<span style="color: #000000;">
+            ThreadPool.SetMaxThreads(</span><span style="color: #800080;">1000</span>, <span style="color: #800080;">1000</span><span style="color: #000000;">);
+            PrintMessage(</span><span style="color: #800000;">"</span><span style="color: #800000;">Main thread start.</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            CancellationTokenSource cts </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> CancellationTokenSource();
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">调用构造函数创建Task对象，将一个CancellationToken传给Task构造器从而使Task和CancellationToken关联起来。</span>
+            Task&lt;<span style="color: #0000ff;">int</span>&gt; task = <span style="color: #0000ff;">new</span> Task&lt;<span style="color: #0000ff;">int</span>&gt;(n =&gt; AsyncMethod(cts.Token, (<span style="color: #0000ff;">int</span>)n), <span style="color: #800080;">10</span><span style="color: #000000;">);
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">启动任务 </span>
+<span style="color: #000000;">            task.Start();
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">延迟取消任务</span>
+            Thread.Sleep(<span style="color: #800080;">3000</span><span style="color: #000000;">);
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">取消任务</span>
+<span style="color: #000000;">            cts.Cancel();
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">The method result is: </span><span style="color: #800000;">"</span> +<span style="color: #000000;"> task.Result);
+            Console.ReadLine();
+            </span><span style="color: #0000ff;">#endregion</span><span style="color: #000000;">
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 打印线程池信息
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="data"&gt;&lt;/param&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> PrintMessage(<span style="color: #0000ff;">string</span><span style="color: #000000;"> data)
+        {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">获得线程池中可用的工作者线程数量及I/O线程数量</span>
+            ThreadPool.GetAvailableThreads(<span style="color: #0000ff;">out</span> <span style="color: #0000ff;">int</span> workThreadNumber, <span style="color: #0000ff;">out</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> ioThreadNumber);
+
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">{0}\n CurrentThreadId is:{1}\n CurrentThread is background:{2}\n WorkerThreadNumber is:{3}\n IOThreadNumbers is:{4}\n</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+                data,
+                Thread.CurrentThread.ManagedThreadId,
+                Thread.CurrentThread.IsBackground.ToString(),
+                workThreadNumber.ToString(),
+                ioThreadNumber.ToString());
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 异步方法
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="ct"&gt;&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="n"&gt;&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">int</span> AsyncMethod(CancellationToken ct, <span style="color: #0000ff;">int</span><span style="color: #000000;"> n)
+        {
+            Thread.Sleep(</span><span style="color: #800080;">1000</span><span style="color: #000000;">);
+            PrintMessage(</span><span style="color: #800000;">"</span><span style="color: #800000;">Asynchoronous method.</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+
+            </span><span style="color: #0000ff;">int</span> sum = <span style="color: #800080;">0</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">try</span><span style="color: #000000;">
+            {
+                </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">1</span>; i &lt; n; i++<span style="color: #000000;">)
+                {
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">当CancellationTokenSource对象调用Cancel方法时，就会引起OperationCanceledException异常，
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">通过调用CancellationToken的ThrowIfCancellationRequested方法来定时检查操作是否已经取消，
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">这个方法和CancellationToken的IsCancellationRequested属性类似。</span>
+<span style="color: #000000;">                    ct.ThrowIfCancellationRequested();
+                    Thread.Sleep(</span><span style="color: #800080;">500</span><span style="color: #000000;">);
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">运算溢出检查</span>
+                    <span style="color: #0000ff;">checked</span><span style="color: #000000;">
+                    {
+                        sum </span>+=<span style="color: #000000;"> i;
+                    }
+                }
+            }
+            </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception e)
+            {
+                Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Exception is:</span><span style="color: #800000;">"</span> +<span style="color: #000000;"> e.GetType().Name);
+                Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Operation is canceled.</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            }
+
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> sum;
+        }
+    }</span></pre>
+</div>
+<p>&nbsp; &nbsp; 运算结果如下：</p>
+<p><img src="./images/C#线程学习笔记二：线程池中的工作者线程4.png" alt="" /></p>
+<p>&nbsp; &nbsp;&nbsp;<strong>4.3 使用任务工厂实现异步操作</strong></p>
+<p>&nbsp; &nbsp; 同样也可以通过任务工厂TaskFactory类型来实现异步操作。</p>
+<div class="cnblogs_code">
+<pre><code>    <span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            </span><span style="color: #0000ff;">#region</span> 使用任务工厂实现异步<span style="color: #000000;">
+            ThreadPool.SetMaxThreads(</span><span style="color: #800080;">1000</span>, <span style="color: #800080;">1000</span><span style="color: #000000;">);
+            Task.Factory.StartNew(() </span>=&gt; PrintMessage(<span style="color: #800000;">"</span><span style="color: #800000;">Main thread.</span><span style="color: #800000;">"</span><span style="color: #000000;">));
+            Console.Read();
+            </span><span style="color: #0000ff;">#endregion</span><span style="color: #000000;">
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 打印线程池信息
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="data"&gt;&lt;/param&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> PrintMessage(<span style="color: #0000ff;">string</span><span style="color: #000000;"> data)
+        {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">获得线程池中可用的工作者线程数量及I/O线程数量</span>
+            ThreadPool.GetAvailableThreads(<span style="color: #0000ff;">out</span> <span style="color: #0000ff;">int</span> workThreadNumber, <span style="color: #0000ff;">out</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> ioThreadNumber);
+
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">{0}\n CurrentThreadId is:{1}\n CurrentThread is background:{2}\n WorkerThreadNumber is:{3}\n IOThreadNumbers is:{4}\n</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+                data,
+                Thread.CurrentThread.ManagedThreadId,
+                Thread.CurrentThread.IsBackground.ToString(),
+                workThreadNumber.ToString(),
+                ioThreadNumber.ToString());
+        }
+    }</span></pre>
+</div>
+<p>&nbsp; &nbsp; 运行结果如下：</p>
+<p><img src="./images/C#线程学习笔记二：线程池中的工作者线程5.png" alt="" /><strong>&nbsp;</strong></p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

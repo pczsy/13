@@ -1,0 +1,170 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C#基础之多线程与异步' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C#基础之多线程与异步</center></div><div class='banquan'>原文出处:本文由博客园博主七彩石头提供。<br/>
+原文连接:https://www.cnblogs.com/qcst123/p/11708268.html</div><br>
+    <h3>&nbsp;1.基本概念</h3>
+<p>多线程与异步是两个不同概念，之所以把这两个放在一起学习，是因为这两者虽然有区别，但也有一定联系。</p>
+<p>&nbsp; &nbsp; 多线程是一个技术概念，相对于单线程而言，多线程是多个单线程同时处理逻辑。例如，假如说一个人把水从A地提到B点可看作是单线程，那么如果两个人同时去做事（可以是相同的一件事，也可以是不同的一件事）就可以看作是两个线程。</p>
+<p>&nbsp; &nbsp; 异步：记得读书时学过一篇课文叫《统筹方法》，里面讲述煮茶喝的过程，如下：</p>
+<p>&nbsp; &nbsp; 比如，想泡壶茶喝。当时的情况是：开水没有；水壶要洗，茶壶、茶杯要洗；火已生了，茶叶也有了。怎么办？</p>
+<p>&nbsp; &nbsp; 办法甲：洗好水壶，灌上凉水，放在火上；在等待水开的时间里，洗茶壶、洗茶杯、拿茶叶；等水开了，泡茶喝。</p>
+<p>&nbsp; &nbsp; 办法乙：先做好一些准备工作，洗水壶，洗茶壶茶杯，拿茶叶；一切就绪，灌水烧水；坐待水开了，泡茶喝。</p>
+<p>&nbsp; &nbsp; 那么办法甲就是异步方法，办法乙就是同步方法。利用多线程就可以实现办法甲：如用A线程做&ldquo;洗好水壶，灌上凉水，放在火上&rdquo;，另B线程做&ldquo;洗茶壶、洗茶杯、拿茶叶&rdquo;，并在B线程中等待A线程执行完毕（即水开），再继续做&ldquo;泡茶喝&rdquo;。</p>
+<p>&nbsp; &nbsp; 上面是示例讲法，所谓的&ldquo;等待&rdquo;翻译成技术语言就是&ldquo;阻塞&rdquo;，异步与同步的区别就是看一事件中是否有阻塞，等待另一件事情的处理结果。从示例中也可以看到，异步中用到了多线程，但异步和多线程显然是两个不同的概念。</p>
+<p><strong>结论：异步是相对同步来说的一个目的，而多线程是实现这个目的一种技术方法。</strong></p>
+<p>&nbsp;</p>
+<h3>2.Task的运用</h3>
+<p>Task是.NET Framework 4.5加入的概念，之前实现多线程是利用Thread类，在此只对Task进行学习，在实际编码中基本用Task，因为它比Thread更易理解，更易运用，更安全可靠。</p>
+<p>下面是两者差异的一个总结：</p>
+<p><strong>1.task与thread对比，task相当于应用层，thread更底层，但二者是不一样的，没有隶属关系</strong><br /><strong>2.task是在线程池上创建，是后台线程（主线程不会等其完成）；Thread是单个线程，默认是前台线程</strong><br /><strong>3.task可以直接获取返回值，thread不能直接从方法返回结果（可以使用变量来获取结果）</strong><br /><strong>4.使用task.ContinueWith（）方法可以继续执行其他任务。线程中无连续性，当线程完成工作时，不能告诉线程开始其他操作。 尽管可以使用Join（）等待线程完成，但是这会阻塞主线程</strong><br /><strong>5.task借助CancellationTokeSource类可以支持任务中的取消，当thread处于运行中时，无法取消它</strong><br /><strong>6.task能方便捕捉到运行中的异常，thread在父方法中无法捕捉到异常</strong></p>
+<p>&nbsp;下面用示例代码来展示Task实现异步的基本运用：</p>
+<div class="cnblogs_code">
+<pre><code> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> Main()
+        {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> Start the HandleFile method.</span>
+            Task&lt;<span style="color: #0000ff;">int</span>&gt; task =<span style="color: #000000;"> HandleFileAsync();//可以看作是一个耗时任务
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> Control returns here before HandleFileAsync returns.
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> ... Prompt the user.</span>
+            Console.WriteLine(<span style="color: #800000;">"</span><span style="color: #800000;">Please wait patiently </span><span style="color: #800000;">"</span> +
+                <span style="color: #800000;">"</span><span style="color: #800000;">while I do something important.</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> Do something at the same time as the file is being read.</span>
+            <span style="color: #0000ff;">string</span> line =<span style="color: #000000;"> Console.ReadLine();
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">You entered (asynchronous logic): </span><span style="color: #800000;">"</span> +<span style="color: #000000;"> line);
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> Wait for the HandleFile task to complete.
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> ... Display its results.</span>
+            task.Wait();<span style="color: #008000;">//</span><span style="color: #008000;">有调用.result时，这里可以省略。在没有调用.result时，一定要.wait()下，这个话题涉及到当task运行出现异常时：为什么要调用Wait或者Result？<br />或者一直不查询Task的Exception属性？你的代码就永远注意不到这个异常的发生，如果不能捕捉到这个异常，垃圾回收时，<br />抛出AggregateException，进程就会立即终止，这就是&ldquo;牵一发动全身&rdquo;，莫名其妙程序就自己关掉了</span>
+            <span style="color: #0000ff;">var</span> x = task.Result;<span style="color: #008000;">//</span><span style="color: #008000;">其实在用Result的时候，内部会调用Wait</span>
+            Console.WriteLine(<span style="color: #800000;">"</span><span style="color: #800000;">Count: </span><span style="color: #800000;">"</span> +<span style="color: #000000;"> x);
+
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">[DONE]</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            Console.ReadLine();
+        }
+
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">async</span> Task&lt;<span style="color: #0000ff;">int</span>&gt;<span style="color: #000000;"> HandleFileAsync()//async与下文的await是成对出现，否则不能实现真正的异步，而是同步执行。
+        {
+            </span><span style="color: #0000ff;">string</span> file = <span style="color: #800000;">@"</span><span style="color: #800000;">C:\enable1.txt</span><span style="color: #800000;">"</span><span style="color: #000000;">;//在这个文档中输入几个字符和输入1MB字符，最终输出结果会有不同，能很好的展示异步调用方式
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">HandleFile enter</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            </span><span style="color: #0000ff;">int</span> count = <span style="color: #800080;">0</span><span style="color: #000000;">;
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> Read in the specified file.
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> ... Use async StreamReader method.</span>
+            <span style="color: #0000ff;">using</span> (StreamReader reader = <span style="color: #0000ff;">new</span><span style="color: #000000;"> StreamReader(file))
+            {
+                </span><span style="color: #0000ff;">string</span> v = <span style="color: #0000ff;">await</span><span style="color: #000000;"> reader.ReadToEndAsync();
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">string v = reader.ReadToEnd();
+
+                </span><span style="color: #008000;">//</span><span style="color: #008000;"> ... Process the file data somehow.</span>
+                count +=<span style="color: #000000;"> v.Length;
+
+                </span><span style="color: #008000;">//</span><span style="color: #008000;"> ... A slow-running computation.
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">     Dummy code.</span>
+                <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; <span style="color: #800080;">10000</span>; i++<span style="color: #000000;">)
+                {
+                    </span><span style="color: #0000ff;">int</span> x =<span style="color: #000000;"> v.GetHashCode();
+                    </span><span style="color: #0000ff;">if</span> (x == <span style="color: #800080;">0</span><span style="color: #000000;">)
+                    {
+                        count</span>--<span style="color: #000000;">;
+                    }
+                }
+            }
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">HandleFile exit</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> count;
+        }</span></pre>
+</div>
+<p>上面是task的基本运用，看看注释了解一些注意事项。下面是对ContinueWith，即连续任务的一个运用，如下：</p>
+<div class="cnblogs_code">
+<pre><code>  <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> Main()
+        {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> Call async method 10 times.</span>
+            <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; <span style="color: #800080;">10</span>; i++<span style="color: #000000;">)
+            {
+                Run2Methods(i);
+            }
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> The calls are all asynchronous, so they can end at any time.</span>
+<span style="color: #000000;">            Console.ReadLine();
+        }
+
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">async</span> <span style="color: #0000ff;">void</span> Run2Methods(<span style="color: #0000ff;">int</span><span style="color: #000000;"> count)
+        {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> Run a Task that calls a method, then calls another method with ContinueWith.</span>
+            <span style="color: #0000ff;">int</span> result = <span style="color: #0000ff;">await</span> Task.Run(() =&gt;<span style="color: #000000;"> GetSum(count))
+                .ContinueWith(task </span>=&gt;<span style="color: #000000;"> MultiplyNegative1(task));
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Run2Methods result: </span><span style="color: #800000;">"</span> +<span style="color: #000000;"> result);
+        }
+
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">int</span> GetSum(<span style="color: #0000ff;">int</span><span style="color: #000000;"> count)
+        {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> This method is called first, and returns an int.</span>
+            <span style="color: #0000ff;">int</span> sum = <span style="color: #800080;">0</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> z = <span style="color: #800080;">0</span>; z &lt; count; z++<span style="color: #000000;">)
+            {
+                sum </span>+= (<span style="color: #0000ff;">int</span>)Math.Pow(z, <span style="color: #800080;">2</span><span style="color: #000000;">);
+            }
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> sum;
+        }
+
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">int</span> MultiplyNegative1(Task&lt;<span style="color: #0000ff;">int</span>&gt;<span style="color: #000000;"> task)
+        {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> This method is called second, and returns a negative int.</span>
+            <span style="color: #0000ff;">return</span> task.Result * -<span style="color: #800080;">1</span><span style="color: #000000;">;
+        }</span></pre>
+</div>
+<p>下面是如果想取消任务时CancellationTokenSource类的运用：</p>
+<div class="cnblogs_code">
+<pre><code>  <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            </span><span style="color: #0000ff;">using</span> (<span style="color: #0000ff;">var</span> cts = <span style="color: #0000ff;">new</span><span style="color: #000000;"> CancellationTokenSource())
+            {
+                Task task </span>= <span style="color: #0000ff;">new</span> Task(() =&gt;<span style="color: #000000;"> { LongRunningTask(cts.Token); });
+                task.Start();
+                Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Operation Performing...</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                </span><span style="color: #0000ff;">if</span> (Console.ReadKey().Key ==<span style="color: #000000;"> ConsoleKey.C)
+                {
+                    Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Cancelling..</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                    cts.Cancel();
+                }
+                Console.Read();
+            }
+        }
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> LongRunningTask(CancellationToken token)
+        {
+            </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; <span style="color: #800080;">10000000</span>; i++<span style="color: #000000;">)
+            {
+                </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (token.IsCancellationRequested)
+                {
+                    </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+                }
+                </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+                {
+                    Console.WriteLine(i);
+                }
+            }
+        }</span></pre>
+</div>
+<pre><code>以上是Task的基本运用。<br /><br /><br /><span style="font-size: 18px;"><strong>3.总结</strong></span><br />以上是利用Task、async、await实现异步的方法，示例三展示的是task实现任务的取消，这里不是一个异步方法，只是一个单纯的任务取消（可理解为多线程的取消）。Task本质是类似于threadPool的一个线程池，只需把要做的事丢进去，底层线程怎么分配怎么运行，编码时完全不用关心。如果是用thread类，就需要自己去控制线程的启停销毁等，控制不好就会&ldquo;翻车&rdquo;，而且这种&ldquo;翻车&rdquo;会导致出现莫名其妙的结果，甚至程序锁死，因此在实际编码中尽量使用task类。</pre>
+<pre><code><em id="__mceDel"><br /><br /></em></pre>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

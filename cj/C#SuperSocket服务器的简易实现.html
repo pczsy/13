@@ -1,0 +1,265 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C#SuperSocket服务器的简易实现' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C#SuperSocket服务器的简易实现</center></div><div class='banquan'>原文出处:本文由博客园博主Pater.Pan提供。<br/>
+原文连接:https://www.cnblogs.com/pandefu/p/10774780.html</div><br>
+    <p>上一篇文章我们使用原生的socket分别实现了服务器和客户端,</p>
+<p>本篇文章使用SuperSocket来开发实现服务器,</p>
+<p>之前也介绍了SuperSocket是一个轻量级, 跨平台而且可扩展的 .Net/Mono Socket 服务器程序框架。你无须了解如何使用 Socket, 如何维护 Socket 连接和 Socket 如何工作，但是你却可以使用 SuperSocket 很容易的开发出一款 Socket 服务器端软件，例如游戏服务器，GPS 服务器, 工业控制服务和数据采集服务器等等。</p>
+<p>接下来开始我们的开发,首先我们需要安装SuperSocket相关程序包,我们新建一个项目开发SuperSocket服务器</p>
+<p>然后打开NuGet程序包管理器,搜索SuperSocket ,下载安装SuperSocket和SuperSocket.Engine</p>
+<p><img src="./images/C#SuperSocket服务器的简易实现0.png" alt="" /></p>
+<p>&nbsp;下载安装完毕后,我们的项目中会自动引用了SuperSocke和log4net 相关程序集和配置文件</p>
+<p><img src="./images/C#SuperSocket服务器的简易实现1.png" alt="" /></p>
+<p>进入正题上代码,我们这里只用SuperSocket做服务器端,客户端使用SocketTool做测试</p>
+<p>&nbsp;SocketTool</p>
+<p>链接：<a title="SocketTool   提取码：m2nk" href="https://pan.baidu.com/s/1ykEofUIZKE2yhe3mMyRbJw" target="_blank">https://pan.baidu.com/s/1ykEofUIZKE2yhe3mMyRbJw </a><br />提取码：m2nk </p>
+<p>SuperSocket实现服务器:</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('43b56bb4-e4c1-4939-914c-3aca60f4d2c4')"><img id="code_img_closed_43b56bb4-e4c1-4939-914c-3aca60f4d2c4" class="code_img_closed" src="./images/C#SuperSocket服务器的简易实现2.png" alt="" /><img id="code_img_opened_43b56bb4-e4c1-4939-914c-3aca60f4d2c4" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('43b56bb4-e4c1-4939-914c-3aca60f4d2c4',event)" src="./images/C#SuperSocket服务器的简易实现3.png" alt="" />
+<div id="cnblogs_code_open_43b56bb4-e4c1-4939-914c-3aca60f4d2c4" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;">  1</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System;
+</span><span style="color: #008080;">  2</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Collections.Generic;
+</span><span style="color: #008080;">  3</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.ComponentModel;
+</span><span style="color: #008080;">  4</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Data;
+</span><span style="color: #008080;">  5</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Drawing;
+</span><span style="color: #008080;">  6</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Linq;
+</span><span style="color: #008080;">  7</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Text;
+</span><span style="color: #008080;">  8</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Threading.Tasks;
+</span><span style="color: #008080;">  9</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Windows.Forms;
+</span><span style="color: #008080;"> 10</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Net.Sockets;
+</span><span style="color: #008080;"> 11</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Net;
+</span><span style="color: #008080;"> 12</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Threading;
+</span><span style="color: #008080;"> 13</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> SuperSocket;
+</span><span style="color: #008080;"> 14</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> SuperSocket.SocketBase;
+</span><span style="color: #008080;"> 15</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> SuperSocket.SocketBase.Protocol;
+</span><span style="color: #008080;"> 16</span> 
+<span style="color: #008080;"> 17</span> <span style="color: #0000ff;">namespace</span><span style="color: #000000;"> SuperSocket
+</span><span style="color: #008080;"> 18</span> <span style="color: #000000;">{
+</span><span style="color: #008080;"> 19</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">partial</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> SuperSocketServer : Form
+</span><span style="color: #008080;"> 20</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;"> 21</span>         <span style="color: #0000ff;">public</span><span style="color: #000000;"> SuperSocketServer()
+</span><span style="color: #008080;"> 22</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 23</span> <span style="color: #000000;">            InitializeComponent();
+</span><span style="color: #008080;"> 24</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 25</span> 
+<span style="color: #008080;"> 26</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> SuperSocketServer_Load(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)
+</span><span style="color: #008080;"> 27</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 28</span>             <span style="color: #008000;">//</span><span style="color: #008000;">txt_ip.Text = "127.0.0.1";</span>
+<span style="color: #008080;"> 29</span>             txt_port.Text = <span style="color: #800000;">"</span><span style="color: #800000;">3333</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 30</span> <span style="color: #000000;">        } 
+</span><span style="color: #008080;"> 31</span> 
+<span style="color: #008080;"> 32</span>         <span style="color: #008000;">//</span><span style="color: #008000;">AppServer 代表了监听客户端连接，承载TCP连接的服务器实例。理想情况下，我们可以通过AppServer实例获取任何你想要的客户端连接，服务器级别的操作和逻辑应该定义在此类之中。</span>
+<span style="color: #008080;"> 33</span> <span style="color: #000000;">        AppServer appServer;
+</span><span style="color: #008080;"> 34</span>         <span style="color: #008000;">//</span><span style="color: #008000;">缓冲字节数组</span>
+<span style="color: #008080;"> 35</span>         <span style="color: #0000ff;">byte</span>[] buffer = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">byte</span>[<span style="color: #800080;">2048</span><span style="color: #000000;">];
+</span><span style="color: #008080;"> 36</span> 
+<span style="color: #008080;"> 37</span>         <span style="color: #0000ff;">string</span><span style="color: #000000;"> ipAddress_Connect;
+</span><span style="color: #008080;"> 38</span>         <span style="color: #0000ff;">string</span><span style="color: #000000;"> ipAddress_Close;
+</span><span style="color: #008080;"> 39</span>         <span style="color: #0000ff;">string</span><span style="color: #000000;"> ipAddress_Receive;
+</span><span style="color: #008080;"> 40</span> 
+<span style="color: #008080;"> 41</span>         <span style="color: #008000;">//</span><span style="color: #008000;">存储session和对应ip端口号的泛型集合</span>
+<span style="color: #008080;"> 42</span>         Dictionary&lt;<span style="color: #0000ff;">string</span>, AppSession&gt; sessionList = <span style="color: #0000ff;">new</span> Dictionary&lt;<span style="color: #0000ff;">string</span>, AppSession&gt;<span style="color: #000000;">();
+</span><span style="color: #008080;"> 43</span> 
+<span style="color: #008080;"> 44</span>         <span style="color: #0000ff;">enum</span><span style="color: #000000;"> OperateType
+</span><span style="color: #008080;"> 45</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 46</span> 
+<span style="color: #008080;"> 47</span>             Add = <span style="color: #800080;">1</span>,  <span style="color: #008000;">//</span><span style="color: #008000;">添加</span>
+<span style="color: #008080;"> 48</span>             Remove = <span style="color: #800080;">2</span>  <span style="color: #008000;">//</span><span style="color: #008000;">移除</span>
+<span style="color: #008080;"> 49</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 50</span> 
+<span style="color: #008080;"> 51</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;"> 52</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 开启服务
+</span><span style="color: #008080;"> 53</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;"> 54</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="sender"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;"> 55</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="e"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;"> 56</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> btn_StartListen_Click(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)
+</span><span style="color: #008080;"> 57</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 58</span>             appServer = <span style="color: #0000ff;">new</span><span style="color: #000000;"> AppServer();
+</span><span style="color: #008080;"> 59</span>             <span style="color: #0000ff;">if</span> (!appServer.Setup(<span style="color: #0000ff;">int</span><span style="color: #000000;">.Parse(txt_port.Text)))
+</span><span style="color: #008080;"> 60</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 61</span>                 SetMessage(<span style="color: #800000;">"</span><span style="color: #800000;">Failed to Setup</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 62</span>                 <span style="color: #0000ff;">return</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 63</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 64</span>             <span style="color: #0000ff;">if</span> (!<span style="color: #000000;">appServer.Start())
+</span><span style="color: #008080;"> 65</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 66</span>                 SetMessage(<span style="color: #800000;">"</span><span style="color: #800000;">Failed to Start</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 67</span>                 <span style="color: #0000ff;">return</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 68</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 69</span>             <span style="color: #0000ff;">else</span>
+<span style="color: #008080;"> 70</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 71</span>                 SetMessage(<span style="color: #800000;">"</span><span style="color: #800000;">开启监听</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 72</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 73</span>             <span style="color: #008000;">//</span><span style="color: #008000;">SuperSocket自定义了三个事件 ,连接事件,接收事件,关闭事件</span>
+<span style="color: #008080;"> 74</span>             appServer.NewSessionConnected +=<span style="color: #000000;"> appServer_NewSessionConnected;
+</span><span style="color: #008080;"> 75</span>             appServer.NewRequestReceived +=<span style="color: #000000;"> appServer_NewRequestReceived;
+</span><span style="color: #008080;"> 76</span>             appServer.SessionClosed +=<span style="color: #000000;"> appServer_SessionClosed;
+</span><span style="color: #008080;"> 77</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 78</span> 
+<span style="color: #008080;"> 79</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;"> 80</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 接收连接
+</span><span style="color: #008080;"> 81</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;"> 82</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="session"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;"> 83</span>         <span style="color: #0000ff;">void</span><span style="color: #000000;"> appServer_NewSessionConnected(AppSession session)
+</span><span style="color: #008080;"> 84</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 85</span>             <span style="color: #008000;">//</span><span style="color: #008000;">有新连接的时候,添加记录  session.LocalEndPoint属性获取当前session的ip和端口号
+</span><span style="color: #008080;"> 86</span>             <span style="color: #008000;">//</span><span style="color: #008000;">AppSession 代表一个和客户端的逻辑连接，基于连接的操作应该定于在该类之中。你可以用该类的实例发送数据到客户端，接收客户端发送的数据或者关闭连接。
+</span><span style="color: #008080;"> 87</span> 
+<span style="color: #008080;"> 88</span>             <span style="color: #008000;">//</span><span style="color: #008000;">获取远程客户端的ip端口号</span>
+<span style="color: #008080;"> 89</span>             ipAddress_Connect =<span style="color: #000000;"> session.RemoteEndPoint.ToString();
+</span><span style="color: #008080;"> 90</span> <span style="color: #000000;">            ComboboxHandle(ipAddress_Connect, OperateType.Add);
+</span><span style="color: #008080;"> 91</span> <span style="color: #000000;">            sessionList.Add(ipAddress_Connect, session);
+</span><span style="color: #008080;"> 92</span>             SetMessage(ipAddress_Connect + <span style="color: #800000;">"</span><span style="color: #800000;">已连接!</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 93</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 94</span> 
+<span style="color: #008080;"> 95</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;"> 96</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 接收数据
+</span><span style="color: #008080;"> 97</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;"> 98</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="session"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;"> 99</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="requestInfo"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;">100</span>         <span style="color: #0000ff;">void</span><span style="color: #000000;"> appServer_NewRequestReceived(AppSession session, StringRequestInfo requestInfo)
+</span><span style="color: #008080;">101</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">102</span>             <span style="color: #008000;">//</span><span style="color: #008000;">requestInfo.Key 是请求的命令行用空格分隔开的第一部分
+</span><span style="color: #008080;">103</span>             <span style="color: #008000;">//</span><span style="color: #008000;">requestInfo.Parameters 是用空格分隔开的其余部分
+</span><span style="color: #008080;">104</span>             <span style="color: #008000;">//</span><span style="color: #008000;">requestInfo.Body 是出了请求头之外的所有内容</span>
+<span style="color: #008080;">105</span>             ipAddress_Receive =<span style="color: #000000;"> session.RemoteEndPoint.ToString();
+</span><span style="color: #008080;">106</span>             SetMessage(<span style="color: #800000;">"</span><span style="color: #800000;">收到</span><span style="color: #800000;">"</span> + ipAddress_Receive + <span style="color: #800000;">"</span><span style="color: #800000;">数据: </span><span style="color: #800000;">"</span>+requestInfo.Key +<span style="color: #800000;">"</span> <span style="color: #800000;">"</span>+<span style="color: #000000;"> requestInfo.Body);
+</span><span style="color: #008080;">107</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">108</span> 
+<span style="color: #008080;">109</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">110</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 关闭连接
+</span><span style="color: #008080;">111</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">112</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="session"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;">113</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="value"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;">114</span>         <span style="color: #0000ff;">void</span><span style="color: #000000;"> appServer_SessionClosed(AppSession session, SocketBase.CloseReason value)
+</span><span style="color: #008080;">115</span> <span style="color: #000000;">        {   
+</span><span style="color: #008080;">116</span>             ipAddress_Close =<span style="color: #000000;"> session.RemoteEndPoint.ToString();
+</span><span style="color: #008080;">117</span> <span style="color: #000000;">            ComboboxHandle(ipAddress_Close, OperateType.Remove);
+</span><span style="color: #008080;">118</span> <span style="color: #000000;">            sessionList.Remove(ipAddress_Close);
+</span><span style="color: #008080;">119</span>             SetMessage(ipAddress_Close + <span style="color: #800000;">"</span><span style="color: #800000;">已关闭连接!</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">120</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">121</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">122</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 发送数据
+</span><span style="color: #008080;">123</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">124</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="sender"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;">125</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="e"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;">126</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> btn_send_Click(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)
+</span><span style="color: #008080;">127</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">128</span>             <span style="color: #008000;">//</span><span style="color: #008000;">从客户端列获取想要发送数据的客户端的ip和端口号,然后从sessionList中获取对应session然后调用send()发送数据</span>
+<span style="color: #008080;">129</span>             <span style="color: #0000ff;">if</span> (cmb_socketlist.Items.Count != <span style="color: #800080;">0</span><span style="color: #000000;">)
+</span><span style="color: #008080;">130</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">131</span>                 <span style="color: #0000ff;">if</span> (cmb_socketlist.SelectedItem == <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+</span><span style="color: #008080;">132</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">133</span>                     MessageBox.Show(<span style="color: #800000;">"</span><span style="color: #800000;">请选择一个客户端发送数据!</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">134</span>                     <span style="color: #0000ff;">return</span><span style="color: #000000;">;
+</span><span style="color: #008080;">135</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">136</span>                 <span style="color: #0000ff;">else</span>
+<span style="color: #008080;">137</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">138</span> <span style="color: #000000;">                    sessionList[cmb_socketlist.SelectedItem.ToString()].Send(txt_send.Text);
+</span><span style="color: #008080;">139</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">140</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">141</span>             <span style="color: #0000ff;">else</span>
+<span style="color: #008080;">142</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">143</span>                 SetMessage(<span style="color: #800000;">"</span><span style="color: #800000;">当前没有正在连接的客户端!</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">144</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">145</span> <span style="color: #000000;">            txt_send.Clear();
+</span><span style="color: #008080;">146</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">147</span> 
+<span style="color: #008080;">148</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">149</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 添加信息
+</span><span style="color: #008080;">150</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">151</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="str"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;">152</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> SetMessage(<span style="color: #0000ff;">string</span><span style="color: #000000;"> str)
+</span><span style="color: #008080;">153</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">154</span>             richTextBox1.Invoke(<span style="color: #0000ff;">new</span> Action(() =&gt; { richTextBox1.AppendText(str + <span style="color: #800000;">"</span><span style="color: #800000;">\r\n</span><span style="color: #800000;">"</span><span style="color: #000000;">); }));
+</span><span style="color: #008080;">155</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">156</span> 
+<span style="color: #008080;">157</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">158</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> combobox操作
+</span><span style="color: #008080;">159</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">160</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="ipAddress"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;">161</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="operateType"&gt;</span><span style="color: #008000;">add 添加项/remove 移除项</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;">162</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> ComboboxHandle(<span style="color: #0000ff;">string</span><span style="color: #000000;"> ipAddress, OperateType operateType)
+</span><span style="color: #008080;">163</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">164</span>             <span style="color: #0000ff;">if</span> (operateType ==<span style="color: #000000;"> OperateType.Add)
+</span><span style="color: #008080;">165</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">166</span>                 cmb_socketlist.Invoke(<span style="color: #0000ff;">new</span> Action(() =&gt;<span style="color: #000000;"> { cmb_socketlist.Items.Add(ipAddress); }));
+</span><span style="color: #008080;">167</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">168</span>             <span style="color: #0000ff;">if</span> (operateType ==<span style="color: #000000;"> OperateType.Remove)
+</span><span style="color: #008080;">169</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">170</span>                 cmb_socketlist.Invoke(<span style="color: #0000ff;">new</span> Action(() =&gt;<span style="color: #000000;"> { cmb_socketlist.Items.Remove(ipAddress); }));
+</span><span style="color: #008080;">171</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">172</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">173</span>         
+<span style="color: #008080;">174</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">175</span> }</pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>先挂<span style="color: #ff6600;"><span style="color: #000000;">上</span><a title="SuperSocket 1.6 中文文档" href="http://docs.supersocket.net/v1-6/zh-CN" target="_blank"><span style="color: #ff6600;">官方说明文档 http://docs.supersocket.net/v1-6/zh-CN</span></a></span></p>
+<p><span style="color: #000000;">这里说明几点:</span></p>
+<p><span style="color: #000000;">　　(1)这里appServer_NewRequestReceived(AppSession&nbsp;session,&nbsp;StringRequestInfo&nbsp;requestInfo)方法中的<span style="color: #000000;">StringRequestInfo <br /></span>是包含请求信息的,</span></p>
+<p><span style="color: #000000;"><span style="color: #0000ff;">　　requestInfo.Key</span>&nbsp;是请求的命令行用空格分隔开的第一部分 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></p>
+<p><span style="color: #000000;"><span style="color: #0000ff;">　　requestInfo.Parameters</span>&nbsp;是用空格分隔开的其余部分,用空格分割开的字符串数组 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <br /></span></p>
+<p><span style="color: #000000;"><span style="color: #0000ff;">　　requestInfo.Body</span>&nbsp;是出了请求头之外的所有内容,是一个字符串</span></p>
+<p><span style="color: #000000;">　　(2)这里<span style="color: #000000;">requestInfo</span>是客户端发送过来 严格按照 请求头 请求参数 请求参数 请求参数 \r\n 的格式发送, 空格隔开的第一部分是请求头,后边用空格分割后组成的数据就是请求参数</span></p>
+<p><span style="color: #000000;">而且必须是以回车换行结尾 SuperSocket才能正确接收;<br /></span></p>
+<p><span style="color: #000000;">　　(3)这里请求头和请求参数用什么分割是可以自定义;我们可以自定义AppServer类,继承APPServer类,然后使用下面的代码扩展命令行协议</span></p>
+<p><span style="color: #000000;">　　比如用":"分割请求头和请求参数,用","分隔请求参数.</span></p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('d7cdb284-6f9c-4e2d-b6a2-5c8b9d756895')"><img id="code_img_closed_d7cdb284-6f9c-4e2d-b6a2-5c8b9d756895" class="code_img_closed" src="./images/C#SuperSocket服务器的简易实现2.png" alt="" /><img id="code_img_opened_d7cdb284-6f9c-4e2d-b6a2-5c8b9d756895" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('d7cdb284-6f9c-4e2d-b6a2-5c8b9d756895',event)" src="./images/C#SuperSocket服务器的简易实现3.png" alt="" />
+<div id="cnblogs_code_open_d7cdb284-6f9c-4e2d-b6a2-5c8b9d756895" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> YourServer : AppServer&lt;YourSession&gt;
+<span style="color: #008080;">2</span> <span style="color: #000000;">{
+</span><span style="color: #008080;">3</span>     <span style="color: #0000ff;">public</span><span style="color: #000000;"> YourServer()
+</span><span style="color: #008080;">4</span>         : <span style="color: #0000ff;">base</span>(<span style="color: #0000ff;">new</span> CommandLineReceiveFilterFactory(Encoding.Default, <span style="color: #0000ff;">new</span> BasicRequestInfoParser(<span style="color: #800000;">"</span><span style="color: #800000;">:</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">,</span><span style="color: #800000;">"</span><span style="color: #000000;">)))
+</span><span style="color: #008080;">5</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;">6</span> 
+<span style="color: #008080;">7</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">8</span> }</pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>接下来我们开始测试,还是默认使用3333端口,开启监听,我们依旧是使用SocketTool工具创建三个客户端,一起访问服务器</p>
+<p>服务器:</p>
+<p><img src="./images/C#SuperSocket服务器的简易实现6.png" alt="" /></p>
+<p>客户端</p>
+<p><img src="./images/C#SuperSocket服务器的简易实现7.png" alt="" /></p>
+<p>接下来三个客户端分别以"9100"为请求头,test为请求体给服务器发送数据,<span style="color: #ff0000;">记住客户端发送数据一定以回车换行为结尾</span></p>
+<p>客户端:</p>
+<p><img src="./images/C#SuperSocket服务器的简易实现8.png" alt="" /></p>
+<p>服务器:</p>
+<p><img src="./images/C#SuperSocket服务器的简易实现9.png" alt="" /></p>
+<p>接下里测试服务器给客户端,这里以服务器给端口为1083的客户端发送数据"aaaa"</p>
+<p>从客户端列选择端口号为1083的客户端,在textbox输入aaaa 发送数据</p>
+<p>服务器</p>
+<p><img src="./images/C#SuperSocket服务器的简易实现10.png" alt="" /></p>
+<p>客户端</p>
+<p><img src="./images/C#SuperSocket服务器的简易实现11.png" alt="" /></p>
+<p>接下里客户端关闭连接</p>
+<p>服务器</p>
+<p><img src="./images/C#SuperSocket服务器的简易实现12.png" alt="" /></p>
+<p>到此,SuperSocket实现的服务器测试完美收官,其实SuperSocket的功能远不止于此,我也只是刚开始使用</p>
+<p>待后续研究官方文档后什么新的发现在更新,告辞!</p>
+<p>&nbsp;</p>
+<p>感谢客观阅读,拜谢(抱拳~)</p>
+<p>&nbsp;</p>
+<p>两篇文章的源码</p>
+<p>本来想上传GitHub的,毕竟这样显得专业一点,奈何初来乍到的,实在操作不了(留下了不懂英文的泪水),还是放云盘吧!</p>
+<p>链接：<a title="Socket源码" href="https://pan.baidu.com/s/1zjCvkP2Ne9U3KR8vyBKhFw" target="_blank">https://pan.baidu.com/s/1zjCvkP2Ne9U3KR8vyBKhFw</a> <br />提取码：gee7 <br /><br /></p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

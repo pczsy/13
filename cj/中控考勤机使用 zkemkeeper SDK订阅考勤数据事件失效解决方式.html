@@ -1,0 +1,62 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修中控考勤机使用 zkemkeeper SDK订阅考勤数据事件失效解决方式' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>中控考勤机使用 zkemkeeper SDK订阅考勤数据事件失效解决方式</center></div><div class='banquan'>原文出处:本文由博客园博主蓝曈魅提供。<br/>
+原文连接:https://www.cnblogs.com/magicbowie/p/11585591.html</div><br>
+    <p>&nbsp;</p>
+<h2>问题</h2>
+<p><span style="font-size: 16px;">　　前同事编写的对中控考勤机数据集成项目当中，打卡数据不能实时进行上传到平台当中，一直靠定时全量上传来同步数据。</span></p>
+<p><span style="font-size: 16px;">　　阅读代码后，发现代码中有实时上传数据的逻辑，但是运行一段时间后，中控zkemkeeper SDK中的事件失效，导致员工打卡数据没有实时上传。</span></p>
+<h2>原因</h2>
+<p>　　<span style="font-size: 16px;">查看中控SDK Demo中的示例代码，发现实现逻辑是一样的。唯一不同的是demo使用的是winform项目编写，打卡机同步项目是用windows服务项目编写的。</span></p>
+<p><span style="font-size: 16px;">　　发现中控考勤机&nbsp;zkemkeeper SDK是COM组件封装，这和winform窗体控件是一样的，基于消息循环机制。例如：winfrom项目当中 main函数都这样启动主窗体&nbsp;Application.Run(new form1());&nbsp;</span></p>
+<p><img style="display: block; margin-left: auto; margin-right: auto;" src="./images/中控考勤机使用 zkemkeeper SDK订阅考勤数据事件失效解决方式0.png" alt="" /></p>
+<p>　　<span style="font-size: 16px;">也就是说当你实现sdk类的时候，不在线程中进行消息循环，就有可能导致事件失效。</span></p>
+<h2>解决方式</h2>
+<p>　　<span style="font-size: 16px;">定位了可能导致问题的原因，我对考勤机数据获取类进行如下改动：</span></p>
+<p style="text-align: left;">&nbsp;</p>
+<p style="text-align: left;"><span style="font-size: 16px;">　　1. 为了简单将连接连接打卡机设备和触发打卡的方法直接移动到一个form当中去</span></p>
+<div class="cnblogs_code">
+<pre><code>FrmEquipment frmEquipment = <span style="color: #0000ff;">new</span> FrmEquipment();//form窗体中实现打卡机数据触发事件逻辑</pre>
+</div>
+<p style="text-align: left;">　　<span style="font-size: 16px;">2. 在启动打卡机连接的线程中声明为 STAThread</span></p>
+<div class="cnblogs_code">
+<pre><code>Thread equipmentThread = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Thread(StartEquipmentForm);
+equipmentThread.IsBackground </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+equipmentThread.SetApartmentState(ApartmentState.STA);
+equipmentThread.Start();<br /><br /></span></pre>
+<p>&nbsp; /// &lt;summary&gt;<br />&nbsp; /// 启动设备连接from<br />&nbsp; /// &lt;/summary&gt;<br />&nbsp; [STAThread]<br />&nbsp; private void StartEquipmentForm()<br />&nbsp; {<br />&nbsp; 　　Application.Run(frmEquipment);</p>
+<p>&nbsp; }</p>
+<p>&nbsp;</p>
+</div>
+<p style="text-align: left;">　　<span style="font-size: 16px;">3. 关闭数据集成服务时 跨线程 使用 form.Invoke 通知窗体关闭连接</span></p>
+<p>&nbsp;</p>
+<div class="cnblogs_code">
+<pre><code>frmEquipment.Invoke(<span style="color: #0000ff;">new</span> Action(() =&gt;<span style="color: #000000;">
+{
+     frmEquipment.Close();
+}));</span></pre>
+</div>
+<p>　　</p>
+<p>　　<span style="font-size: 18px;">经过几天测试基本运行稳定，基本确定打卡机事件触发失效是由于原服务，没有对COM组件运行于单线程【STA】单元消息循环造成的。</span></p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

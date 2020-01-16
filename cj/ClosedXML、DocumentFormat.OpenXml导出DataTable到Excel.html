@@ -1,0 +1,146 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修ClosedXML、DocumentFormat.OpenXml导出DataTable到Excel' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>ClosedXML、DocumentFormat.OpenXml导出DataTable到Excel</center></div><div class='banquan'>原文出处:本文由博客园博主淋风淼淼提供。<br/>
+原文连接:https://www.cnblogs.com/miaolin/p/12107697.html</div><br>
+    <p>在很多系统中都用到导出，使用过多种导出方式，觉得ClosedXML插件的导出简单又方便。</p>
+<p>并且ClosedXML、DocumentFormat.OpenXml都是<span style="color: #008000;">MIT</span>开源。</p>
+<p>首先通过 Nuget 安装 ClosedXML 插件，同时会自动安装 DocumentFormat.OpenXml 插件。</p>
+<p>以下就是导出相关的代码：</p>
+<p>1、MVC控制器中的导出</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> MVC 控制器中</span>
+<span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #808080;">///</span><span style="color: #008000;"> 导出 （无论是否需要返回值，都有 Response）
+</span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> Export1() <span style="color: #008000;">//</span><span style="color: #008000;"> 传入搜索条件</span>
+<span style="color: #000000;">{
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 1、根据条件查询到想要的数据</span>
+    DataTable data = <span style="color: #0000ff;">new</span><span style="color: #000000;"> DataTable();
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 2、设置表名(对应sheet名)、列名(对应列名)</span>
+    data.TableName = <span style="color: #800000;">"</span><span style="color: #800000;">XX统计</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 3、列宽设置（需要慢慢设置）</span>
+    <span style="color: #0000ff;">int</span>[] colsWidth = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">int</span>[] { <span style="color: #800080;">160</span>, <span style="color: #800080;">200</span>, <span style="color: #800080;">300</span>, <span style="color: #800080;">160</span><span style="color: #000000;"> };
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 4、生成导出文件</span>
+    <span style="color: #0000ff;">byte</span>[] filedata =<span style="color: #000000;"> ExportHelper.ExportExcel(data);
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 5、输出文件流</span>
+    HttpContext.Output(filedata, <span style="color: #800000;">"</span><span style="color: #800000;">XX统计_导出</span><span style="color: #800000;">"</span> + DateTime.Today.ShowDate() + <span style="color: #800000;">"</span><span style="color: #800000;">.xlsx</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+}</span></pre>
+</div>
+<p>2、生成导出文件</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">using</span><span style="color: #000000;"> ClosedXML.Excel;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Data;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.IO;
+
+</span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #808080;">///</span><span style="color: #008000;"> 导出Excel文件
+</span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="data"&gt;</span><span style="color: #008000;">导出的数据</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="colsWidth"&gt;</span><span style="color: #008000;">列宽</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+<span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">byte</span>[] ExportExcel(DataTable data, <span style="color: #0000ff;">int</span>[] colsWidth = <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+{
+    </span><span style="color: #0000ff;">using</span> (XLWorkbook workbook = <span style="color: #0000ff;">new</span><span style="color: #000000;"> XLWorkbook())
+    {
+        IXLWorksheet worksheet </span>=<span style="color: #000000;"> workbook.AddWorksheet(data.TableName);
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 处理列</span>
+        <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; data.Columns.Count; i++<span style="color: #000000;">)
+        {
+            worksheet.Cell(</span><span style="color: #800080;">1</span>, i + <span style="color: #800080;">1</span>).Value =<span style="color: #000000;"> data.Columns[i].ColumnName;
+            worksheet.Cell(</span><span style="color: #800080;">1</span>, i + <span style="color: #800080;">1</span>).Style.Font.Bold = <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+        }
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 处理列宽</span>
+        <span style="color: #0000ff;">if</span> (colsWidth != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+        {
+            </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> j = <span style="color: #800080;">1</span>; j &lt;= colsWidth.Length; j++<span style="color: #000000;">)
+            {
+                worksheet.Columns(j, j).Width </span>= colsWidth[j - <span style="color: #800080;">1</span><span style="color: #000000;">];
+            }
+        }
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 处理数据</span>
+        <span style="color: #0000ff;">int</span> r = <span style="color: #800080;">2</span>;<span style="color: #008000;">//</span><span style="color: #008000;"> 第二行开始</span>
+        <span style="color: #0000ff;">foreach</span> (DataRow dr <span style="color: #0000ff;">in</span><span style="color: #000000;"> data.Rows)
+        {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> 第一列开始</span>
+            <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> c = <span style="color: #800080;">1</span>; c &lt;= data.Columns.Count; c++<span style="color: #000000;">)
+            {
+                worksheet.Cell(r, c).Value </span>=<span style="color: #000000;"> data.Rows[r][c].ToString();
+            }
+            r</span>++<span style="color: #000000;">;
+        }
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 缓存到内存流，然后返回</span>
+        <span style="color: #0000ff;">using</span> (MemoryStream stream = <span style="color: #0000ff;">new</span><span style="color: #000000;"> MemoryStream())
+        {
+            workbook.SaveAs(stream);
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> stream.ToArray();
+        }
+    }
+}</span></pre>
+</div>
+<p>3、输出文件流</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Text;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Text.RegularExpressions;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Web;
+
+</span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #808080;">///</span><span style="color: #008000;"> 输出文件流
+</span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="httpContext"&gt;</span><span style="color: #008000;">Http上下文</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="filedata"&gt;</span><span style="color: #008000;">文件数据</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="fileName"&gt;</span><span style="color: #008000;">文件名(要后缀名)</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Output(<span style="color: #0000ff;">this</span> HttpContextBase httpContext, <span style="color: #0000ff;">byte</span>[] filedata, <span style="color: #0000ff;">string</span><span style="color: #000000;"> fileName)
+{
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">文件名称效验 文件名不能包含\/:*?&lt;&gt;| 其中\需要两次转义</span>
+    <span style="color: #0000ff;">if</span> (Regex.IsMatch(fileName, <span style="color: #800000;">@"</span><span style="color: #800000;">[\\/:*?&lt;&gt;|]</span><span style="color: #800000;">"</span><span style="color: #000000;">))
+    {
+        fileName </span>= Regex.Replace(fileName, <span style="color: #800000;">@"</span><span style="color: #800000;">[\\/:*?&lt;&gt;|]</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">_</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+    }
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">判断是否为火狐浏览器（下载时，有些浏览器中文名称乱码）</span>
+    <span style="color: #0000ff;">if</span> (httpContext.Request.Browser.Browser != <span style="color: #800000;">"</span><span style="color: #800000;">Firefox</span><span style="color: #800000;">"</span><span style="color: #000000;">)
+    {
+        fileName </span>=<span style="color: #000000;"> HttpUtility.UrlEncode(fileName, Encoding.UTF8);
+    }
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 没有定义类型，用二进制流类型的MIME</span>
+    <span style="color: #0000ff;">string</span> MIME = <span style="color: #800000;">"</span><span style="color: #800000;">application/octet-stream</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+    httpContext.Response.Clear();
+    httpContext.Response.Buffer </span>= <span style="color: #0000ff;">true</span>; <span style="color: #008000;">//</span><span style="color: #008000;">该值指示是否缓冲输出，并在完成处理整个响应之后将其发送</span>
+    httpContext.Response.ContentType =<span style="color: #000000;"> MIME;
+    httpContext.Response.ContentEncoding </span>=<span style="color: #000000;"> Encoding.UTF8;
+    httpContext.Response.Charset </span>=<span style="color: #000000;"> Encoding.UTF8.HeaderName;
+    httpContext.Response.AddHeader(</span><span style="color: #800000;">"</span><span style="color: #800000;">Content-Disposition</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">attachment;filename=</span><span style="color: #800000;">"</span> +<span style="color: #000000;"> fileName);
+    httpContext.Response.AddHeader(</span><span style="color: #800000;">"</span><span style="color: #800000;">Accept-Language</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">zh-cn</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+    httpContext.Response.AddHeader(</span><span style="color: #800000;">"</span><span style="color: #800000;">Content-Length</span><span style="color: #800000;">"</span><span style="color: #000000;">, filedata.LongLength.ToString());
+    httpContext.Response.BinaryWrite(filedata);
+    httpContext.Response.Flush();
+    httpContext.Response.End();
+}</span></pre>
+</div>
+<p>通过ClosedXML导出操作方便。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

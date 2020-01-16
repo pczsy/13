@@ -1,0 +1,545 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修中控考勤机接口开发' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>中控考勤机接口开发</center></div><div class='banquan'>原文出处:本文由博客园博主JICG提供。<br/>
+原文连接:https://www.cnblogs.com/JICG/p/10837575.html</div><br>
+    <p><span style="color: #999999;">本文参考手册：《TFT 系列脱机通讯开发包<em id="__mceDel">开发手册》</em></span></p>
+<p><span style="color: #999999;"><em>主要内容：</em></span></p>
+<p><span style="color: #999999;"><em>1、定时同步考勤记录到数据库</em></span></p>
+<p><span style="color: #999999;"><em>2、用户信息、指纹操作</em></span></p>
+<p><span style="color: #999999;"><em>3、考勤记录批量操作</em></span></p>
+<p>&nbsp;</p>
+<p><span style="font-size: 16px;"><strong>正文</strong></span></p>
+<p><span style="font-size: 15px;"><strong>1、<strong>定时同步</strong>考勤记录</strong></span></p>
+<p>1-1、定义全局变量</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('7c5d49d9-1af9-4139-806c-f93d01c8fe73')"><img id="code_img_closed_7c5d49d9-1af9-4139-806c-f93d01c8fe73" class="code_img_closed" src="./images/中控考勤机接口开发0.png" alt="" /><img id="code_img_opened_7c5d49d9-1af9-4139-806c-f93d01c8fe73" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('7c5d49d9-1af9-4139-806c-f93d01c8fe73',event)" src="./images/中控考勤机接口开发1.png" alt="" />
+<div id="cnblogs_code_open_7c5d49d9-1af9-4139-806c-f93d01c8fe73" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;"> 1</span>         <span style="color: #0000ff;">#region</span> 窗体变量
+<span style="color: #008080;"> 2</span>         <span style="color: #0000ff;">string</span> USERID = <span style="color: #800000;">""</span>;<span style="color: #008000;">//</span><span style="color: #008000;">同步到数据库的参数</span>
+<span style="color: #008080;"> 3</span>         <span style="color: #0000ff;">string</span> CHARGE_TIME = <span style="color: #800000;">""</span>;<span style="color: #008000;">//</span><span style="color: #008000;">同步到数据库的参数</span>
+<span style="color: #008080;"> 4</span>         <span style="color: #0000ff;">string</span> VERIFYMODE = <span style="color: #800000;">""</span>;<span style="color: #008000;">//</span><span style="color: #008000;">同步到数据库的参数</span>
+<span style="color: #008080;"> 5</span>         <span style="color: #0000ff;">string</span> WORKCODE = <span style="color: #800000;">""</span>;<span style="color: #008000;">//</span><span style="color: #008000;">同步到数据库的参数</span>
+<span style="color: #008080;"> 6</span>         <span style="color: #0000ff;">string</span> PASSWORD = <span style="color: #800000;">""</span>;<span style="color: #008000;">//</span><span style="color: #008000;">同步到数据库的参数</span>
+<span style="color: #008080;"> 7</span>         <span style="color: #0000ff;">string</span> PRIVILEGE = <span style="color: #800000;">""</span>;<span style="color: #008000;">//</span><span style="color: #008000;">同步到数据库的参数</span>
+<span style="color: #008080;"> 8</span>         <span style="color: #0000ff;">string</span> ENABLE = <span style="color: #800000;">""</span>;<span style="color: #008000;">//</span><span style="color: #008000;">同步到数据库的参数</span>
+<span style="color: #008080;"> 9</span>         System.Timers.Timer atimer = <span style="color: #0000ff;">new</span> System.Timers.Timer(); <span style="color: #008000;">//</span><span style="color: #008000;">定时任务</span>
+<span style="color: #008080;">10</span>         <span style="color: #0000ff;">#endregion</span>    
+<span style="color: #008080;">11</span> 
+<span style="color: #008080;">12</span>         <span style="color: #0000ff;">#region</span> 考勤机变量
+<span style="color: #008080;">13</span>         <span style="color: #0000ff;">public</span> CZKEMClass axCZKEM1 = <span style="color: #0000ff;">new</span><span style="color: #000000;"> CZKEMClass();
+</span><span style="color: #008080;">14</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">bool</span> bIsConnected = <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+</span><span style="color: #008080;">15</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">int</span> iMachineNumber = <span style="color: #800080;">1</span><span style="color: #000000;">;
+</span><span style="color: #008080;">16</span> 
+<span style="color: #008080;">17</span>         <span style="color: #0000ff;">string</span> sdwEnrollNumber = <span style="color: #800000;">""</span>;<span style="color: #008000;">//</span><span style="color: #008000;">用户ID</span>
+<span style="color: #008080;">18</span>         <span style="color: #0000ff;">string</span> sName = <span style="color: #800000;">""</span>;<span style="color: #008000;">//</span><span style="color: #008000;">姓名</span>
+<span style="color: #008080;">19</span>         <span style="color: #0000ff;">string</span> sPassword = <span style="color: #800000;">""</span>;<span style="color: #008000;">//</span><span style="color: #008000;">密码</span>
+<span style="color: #008080;">20</span>         <span style="color: #0000ff;">int</span> iPrivilege = <span style="color: #800080;">0</span><span style="color: #000000;">;
+</span><span style="color: #008080;">21</span>         <span style="color: #0000ff;">bool</span> bEnabled = <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+</span><span style="color: #008080;">22</span>         <span style="color: #0000ff;">string</span> sCardnumber = <span style="color: #800000;">""</span>;<span style="color: #008000;">//</span><span style="color: #008000;">卡号</span>
+<span style="color: #008080;">23</span>         <span style="color: #0000ff;">int</span> dwWorkCode = <span style="color: #800080;">0</span><span style="color: #000000;">;
+</span><span style="color: #008080;">24</span>         <span style="color: #0000ff;">int</span><span style="color: #000000;"> dwVerifyMode;
+</span><span style="color: #008080;">25</span>         <span style="color: #0000ff;">int</span><span style="color: #000000;"> dwInOutMode;
+</span><span style="color: #008080;">26</span>         <span style="color: #0000ff;">int</span> dwYear;<span style="color: #008000;">//</span><span style="color: #008000;">刷卡时间</span>
+<span style="color: #008080;">27</span>         <span style="color: #0000ff;">int</span><span style="color: #000000;"> dwMonth;
+</span><span style="color: #008080;">28</span>         <span style="color: #0000ff;">int</span><span style="color: #000000;"> dwDay;
+</span><span style="color: #008080;">29</span>         <span style="color: #0000ff;">int</span><span style="color: #000000;"> dwHour;
+</span><span style="color: #008080;">30</span>         <span style="color: #0000ff;">int</span><span style="color: #000000;"> dwMinute;
+</span><span style="color: #008080;">31</span>         <span style="color: #0000ff;">int</span><span style="color: #000000;"> dwSecond;
+</span><span style="color: #008080;">32</span>         <span style="color: #0000ff;">string</span> verifyMode = <span style="color: #800000;">""</span><span style="color: #000000;">;
+</span><span style="color: #008080;">33</span>         <span style="color: #0000ff;">string</span> privilege = <span style="color: #800000;">""</span><span style="color: #000000;">;
+</span><span style="color: #008080;">34</span>         <span style="color: #0000ff;">string</span> enabled = <span style="color: #800000;">""</span><span style="color: #000000;">;
+</span><span style="color: #008080;">35</span>         <span style="color: #0000ff;">#endregion</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>1-2、连接考勤机</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('94cea3da-c6ae-42ad-87f5-c0f8c252af5d')"><img id="code_img_closed_94cea3da-c6ae-42ad-87f5-c0f8c252af5d" class="code_img_closed" src="./images/中控考勤机接口开发0.png" alt="" /><img id="code_img_opened_94cea3da-c6ae-42ad-87f5-c0f8c252af5d" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('94cea3da-c6ae-42ad-87f5-c0f8c252af5d',event)" src="./images/中控考勤机接口开发1.png" alt="" />
+<div id="cnblogs_code_open_94cea3da-c6ae-42ad-87f5-c0f8c252af5d" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">#region</span> 考勤机功能：连接
+<span style="color: #008080;"> 2</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> btnConnect_Click(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)
+</span><span style="color: #008080;"> 3</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 4</span>             <span style="color: #0000ff;">if</span> (txtIP.Text.Trim() == <span style="color: #800000;">""</span> || txtPort.Text.Trim() == <span style="color: #800000;">""</span>)<span style="color: #008000;">//</span><span style="color: #008000;">考勤机的IP地址与端口</span>
+<span style="color: #008080;"> 5</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 6</span>                 MessageBox.Show(<span style="color: #800000;">"</span><span style="color: #800000;">IP and Port cannot be null</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">Error</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 7</span>                 <span style="color: #0000ff;">return</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 8</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 9</span>             <span style="color: #0000ff;">int</span> idwErrorCode = <span style="color: #800080;">0</span><span style="color: #000000;">;
+</span><span style="color: #008080;">10</span> 
+<span style="color: #008080;">11</span>             Cursor =<span style="color: #000000;"> Cursors.WaitCursor;
+</span><span style="color: #008080;">12</span>             <span style="color: #0000ff;">if</span> (btnConnect.Text == <span style="color: #800000;">"</span><span style="color: #800000;">DisConnect</span><span style="color: #800000;">"</span><span style="color: #000000;">)
+</span><span style="color: #008080;">13</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">14</span> <span style="color: #000000;">                axCZKEM1.Disconnect();
+</span><span style="color: #008080;">15</span>                 bIsConnected = <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+</span><span style="color: #008080;">16</span>                 btnConnect.Text = <span style="color: #800000;">"</span><span style="color: #800000;">Connect</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+</span><span style="color: #008080;">17</span>                 lblState.Text = <span style="color: #800000;">"</span><span style="color: #800000;">Current State:DisConnected</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+</span><span style="color: #008080;">18</span>                 Cursor =<span style="color: #000000;"> Cursors.Default;      
+</span><span style="color: #008080;">19</span>                 <span style="color: #0000ff;">return</span><span style="color: #000000;">;
+</span><span style="color: #008080;">20</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">21</span> 
+<span style="color: #008080;">22</span>             bIsConnected =<span style="color: #000000;"> axCZKEM1.Connect_Net(txtIP.Text, Convert.ToInt32(txtPort.Text));
+</span><span style="color: #008080;">23</span>             <span style="color: #0000ff;">if</span> (bIsConnected == <span style="color: #0000ff;">true</span><span style="color: #000000;">)
+</span><span style="color: #008080;">24</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">25</span>                 btnConnect.Text = <span style="color: #800000;">"</span><span style="color: #800000;">DisConnect</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+</span><span style="color: #008080;">26</span> <span style="color: #000000;">                btnConnect.Refresh();
+</span><span style="color: #008080;">27</span>                 lblState.Text = <span style="color: #800000;">"</span><span style="color: #800000;">Current State:Connected</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+</span><span style="color: #008080;">28</span>                 iMachineNumber = <span style="color: #800080;">1</span>;<span style="color: #008000;">//</span><span style="color: #008000;">In fact,when you are using the tcp/ip communication,this parameter will be ignored,that is any integer will all right.Here we use 1.</span>
+<span style="color: #008080;">29</span>                 axCZKEM1.RegEvent(iMachineNumber, <span style="color: #800080;">65535</span>);<span style="color: #008000;">//</span><span style="color: #008000;">Here you can register the realtime events that you want to be triggered(the parameters 65535 means registering all)</span>
+<span style="color: #008080;">30</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">31</span>             <span style="color: #0000ff;">else</span>
+<span style="color: #008080;">32</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">33</span>                 axCZKEM1.GetLastError(<span style="color: #0000ff;">ref</span><span style="color: #000000;"> idwErrorCode);
+</span><span style="color: #008080;">34</span>                 MessageBox.Show(<span style="color: #800000;">"</span><span style="color: #800000;">Unable to connect the device,ErrorCode=</span><span style="color: #800000;">"</span> + idwErrorCode.ToString(), <span style="color: #800000;">"</span><span style="color: #800000;">Error</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">35</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">36</span>             Cursor =<span style="color: #000000;"> Cursors.Default;
+</span><span style="color: #008080;">37</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">38</span>         <span style="color: #0000ff;">#endregion</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>1-3、配置定时任务</p>
+<p>（这里定时任务用到的是System.Timers.Timer，我在使用过程中遇到一个问题：开启定时任务创建一个线程后调用atimer.Stop()无法关闭，只有关闭整个应用程序才会结束这个线程。如果知道怎么解决的朋友还请告知^ ^~）</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('361c0f1c-cd9e-446c-96ba-8136fe2e24f8')"><img id="code_img_closed_361c0f1c-cd9e-446c-96ba-8136fe2e24f8" class="code_img_closed" src="./images/中控考勤机接口开发0.png" alt="" /><img id="code_img_opened_361c0f1c-cd9e-446c-96ba-8136fe2e24f8" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('361c0f1c-cd9e-446c-96ba-8136fe2e24f8',event)" src="./images/中控考勤机接口开发1.png" alt="" />
+<div id="cnblogs_code_open_361c0f1c-cd9e-446c-96ba-8136fe2e24f8" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;"> 1</span>         <span style="color: #0000ff;">#region</span> 定时任务配置
+<span style="color: #008080;"> 2</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> Timing_Task()
+</span><span style="color: #008080;"> 3</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 4</span>             atimer.Enabled = <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 5</span>             atimer.Interval = <span style="color: #800080;">60000</span>; <span style="color: #008000;">//</span><span style="color: #008000;">执行间隔时间,单位为毫秒; 这里实际间隔为1分钟  </span>
+<span style="color: #008080;"> 6</span>             atimer.Elapsed += <span style="color: #0000ff;">new</span><span style="color: #000000;"> System.Timers.ElapsedEventHandler(getLogData);
+</span><span style="color: #008080;"> 7</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 8</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> Timing_Task_Star()
+</span><span style="color: #008080;"> 9</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">10</span>             atimer.Enabled = <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+</span><span style="color: #008080;">11</span> <span style="color: #000000;">            atimer.Start();
+</span><span style="color: #008080;">12</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">13</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> Timing_Task_Close()
+</span><span style="color: #008080;">14</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">15</span>             atimer.Elapsed -= <span style="color: #0000ff;">new</span><span style="color: #000000;"> System.Timers.ElapsedEventHandler(getLogData);
+</span><span style="color: #008080;">16</span> <span style="color: #000000;">            atimer.Stop();
+</span><span style="color: #008080;">17</span> <span style="color: #000000;">            atimer.Dispose();
+</span><span style="color: #008080;">18</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">19</span>         <span style="color: #0000ff;">#endregion</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>1-4、同步程序</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('91cde061-4561-4147-a3ad-82752949613f')"><img id="code_img_closed_91cde061-4561-4147-a3ad-82752949613f" class="code_img_closed" src="./images/中控考勤机接口开发0.png" alt="" /><img id="code_img_opened_91cde061-4561-4147-a3ad-82752949613f" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('91cde061-4561-4147-a3ad-82752949613f',event)" src="./images/中控考勤机接口开发1.png" alt="" />
+<div id="cnblogs_code_open_91cde061-4561-4147-a3ad-82752949613f" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;"> 1</span>         <span style="color: #0000ff;">#region</span> 执行定时任务(同步数据到数据库)
+<span style="color: #008080;"> 2</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> getLogData(<span style="color: #0000ff;">object</span><span style="color: #000000;"> source, ElapsedEventArgs e)
+</span><span style="color: #008080;"> 3</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 4</span>             <span style="color: #0000ff;">if</span> (bIsConnected == <span style="color: #0000ff;">false</span><span style="color: #000000;">)
+</span><span style="color: #008080;"> 5</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 6</span>                 MessageBox.Show(<span style="color: #800000;">"</span><span style="color: #800000;">Please connect the device first!</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">Error</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 7</span>                 <span style="color: #0000ff;">return</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 8</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 9</span>             Cursor =<span style="color: #000000;"> Cursors.WaitCursor;
+</span><span style="color: #008080;">10</span>             <span style="color: #008000;">//</span><span style="color: #008000;">先禁用机器</span>
+<span style="color: #008080;">11</span>             axCZKEM1.EnableDevice(iMachineNumber, <span style="color: #0000ff;">false</span><span style="color: #000000;">);
+</span><span style="color: #008080;">12</span>             <span style="color: #008000;">//</span><span style="color: #008000;">获取所有用户的考勤记录到缓存区</span>
+<span style="color: #008080;">13</span> <span style="color: #000000;">            axCZKEM1.ReadAllGLogData(iMachineNumber);
+</span><span style="color: #008080;">14</span>             <span style="color: #0000ff;">while</span> (axCZKEM1.SSR_GetGeneralLogData(iMachineNumber, <span style="color: #0000ff;">out</span> sdwEnrollNumber, <span style="color: #0000ff;">out</span> dwVerifyMode, <span style="color: #0000ff;">out</span> dwInOutMode, <span style="color: #0000ff;">out</span> dwYear, <span style="color: #0000ff;">out</span> dwMonth, <span style="color: #0000ff;">out</span> dwDay, <span style="color: #0000ff;">out</span> dwHour, <span style="color: #0000ff;">out</span> dwMinute, <span style="color: #0000ff;">out</span> dwSecond, <span style="color: #0000ff;">ref</span> dwWorkCode))<span style="color: #008000;">//</span><span style="color: #008000;">get user information from memory</span>
+<span style="color: #008080;">15</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">16</span>                 <span style="color: #0000ff;">switch</span><span style="color: #000000;"> (dwVerifyMode)
+</span><span style="color: #008080;">17</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">18</span>                     <span style="color: #0000ff;">case</span> <span style="color: #800080;">0</span><span style="color: #000000;">:
+</span><span style="color: #008080;">19</span>                         verifyMode = <span style="color: #800000;">"</span><span style="color: #800000;">密码验证</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+</span><span style="color: #008080;">20</span>                         <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+</span><span style="color: #008080;">21</span>                     <span style="color: #0000ff;">case</span> <span style="color: #800080;">1</span><span style="color: #000000;">:
+</span><span style="color: #008080;">22</span>                         verifyMode = <span style="color: #800000;">"</span><span style="color: #800000;">指纹验证</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+</span><span style="color: #008080;">23</span>                         <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+</span><span style="color: #008080;">24</span>                     <span style="color: #0000ff;">case</span> <span style="color: #800080;">2</span><span style="color: #000000;">:
+</span><span style="color: #008080;">25</span>                         verifyMode = <span style="color: #800000;">"</span><span style="color: #800000;">卡验证</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+</span><span style="color: #008080;">26</span>                         <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+</span><span style="color: #008080;">27</span>                     <span style="color: #0000ff;">default</span><span style="color: #000000;">:
+</span><span style="color: #008080;">28</span>                         verifyMode = <span style="color: #800000;">"</span><span style="color: #800000;">其他验证</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+</span><span style="color: #008080;">29</span>                         <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+</span><span style="color: #008080;">30</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">31</span>                 <span style="color: #008000;">//</span><span style="color: #008000;">循环获取用户信息</span>
+<span style="color: #008080;">32</span>                 axCZKEM1.SSR_GetUserInfo(iMachineNumber, sdwEnrollNumber, <span style="color: #0000ff;">out</span> sName, <span style="color: #0000ff;">out</span> sPassword, <span style="color: #0000ff;">out</span> iPrivilege, <span style="color: #0000ff;">out</span><span style="color: #000000;"> bEnabled);
+</span><span style="color: #008080;">33</span>                 <span style="color: #0000ff;">if</span> (axCZKEM1.GetStrCardNumber(<span style="color: #0000ff;">out</span> sCardnumber))<span style="color: #008000;">//</span><span style="color: #008000;">get the card number from the memory</span>
+<span style="color: #008080;">34</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">35</span>                     <span style="color: #0000ff;">switch</span><span style="color: #000000;"> (iPrivilege)
+</span><span style="color: #008080;">36</span> <span style="color: #000000;">                    {
+</span><span style="color: #008080;">37</span>                         <span style="color: #0000ff;">case</span> <span style="color: #800080;">0</span><span style="color: #000000;">:
+</span><span style="color: #008080;">38</span>                             privilege = <span style="color: #800000;">"</span><span style="color: #800000;">普通用户</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+</span><span style="color: #008080;">39</span>                             <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+</span><span style="color: #008080;">40</span>                         <span style="color: #0000ff;">case</span> <span style="color: #800080;">3</span><span style="color: #000000;">:
+</span><span style="color: #008080;">41</span>                             privilege = <span style="color: #800000;">"</span><span style="color: #800000;">管理员</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+</span><span style="color: #008080;">42</span>                             <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+</span><span style="color: #008080;">43</span>                         <span style="color: #0000ff;">default</span><span style="color: #000000;">:
+</span><span style="color: #008080;">44</span>                             privilege = <span style="color: #800000;">"</span><span style="color: #800000;">其他权限</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+</span><span style="color: #008080;">45</span>                             <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+</span><span style="color: #008080;">46</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">47</span>                     <span style="color: #0000ff;">switch</span><span style="color: #000000;"> (bEnabled)
+</span><span style="color: #008080;">48</span> <span style="color: #000000;">                    {
+</span><span style="color: #008080;">49</span>                         <span style="color: #0000ff;">case</span> <span style="color: #0000ff;">true</span><span style="color: #000000;">:
+</span><span style="color: #008080;">50</span>                             enabled = <span style="color: #800000;">"</span><span style="color: #800000;">启用</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+</span><span style="color: #008080;">51</span>                             <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+</span><span style="color: #008080;">52</span>                         <span style="color: #0000ff;">case</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">:
+</span><span style="color: #008080;">53</span>                             enabled = <span style="color: #800000;">"</span><span style="color: #800000;">禁用</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+</span><span style="color: #008080;">54</span>                             <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+</span><span style="color: #008080;">55</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">56</span>                     USERID =<span style="color: #000000;"> sdwEnrollNumber;
+</span><span style="color: #008080;">57</span>                     CHARGE_TIME = dwYear.ToString() + <span style="color: #800000;">"</span><span style="color: #800000;">-</span><span style="color: #800000;">"</span> + dwMonth.ToString() + <span style="color: #800000;">"</span><span style="color: #800000;">-</span><span style="color: #800000;">"</span> + dwDay.ToString() + <span style="color: #800000;">"</span> <span style="color: #800000;">"</span> + dwHour.ToString() + <span style="color: #800000;">"</span><span style="color: #800000;">:</span><span style="color: #800000;">"</span> + dwMinute.ToString() + <span style="color: #800000;">"</span><span style="color: #800000;">:</span><span style="color: #800000;">"</span> +<span style="color: #000000;"> dwSecond.ToString();
+</span><span style="color: #008080;">58</span>                     VERIFYMODE =<span style="color: #000000;"> verifyMode;
+</span><span style="color: #008080;">59</span>                     WORKCODE =<span style="color: #000000;"> dwWorkCode.ToString();
+</span><span style="color: #008080;">60</span>                     <span style="color: #008000;">//</span><span style="color: #008000;">NAME = sName+ "\0";
+</span><span style="color: #008080;">61</span>                     <span style="color: #008000;">//</span><span style="color: #008000;">NAME = NAME.Replace("\0", "");</span>
+<span style="color: #008080;">62</span>                     PASSWORD =<span style="color: #000000;"> sPassword;
+</span><span style="color: #008080;">63</span>                     PRIVILEGE =<span style="color: #000000;"> privilege;
+</span><span style="color: #008080;">64</span>                     ENABLE =<span style="color: #000000;"> enabled;
+</span><span style="color: #008080;">65</span>                     <span style="color: #0000ff;">string</span> ID = dwYear.ToString() + dwMonth.ToString() + dwDay.ToString() + dwHour.ToString() + dwMinute.ToString() +<span style="color: #000000;"> dwSecond.ToString();
+</span><span style="color: #008080;">66</span>                     DateTime now =<span style="color: #000000;"> DateTime.Now;
+</span><span style="color: #008080;">67</span>                     <span style="color: #0000ff;">string</span> thisyear =<span style="color: #000000;"> now.Year.ToString();
+</span><span style="color: #008080;">68</span>                     <span style="color: #0000ff;">string</span> thismonth =<span style="color: #000000;"> now.Month.ToString();
+</span><span style="color: #008080;">69</span>                     <span style="color: #0000ff;">string</span> thisday =<span style="color: #000000;"> now.Day.ToString();
+</span><span style="color: #008080;">70</span>                     <span style="color: #0000ff;">if</span> (dwYear.ToString() == thisyear &amp;&amp; dwMonth.ToString() == thismonth &amp;&amp; dwDay.ToString() ==<span style="color: #000000;"> thisday)
+</span><span style="color: #008080;">71</span> <span style="color: #000000;">                    {
+</span><span style="color: #008080;">72</span>                         <span style="color: #008000;">//</span><span style="color: #008000;">取时间为今天的刷卡记录，若ID不存在则插入
+</span><span style="color: #008080;">73</span>                         <span style="color: #008000;">//</span><span style="color: #008000;">INSERT WHEN NOT EXISTS (SELECT T.ID FROM TABLE T WHERE T.T_ID = '??') THEN INTO TABLE(...) VALUES (...)</span>
+<span style="color: #008080;">74</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">75</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">76</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">77</span>             axCZKEM1.EnableDevice(iMachineNumber, <span style="color: #0000ff;">true</span>);<span style="color: #008000;">//</span><span style="color: #008000;">enable the device</span>
+<span style="color: #008080;">78</span>             Cursor =<span style="color: #000000;"> Cursors.Default;
+</span><span style="color: #008080;">79</span> 
+<span style="color: #008080;">80</span>             checkDing();<span style="color: #008000;">//</span><span style="color: #008000;">检测是否超时</span>
+<span style="color: #008080;">81</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">82</span>         <span style="color: #0000ff;">#endregion</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp;1-5、每天定时清空考勤机刷卡记录</p>
+<p>（防止同步时因数据太多而变卡，调用方法见3-1）</p>
+<p><strong>2、用户信息/指纹</strong></p>
+<p>2-1、获取考勤机内已注册用户到list</p>
+<p>（注意：如果考勤机内没有注册指纹信息，代码里面有查询指纹，那么加载会变得非常慢。要提前注释掉查询指纹的代码！）</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('cd605e97-98f4-44cc-a95a-630e8b09773d')"><img id="code_img_closed_cd605e97-98f4-44cc-a95a-630e8b09773d" class="code_img_closed" src="./images/中控考勤机接口开发0.png" alt="" /><img id="code_img_opened_cd605e97-98f4-44cc-a95a-630e8b09773d" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('cd605e97-98f4-44cc-a95a-630e8b09773d',event)" src="./images/中控考勤机接口开发1.png" alt="" />
+<div id="cnblogs_code_open_cd605e97-98f4-44cc-a95a-630e8b09773d" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;"> 1</span>         <span style="color: #0000ff;">#region</span> 考勤机功能：获取用户
+<span style="color: #008080;"> 2</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> btnGetStrCardNumber_Click(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)
+</span><span style="color: #008080;"> 3</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 4</span>             <span style="color: #0000ff;">if</span> (bIsConnected == <span style="color: #0000ff;">false</span><span style="color: #000000;">)
+</span><span style="color: #008080;"> 5</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 6</span>                 MessageBox.Show(<span style="color: #800000;">"</span><span style="color: #800000;">Please connect the device first!</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">Error</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 7</span>                 <span style="color: #0000ff;">return</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 8</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 9</span> <span style="color: #000000;">            lvCard.Items.Clear();
+</span><span style="color: #008080;">10</span> <span style="color: #000000;">            lvCard.BeginUpdate();
+</span><span style="color: #008080;">11</span>             Cursor =<span style="color: #000000;"> Cursors.WaitCursor;
+</span><span style="color: #008080;">12</span>             <span style="color: #008000;">//</span><span style="color: #008000;">先禁用机器</span>
+<span style="color: #008080;">13</span>             axCZKEM1.EnableDevice(iMachineNumber, <span style="color: #0000ff;">false</span>);<span style="color: #008000;">//</span><span style="color: #008000;">disable the device
+</span><span style="color: #008080;">14</span>             <span style="color: #008000;">//</span><span style="color: #008000;">获取所有用户的记录到缓存区</span>
+<span style="color: #008080;">15</span>             axCZKEM1.ReadAllUserID(iMachineNumber);<span style="color: #008000;">//</span><span style="color: #008000;">获取所有信息到缓存区（提高效率）</span>
+<span style="color: #008080;">16</span>             axCZKEM1.ReadAllTemplate(iMachineNumber);<span style="color: #008000;">//</span><span style="color: #008000;">获取所有指纹信息到缓存区（提高效率）</span>
+<span style="color: #008080;">17</span>             <span style="color: #0000ff;">while</span> (axCZKEM1.SSR_GetAllUserInfo(iMachineNumber, <span style="color: #0000ff;">out</span> sdwEnrollNumber, <span style="color: #0000ff;">out</span> sName, <span style="color: #0000ff;">out</span> sPassword, <span style="color: #0000ff;">out</span> iPrivilege, <span style="color: #0000ff;">out</span> bEnabled))<span style="color: #008000;">//</span><span style="color: #008000;">get user information from memory</span>
+<span style="color: #008080;">18</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">19</span>                 <span style="color: #008000;">//</span><span style="color: #008000;">循环获取用户信息</span>
+<span style="color: #008080;">20</span>                 <span style="color: #0000ff;">if</span> (axCZKEM1.GetStrCardNumber(<span style="color: #0000ff;">out</span> sCardnumber))<span style="color: #008000;">//</span><span style="color: #008000;">get the card number from the memory</span>
+<span style="color: #008080;">21</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">22</span>                     ListViewItem list = <span style="color: #0000ff;">new</span><span style="color: #000000;"> ListViewItem();
+</span><span style="color: #008080;">23</span>                     list.Text =<span style="color: #000000;"> sdwEnrollNumber;
+</span><span style="color: #008080;">24</span> <span style="color: #000000;">                    list.SubItems.Add(sName);
+</span><span style="color: #008080;">25</span> <span style="color: #000000;">                    list.SubItems.Add(sCardnumber);
+</span><span style="color: #008080;">26</span> <span style="color: #000000;">                    list.SubItems.Add(iPrivilege.ToString());
+</span><span style="color: #008080;">27</span> <span style="color: #000000;">                    list.SubItems.Add(sPassword);
+</span><span style="color: #008080;">28</span>                     <span style="color: #0000ff;">if</span> (bEnabled == <span style="color: #0000ff;">true</span><span style="color: #000000;">)
+</span><span style="color: #008080;">29</span> <span style="color: #000000;">                    {
+</span><span style="color: #008080;">30</span>                         list.SubItems.Add(<span style="color: #800000;">"</span><span style="color: #800000;">true</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">31</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">32</span>                     <span style="color: #0000ff;">else</span>
+<span style="color: #008080;">33</span> <span style="color: #000000;">                    {
+</span><span style="color: #008080;">34</span>                         list.SubItems.Add(<span style="color: #800000;">"</span><span style="color: #800000;">false</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">35</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">36</span> 
+<span style="color: #008080;">37</span>                     <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> dwFingerIndex = <span style="color: #800080;">0</span>; dwFingerIndex &lt; <span style="color: #800080;">10</span>; dwFingerIndex++<span style="color: #000000;">)
+</span><span style="color: #008080;">38</span> <span style="color: #000000;">                    {
+</span><span style="color: #008080;">39</span>                         <span style="color: #0000ff;">if</span> (axCZKEM1.SSR_GetUserTmpStr(iMachineNumber, sdwEnrollNumber, dwFingerIndex, <span style="color: #0000ff;">out</span> dwTmpData, <span style="color: #0000ff;">out</span><span style="color: #000000;"> dwTmpLength))
+</span><span style="color: #008080;">40</span> <span style="color: #000000;">                        {
+</span><span style="color: #008080;">41</span> <span style="color: #000000;">                            list.SubItems.Add(dwTmpData);
+</span><span style="color: #008080;">42</span> <span style="color: #000000;">                        }
+</span><span style="color: #008080;">43</span>                         <span style="color: #0000ff;">else</span>
+<span style="color: #008080;">44</span> <span style="color: #000000;">                        {
+</span><span style="color: #008080;">45</span>                             list.SubItems.Add(<span style="color: #800000;">""</span><span style="color: #000000;">);
+</span><span style="color: #008080;">46</span> <span style="color: #000000;">                        }
+</span><span style="color: #008080;">47</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">48</span> 
+<span style="color: #008080;">49</span> <span style="color: #000000;">                    lvCard.Items.Add(list);
+</span><span style="color: #008080;">50</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">51</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">52</span>             
+<span style="color: #008080;">53</span>             axCZKEM1.EnableDevice(iMachineNumber, <span style="color: #0000ff;">true</span>);<span style="color: #008000;">//</span><span style="color: #008000;">enable the device</span>
+<span style="color: #008080;">54</span> <span style="color: #000000;">            lvCard.EndUpdate();
+</span><span style="color: #008080;">55</span>             Cursor =<span style="color: #000000;"> Cursors.Default;
+</span><span style="color: #008080;">56</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">57</span>         <span style="color: #0000ff;">#endregion</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>2-2、注册单个用户到考勤机</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('c631c2dc-583f-48ff-8811-c4b7cb0dfc02')"><img id="code_img_closed_c631c2dc-583f-48ff-8811-c4b7cb0dfc02" class="code_img_closed" src="./images/中控考勤机接口开发0.png" alt="" /><img id="code_img_opened_c631c2dc-583f-48ff-8811-c4b7cb0dfc02" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('c631c2dc-583f-48ff-8811-c4b7cb0dfc02',event)" src="./images/中控考勤机接口开发1.png" alt="" />
+<div id="cnblogs_code_open_c631c2dc-583f-48ff-8811-c4b7cb0dfc02" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;"> 1</span>         <span style="color: #0000ff;">#region</span> 考勤机功能：注册用户
+<span style="color: #008080;"> 2</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> btnSetStrCardNumber_Click(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)
+</span><span style="color: #008080;"> 3</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 4</span>             <span style="color: #0000ff;">if</span> (bIsConnected == <span style="color: #0000ff;">false</span><span style="color: #000000;">)
+</span><span style="color: #008080;"> 5</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 6</span>                 MessageBox.Show(<span style="color: #800000;">"</span><span style="color: #800000;">Please connect the device first!</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">Error</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 7</span>                 <span style="color: #0000ff;">return</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 8</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 9</span>             <span style="color: #008000;">//</span><span style="color: #008000;">下发用户到机器        
+</span><span style="color: #008080;">10</span>             <span style="color: #008000;">//</span><span style="color: #008000;">1、设置卡号
+</span><span style="color: #008080;">11</span>             <span style="color: #008000;">//</span><span style="color: #008000;">string CardNo = System.Convert.ToInt32(txtCardNo.Text, 16).ToString();</span><span style="color: #008000;">//</span><span style="color: #008000;">转换16进制到十进制</span>
+<span style="color: #008080;">12</span> <span style="color: #000000;">            axCZKEM1.SetStrCardNumber(txtCardNo.Text);
+</span><span style="color: #008080;">13</span>             <span style="color: #008000;">//</span><span style="color: #008000;">2、设置用户信息</span>
+<span style="color: #008080;">14</span>             axCZKEM1.SSR_SetUserInfo(iMachineNumber, <span style="color: #800000;">"</span><span style="color: #800000;">用户ID</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">用户姓名</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">密码</span><span style="color: #800000;">"</span>, <span style="color: #800080;">0</span>, <span style="color: #0000ff;">true</span><span style="color: #000000;">);
+</span><span style="color: #008080;">15</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">16</span>         <span style="color: #0000ff;">#endregion</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>2-3、批量注册用户</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('edc2639a-bdf5-403e-b463-76e154366d1a')"><img id="code_img_closed_edc2639a-bdf5-403e-b463-76e154366d1a" class="code_img_closed" src="./images/中控考勤机接口开发0.png" alt="" /><img id="code_img_opened_edc2639a-bdf5-403e-b463-76e154366d1a" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('edc2639a-bdf5-403e-b463-76e154366d1a',event)" src="./images/中控考勤机接口开发1.png" alt="" />
+<div id="cnblogs_code_open_edc2639a-bdf5-403e-b463-76e154366d1a" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;"> 1</span>         <span style="color: #0000ff;">#region</span> 考勤机功能：批量注册用户
+<span style="color: #008080;"> 2</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> btnSetStrCardNumbers_Click(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)
+</span><span style="color: #008080;"> 3</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 4</span>             <span style="color: #0000ff;">if</span> (XCMessageBox.Show(<span style="color: #800000;">"</span><span style="color: #800000;">确定？</span><span style="color: #800000;">"</span>, XCMessageBox.Buttons.OKCancel, XCMessageBox.Icon.Question) ==<span style="color: #000000;"> DialogResult.OK)
+</span><span style="color: #008080;"> 5</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 6</span>                 System.Data.DataTable dt = getEmp();<span style="color: #008000;">//</span><span style="color: #008000;">getEmp()获取数据库中需要注册的用户</span>
+<span style="color: #008080;"> 7</span>                 <span style="color: #0000ff;">string</span>[] useruid = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">string</span><span style="color: #000000;">[dt.Rows.Count];
+</span><span style="color: #008080;"> 8</span>                 <span style="color: #0000ff;">string</span>[] useruname = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">string</span><span style="color: #000000;">[dt.Rows.Count];
+</span><span style="color: #008080;"> 9</span>                 <span style="color: #0000ff;">string</span>[] cardid = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">string</span><span style="color: #000000;">[dt.Rows.Count];
+</span><span style="color: #008080;">10</span>                 <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; dt.Rows.Count; i++<span style="color: #000000;">)
+</span><span style="color: #008080;">11</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">12</span>                     DataRow dr =<span style="color: #000000;"> dt.Rows[i];
+</span><span style="color: #008080;">13</span>                     useruid[i] = Convert.ToString(dr[<span style="color: #800000;">"</span><span style="color: #800000;">T_USERID</span><span style="color: #800000;">"</span><span style="color: #000000;">]);
+</span><span style="color: #008080;">14</span>                     useruname[i] = Convert.ToString(dr[<span style="color: #800000;">"</span><span style="color: #800000;">T_USERNAME</span><span style="color: #800000;">"</span><span style="color: #000000;">]);
+</span><span style="color: #008080;">15</span>                     cardid[i] = Convert.ToString(dr[<span style="color: #800000;">"</span><span style="color: #800000;">CARDID</span><span style="color: #800000;">"</span><span style="color: #000000;">]);
+</span><span style="color: #008080;">16</span>                     <span style="color: #008000;">//</span><span style="color: #008000;">16进制转10进制
+</span><span style="color: #008080;">17</span>                     <span style="color: #008000;">//</span><span style="color: #008000;">string CardNo = System.Convert.ToInt32(cardid[i], 16).ToString();</span>
+<span style="color: #008080;">18</span> <span style="color: #000000;">                    axCZKEM1.SetStrCardNumber(cardid[i]);
+</span><span style="color: #008080;">19</span>                     <span style="color: #008000;">//</span><span style="color: #008000;">2、设置用户信息</span>
+<span style="color: #008080;">20</span>                     <span style="color: #0000ff;">bool</span> a = axCZKEM1.SSR_SetUserInfo(iMachineNumber, useruid[i], useruname[i], useruid[i], <span style="color: #800080;">0</span>, <span style="color: #0000ff;">true</span><span style="color: #000000;">);
+</span><span style="color: #008080;">21</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">22</span> <span style="color: #000000;">            }  
+</span><span style="color: #008080;">23</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">24</span>         <span style="color: #0000ff;">#endregion</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>2-4、删除用户</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('45d6c9a7-996a-4206-84d9-cd17ce5d5737')"><img id="code_img_closed_45d6c9a7-996a-4206-84d9-cd17ce5d5737" class="code_img_closed" src="./images/中控考勤机接口开发0.png" alt="" /><img id="code_img_opened_45d6c9a7-996a-4206-84d9-cd17ce5d5737" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('45d6c9a7-996a-4206-84d9-cd17ce5d5737',event)" src="./images/中控考勤机接口开发1.png" alt="" />
+<div id="cnblogs_code_open_45d6c9a7-996a-4206-84d9-cd17ce5d5737" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;"> 1</span>         <span style="color: #0000ff;">#region</span> 考勤机功能：删除用户
+<span style="color: #008080;"> 2</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> btnDelStrCardNumber_Click(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)
+</span><span style="color: #008080;"> 3</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 4</span>             <span style="color: #0000ff;">if</span> (bIsConnected == <span style="color: #0000ff;">false</span><span style="color: #000000;">)
+</span><span style="color: #008080;"> 5</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 6</span>                 MessageBox.Show(<span style="color: #800000;">"</span><span style="color: #800000;">Please connect the device first!</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">Error</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 7</span>                 <span style="color: #0000ff;">return</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 8</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 9</span>             <span style="color: #0000ff;">if</span> (XCMessageBox.Show(<span style="color: #800000;">"</span><span style="color: #800000;">确定？</span><span style="color: #800000;">"</span>, XCMessageBox.Buttons.OKCancel, XCMessageBox.Icon.Question) ==<span style="color: #000000;"> DialogResult.OK)
+</span><span style="color: #008080;">10</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">11</span>                 axCZKEM1.SSR_DeleteEnrollData(iMachineNumber, <span style="color: #800000;">"</span><span style="color: #800000;">用户ID</span><span style="color: #800000;">"</span>, <span style="color: #800080;">12</span><span style="color: #000000;">);
+</span><span style="color: #008080;">12</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">13</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">14</span>         <span style="color: #0000ff;">#endregion</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>2-5、增删指纹</p>
+<p>（这里有一点要注意：考勤机算法不同的话，增加指纹所调用的方法不同，使用前先查看考勤机算法）</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('69612c81-9607-4d14-8cf5-f87f556a17bd')"><img id="code_img_closed_69612c81-9607-4d14-8cf5-f87f556a17bd" class="code_img_closed" src="./images/中控考勤机接口开发0.png" alt="" /><img id="code_img_opened_69612c81-9607-4d14-8cf5-f87f556a17bd" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('69612c81-9607-4d14-8cf5-f87f556a17bd',event)" src="./images/中控考勤机接口开发1.png" alt="" />
+<div id="cnblogs_code_open_69612c81-9607-4d14-8cf5-f87f556a17bd" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;"> 1</span>         <span style="color: #0000ff;">#region</span> 考勤机功能：增删指纹
+<span style="color: #008080;"> 2</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> btnDelTmp_Click(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)
+</span><span style="color: #008080;"> 3</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 4</span>             <span style="color: #0000ff;">if</span> (bIsConnected == <span style="color: #0000ff;">false</span><span style="color: #000000;">)
+</span><span style="color: #008080;"> 5</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 6</span>                 MessageBox.Show(<span style="color: #800000;">"</span><span style="color: #800000;">Please connect the device first!</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">Error</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 7</span>                 <span style="color: #0000ff;">return</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 8</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 9</span>             <span style="color: #0000ff;">if</span> (XCMessageBox.Show(<span style="color: #800000;">"</span><span style="color: #800000;">确定？</span><span style="color: #800000;">"</span>, XCMessageBox.Buttons.OKCancel, XCMessageBox.Icon.Question) ==<span style="color: #000000;"> DialogResult.OK)
+</span><span style="color: #008080;">10</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">11</span>                 <span style="color: #0000ff;">bool</span> a = axCZKEM1.SSR_DelUserTmp(iMachineNumber, <span style="color: #800000;">"</span><span style="color: #800000;">用户ID</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">(int)第几个指纹</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">12</span>                 <span style="color: #008000;">//</span><span style="color: #008000;">bool a = axCZKEM1.SSR_DeleteEnrollDataExt(iMachineNumber, txtEmpNo.Text, 13);</span><span style="color: #008000;">//</span><span style="color: #008000;">删除所有指纹</span>
+<span style="color: #008080;">13</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">14</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">15</span> 
+<span style="color: #008080;">16</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> btnAddTmp_Click(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)
+</span><span style="color: #008080;">17</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">18</span>             <span style="color: #0000ff;">if</span> (bIsConnected == <span style="color: #0000ff;">false</span><span style="color: #000000;">)
+</span><span style="color: #008080;">19</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">20</span>                 MessageBox.Show(<span style="color: #800000;">"</span><span style="color: #800000;">Please connect the device first!</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">Error</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">21</span>                 <span style="color: #0000ff;">return</span><span style="color: #000000;">;
+</span><span style="color: #008080;">22</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">23</span>             System.Data.DataTable dt = <span style="color: #0000ff;">new</span><span style="color: #000000;"> System.Data.DataTable();
+</span><span style="color: #008080;">24</span>             <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; <span style="color: #800080;">10</span>; i++<span style="color: #000000;">)
+</span><span style="color: #008080;">25</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">26</span>                 
+<span style="color: #008080;">27</span>                 <span style="color: #008000;">//</span><span style="color: #008000;">循环获取十个指纹</span>
+<span style="color: #008080;">28</span>                 dt = getEmpTmp(i.ToString());<span style="color: #008000;">//</span><span style="color: #008000;">获取数据库中第i个指纹</span>
+<span style="color: #008080;">29</span>                 <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> j = <span style="color: #800080;">0</span>; j &lt; dt.Rows.Count; j++<span style="color: #000000;">)
+</span><span style="color: #008080;">30</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">31</span>                     
+<span style="color: #008080;">32</span>                     <span style="color: #008000;">//</span><span style="color: #008000;">循环数据库中的用户数</span>
+<span style="color: #008080;">33</span>                     USERID = dt.Rows[j][<span style="color: #800000;">"</span><span style="color: #800000;">数据库中用户ID</span><span style="color: #800000;">"</span><span style="color: #000000;">].ToString();
+</span><span style="color: #008080;">34</span>                     dwTmpData = dt.Rows[j][<span style="color: #800000;">"</span><span style="color: #800000;">数据库中第i个指纹</span><span style="color: #800000;">"</span><span style="color: #000000;">].ToString();
+</span><span style="color: #008080;">35</span>                     <span style="color: #0000ff;">bool</span> a = axCZKEM1.SetUserTmpExStr(iMachineNumber, USERID, i, <span style="color: #800080;">1</span><span style="color: #000000;">, dwTmpData);
+</span><span style="color: #008080;">36</span> <span style="color: #000000;">                }    
+</span><span style="color: #008080;">37</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">38</span> 
+<span style="color: #008080;">39</span>             <span style="color: #008000;">//</span><span style="color: #008000;">获取算法版本</span>
+<span style="color: #008080;">40</span>             <span style="color: #008000;">/*</span><span style="color: #008000;">string sValue;
+</span><span style="color: #008080;">41</span> <span style="color: #008000;">            axCZKEM1.GetSysOption(1, "~ZKFPVersion", out sValue);
+</span><span style="color: #008080;">42</span> <span style="color: #008000;">            txtInfo.Text = sValue;</span><span style="color: #008000;">*/</span>
+<span style="color: #008080;">43</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">44</span>         <span style="color: #0000ff;">#endregion</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>2-6、清空考勤机所有注册的用户</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('950fd320-59a0-479f-8b1c-c82e7e30f37a')"><img id="code_img_closed_950fd320-59a0-479f-8b1c-c82e7e30f37a" class="code_img_closed" src="./images/中控考勤机接口开发0.png" alt="" /><img id="code_img_opened_950fd320-59a0-479f-8b1c-c82e7e30f37a" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('950fd320-59a0-479f-8b1c-c82e7e30f37a',event)" src="./images/中控考勤机接口开发1.png" alt="" />
+<div id="cnblogs_code_open_950fd320-59a0-479f-8b1c-c82e7e30f37a" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;"> 1</span>         <span style="color: #0000ff;">#region</span> 考勤机功能：清空考勤机用户
+<span style="color: #008080;"> 2</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> btnDel_Click(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)
+</span><span style="color: #008080;"> 3</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 4</span>             <span style="color: #0000ff;">if</span> (bIsConnected == <span style="color: #0000ff;">false</span><span style="color: #000000;">)
+</span><span style="color: #008080;"> 5</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 6</span>                 MessageBox.Show(<span style="color: #800000;">"</span><span style="color: #800000;">Please connect the device first!</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">Error</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 7</span>                 <span style="color: #0000ff;">return</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 8</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 9</span>             <span style="color: #0000ff;">if</span> (XCMessageBox.Show(<span style="color: #800000;">"</span><span style="color: #800000;">确定？</span><span style="color: #800000;">"</span>, XCMessageBox.Buttons.OKCancel, XCMessageBox.Icon.Question) ==<span style="color: #000000;"> DialogResult.OK)
+</span><span style="color: #008080;">10</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">11</span>                 Cursor =<span style="color: #000000;"> Cursors.WaitCursor;
+</span><span style="color: #008080;">12</span>                 <span style="color: #008000;">//</span><span style="color: #008000;">先禁用机器</span>
+<span style="color: #008080;">13</span>                 axCZKEM1.EnableDevice(iMachineNumber, <span style="color: #0000ff;">false</span>);<span style="color: #008000;">//</span><span style="color: #008000;">disable the device
+</span><span style="color: #008080;">14</span>                                                              <span style="color: #008000;">//</span><span style="color: #008000;">获取所有用户的记录到缓存区</span>
+<span style="color: #008080;">15</span>                 axCZKEM1.ReadAllUserID(iMachineNumber);<span style="color: #008000;">//</span><span style="color: #008000;">获取所有信息到缓存区（提高效率）</span>
+<span style="color: #008080;">16</span>                 <span style="color: #0000ff;">while</span> (axCZKEM1.SSR_GetAllUserInfo(iMachineNumber, <span style="color: #0000ff;">out</span> sdwEnrollNumber, <span style="color: #0000ff;">out</span> sName, <span style="color: #0000ff;">out</span> sPassword, <span style="color: #0000ff;">out</span> iPrivilege, <span style="color: #0000ff;">out</span> bEnabled))<span style="color: #008000;">//</span><span style="color: #008000;">get user information from memory</span>
+<span style="color: #008080;">17</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">18</span>                     axCZKEM1.SSR_DeleteEnrollDataExt(iMachineNumber, sdwEnrollNumber, <span style="color: #800080;">12</span><span style="color: #000000;">);
+</span><span style="color: #008080;">19</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">20</span> 
+<span style="color: #008080;">21</span>                 axCZKEM1.EnableDevice(iMachineNumber, <span style="color: #0000ff;">true</span>);<span style="color: #008000;">//</span><span style="color: #008000;">enable the device</span>
+<span style="color: #008080;">22</span>                 Cursor =<span style="color: #000000;"> Cursors.Default;
+</span><span style="color: #008080;">23</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">24</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">25</span>         <span style="color: #0000ff;">#endregion</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp;</p>
+<p><strong>3、<em>考勤记录批量操作</em></strong></p>
+<p>3-1、清空考勤机所有刷卡记录</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('f9b1eb52-ba66-4840-9165-43301fe291a2')"><img id="code_img_closed_f9b1eb52-ba66-4840-9165-43301fe291a2" class="code_img_closed" src="./images/中控考勤机接口开发0.png" alt="" /><img id="code_img_opened_f9b1eb52-ba66-4840-9165-43301fe291a2" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('f9b1eb52-ba66-4840-9165-43301fe291a2',event)" src="./images/中控考勤机接口开发1.png" alt="" />
+<div id="cnblogs_code_open_f9b1eb52-ba66-4840-9165-43301fe291a2" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;"> 1</span>         <span style="color: #0000ff;">#region</span> 考勤机功能：清空考勤记录
+<span style="color: #008080;"> 2</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> btnDelLogData_Click(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)
+</span><span style="color: #008080;"> 3</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 4</span>             <span style="color: #0000ff;">if</span> (bIsConnected == <span style="color: #0000ff;">false</span><span style="color: #000000;">)
+</span><span style="color: #008080;"> 5</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 6</span>                 MessageBox.Show(<span style="color: #800000;">"</span><span style="color: #800000;">Please connect the device first!</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">Error</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 7</span>                 <span style="color: #0000ff;">return</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 8</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 9</span>             <span style="color: #0000ff;">if</span> (XCMessageBox.Show(<span style="color: #800000;">"</span><span style="color: #800000;">确定？</span><span style="color: #800000;">"</span>, XCMessageBox.Buttons.OKCancel, XCMessageBox.Icon.Question) ==<span style="color: #000000;"> DialogResult.OK)
+</span><span style="color: #008080;">10</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">11</span> <span style="color: #000000;">                axCZKEM1.ClearGLog(iMachineNumber);
+</span><span style="color: #008080;">12</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">13</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">14</span>         <span style="color: #0000ff;">#endregion</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>3-2、同步考勤机所有刷卡记录到数据库</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('42ac9ce4-ab0c-437e-b987-074f0b23dc31')"><img id="code_img_closed_42ac9ce4-ab0c-437e-b987-074f0b23dc31" class="code_img_closed" src="./images/中控考勤机接口开发0.png" alt="" /><img id="code_img_opened_42ac9ce4-ab0c-437e-b987-074f0b23dc31" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('42ac9ce4-ab0c-437e-b987-074f0b23dc31',event)" src="./images/中控考勤机接口开发1.png" alt="" />
+<div id="cnblogs_code_open_42ac9ce4-ab0c-437e-b987-074f0b23dc31" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;"> 1</span>         <span style="color: #0000ff;">#region</span> 考勤机功能：同步所有考勤机数据到数据库
+<span style="color: #008080;"> 2</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> btnGetAllData_Click(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)
+</span><span style="color: #008080;"> 3</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 4</span>             <span style="color: #0000ff;">if</span> (bIsConnected == <span style="color: #0000ff;">false</span><span style="color: #000000;">)
+</span><span style="color: #008080;"> 5</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 6</span>                 MessageBox.Show(<span style="color: #800000;">"</span><span style="color: #800000;">Please connect the device first!</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">Error</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 7</span>                 <span style="color: #0000ff;">return</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 8</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 9</span>             <span style="color: #0000ff;">if</span> (XCMessageBox.Show(<span style="color: #800000;">"</span><span style="color: #800000;">确定？</span><span style="color: #800000;">"</span>, XCMessageBox.Buttons.OKCancel, XCMessageBox.Icon.Question) ==<span style="color: #000000;"> DialogResult.OK)
+</span><span style="color: #008080;">10</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">11</span>                 Cursor =<span style="color: #000000;"> Cursors.WaitCursor;
+</span><span style="color: #008080;">12</span>                 <span style="color: #008000;">//</span><span style="color: #008000;">先禁用机器</span>
+<span style="color: #008080;">13</span>                 axCZKEM1.EnableDevice(iMachineNumber, <span style="color: #0000ff;">false</span><span style="color: #000000;">);
+</span><span style="color: #008080;">14</span>                 <span style="color: #008000;">//</span><span style="color: #008000;">获取所有用户的考勤记录到缓存区</span>
+<span style="color: #008080;">15</span> <span style="color: #000000;">                axCZKEM1.ReadAllGLogData(iMachineNumber);
+</span><span style="color: #008080;">16</span>                 <span style="color: #0000ff;">while</span> (axCZKEM1.SSR_GetGeneralLogData(iMachineNumber, <span style="color: #0000ff;">out</span> sdwEnrollNumber, <span style="color: #0000ff;">out</span> dwVerifyMode, <span style="color: #0000ff;">out</span> dwInOutMode, <span style="color: #0000ff;">out</span> dwYear, <span style="color: #0000ff;">out</span> dwMonth, <span style="color: #0000ff;">out</span> dwDay, <span style="color: #0000ff;">out</span> dwHour, <span style="color: #0000ff;">out</span> dwMinute, <span style="color: #0000ff;">out</span> dwSecond, <span style="color: #0000ff;">ref</span> dwWorkCode))<span style="color: #008000;">//</span><span style="color: #008000;">get user information from memory</span>
+<span style="color: #008080;">17</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">18</span>                     <span style="color: #0000ff;">switch</span><span style="color: #000000;"> (dwVerifyMode)
+</span><span style="color: #008080;">19</span> <span style="color: #000000;">                    {
+</span><span style="color: #008080;">20</span>                         <span style="color: #0000ff;">case</span> <span style="color: #800080;">0</span><span style="color: #000000;">:
+</span><span style="color: #008080;">21</span>                             verifyMode = <span style="color: #800000;">"</span><span style="color: #800000;">密码验证</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+</span><span style="color: #008080;">22</span>                             <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+</span><span style="color: #008080;">23</span>                         <span style="color: #0000ff;">case</span> <span style="color: #800080;">1</span><span style="color: #000000;">:
+</span><span style="color: #008080;">24</span>                             verifyMode = <span style="color: #800000;">"</span><span style="color: #800000;">指纹验证</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+</span><span style="color: #008080;">25</span>                             <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+</span><span style="color: #008080;">26</span>                         <span style="color: #0000ff;">case</span> <span style="color: #800080;">2</span><span style="color: #000000;">:
+</span><span style="color: #008080;">27</span>                             verifyMode = <span style="color: #800000;">"</span><span style="color: #800000;">卡验证</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+</span><span style="color: #008080;">28</span>                             <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+</span><span style="color: #008080;">29</span>                         <span style="color: #0000ff;">default</span><span style="color: #000000;">:
+</span><span style="color: #008080;">30</span>                             verifyMode = <span style="color: #800000;">"</span><span style="color: #800000;">其他验证</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+</span><span style="color: #008080;">31</span>                             <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+</span><span style="color: #008080;">32</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">33</span>                     <span style="color: #008000;">//</span><span style="color: #008000;">循环获取用户信息</span>
+<span style="color: #008080;">34</span>                     axCZKEM1.SSR_GetUserInfo(iMachineNumber, sdwEnrollNumber, <span style="color: #0000ff;">out</span> sName, <span style="color: #0000ff;">out</span> sPassword, <span style="color: #0000ff;">out</span> iPrivilege, <span style="color: #0000ff;">out</span><span style="color: #000000;"> bEnabled);
+</span><span style="color: #008080;">35</span>                     <span style="color: #0000ff;">if</span> (axCZKEM1.GetStrCardNumber(<span style="color: #0000ff;">out</span> sCardnumber))<span style="color: #008000;">//</span><span style="color: #008000;">get the card number from the memory</span>
+<span style="color: #008080;">36</span> <span style="color: #000000;">                    {
+</span><span style="color: #008080;">37</span>                         <span style="color: #0000ff;">switch</span><span style="color: #000000;"> (iPrivilege)
+</span><span style="color: #008080;">38</span> <span style="color: #000000;">                        {
+</span><span style="color: #008080;">39</span>                             <span style="color: #0000ff;">case</span> <span style="color: #800080;">0</span><span style="color: #000000;">:
+</span><span style="color: #008080;">40</span>                                 privilege = <span style="color: #800000;">"</span><span style="color: #800000;">普通用户</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+</span><span style="color: #008080;">41</span>                                 <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+</span><span style="color: #008080;">42</span>                             <span style="color: #0000ff;">case</span> <span style="color: #800080;">3</span><span style="color: #000000;">:
+</span><span style="color: #008080;">43</span>                                 privilege = <span style="color: #800000;">"</span><span style="color: #800000;">管理员</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+</span><span style="color: #008080;">44</span>                                 <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+</span><span style="color: #008080;">45</span>                             <span style="color: #0000ff;">default</span><span style="color: #000000;">:
+</span><span style="color: #008080;">46</span>                                 privilege = <span style="color: #800000;">"</span><span style="color: #800000;">其他权限</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+</span><span style="color: #008080;">47</span>                                 <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+</span><span style="color: #008080;">48</span> <span style="color: #000000;">                        }
+</span><span style="color: #008080;">49</span>                         <span style="color: #0000ff;">switch</span><span style="color: #000000;"> (bEnabled)
+</span><span style="color: #008080;">50</span> <span style="color: #000000;">                        {
+</span><span style="color: #008080;">51</span>                             <span style="color: #0000ff;">case</span> <span style="color: #0000ff;">true</span><span style="color: #000000;">:
+</span><span style="color: #008080;">52</span>                                 enabled = <span style="color: #800000;">"</span><span style="color: #800000;">启用</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+</span><span style="color: #008080;">53</span>                                 <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+</span><span style="color: #008080;">54</span>                             <span style="color: #0000ff;">case</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">:
+</span><span style="color: #008080;">55</span>                                 enabled = <span style="color: #800000;">"</span><span style="color: #800000;">禁用</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+</span><span style="color: #008080;">56</span>                                 <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+</span><span style="color: #008080;">57</span> <span style="color: #000000;">                        }
+</span><span style="color: #008080;">58</span>                         USERID =<span style="color: #000000;"> sdwEnrollNumber;
+</span><span style="color: #008080;">59</span>                         CHARGE_TIME = dwYear.ToString() + <span style="color: #800000;">"</span><span style="color: #800000;">-</span><span style="color: #800000;">"</span> + dwMonth.ToString() + <span style="color: #800000;">"</span><span style="color: #800000;">-</span><span style="color: #800000;">"</span> + dwDay.ToString() + <span style="color: #800000;">"</span> <span style="color: #800000;">"</span> + dwHour.ToString() + <span style="color: #800000;">"</span><span style="color: #800000;">:</span><span style="color: #800000;">"</span> + dwMinute.ToString() + <span style="color: #800000;">"</span><span style="color: #800000;">:</span><span style="color: #800000;">"</span> +<span style="color: #000000;"> dwSecond.ToString();
+</span><span style="color: #008080;">60</span>                         VERIFYMODE =<span style="color: #000000;"> verifyMode;
+</span><span style="color: #008080;">61</span>                         WORKCODE =<span style="color: #000000;"> dwWorkCode.ToString();
+</span><span style="color: #008080;">62</span>                         <span style="color: #008000;">//</span><span style="color: #008000;">NAME = sName + "\0";
+</span><span style="color: #008080;">63</span>                         <span style="color: #008000;">//</span><span style="color: #008000;">NAME = NAME.Replace("\0", "");</span>
+<span style="color: #008080;">64</span>                         PASSWORD =<span style="color: #000000;"> sPassword;
+</span><span style="color: #008080;">65</span>                         PRIVILEGE =<span style="color: #000000;"> privilege;
+</span><span style="color: #008080;">66</span>                         ENABLE =<span style="color: #000000;"> enabled;
+</span><span style="color: #008080;">67</span>                         <span style="color: #0000ff;">string</span> ID = dwYear.ToString() + dwMonth.ToString() + dwDay.ToString() + dwHour.ToString() + dwMinute.ToString() +<span style="color: #000000;"> dwSecond.ToString();
+</span><span style="color: #008080;">68</span>                         addRecords(USERID, CHARGE_TIME, VERIFYMODE, WORKCODE, PASSWORD, PRIVILEGE, ENABLE, ID);<span style="color: #008000;">//</span><span style="color: #008000;">插入到数据库表</span>
+<span style="color: #008080;">69</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">70</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">71</span>                 axCZKEM1.EnableDevice(iMachineNumber, <span style="color: #0000ff;">true</span>);<span style="color: #008000;">//</span><span style="color: #008000;">enable the device</span>
+<span style="color: #008080;">72</span>                 Cursor =<span style="color: #000000;"> Cursors.Default;
+</span><span style="color: #008080;">73</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">74</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">75</span>         <span style="color: #0000ff;">#endregion</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

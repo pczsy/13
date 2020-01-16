@@ -1,0 +1,233 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修.net core使用ocelot---第七篇 服务发现' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>.net core使用ocelot---第七篇 服务发现</center></div><div class='banquan'>原文出处:本文由博客园博主一截生长提供。<br/>
+原文连接:https://www.cnblogs.com/xlxr45/p/11321786.html</div><br>
+    <p><strong>简介</strong></p>
+<p>　　<a href="https://www.cnblogs.com/xlxr45/p/11320988.html" target="_blank">.net core使用ocelot---第一篇 简单使用</a>&nbsp;&nbsp;<br />　　<a href="https://www.cnblogs.com/xlxr45/p/11321134.html" target="_blank">.net core使用ocelot---第二篇 身份验证使用</a>&nbsp;<br />　　<a href="https://www.cnblogs.com/xlxr45/p/11321201.html" target="_blank">.net core使用ocelot---第三篇 日志记录</a>&nbsp;<br />　　<a href="https://www.cnblogs.com/xlxr45/p/11321385.html" target="_blank">.net core使用ocelot---第四篇 限流熔断</a>&nbsp;<br />　　<a href="https://www.cnblogs.com/xlxr45/p/11321481.html" target="_blank">.net core使用ocelot---第五篇 服务质量</a>&nbsp;<br />　　<a href="https://www.cnblogs.com/xlxr45/p/11321563.html" target="_blank">.net core使用ocelot---第六篇 负载均衡</a>&nbsp;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 本文我们介绍用Spring Cloud Eureka Server介绍Ocelot的服务发现模块。</p>
+<p><strong>什么是服务发现</strong></p>
+<p>服务发现是自动检测这些设备在计算机网络上提供的设备和服务。服务发现协议（SDP）是帮助完成服务发现的网络协议。服务发现旨在减少用户的配置工作。</p>
+<p>在Ocelot中我们可以使用许多的服务发现，比如Consul, Eureka等等。本文我使用Eureka进行介绍。Ocelot使用Steeltoe与Eureka进行通信，Eureka是一个开源项目，使.NET开发人员能够在云上构建弹性微服务时能实现满足行业标准的最佳实践。</p>
+<p>我将使用Ocelot的7.1.0-unstable0011版本向您展示此功能。</p>
+<p><strong>Step1</strong></p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 首先创建两个API服务，一个是默认的ASP.NET Core Web API项目。在API网关发现我们的API服务之前，我们需要在Eureka服务上注册。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 在appsettings.json添加一些配置</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #800080;">1</span>.    <span style="color: #800000;">"</span><span style="color: #800000;">spring</span><span style="color: #800000;">"</span><span style="color: #000000;">: {  
+</span><span style="color: #800080;">2</span>.        <span style="color: #800000;">"</span><span style="color: #800000;">application</span><span style="color: #800000;">"</span><span style="color: #000000;">: {  
+</span><span style="color: #800080;">3</span>.            <span style="color: #800000;">"</span><span style="color: #800000;">name</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">service-a</span><span style="color: #800000;">"</span>  
+<span style="color: #800080;">4</span><span style="color: #000000;">.        }  
+</span><span style="color: #800080;">5</span><span style="color: #000000;">.    },  
+</span><span style="color: #800080;">6</span>.    <span style="color: #800000;">"</span><span style="color: #800000;">eureka</span><span style="color: #800000;">"</span><span style="color: #000000;">: {  
+</span><span style="color: #800080;">7</span>.        <span style="color: #800000;">"</span><span style="color: #800000;">client</span><span style="color: #800000;">"</span><span style="color: #000000;">: {  
+</span><span style="color: #800080;">8</span>.            <span style="color: #800000;">"</span><span style="color: #800000;">serviceUrl</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">http://192.168.0.107:8761/eureka/</span><span style="color: #800000;">"</span><span style="color: #000000;">,  
+</span><span style="color: #800080;">9</span>.            <span style="color: #800000;">"</span><span style="color: #800000;">shouldFetchRegistry</span><span style="color: #800000;">"</span>: <span style="color: #0000ff;">true</span><span style="color: #000000;">,  
+</span><span style="color: #800080;">10</span>.            <span style="color: #800000;">"</span><span style="color: #800000;">validateCertificates</span><span style="color: #800000;">"</span>: <span style="color: #0000ff;">false</span>  
+<span style="color: #800080;">11</span><span style="color: #000000;">.        },  
+</span><span style="color: #800080;">12</span>.        <span style="color: #800000;">"</span><span style="color: #800000;">instance</span><span style="color: #800000;">"</span><span style="color: #000000;">: {  
+</span><span style="color: #800080;">13</span>.            <span style="color: #800000;">"</span><span style="color: #800000;">port</span><span style="color: #800000;">"</span>: <span style="color: #800080;">9001</span><span style="color: #000000;">,  
+</span><span style="color: #800080;">14</span>.            <span style="color: #800000;">"</span><span style="color: #800000;">instanceId</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">192.168.0.103:9001</span><span style="color: #800000;">"</span><span style="color: #000000;">,  
+</span><span style="color: #800080;">15</span>.            <span style="color: #800000;">"</span><span style="color: #800000;">hostName</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">192.168.0.103</span><span style="color: #800000;">"</span><span style="color: #000000;">,  
+</span><span style="color: #800080;">16</span>.            <span style="color: #800000;">"</span><span style="color: #800000;">healthCheckUrlPath</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">/api/values/healthcheck</span><span style="color: #800000;">"</span><span style="color: #000000;">,  
+</span><span style="color: #800080;">17</span>.            <span style="color: #800000;">"</span><span style="color: #800000;">statusPageUrlPath</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">/api/values/info</span><span style="color: #800000;">"</span>                  
+<span style="color: #800080;">18</span><span style="color: #000000;">.        }  
+</span><span style="color: #800080;">19</span>.    }  </pre>
+</div>
+<p><strong>注意</strong></p>
+<ol>
+<li>Service-a 是Ocelot发现服务的重要标志。</li>
+<li>ServiceUrl是Eureka Server的端点。</li>
+<li>获得更多信息，看<a href="https://steeltoe.io/docs/steeltoe-discovery/">这里</a></li>
+</ol>
+<p>　　添加服务发现必要的代码</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Startup  
+{  
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> Startup(IConfiguration configuration)  
+    {  
+        Configuration </span>=<span style="color: #000000;"> configuration;  
+    }  
+  
+    </span><span style="color: #0000ff;">public</span> IConfiguration Configuration { <span style="color: #0000ff;">get</span><span style="color: #000000;">; }  
+  
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> ConfigureServices(IServiceCollection services)  
+    {  
+        services.AddDiscoveryClient(Configuration);  
+        services.AddMvc();  
+    }  
+  
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> Configure(IApplicationBuilder app, IHostingEnvironment env)  
+    {  
+        </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (env.IsDevelopment())  
+        {  
+            app.UseDeveloperExceptionPage();  
+        }  
+  
+        app.UseDiscoveryClient();  
+        app.UseMvc();  
+    }  
+}  </span></pre>
+</div>
+<p>　　在这里，我将使用三个API服务来演示，两个API服务名称service-a具有不同的端口（9001和9003），一个API服务名称service-b。</p>
+<p><strong>Step2</strong></p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 新建一个APIGateway项目，添加名为ocelot.json的配置文件。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">{  
+    </span><span style="color: #800000;">"</span><span style="color: #800000;">ReRoutes</span><span style="color: #800000;">"</span><span style="color: #000000;">: [  
+        {  
+            </span><span style="color: #800000;">"</span><span style="color: #800000;">DownstreamPathTemplate</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">/api/values</span><span style="color: #800000;">"</span><span style="color: #000000;">,  
+            </span><span style="color: #800000;">"</span><span style="color: #800000;">DownstreamScheme</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">http</span><span style="color: #800000;">"</span><span style="color: #000000;">,  
+            </span><span style="color: #800000;">"</span><span style="color: #800000;">UpstreamPathTemplate</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">/a</span><span style="color: #800000;">"</span><span style="color: #000000;">,  
+            </span><span style="color: #800000;">"</span><span style="color: #800000;">UseServiceDiscovery</span><span style="color: #800000;">"</span>: <span style="color: #0000ff;">true</span><span style="color: #000000;">,  
+            </span><span style="color: #800000;">"</span><span style="color: #800000;">ServiceName</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">service-a</span><span style="color: #800000;">"</span><span style="color: #000000;">,  
+            </span><span style="color: #800000;">"</span><span style="color: #800000;">UpstreamHttpMethod</span><span style="color: #800000;">"</span>: [ <span style="color: #800000;">"</span><span style="color: #800000;">Get</span><span style="color: #800000;">"</span><span style="color: #000000;"> ],  
+            </span><span style="color: #800000;">"</span><span style="color: #800000;">QoSOptions</span><span style="color: #800000;">"</span><span style="color: #000000;">: {  
+                </span><span style="color: #800000;">"</span><span style="color: #800000;">ExceptionsAllowedBeforeBreaking</span><span style="color: #800000;">"</span>: <span style="color: #800080;">3</span><span style="color: #000000;">,  
+                </span><span style="color: #800000;">"</span><span style="color: #800000;">DurationOfBreak</span><span style="color: #800000;">"</span>: <span style="color: #800080;">1000</span><span style="color: #000000;">,  
+                </span><span style="color: #800000;">"</span><span style="color: #800000;">TimeoutValue</span><span style="color: #800000;">"</span>: <span style="color: #800080;">5000</span><span style="color: #000000;">  
+            },  
+            </span><span style="color: #800000;">"</span><span style="color: #800000;">FileCacheOptions</span><span style="color: #800000;">"</span>: { <span style="color: #800000;">"</span><span style="color: #800000;">TtlSeconds</span><span style="color: #800000;">"</span>: <span style="color: #800080;">15</span><span style="color: #000000;"> },  
+            </span><span style="color: #800000;">"</span><span style="color: #800000;">LoadBalancerOptions</span><span style="color: #800000;">"</span><span style="color: #000000;">: {  
+                </span><span style="color: #800000;">"</span><span style="color: #800000;">Type</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">RoundRobin</span><span style="color: #800000;">"</span><span style="color: #000000;">  
+            }  
+        },  
+        {  
+            </span><span style="color: #800000;">"</span><span style="color: #800000;">DownstreamPathTemplate</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">/api/values</span><span style="color: #800000;">"</span><span style="color: #000000;">,  
+            </span><span style="color: #800000;">"</span><span style="color: #800000;">DownstreamScheme</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">http</span><span style="color: #800000;">"</span><span style="color: #000000;">,  
+            </span><span style="color: #800000;">"</span><span style="color: #800000;">UpstreamPathTemplate</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">/b</span><span style="color: #800000;">"</span><span style="color: #000000;">,  
+            </span><span style="color: #800000;">"</span><span style="color: #800000;">UseServiceDiscovery</span><span style="color: #800000;">"</span>: <span style="color: #0000ff;">true</span><span style="color: #000000;">,  
+            </span><span style="color: #800000;">"</span><span style="color: #800000;">ServiceName</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">service-b</span><span style="color: #800000;">"</span><span style="color: #000000;">,  
+            </span><span style="color: #800000;">"</span><span style="color: #800000;">UpstreamHttpMethod</span><span style="color: #800000;">"</span>: [ <span style="color: #800000;">"</span><span style="color: #800000;">Get</span><span style="color: #800000;">"</span><span style="color: #000000;"> ],  
+            </span><span style="color: #800000;">"</span><span style="color: #800000;">QoSOptions</span><span style="color: #800000;">"</span><span style="color: #000000;">: {  
+                </span><span style="color: #800000;">"</span><span style="color: #800000;">ExceptionsAllowedBeforeBreaking</span><span style="color: #800000;">"</span>: <span style="color: #800080;">3</span><span style="color: #000000;">,  
+                </span><span style="color: #800000;">"</span><span style="color: #800000;">DurationOfBreak</span><span style="color: #800000;">"</span>: <span style="color: #800080;">1000</span><span style="color: #000000;">,  
+                </span><span style="color: #800000;">"</span><span style="color: #800000;">TimeoutValue</span><span style="color: #800000;">"</span>: <span style="color: #800080;">5000</span><span style="color: #000000;">  
+            },  
+            </span><span style="color: #800000;">"</span><span style="color: #800000;">FileCacheOptions</span><span style="color: #800000;">"</span>: { <span style="color: #800000;">"</span><span style="color: #800000;">TtlSeconds</span><span style="color: #800000;">"</span>: <span style="color: #800080;">15</span><span style="color: #000000;"> }  
+        }  
+    ],  
+    </span><span style="color: #800000;">"</span><span style="color: #800000;">GlobalConfiguration</span><span style="color: #800000;">"</span><span style="color: #000000;">: {  
+        </span><span style="color: #800000;">"</span><span style="color: #800000;">RequestIdKey</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">OcRequestId</span><span style="color: #800000;">"</span><span style="color: #000000;">,  
+        </span><span style="color: #800000;">"</span><span style="color: #800000;">AdministrationPath</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">/administration</span><span style="color: #800000;">"</span><span style="color: #000000;">,  
+        </span><span style="color: #800000;">"</span><span style="color: #800000;">ServiceDiscoveryProvider</span><span style="color: #800000;">"</span>: { <span style="color: #800000;">"</span><span style="color: #800000;">Type</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">Eureka</span><span style="color: #800000;">"</span><span style="color: #000000;"> }  
+    }  
+}  </span></pre>
+</div>
+<p>　　这里有几点需要注意。</p>
+<p>　　对于ReRoutes</p>
+<ol>
+<li>将UseServiceDiscovery设为true。</li>
+<li>将ServiceName值设为在API服务里定义的服务名称。</li>
+<li>不用指明DownstreamHostAndPorts的值。</li>
+<li>将LoadBalancerOptions设成RoundRobin。</li>
+</ol>
+<p>　　对于GlobalConfiguration</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 设置ServiceDiscoveryProvider的Type为Eureka。这是使用Eureka至关重要的配置。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 回到Program.cs，我们需要让Ocelot可以使用。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Program  
+{  
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)  
+    {  
+        BuildWebHost(args).Run();  
+    }  
+  
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> IWebHost BuildWebHost(<span style="color: #0000ff;">string</span>[] args) =&gt;<span style="color: #000000;">  
+        WebHost.CreateDefaultBuilder(args)  
+           .UseUrls(</span><span style="color: #800000;">"</span><span style="color: #800000;">http://*:9000</span><span style="color: #800000;">"</span><span style="color: #000000;">)  
+           .ConfigureAppConfiguration((hostingContext, config) </span>=&gt;<span style="color: #000000;">  
+            {  
+                config  
+                    .SetBasePath(hostingContext.HostingEnvironment.ContentRootPath)                        
+                    .AddJsonFile(</span><span style="color: #800000;">"</span><span style="color: #800000;">ocelot.json</span><span style="color: #800000;">"</span><span style="color: #000000;">)  
+                    .AddEnvironmentVariables();  
+            })  
+           .ConfigureServices(s </span>=&gt;<span style="color: #000000;">  
+            {  
+                s.AddOcelot();  
+            })  
+            .Configure(a </span>=&gt;<span style="color: #000000;">  
+            {  
+                a.UseOcelot().Wait();  
+            })  
+            .Build();  
+}  </span></pre>
+</div>
+<p><strong>Step3</strong></p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 让Eureka跑起来。</p>
+<p><img src="./images/.net core使用ocelot---第七篇 服务发现0.png" alt="" /></p>
+<p>　　如你所见，Eureka服务启动起来了，但是没有可以使用的实例。</p>
+<p><strong>注意</strong></p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 为了在你的电脑上跑Eureka服务，你可以按照下面的步骤尝试。</p>
+<ol>
+<li>安装Java 8 的JDK</li>
+<li>安装Maven3.X</li>
+<li>复制Spring Cloud Samples Eureka 代码库（<a href="https://github.com/spring-cloud-samples/eureka.git">https://github.com/spring-cloud-samples/eureka.git</a>）</li>
+<li>转到eureka服务的目录（eureka）并使用mvn spring-boot：run启动它</li>
+</ol>
+<p><strong>Step4</strong></p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 我们如何注册我们的服务？只需运行我们的项目，我们就会得到service-a实例。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 当运行我们的API服务，你就会发现service-a 运行在Eureka 服务里了</p>
+<p>&nbsp;<img src="./images/.net core使用ocelot---第七篇 服务发现1.png" alt="" /></p>
+<p>　　好了，启动我们的APIGateway，不幸的是，当我们运行起项目。</p>
+<p><img src="./images/.net core使用ocelot---第七篇 服务发现2.png" alt="" /></p>
+<p>　　查看异常信息，我们忘了在APIGateway项目中配置Eureka。在appsettings.json添加下面的配置。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #800000;">"</span><span style="color: #800000;">spring</span><span style="color: #800000;">"</span><span style="color: #000000;">: {  
+    </span><span style="color: #800000;">"</span><span style="color: #800000;">application</span><span style="color: #800000;">"</span><span style="color: #000000;">: {  
+        </span><span style="color: #800000;">"</span><span style="color: #800000;">name</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">service-gw</span><span style="color: #800000;">"</span><span style="color: #000000;">  
+    }  
+},  
+</span><span style="color: #800000;">"</span><span style="color: #800000;">eureka</span><span style="color: #800000;">"</span><span style="color: #000000;">: {  
+    </span><span style="color: #800000;">"</span><span style="color: #800000;">client</span><span style="color: #800000;">"</span><span style="color: #000000;">: {  
+</span><span style="color: #800000;">"</span><span style="color: #800000;">serviceUrl</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">http://192.168.0.107:8761/eureka/</span><span style="color: #800000;">"</span><span style="color: #000000;">,  
+        </span><span style="color: #800000;">"</span><span style="color: #800000;">shouldRegisterWithEureka</span><span style="color: #800000;">"</span>: <span style="color: #0000ff;">false</span><span style="color: #000000;">,  
+        </span><span style="color: #800000;">"</span><span style="color: #800000;">validateCertificates</span><span style="color: #800000;">"</span>: <span style="color: #0000ff;">false</span><span style="color: #000000;">  
+    },  
+    </span><span style="color: #800000;">"</span><span style="color: #800000;">instance</span><span style="color: #800000;">"</span><span style="color: #000000;">: {  
+        </span><span style="color: #800000;">"</span><span style="color: #800000;">port</span><span style="color: #800000;">"</span>: <span style="color: #800080;">9000</span><span style="color: #000000;">,  
+        </span><span style="color: #800000;">"</span><span style="color: #800000;">instanceId</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">192.168.0.103:9000</span><span style="color: #800000;">"</span><span style="color: #000000;">,  
+        </span><span style="color: #800000;">"</span><span style="color: #800000;">hostName</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">192.168.0.103</span><span style="color: #800000;">"</span><span style="color: #000000;">  
+    }  
+}  </span></pre>
+</div>
+<p>　　重新启动APIGateway，终于正常了。</p>
+<p>　　<img src="./images/.net core使用ocelot---第七篇 服务发现3.png" alt="" /></p>
+<p>　　通过APIGat访问service-a&nbsp;</p>
+<p><img src="./images/.net core使用ocelot---第七篇 服务发现4.png" alt="" /></p>
+<p>　　通过APIGateway访问未启动的service-b</p>
+<p><img src="./images/.net core使用ocelot---第七篇 服务发现5.png" alt="" /></p>
+<p>　　毫无疑问我们不可能访问service-b</p>
+<p>　　启动后</p>
+<p><img src="./images/.net core使用ocelot---第七篇 服务发现6.png" alt="" /></p>
+<p>　　再次启动</p>
+<p><img src="./images/.net core使用ocelot---第七篇 服务发现7.png" alt="" /></p>
+<p>　　最后注册另一个service-a</p>
+<p><img src="./images/.net core使用ocelot---第七篇 服务发现8.png" alt="" /></p>
+<p>　　访问service-a你得到的结果有时来自9001，有时来自9003 。因为我们负载均衡算法设为RoundRobin。</p>
+<p><img src="./images/.net core使用ocelot---第七篇 服务发现9.png" alt="" /></p>
+<p>　　当我们停止service-a的一个服务，我们依然可以访问，但是终止的那个服务不能访问。</p>
+<p>　　源码<a href="https://github.com/catcherwong-archive/APIGatewayDemo/tree/master/APIGatewaySDDemo">在此</a></p>
+<p><strong>总结</strong></p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 本文介绍了Ocelot使用Eureka实现服务发现的简单示例。当让还有consul也可以实现服务发现，下篇介绍。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

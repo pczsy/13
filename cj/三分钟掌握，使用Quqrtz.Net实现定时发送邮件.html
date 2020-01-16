@@ -1,0 +1,434 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修三分钟掌握，使用Quqrtz.Net实现定时发送邮件' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>三分钟掌握，使用Quqrtz.Net实现定时发送邮件</center></div><div class='banquan'>原文出处:本文由博客园博主terryK提供。<br/>
+原文连接:https://www.cnblogs.com/terryK/p/11686134.html</div><br>
+    <p>在实际的项目中，常遇到延时触发工作以及定时触发工作</p>
+<p>这里所讲的是借助第三方的组件 Quartz.Net 来实现（源码位置：https://github.com/quartznet/quartznet）</p>
+<p>&nbsp;</p>
+<p><em>实现思路（来自博友wuzh）</em></p>
+<p><em>一：继承并实现IJob接口，在Execute 方法中写你要定时执行的事情（切记 ）</em></p>
+<p><em>二：使用Quartz创建任务调度核心代码步骤</em></p>
+<p><em>　　1、配置Quartz，创建工厂，开启调度。</em></p>
+<p><em>　　2、创建工作任务</em></p>
+<p><em>　　3、创建触发器</em></p>
+<p><em>　　4、将任务加入到任务池</em></p>
+<p>&nbsp;</p>
+<p><strong>Demo 创建控制台应用程序，定时发送邮件以及延时写日志</strong></p>
+<p><strong>1 在vs2015中使用Nuget，获取Quartz</strong></p>
+<p><strong><img src="./images/三分钟掌握，使用Quqrtz.Net实现定时发送邮件0.png" alt="" /></strong></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><img src="./images/三分钟掌握，使用Quqrtz.Net实现定时发送邮件1.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;2 创建两个作业</p>
+<div class="cnblogs_code">
+<pre><code>    <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+    <span style="color: #808080;">///</span><span style="color: #008000;"> 继承并实现IJob接口，在Execute 方法中写你要定时执行的事情（切记 ）
+    </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> MyJob : IJob
+    {
+        </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> Task Execute(IJobExecutionContext context)
+        {
+            Task task </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">try</span><span style="color: #000000;">
+            {
+                </span><span style="color: #0000ff;">string</span> fileName = <span style="color: #800000;">"</span><span style="color: #800000;">printlog.txt</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+                </span><span style="color: #0000ff;">using</span> (StreamWriter writer = <span style="color: #0000ff;">new</span> StreamWriter(fileName, <span style="color: #0000ff;">true</span><span style="color: #000000;">))
+                {
+                    task </span>= writer.WriteLineAsync(<span style="color: #0000ff;">string</span>.Format(<span style="color: #800000;">"</span><span style="color: #800000;">{0},测试</span><span style="color: #800000;">"</span><span style="color: #000000;">, DateTime.Now.ToLongTimeString()));
+                    Console.WriteLine(</span><span style="color: #0000ff;">string</span>.Format(<span style="color: #800000;">"</span><span style="color: #800000;">{0},测试</span><span style="color: #800000;">"</span><span style="color: #000000;">, DateTime.Now.ToLongTimeString()));
+                }
+            }
+            </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception)
+            {
+
+            }
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> Task.CompletedTask;
+        }
+    }
+
+    </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+    <span style="color: #808080;">///</span><span style="color: #008000;"> 发邮件
+    </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> SendEmailJob : IJob
+    {
+        </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> Task Execute(IJobExecutionContext context)
+        {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">Smtp</span>
+            sendEmail.SendMailUseGmail(<span style="color: #800000;">"</span><span style="color: #800000;">49564753X@qq.com</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">49564753X@qq.com</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">terryK</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">Quartz.net定时作业</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">Quartz.net定时发送邮件</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">tiyklkinqanxbgXX</span><span style="color: #800000;">"</span>, <span style="color: #800080;">587</span>, <span style="color: #800000;">"</span><span style="color: #800000;">smtp.qq.com</span><span style="color: #800000;">"</span>, <span style="color: #0000ff;">true</span><span style="color: #000000;">);
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> Task.CompletedTask;
+        }
+    }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> sendEmail
+    {
+        </span><span style="color: #0000ff;">public</span>  <span style="color: #0000ff;">static</span> Task SendMailUseGmail(<span style="color: #0000ff;">string</span> toUserAddress, <span style="color: #0000ff;">string</span> fromUserAddress, <span style="color: #0000ff;">string</span> fromUserName, <span style="color: #0000ff;">string</span> contextName, <span style="color: #0000ff;">string</span> context, <span style="color: #0000ff;">string</span> fromUserPass, <span style="color: #0000ff;">int</span> port, <span style="color: #0000ff;">string</span> host, <span style="color: #0000ff;">bool</span><span style="color: #000000;"> sslState)
+        {
+            </span><span style="color: #0000ff;">using</span> (MailMessage mailMessage = <span style="color: #0000ff;">new</span><span style="color: #000000;"> MailMessage())
+            {
+                mailMessage.To.Add(toUserAddress);
+                mailMessage.From </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> MailAddress(fromUserAddress, fromUserName, Encoding.UTF8);
+                mailMessage.Subject </span>=<span style="color: #000000;"> contextName;
+                mailMessage.SubjectEncoding </span>=<span style="color: #000000;"> Encoding.UTF8;
+                mailMessage.Body </span>=<span style="color: #000000;"> context;
+                mailMessage.BodyEncoding </span>=<span style="color: #000000;"> Encoding.UTF8;
+                mailMessage.IsBodyHtml </span>= <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+                mailMessage.Priority </span>=<span style="color: #000000;"> MailPriority.High;
+                SmtpClient smtpClient </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> SmtpClient();
+                smtpClient.Credentials </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> NetworkCredential(fromUserAddress, fromUserPass);
+                smtpClient.Port </span>=<span style="color: #000000;"> port;
+                smtpClient.Host </span>=<span style="color: #000000;"> host;
+                smtpClient.EnableSsl </span>=<span style="color: #000000;"> sslState;
+                </span><span style="color: #0000ff;">try</span><span style="color: #000000;">
+                {
+                    smtpClient.Send(mailMessage);
+                    Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">发送成功，请查看</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                }
+                </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (SmtpException var_3_A8)
+                {
+                    Console.WriteLine(var_3_A8.ToString());
+                }
+            }
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> Task.CompletedTask;
+        }
+    }</span></pre>
+</div>
+<p>3 创建QuartzHelper，用于配置环境以及完成 IScheduler, IJobDetails 与 ITrigger之间的配置</p>
+<div class="cnblogs_code">
+<pre><code> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> QuartzHelper
+    {
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">readonly</span><span style="color: #000000;"> IScheduler _scheduler;
+        </span><span style="color: #0000ff;">static</span><span style="color: #000000;"> QuartzHelper()
+        {
+            </span><span style="color: #0000ff;">#region</span> 配置 Quartz<span style="color: #000000;">
+            NameValueCollection properties </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> NameValueCollection
+            {
+                {</span><span style="color: #800000;">"</span><span style="color: #800000;">quartz.serializer.type</span><span style="color: #800000;">"</span>,<span style="color: #800000;">"</span><span style="color: #800000;">binary</span><span style="color: #800000;">"</span><span style="color: #000000;">}
+            };
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> 设置线程池</span>
+            properties[<span style="color: #800000;">"</span><span style="color: #800000;">quartz.threadPool.type</span><span style="color: #800000;">"</span>] = <span style="color: #800000;">"</span><span style="color: #800000;">Quartz.Simpl.SimpleThreadPool, Quartz</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">设置线程池的最大线程数量</span>
+            properties[<span style="color: #800000;">"</span><span style="color: #800000;">quartz.threadPool.threadCount</span><span style="color: #800000;">"</span>] = <span style="color: #800000;">"</span><span style="color: #800000;">10</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">设置作业中每个线程的优先级</span>
+            properties[<span style="color: #800000;">"</span><span style="color: #800000;">quartz.threadPool.threadPriority</span><span style="color: #800000;">"</span>] =<span style="color: #000000;"> ThreadPriority.Normal.ToString();
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> 远程输出配置</span>
+            properties[<span style="color: #800000;">"</span><span style="color: #800000;">quartz.scheduler.exporter.type</span><span style="color: #800000;">"</span>] = <span style="color: #800000;">"</span><span style="color: #800000;">Quartz.Simpl.RemotingSchedulerExporter, Quartz</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            properties[</span><span style="color: #800000;">"</span><span style="color: #800000;">quartz.scheduler.exporter.port</span><span style="color: #800000;">"</span>] = <span style="color: #800000;">"</span><span style="color: #800000;">555</span><span style="color: #800000;">"</span>;  <span style="color: #008000;">//</span><span style="color: #008000;">配置端口号</span>
+            properties[<span style="color: #800000;">"</span><span style="color: #800000;">quartz.scheduler.exporter.bindName</span><span style="color: #800000;">"</span>] = <span style="color: #800000;">"</span><span style="color: #800000;">QuartzScheduler</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            properties[</span><span style="color: #800000;">"</span><span style="color: #800000;">quartz.scheduler.exporter.channelType</span><span style="color: #800000;">"</span>] = <span style="color: #800000;">"</span><span style="color: #800000;">tcp</span><span style="color: #800000;">"</span>; <span style="color: #008000;">//</span><span style="color: #008000;">协议类型</span>
+            <span style="color: #0000ff;">#endregion</span> 
+
+            <span style="color: #008000;">//</span><span style="color: #008000;">创建一个工厂</span>
+            <span style="color: #0000ff;">var</span> schedulerFactory = <span style="color: #0000ff;">new</span><span style="color: #000000;"> StdSchedulerFactory(properties);
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">启动</span>
+            _scheduler =<span style="color: #000000;"> schedulerFactory.GetScheduler().Result;
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">1、开启调度</span>
+<span style="color: #000000;">            _scheduler.Start();
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 时间间隔执行任务
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;typeparam name="T"&gt;</span><span style="color: #008000;">任务类，必须实现IJob接口</span><span style="color: #808080;">&lt;/typeparam&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="seconds"&gt;</span><span style="color: #008000;">时间间隔(单位：秒)</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">async</span> Task AsyncExecuteInterval&lt;T&gt;(<span style="color: #0000ff;">int</span> seconds) <span style="color: #0000ff;">where</span><span style="color: #000000;"> T : IJob
+        {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">2、创建工作任务</span>
+            IJobDetail job = JobBuilder.Create&lt;T&gt;<span style="color: #000000;">()
+                .WithIdentity(</span><span style="color: #800000;">"</span><span style="color: #800000;">printlog</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">LogGroup</span><span style="color: #800000;">"</span><span style="color: #000000;">)
+                .Build();
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> 3、创建触发器</span>
+            ITrigger trigger =<span style="color: #000000;"> TriggerBuilder.Create()
+                .StartNow()
+                .WithIdentity(</span><span style="color: #800000;">"</span><span style="color: #800000;">LogTrigger</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">LogGroup</span><span style="color: #800000;">"</span><span style="color: #000000;">)
+                .WithSimpleSchedule(x </span>=&gt;<span style="color: #000000;"> x.WithIntervalInSeconds(seconds).RepeatForever())
+                .Build();
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">4、将任务加入到任务池</span>
+            <span style="color: #0000ff;">await</span><span style="color: #000000;"> _scheduler.ScheduleJob(job, trigger);
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 指定时间执行任务
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;typeparam name="T"&gt;</span><span style="color: #008000;">任务类，必须实现IJob接口</span><span style="color: #808080;">&lt;/typeparam&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="cronExpression"&gt;</span><span style="color: #008000;">cron表达式，即指定时间点的表达式</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">async</span> Task&lt;<span style="color: #0000ff;">bool</span>&gt; AsyncExecuteByCron&lt;T&gt;(<span style="color: #0000ff;">string</span> cronExpression) <span style="color: #0000ff;">where</span><span style="color: #000000;"> T : IJob
+        {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">2、创建工作任务</span>
+            IJobDetail job = JobBuilder.Create&lt;T&gt;<span style="color: #000000;">()
+                .WithIdentity(</span><span style="color: #800000;">"</span><span style="color: #800000;">SendEmailJob</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">EmailGroup</span><span style="color: #800000;">"</span><span style="color: #000000;">)
+                .Build();
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">3、创建触发器</span>
+            ICronTrigger trigger =<span style="color: #000000;"> (ICronTrigger)TriggerBuilder.Create()
+                .StartNow()
+                .WithIdentity(</span><span style="color: #800000;">"</span><span style="color: #800000;">SendEmail</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">EmailGroup</span><span style="color: #800000;">"</span><span style="color: #000000;">)
+                .WithCronSchedule(cronExpression)
+                .Build();
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">4、将任务加入到任务池</span>
+            <span style="color: #0000ff;">await</span><span style="color: #000000;"> _scheduler.ScheduleJob(job, trigger);
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+        }
+    }</span></pre>
+</div>
+<p>4 运行调用</p>
+<div class="cnblogs_code">
+<pre><code> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            Task.Run(() </span>=&gt;<span style="color: #000000;">
+            {
+                </span><span style="color: #0000ff;">string</span> cronExpression = <span style="color: #800000;">"</span><span style="color: #800000;">0 36 15,20 ? *  MON-FRI</span><span style="color: #800000;">"</span>;  <span style="color: #008000;">// </span><span style="color: #008000;">=&gt;周一到周五 每天上午8：30以及下午8：30执行定时任务（发送邮件）</span>
+                QuartzHelper.AsyncExecuteByCron&lt;SendEmailJob&gt;<span style="color: #000000;">(cronExpression).Wait();
+            });</span><span style="color: #008000;">//</span><span style="color: #008000;">=&gt;这是调用Cron计划方法</span>
+<span style="color: #000000;">
+            Task.Run(() </span>=&gt; QuartzHelper.AsyncExecuteInterval&lt;MyJob&gt;(<span style="color: #800080;">5</span><span style="color: #000000;">).Wait());
+
+            </span><span style="color: #008000;">/*</span><span style="color: #008000;">
+             简单说一下Cron表达式:
+
+            由7段构成：秒 分 时 日 月 星期 年（可选）
+
+            "-" ：表示范围  MON-WED表示星期一到星期三
+            "," ：表示列举 MON,WEB表示星期一和星期三
+            "*" ：表是&ldquo;每&rdquo;，每月，每天，每周，每年等
+            "/" :表示增量：0/15（处于分钟段里面） 每15分钟，在0分以后开始，3/20 每20分钟，从3分钟以后开始
+            "?" :只能出现在日，星期段里面，表示不指定具体的值
+            "L" :只能出现在日，星期段里面，是Last的缩写，一个月的最后一天，一个星期的最后一天（星期六）
+            "W" :表示工作日，距离给定值最近的工作日
+            "#" :表示一个月的第几个星期几，例如："6#3"表示每个月的第三个星期五（1=SUN...6=FRI,7=SAT）
+
+            如果Minutes的数值是 '0/15' ，表示从0开始每15分钟执行
+            如果Minutes的数值是 '3/20' ，表示从3开始每20分钟执行，也就是&lsquo;3/23/43&rsquo;
+            </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+            Console.ReadKey();
+        }
+    }</span></pre>
+</div>
+<p>5&nbsp; 整个Demo代码</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">using</span><span style="color: #000000;"> Quartz;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> Quartz.Impl;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Collections.Generic;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Collections.Specialized;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.IO;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Linq;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Net;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Net.Mail;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Text;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Threading;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Threading.Tasks;
+
+</span><span style="color: #0000ff;">namespace</span><span style="color: #000000;"> Quartz
+{
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            Task.Run(() </span>=&gt;<span style="color: #000000;">
+            {
+                </span><span style="color: #0000ff;">string</span> cronExpression = <span style="color: #800000;">"</span><span style="color: #800000;">0 30 8,20 ? *  MON-FRI</span><span style="color: #800000;">"</span>;  <span style="color: #008000;">// </span><span style="color: #008000;">=&gt;周一到周五 每天上午8：30以及下午8：30执行定时任务（发送邮件）</span>
+                QuartzHelper.AsyncExecuteByCron&lt;SendEmailJob&gt;<span style="color: #000000;">(cronExpression).Wait();
+            });</span><span style="color: #008000;">//</span><span style="color: #008000;">=&gt;这是调用Cron计划方法</span>
+<span style="color: #000000;">
+            Task.Run(() </span>=&gt; QuartzHelper.AsyncExecuteInterval&lt;MyJob&gt;(<span style="color: #800080;">5</span><span style="color: #000000;">).Wait());
+
+            </span><span style="color: #008000;">/*</span><span style="color: #008000;">
+             简单说一下Cron表达式:
+
+            由7段构成：秒 分 时 日 月 星期 年（可选）
+
+            "-" ：表示范围  MON-WED表示星期一到星期三
+            "," ：表示列举 MON,WEB表示星期一和星期三
+            "*" ：表是&ldquo;每&rdquo;，每月，每天，每周，每年等
+            "/" :表示增量：0/15（处于分钟段里面） 每15分钟，在0分以后开始，3/20 每20分钟，从3分钟以后开始
+            "?" :只能出现在日，星期段里面，表示不指定具体的值
+            "L" :只能出现在日，星期段里面，是Last的缩写，一个月的最后一天，一个星期的最后一天（星期六）
+            "W" :表示工作日，距离给定值最近的工作日
+            "#" :表示一个月的第几个星期几，例如："6#3"表示每个月的第三个星期五（1=SUN...6=FRI,7=SAT）
+
+            如果Minutes的数值是 '0/15' ，表示从0开始每15分钟执行
+            如果Minutes的数值是 '3/20' ，表示从3开始每20分钟执行，也就是&lsquo;3/23/43&rsquo;
+            </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+            Console.ReadKey();
+        }
+    }
+
+    </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+    <span style="color: #808080;">///</span><span style="color: #008000;"> 继承并实现IJob接口，在Execute 方法中写你要定时执行的事情（切记 ）
+    </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> MyJob : IJob
+    {
+        </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> Task Execute(IJobExecutionContext context)
+        {
+            Task task </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">try</span><span style="color: #000000;">
+            {
+                </span><span style="color: #0000ff;">string</span> fileName = <span style="color: #800000;">"</span><span style="color: #800000;">printlog.txt</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+                </span><span style="color: #0000ff;">using</span> (StreamWriter writer = <span style="color: #0000ff;">new</span> StreamWriter(fileName, <span style="color: #0000ff;">true</span><span style="color: #000000;">))
+                {
+                    task </span>= writer.WriteLineAsync(<span style="color: #0000ff;">string</span>.Format(<span style="color: #800000;">"</span><span style="color: #800000;">{0},测试</span><span style="color: #800000;">"</span><span style="color: #000000;">, DateTime.Now.ToLongTimeString()));
+                    Console.WriteLine(</span><span style="color: #0000ff;">string</span>.Format(<span style="color: #800000;">"</span><span style="color: #800000;">{0},测试</span><span style="color: #800000;">"</span><span style="color: #000000;">, DateTime.Now.ToLongTimeString()));
+                }
+            }
+            </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception)
+            {
+
+            }
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> Task.CompletedTask;
+        }
+    }
+
+    </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+    <span style="color: #808080;">///</span><span style="color: #008000;"> 发邮件
+    </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> SendEmailJob : IJob
+    {
+        </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> Task Execute(IJobExecutionContext context)
+        {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">Smtp</span>
+            sendEmail.SendMailUseGmail(<span style="color: #800000;">"</span><span style="color: #800000;">49564753X@qq.com</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">49564753X@qq.com</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">terryK</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">Quartz.net定时作业</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">Quartz.net定时发送邮件</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">tiyklkinqanxbgXX</span><span style="color: #800000;">"</span>, <span style="color: #800080;">587</span>, <span style="color: #800000;">"</span><span style="color: #800000;">smtp.qq.com</span><span style="color: #800000;">"</span>, <span style="color: #0000ff;">true</span><span style="color: #000000;">);
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> Task.CompletedTask;
+        }
+    }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> sendEmail
+    {
+        </span><span style="color: #0000ff;">public</span>  <span style="color: #0000ff;">static</span> Task SendMailUseGmail(<span style="color: #0000ff;">string</span> toUserAddress, <span style="color: #0000ff;">string</span> fromUserAddress, <span style="color: #0000ff;">string</span> fromUserName, <span style="color: #0000ff;">string</span> contextName, <span style="color: #0000ff;">string</span> context, <span style="color: #0000ff;">string</span> fromUserPass, <span style="color: #0000ff;">int</span> port, <span style="color: #0000ff;">string</span> host, <span style="color: #0000ff;">bool</span><span style="color: #000000;"> sslState)
+        {
+            </span><span style="color: #0000ff;">using</span> (MailMessage mailMessage = <span style="color: #0000ff;">new</span><span style="color: #000000;"> MailMessage())
+            {
+                mailMessage.To.Add(toUserAddress);
+                mailMessage.From </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> MailAddress(fromUserAddress, fromUserName, Encoding.UTF8);
+                mailMessage.Subject </span>=<span style="color: #000000;"> contextName;
+                mailMessage.SubjectEncoding </span>=<span style="color: #000000;"> Encoding.UTF8;
+                mailMessage.Body </span>=<span style="color: #000000;"> context;
+                mailMessage.BodyEncoding </span>=<span style="color: #000000;"> Encoding.UTF8;
+                mailMessage.IsBodyHtml </span>= <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+                mailMessage.Priority </span>=<span style="color: #000000;"> MailPriority.High;
+                SmtpClient smtpClient </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> SmtpClient();
+                smtpClient.Credentials </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> NetworkCredential(fromUserAddress, fromUserPass);
+                smtpClient.Port </span>=<span style="color: #000000;"> port;
+                smtpClient.Host </span>=<span style="color: #000000;"> host;
+                smtpClient.EnableSsl </span>=<span style="color: #000000;"> sslState;
+                </span><span style="color: #0000ff;">try</span><span style="color: #000000;">
+                {
+                    smtpClient.Send(mailMessage);
+                    Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">发送成功，请查看</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                }
+                </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (SmtpException var_3_A8)
+                {
+                    Console.WriteLine(var_3_A8.ToString());
+                }
+            }
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> Task.CompletedTask;
+        }
+    }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> QuartzHelper
+    {
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">readonly</span><span style="color: #000000;"> IScheduler _scheduler;
+        </span><span style="color: #0000ff;">static</span><span style="color: #000000;"> QuartzHelper()
+        {
+            </span><span style="color: #0000ff;">#region</span> 配置 Quartz<span style="color: #000000;">
+            NameValueCollection properties </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> NameValueCollection
+            {
+                {</span><span style="color: #800000;">"</span><span style="color: #800000;">quartz.serializer.type</span><span style="color: #800000;">"</span>,<span style="color: #800000;">"</span><span style="color: #800000;">binary</span><span style="color: #800000;">"</span><span style="color: #000000;">}
+            };
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> 设置线程池</span>
+            properties[<span style="color: #800000;">"</span><span style="color: #800000;">quartz.threadPool.type</span><span style="color: #800000;">"</span>] = <span style="color: #800000;">"</span><span style="color: #800000;">Quartz.Simpl.SimpleThreadPool, Quartz</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">设置线程池的最大线程数量</span>
+            properties[<span style="color: #800000;">"</span><span style="color: #800000;">quartz.threadPool.threadCount</span><span style="color: #800000;">"</span>] = <span style="color: #800000;">"</span><span style="color: #800000;">10</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">设置作业中每个线程的优先级</span>
+            properties[<span style="color: #800000;">"</span><span style="color: #800000;">quartz.threadPool.threadPriority</span><span style="color: #800000;">"</span>] =<span style="color: #000000;"> ThreadPriority.Normal.ToString();
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> 远程输出配置</span>
+            properties[<span style="color: #800000;">"</span><span style="color: #800000;">quartz.scheduler.exporter.type</span><span style="color: #800000;">"</span>] = <span style="color: #800000;">"</span><span style="color: #800000;">Quartz.Simpl.RemotingSchedulerExporter, Quartz</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            properties[</span><span style="color: #800000;">"</span><span style="color: #800000;">quartz.scheduler.exporter.port</span><span style="color: #800000;">"</span>] = <span style="color: #800000;">"</span><span style="color: #800000;">555</span><span style="color: #800000;">"</span>;  <span style="color: #008000;">//</span><span style="color: #008000;">配置端口号</span>
+            properties[<span style="color: #800000;">"</span><span style="color: #800000;">quartz.scheduler.exporter.bindName</span><span style="color: #800000;">"</span>] = <span style="color: #800000;">"</span><span style="color: #800000;">QuartzScheduler</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            properties[</span><span style="color: #800000;">"</span><span style="color: #800000;">quartz.scheduler.exporter.channelType</span><span style="color: #800000;">"</span>] = <span style="color: #800000;">"</span><span style="color: #800000;">tcp</span><span style="color: #800000;">"</span>; <span style="color: #008000;">//</span><span style="color: #008000;">协议类型</span>
+            <span style="color: #0000ff;">#endregion</span> 
+
+            <span style="color: #008000;">//</span><span style="color: #008000;">创建一个工厂</span>
+            <span style="color: #0000ff;">var</span> schedulerFactory = <span style="color: #0000ff;">new</span><span style="color: #000000;"> StdSchedulerFactory(properties);
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">启动</span>
+            _scheduler =<span style="color: #000000;"> schedulerFactory.GetScheduler().Result;
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">1、开启调度</span>
+<span style="color: #000000;">            _scheduler.Start();
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 时间间隔执行任务
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;typeparam name="T"&gt;</span><span style="color: #008000;">任务类，必须实现IJob接口</span><span style="color: #808080;">&lt;/typeparam&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="seconds"&gt;</span><span style="color: #008000;">时间间隔(单位：秒)</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">async</span> Task AsyncExecuteInterval&lt;T&gt;(<span style="color: #0000ff;">int</span> seconds) <span style="color: #0000ff;">where</span><span style="color: #000000;"> T : IJob
+        {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">2、创建工作任务</span>
+            IJobDetail job = JobBuilder.Create&lt;T&gt;<span style="color: #000000;">()
+                .WithIdentity(</span><span style="color: #800000;">"</span><span style="color: #800000;">printlog</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">LogGroup</span><span style="color: #800000;">"</span><span style="color: #000000;">)
+                .Build();
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> 3、创建触发器</span>
+            ITrigger trigger =<span style="color: #000000;"> TriggerBuilder.Create()
+                .StartNow()
+                .WithIdentity(</span><span style="color: #800000;">"</span><span style="color: #800000;">LogTrigger</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">LogGroup</span><span style="color: #800000;">"</span><span style="color: #000000;">)
+                .WithSimpleSchedule(x </span>=&gt;<span style="color: #000000;"> x.WithIntervalInSeconds(seconds).RepeatForever())
+                .Build();
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">4、将任务加入到任务池</span>
+            <span style="color: #0000ff;">await</span><span style="color: #000000;"> _scheduler.ScheduleJob(job, trigger);
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 指定时间执行任务
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;typeparam name="T"&gt;</span><span style="color: #008000;">任务类，必须实现IJob接口</span><span style="color: #808080;">&lt;/typeparam&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="cronExpression"&gt;</span><span style="color: #008000;">cron表达式，即指定时间点的表达式</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">async</span> Task&lt;<span style="color: #0000ff;">bool</span>&gt; AsyncExecuteByCron&lt;T&gt;(<span style="color: #0000ff;">string</span> cronExpression) <span style="color: #0000ff;">where</span><span style="color: #000000;"> T : IJob
+        {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">2、创建工作任务</span>
+            IJobDetail job = JobBuilder.Create&lt;T&gt;<span style="color: #000000;">()
+                .WithIdentity(</span><span style="color: #800000;">"</span><span style="color: #800000;">SendEmailJob</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">EmailGroup</span><span style="color: #800000;">"</span><span style="color: #000000;">)
+                .Build();
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">3、创建触发器</span>
+            ICronTrigger trigger =<span style="color: #000000;"> (ICronTrigger)TriggerBuilder.Create()
+                .StartNow()
+                .WithIdentity(</span><span style="color: #800000;">"</span><span style="color: #800000;">SendEmail</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">EmailGroup</span><span style="color: #800000;">"</span><span style="color: #000000;">)
+                .WithCronSchedule(cronExpression)
+                .Build();
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">4、将任务加入到任务池</span>
+            <span style="color: #0000ff;">await</span><span style="color: #000000;"> _scheduler.ScheduleJob(job, trigger);
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+        }
+    }
+}</span></pre>
+</div>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,363 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修网关never_host设计' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>网关never_host设计</center></div><div class='banquan'>原文出处:本文由博客园博主shelldudu提供。<br/>
+原文连接:https://www.cnblogs.com/shelldudu/p/11115761.html</div><br>
+    <h2>never下app的host与api</h2>
+<p>Never<span style="color: #000000;">是纯c#语言开发的一个框架。host则是使用该框架开发出来的</span>API网关，它包括了：路由、认证、鉴权、熔断，内置了负载均衡器Deployment；并且只需要简单的配置即可完成。</p>
+<p>设计的核心思路：host负责转发 + 身份识别 + 熔断，api提供业务处理（类似一个编排）</p>
+<p>1、基本使用</p>
+<p>用一台机器来运行host，配置文件配置程序端口，api地址，限流次数信息等。</p>
+<p>（1）程序host启动的时候去配置中心读取文件，读取成功后IConfiguration接口就可以读取相关配置；</p>
+<p>（2）程序host会监听客户端请求，对header、body等进行包装，并且会进行身份认识，将请求下发到api服务器进行处理，再将请求结果返回；</p>
+<p>（3）程序host设置一个健康检查，api配置的地址如果不可用，则返回不可处理结果。由于读取api的配置信息是从配置中心的，所以配置中心也可以使用熔断设计。</p>
+<p><img src="./images/网关never_host设计0.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>2、集成identity service</p>
+<p>当我们说到的identity，就是你有没有访问这个api的资源，这里可以分2种：第一种是有没有权限访问这个系统（要求登陆），第二种是登陆了有没有权限访问系统里面某一个资源。对于第一种，我们可以采用AOP的统一处理方式；比如只要验证token就可以，第二种则是获取 到用户标识了，用户会在我们后台分配一定的权限资源，权限资源 + 身份标识 + 请求信息结合验证就可以了。</p>
+<p><strong>为了业务划分清楚，我们将host与api的分工要特别说明</strong></p>
+<ol>
+<li>host，这个可以对我们的请求做路由转发，健康检查，身份验证，数据加密，负载均衡。</li>
+<li>api，我们的业务所在地。有些情况是前端请求从host转发到api里面的时候会带上身份，在api里面我们可以通过Mvc一些Aop做法得到用户信息，比IAuthorizationFilter接口，Never.Web.WebApi.Security.UserPrincipalAttribute特性等<img src="./images/网关never_host设计1.png" alt="" /></li>
+</ol>
+<p>3、服务发现</p>
+<p>我们统一使用配置中心去获取服务，配置中心在更新配置的时候会异步下发当前配置请求，host程序的健康检查会发现对服务不可用的时候做熔断处理，这个配置中心里面的服务配置可以从db管理（可以扩展为服务主动注册），可以手动编写。</p>
+<h2>配置host</h2>
+<p>下载demo，github地址：<a href="https://github.com/shelldudu/never_application" target="_blank">https://github.com/shelldudu/never_application</a></p>
+<p>在host项目中，我们多加个配置文件appsettings.app.json，还有一个是系统的appsettings.json配置文件，为什么会配置2个文件？appsettings.json文件是配置程序启动的端口 + 配置中心的访问地址，通常是比较固定的；而appsettings.app.json则是其实动态获取的配置，比如分api的地址，限流的信息，这些都是通过配置中心管理，而配置中心可以通过后台管理。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;">统一使用配置中心，方便管理</span>
+e.Startup.UseConfigClient(<span style="color: #0000ff;">new</span> IPEndPoint(IPAddress.Parse(configReader[<span style="color: #800000;">"</span><span style="color: #800000;">config_host</span><span style="color: #800000;">"</span>]), configReader.IntInAppConfig(<span style="color: #800000;">"</span><span style="color: #800000;">config_port</span><span style="color: #800000;">"</span>)), <span style="color: #0000ff;">out</span> <span style="color: #0000ff;">var</span><span style="color: #000000;"> configFileClient);
+</span><span style="color: #008000;">//</span><span style="color: #008000;">启动配置中心，每10秒的心跳，并且指定当前读取配置中心下面的app_host文件内容。</span>
+configFileClient.Startup(TimeSpan.FromMinutes(<span style="color: #800080;">10</span>), <span style="color: #0000ff;">new</span>[] { <span style="color: #0000ff;">new</span> ConfigFileClientRequest { FileName = <span style="color: #800000;">"</span><span style="color: #800000;">app_host</span><span style="color: #800000;">"</span> } }, (c, t) =&gt;<span style="color: #000000;">
+{
+    </span><span style="color: #0000ff;">var</span> content =<span style="color: #000000;"> t;
+    </span><span style="color: #0000ff;">if</span> (c != <span style="color: #0000ff;">null</span> &amp;&amp; c.FileName == <span style="color: #800000;">"</span><span style="color: #800000;">app_host</span><span style="color: #800000;">"</span><span style="color: #000000;">)
+    {
+        System.IO.File.WriteAllText(System.IO.Path.Combine(</span><span style="color: #0000ff;">this</span>.Environment.ContentRootPath, <span style="color: #800000;">"</span><span style="color: #800000;">appsettings.app.json</span><span style="color: #800000;">"</span><span style="color: #000000;">), content);
+    }
+}).Push(</span><span style="color: #800000;">"</span><span style="color: #800000;">app_host</span><span style="color: #800000;">"</span>).GetAwaiter().GetResult();</pre>
+</div>
+<p>netcore系统新加appsettings.app.json监听文件则是通过下面的代码实现</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;">程序名字</span>
+<span style="color: #0000ff;">var</span> pathToExe =<span style="color: #000000;"> System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName;
+</span><span style="color: #008000;">//</span><span style="color: #008000;">程序所在位置</span>
+<span style="color: #0000ff;">var</span> pathToContentRoot =<span style="color: #000000;"> Path.GetDirectoryName(pathToExe);
+</span><span style="color: #0000ff;">return</span><span style="color: #000000;"> WebHost.CreateDefaultBuilder(args)
+</span><span style="color: #008000;">//</span><span style="color: #008000;">监听2个文件</span>
+    .UseJsonFileConfig(Never.Web.WebApi.StartupExtension.ConfigFileBuilder(<span style="color: #0000ff;">new</span>[] { <span style="color: #800000;">"</span><span style="color: #800000;">appsettings.json</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">appsettings.app.json</span><span style="color: #800000;">"</span><span style="color: #000000;"> }))
+</span><span style="color: #008000;">//</span><span style="color: #008000;">使用kestrel</span>
+    .UseKestrel((builder, option) =&gt;<span style="color: #000000;">
+    {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">主要是重写监听url</span>
+        <span style="color: #0000ff;">var</span> ports = <span style="color: #0000ff;">string</span><span style="color: #000000;">.Empty;</span><span style="color: #000000;">option.Listen(System.Net.IPAddress.Any, ports);</span></pre>
+<pre><code><span style="color: #000000;">}) .UseContentRoot(pathToContentRoot) .UseStartup</span>&lt;Startup&gt;()</pre>
+</div>
+<p>UseJsonFileConfig这个扩展是在IConfigurationBuilder里面使用AddConfiguration方法加配置文件的读取与监听，这个AddConfiguration方法是系统提供的。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;">config builder</span>
+builder.ConfigureAppConfiguration((h, g) =&gt;<span style="color: #000000;">
+{
+    </span><span style="color: #0000ff;">var</span> files = jsonConfigFiles?<span style="color: #000000;">.Invoke(h);
+    </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (files.IsNotNullOrEmpty())
+    {
+        </span><span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">var</span> file <span style="color: #0000ff;">in</span><span style="color: #000000;"> files)
+        {
+            </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (file.Exists)
+                g.AddConfiguration(</span><span style="color: #0000ff;">new</span> ConfigurationBuilder().SetBasePath(h.HostingEnvironment.ContentRootPath).AddJsonFile(file.FullName, <span style="color: #0000ff;">true</span>, <span style="color: #0000ff;">true</span><span style="color: #000000;">).Build());
+            </span><span style="color: #0000ff;">else</span>
+                <span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> System.IO.FileNotFoundException(<span style="color: #0000ff;">string</span>.Format(<span style="color: #800000;">"</span><span style="color: #800000;">找不到文件{0}</span><span style="color: #800000;">"</span><span style="color: #000000;">, file.FullName));
+        }
+    }
+});</span></pre>
+</div>
+<h2>host发现服务</h2>
+<p>由于有配置中心的存在，我们可以读取api里面的服务地址（也可以扩展为服务主动注册），但是我们并不知道该地址是否为可用的，于是我们就有必要做一个对地址的循环检查。我们约定请求服务地址里面的A10Url项，去请求这个A10Url的地址内容，如果返回是work内容的表明可使用，其他表示不可用。这个work内容可以由自己内容约定（可在ProxyRouteDispatcher构造函数里面传递），只是never下的deplyment约定请求的是a10路由是否可用。</p>
+<p><img src="./images/网关never_host设计2.png" alt="" /></p>
+<p>图中A10的健康异步检查，开户一个Timer或Thread定时去拿到服务地址信息元素A10Url的内容，只有返回了work表明该元素的ApiUrl是可用的。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;">读取服务地址，构造函数可以传递如何匹配A10Url内容的回调</span>
+<span style="color: #0000ff;">private</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> ProxyRouteDispatcher : DefaultApiRouteProvider
+{
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">readonly</span> IConfigReader configReader = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> ProxyRouteDispatcher(IConfigReader configReader)
+    {
+        </span><span style="color: #0000ff;">this</span>.configReader =<span style="color: #000000;"> configReader;
+    }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">override</span> IEnumerable&lt;ApiUrlA10Element&gt;<span style="color: #000000;"> ApiUrlA10Elements
+    {
+        </span><span style="color: #0000ff;">get</span><span style="color: #000000;">
+        {
+            </span><span style="color: #008000;">/*</span><span style="color: #008000;">读取AppA10:url:0，AppA10:url:.1这个配置信息，如下面的配置
+                * {
+                    "application": "true",
+                    "version": "1123",
+                    "AppA10": {
+                    "url": [ "</span><span style="color: #008000; text-decoration: underline;">http://127.0.0.1</span><span style="color: #008000;">:8081/", "</span><span style="color: #008000; text-decoration: underline;">http://127.0.0.1</span><span style="color: #008000;">:8081/" ],
+                    "ping": [ "</span><span style="color: #008000; text-decoration: underline;">http://127.0.0.1</span><span style="color: #008000;">:8081/a10", "</span><span style="color: #008000; text-decoration: underline;">http://127.0.0.1</span><span style="color: #008000;">:8081/a10" ]
+                    }
+                }
+                </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+        }
+    }
+}</span></pre>
+</div>
+<p>健康检查</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #808080;">///</span><span style="color: #008000;"> 路由中间件
+</span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #0000ff;">private</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> ProxyMiddlewear : IMiddleware
+{
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">readonly</span> AuthenticationService authenticationService = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">readonly</span> IApiUriDispatcher proxyRouteDispatcher = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> ProxyMiddlewear(AuthenticationService authenticationService, IConfigReader configReader)
+    {
+        </span><span style="color: #0000ff;">this</span>.authenticationService =<span style="color: #000000;"> authenticationService;
+        </span><span style="color: #0000ff;">var</span> provider = <span style="color: #0000ff;">new</span><span style="color: #000000;"> ProxyRouteDispatcher(configReader);
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">开户一个健康检查，表示60秒会检查一遍，检查地址为ProxyRouteDispatcher.ApiUrlA10Elements里面的A10Url</span>
+        <span style="color: #0000ff;">var</span> a10 = Never.Deployment.StartupExtension.StartReport().Startup(<span style="color: #800080;">60</span>, <span style="color: #0000ff;">new</span><span style="color: #000000;">[] { provider });
+        </span><span style="color: #0000ff;">this</span>.proxyRouteDispatcher = <span style="color: #0000ff;">new</span> ApiUriDispatcher&lt;IApiRouteProvider&gt;<span style="color: #000000;">(provider, a10);
+    }
+}</span></pre>
+</div>
+<h2>host转发路由</h2>
+<p>转发路由，要包含请求的querystring，header，以及body这三者信息。首先我们通过发现服务里面的<span style="color: #000000;">ProxyRouteDispatcher</span>对象我们可知道当前待转发的ApiUrl，<strong>存在2个以上ApiUrl我们就要使用策略去选择我们应该用哪一条，系统默认取条数[条数%请求Ascill码]</strong></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;">拿api地址，如果存在多条可用的api地址的话，则找出其中一条，这里还要结合限流等策略</span>
+<span style="color: #0000ff;">var</span> host = <span style="color: #0000ff;">new</span> HostString(<span style="color: #0000ff;">this</span>.proxyRouteDispatcher.GetCurrentUrlHost((context.Request.ContentLength.HasValue ? context.Request.ContentLength.Value : segments[<span style="color: #800080;">1</span><span style="color: #000000;">].GetHashCode()).ToString()));
+</span><span style="color: #0000ff;">var</span> url = UriHelper.BuildAbsolute(<span style="color: #800000;">"</span><span style="color: #800000;">http</span><span style="color: #800000;">"</span>, host, context.Request.PathBase, context.Request.Path, context.Request.QueryString, <span style="color: #0000ff;">default</span>(FragmentString));</pre>
+</div>
+<p>1、querystring&nbsp; 上面可以知道我们通过&rdquo;var url =&ldquo;代码知道整个url的完整地址</p>
+<p>2、header&nbsp; 我们可以将HttpContext.Request对象里面的Headers都加入到我们的请求中，当然，有些Header的key不一定全部都要，因此我们只选择了几个有用的放到了header</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;">客户端地址</span>
+<span style="color: #0000ff;">if</span> (context.Connection.RemoteIpAddress != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+{
+    headers[</span><span style="color: #800000;">"</span><span style="color: #800000;">ip</span><span style="color: #800000;">"</span>] =<span style="color: #000000;"> context.Connection.RemoteIpAddress.ToString();
+}
+</span><span style="color: #0000ff;">if</span> (context.Request.Headers != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+{
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">通过X-Real-IP，X-Forwarded-For等nginx传递过来的客户端ip地址</span>
+    headers[<span style="color: #800000;">"</span><span style="color: #800000;">ip</span><span style="color: #800000;">"</span>] =<span style="color: #000000;"> context.GetContextIP();
+}
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">查询身份认证，accesstoken不要传递到api，api根本不知道这个accesstoken是用来做什么的</span>
+<span style="color: #0000ff;">var</span> user = <span style="color: #0000ff;">this</span><span style="color: #000000;">.authenticationService.GetUser(context, token);
+</span><span style="color: #0000ff;">if</span> (user.HasValue &amp;&amp; user.Value &gt; <span style="color: #800080;">0</span><span style="color: #000000;">)
+{
+    headers[</span><span style="color: #800000;">"</span><span style="color: #800000;">userid</span><span style="color: #800000;">"</span>] =<span style="color: #000000;"> user.Value.ToString();
+}
+</span><span style="color: #008000;">//</span><span style="color: #008000;">查找platform关键信息</span>
+<span style="color: #0000ff;">if</span> (context.Request.Headers != <span style="color: #0000ff;">null</span> &amp;&amp; context.Request.Headers.Keys.Any(ta=&gt;ta.IsEquals(<span style="color: #800000;">"</span><span style="color: #800000;">platform</span><span style="color: #800000;">"</span><span style="color: #000000;">)))
+{
+    </span><span style="color: #0000ff;">var</span> value = context.Request.Headers[<span style="color: #800000;">"</span><span style="color: #800000;">platform</span><span style="color: #800000;">"</span><span style="color: #000000;">];
+    headers[</span><span style="color: #800000;">"</span><span style="color: #800000;">platform</span><span style="color: #800000;">"</span>] =<span style="color: #000000;"> value.ToString();
+}</span></pre>
+</div>
+<p>3、body 由于我们在这里对数据加了密，所以我们要对body进行解密处理，如果没有加密的，直接使用Context.Request.Body对象就可以了。下面的模拟post请求</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;">开始请求</span>
+<span style="color: #0000ff;">using</span> (<span style="color: #0000ff;">var</span> body = <span style="color: #0000ff;">this</span><span style="color: #000000;">.ConvertContentFromBodyByteArray(context, enctryptor))
+{
+    </span><span style="color: #0000ff;">using</span> (<span style="color: #0000ff;">var</span> method = <span style="color: #0000ff;">new</span> Never.Utils.MethodTickCount(<span style="color: #800000;">""</span><span style="color: #000000;">))
+    {
+        </span><span style="color: #0000ff;">var</span> task = <span style="color: #0000ff;">new</span> HttpRequestDownloader().PostString(<span style="color: #0000ff;">new</span> Uri(url), body, header, <span style="color: #800000;">"</span><span style="color: #800000;">application/json</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+        </span><span style="color: #0000ff;">var</span> content = task;<span style="color: #008000;">//</span><span style="color: #008000;"> task.GetAwaiter().GetResult();</span>
+        <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">.ConvertContentToBody(context, content, enctryptor);
+    }
+}</span></pre>
+</div>
+<p>body数据的加解密</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;">请求的body读取后进行3des解密</span>
+<span style="color: #0000ff;">private</span><span style="color: #000000;"> Stream ConvertContentFromBodyByteArray(HttpContext context, IContentEncryptor enctryptor)
+{
+    </span><span style="color: #0000ff;">using</span> (<span style="color: #0000ff;">var</span> st = <span style="color: #0000ff;">new</span><span style="color: #000000;"> MemoryStream())
+    {
+        context.Request.Body.CopyTo(st);
+        st.Position </span>= <span style="color: #800080;">0</span><span style="color: #000000;">;
+        </span><span style="color: #0000ff;">var</span> @byte =<span style="color: #000000;"> st.ToArray();
+        </span><span style="color: #0000ff;">return</span> enctryptor.Decrypt(@byte, <span style="color: #0000ff;">new</span>[] { <span style="color: #800000;">"</span><span style="color: #800000;">utf-8</span><span style="color: #800000;">"</span><span style="color: #000000;"> });
+    }
+}
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">请求回来的内容将进行3desc加密</span>
+<span style="color: #0000ff;">private</span> Task ConvertContentToBody(HttpContext context, <span style="color: #0000ff;">byte</span><span style="color: #000000;">[] content, IContentEncryptor enctryptor)
+{
+    </span><span style="color: #0000ff;">var</span> @byte =<span style="color: #000000;"> enctryptor.Encrypt(content);
+    </span><span style="color: #0000ff;">return</span> context.Response.Body.WriteAsync(@byte, <span style="color: #800080;">0</span><span style="color: #000000;">, @byte.Length);
+}
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">请求回来的内容将进行3desc加密</span>
+<span style="color: #0000ff;">private</span> Task ConvertContentToBody(HttpContext context, <span style="color: #0000ff;">string</span><span style="color: #000000;"> content, IContentEncryptor enctryptor)
+{
+    </span><span style="color: #0000ff;">var</span> @string =<span style="color: #000000;"> enctryptor.Encrypt(content);
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> context.Response.WriteAsync(@string);
+}</span></pre>
+</div>
+<p>有同学会问如果是get,delete等请求呢，这又怎么做？实际也很好做，我们用httpclient来当例子，喜欢的同学可以研究一下</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('32b47bef-8bb2-428d-8521-f2428eb08948')"><img id="code_img_closed_32b47bef-8bb2-428d-8521-f2428eb08948" class="code_img_closed" src="./images/网关never_host设计3.png" alt="" /><img id="code_img_opened_32b47bef-8bb2-428d-8521-f2428eb08948" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('32b47bef-8bb2-428d-8521-f2428eb08948',event)" src="./images/网关never_host设计4.png" alt="" />
+<div id="cnblogs_code_open_32b47bef-8bb2-428d-8521-f2428eb08948" class="cnblogs_code_hide">
+<pre><code><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #808080;">///</span><span style="color: #008000;"> 使用HTTPClient处理请求
+</span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #0000ff;">public</span><span style="color: #000000;"> Task ReverseInvokeAsync(HttpContext context, RequestDelegate next, ProxyRouteDispatcher dispatcher, Uri uri)
+{
+    </span><span style="color: #0000ff;">var</span> requestMessage = <span style="color: #0000ff;">new</span><span style="color: #000000;"> System.Net.Http.HttpRequestMessage()
+    {
+        RequestUri </span>=<span style="color: #000000;"> uri,
+        Method </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> System.Net.Http.HttpMethod(context.Request.Method),
+    };
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">没有body内容的请求</span>
+    <span style="color: #0000ff;">var</span> requestMethod =<span style="color: #000000;"> context.Request.Method;
+    </span><span style="color: #0000ff;">if</span> (!(HttpMethods.IsGet(requestMethod) || HttpMethods.IsHead(requestMethod) || HttpMethods.IsDelete(requestMethod) ||<span style="color: #000000;"> HttpMethods.IsTrace(requestMethod)))
+    {
+        </span><span style="color: #0000ff;">var</span> content = <span style="color: #0000ff;">new</span><span style="color: #000000;"> System.Net.Http.StreamContent(context.Request.Body);
+        requestMessage.Content </span>=<span style="color: #000000;"> content;
+    }
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">加入所有的header</span>
+    <span style="color: #0000ff;">if</span> (requestMessage.Content != <span style="color: #0000ff;">null</span> &amp;&amp; requestMessage.Content.Headers != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+    {
+        </span><span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">var</span> header <span style="color: #0000ff;">in</span><span style="color: #000000;"> context.Request.Headers)
+        {
+            requestMessage.Content.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray());
+        }
+    }
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">开始请求</span>
+    <span style="color: #0000ff;">using</span> (<span style="color: #0000ff;">var</span> httpClient = <span style="color: #0000ff;">new</span> System.Net.Http.HttpClient(<span style="color: #0000ff;">new</span> System.Net.Http.HttpClientHandler() { AutomaticDecompression =<span style="color: #000000;"> System.Net.DecompressionMethods.GZip }) { })
+    </span><span style="color: #0000ff;">using</span> (<span style="color: #0000ff;">var</span> responseMessage =<span style="color: #000000;"> httpClient.SendAsync(requestMessage, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, context.RequestAborted).GetAwaiter().GetResult())
+    {
+        context.Response.StatusCode </span>= (<span style="color: #0000ff;">int</span><span style="color: #000000;">)responseMessage.StatusCode;
+        </span><span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">var</span> header <span style="color: #0000ff;">in</span><span style="color: #000000;"> responseMessage.Headers)
+            context.Response.Headers[header.Key] </span>=<span style="color: #000000;"> header.Value.ToArray();
+
+        </span><span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">var</span> header <span style="color: #0000ff;">in</span><span style="color: #000000;"> responseMessage.Content.Headers)
+            context.Response.Headers[header.Key] </span>=<span style="color: #000000;"> header.Value.ToArray();
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">表示输出的内容长度不能确定</span>
+        context.Response.Headers.Remove(<span style="color: #800000;">"</span><span style="color: #800000;">transfer-encoding</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">copy到body里面去了</span>
+<span style="color: #000000;">        responseMessage.Content.CopyToAsync(context.Response.Body);
+    }
+
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> Task.CompletedTask;
+}</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<h2>host的身份认证</h2>
+<p>在使用netcore做demo。先回顾我们上面说到的&ldquo;集成identity service&rdquo;，同时我们要自问一下什么身份认证？是跟鉴权一样的功能？基本上扯上鉴权，又要说到权限，而权限的理解，做CRM的同学会比较清楚。而传统鉴权基本流程就是如下</p>
+<p><img src="./images/网关never_host设计5.png" alt="" /></p>
+<p>上面是传的鉴权流程；</p>
+<p>（1）对于AccessToken的使用还是比较简单的，只要验证这个AccessToken是否合法便行，合法的条件如下：该AccessToken是本程序生成的，不能使用别的程序生成，AccessToken可以在本程序内找到，比如使用memcached技术实现，当前我们的程序还加了特比的条件：AccessToken可以加解密。如下面的代码</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #808080;">///</span><span style="color: #008000;"> 获取从header中Token
+</span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="context"&gt;&lt;/param&gt;</span>
+<span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+<span style="color: #0000ff;">public</span><span style="color: #000000;"> Token GetToken(HttpContext context)
+{
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">查询accesstoken</span>
+    <span style="color: #0000ff;">var</span> token = context.Request.Headers.ContainsKey(<span style="color: #800000;">"</span><span style="color: #800000;">accesstoken</span><span style="color: #800000;">"</span>) ? context.Request.Headers[<span style="color: #800000;">"</span><span style="color: #800000;">accesstoken</span><span style="color: #800000;">"</span>].FirstOrDefault() : <span style="color: #0000ff;">string</span><span style="color: #000000;">.Empty;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">空的话返回默认的token</span>
+    <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">string</span><span style="color: #000000;">.IsNullOrEmpty(token))
+    {
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span> Token() { CryptToken = <span style="color: #800000;">"</span><span style="color: #800000;">56dc54a07f3d15a400000155</span><span style="color: #800000;">"</span><span style="color: #000000;"> };
+    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">尝试对accesstoken使用加解密</span>
+    <span style="color: #0000ff;">try</span><span style="color: #000000;">
+    {
+        </span><span style="color: #0000ff;">var</span> splits = token.From3DES(<span style="color: #800000;">"</span><span style="color: #800000;">56dc54a07f3d15a400000155</span><span style="color: #800000;">"</span>).Split(<span style="color: #800000;">'</span><span style="color: #800000;">|</span><span style="color: #800000;">'</span><span style="color: #000000;">);
+        </span><span style="color: #0000ff;">if</span> (splits != <span style="color: #0000ff;">null</span> &amp;&amp; splits.Length == <span style="color: #800080;">2</span><span style="color: #000000;">)
+        {
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> Token()
+            {
+                AccessToken </span>=<span style="color: #000000;"> token,
+                CryptToken </span>= splits[<span style="color: #800080;">0</span><span style="color: #000000;">],
+                UserToken </span>= splits[<span style="color: #800080;">1</span><span style="color: #000000;">]
+            };
+        }
+    }
+    </span><span style="color: #0000ff;">catch</span><span style="color: #000000;">
+    {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">异常的话返回默认的token</span>
+        <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span> Token() { CryptToken = <span style="color: #800000;">"</span><span style="color: #800000;">56dc54a07f3d15a400000155</span><span style="color: #800000;">"</span><span style="color: #000000;"> };
+    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">空的话返回默认的token</span>
+    <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span> Token() { CryptToken = <span style="color: #800000;">"</span><span style="color: #800000;">56dc54a07f3d15a400000155</span><span style="color: #800000;">"</span><span style="color: #000000;"> };
+}</span></pre>
+</div>
+<p>（2）这个AccessToken是怎么生成的？这必然要求用户先登陆了才可以生成。用户登陆，是不是意味着要输入账号与密码信息，要求后端提供的这个login接口服务，如果这个host是承载多个业务api的，不同的业务api有不同的host，AccessToken怎么根据业务api生成不同的标识，系统A的AccessToken是否可用在系统B？这样是否会出现串号？</p>
+<p>引发这样的一系列问题，我们首先确定这个host是否承载多个业务api？如果是承载多种业务api，那么必然要求所有的生成AccessToken是符合当前host程序的要求的：</p>
+<ul>
+<li>多种业务api不可能说我要根据你当前使用的技术去生成AccessToken吧，这样你后面一改这种host技术那我们的业务api岂不是全部都要改，造成天下大乱了；因此如果业务api生成Token的就要求host要使用业务api的一些标准：不能修改Token。假如我想实现对数据加解密，这是否意味着加解密的算法只能放在业务api那里了？不可能说我整个服务提供了AccessToken又提供了SecurityToken给到客户端吧，要解决这个方面，我们设定有2种方案：放在host那里，则host要求业务api在生成这个AccessToken的时候加上加解密的信息；放在api那里生成，如果host处理报文，这样好明显与单一设计原则违背，整个加解密应该是个统一方案，不可能说业务api提供一半实现而host又要提供一半实现；如果api处理报文，报文的复杂度，加密的服务等整个业务api做成了功能太大太多的膨胀方式，即便这种问题是可以通过aop+中间件去处理，至少业务api做加解密的时候开发调试找bug难度加大，报文服务配置文件也会到处都存在，同时还有鉴权的问题去解决呢。这样有没有人想过为什么要分host与api2个项目？</li>
+<li>当前host程序如果提供了login服务，那么后面每加一种服务，这个host就要重新更新，最后会造成类似单点故障的问题了，并且host不能涉及具体业务的代码处理。所以明确了这个host只能为某种业务api提供服务，不能承接多种业务api服务</li>
+<li>程序host不提供login服务接口，而业务api又不能生成AccessToken，那么可以分解为：api提供login服务，host提供生成AccessToken，那么就要解决host什么时候生成AccessToken了，所以host与api应该有一定的契约约定</li>
+</ul>
+<p>当业务api提供了login服务接口后<strong>，我们的host转发的时候要知道这个路由等下是要生成AccessToken的，</strong>这样当login服务接口返回了正确的验证信息后，host就生成AccessToken了</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;">host与api约定处理方案生成的AccessToken</span>
+<span style="color: #0000ff;">using</span> (<span style="color: #0000ff;">var</span> body = <span style="color: #0000ff;">this</span><span style="color: #000000;">.ConvertContentFromBodyByteArray(context, enctryptor))
+{
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">注册与登陆，由于在这里做identity servie</span>
+    <span style="color: #0000ff;">switch</span> (segments[<span style="color: #800080;">2</span><span style="color: #000000;">])
+    {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">注册</span>
+        <span style="color: #0000ff;">case</span> <span style="color: #800000;">"</span><span style="color: #800000;">Register</span><span style="color: #800000;">"</span><span style="color: #000000;">:
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">登陆</span>
+        <span style="color: #0000ff;">case</span> <span style="color: #800000;">"</span><span style="color: #800000;">Login</span><span style="color: #800000;">"</span><span style="color: #000000;">:
+            {
+                </span><span style="color: #0000ff;">var</span> loginTask = <span style="color: #0000ff;">new</span> HttpRequestDownloader().PostString(<span style="color: #0000ff;">new</span> Uri(url), body, header, <span style="color: #800000;">"</span><span style="color: #800000;">application/json</span><span style="color: #800000;">"</span>, <span style="color: #800080;">0</span><span style="color: #000000;">);
+                </span><span style="color: #0000ff;">var</span> loginContent =<span style="color: #000000;"> loginTask;
+                </span><span style="color: #0000ff;">var</span> target = EasyJsonSerializer.Deserialize&lt;Never.Web.WebApi.Controllers.BasicController.ResponseResult&lt;UserIdToken&gt;&gt;<span style="color: #000000;">(loginContent);
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">验证成功，此时要生成AccessToken信息</span>
+                <span style="color: #0000ff;">if</span> (target != <span style="color: #0000ff;">null</span> &amp;&amp; target.Code == <span style="color: #800000;">"</span><span style="color: #800000;">0000</span><span style="color: #800000;">"</span> &amp;&amp; target.Data.UserId &gt; <span style="color: #800080;">0</span><span style="color: #000000;">)
+                {
+                    </span><span style="color: #0000ff;">var</span> token2 = <span style="color: #0000ff;">this</span><span style="color: #000000;">.authenticationService.SignIn(context, target.Data.UserId).GetAwaiter().GetResult();
+                    </span><span style="color: #0000ff;">var</span> appresult = <span style="color: #0000ff;">new</span> Never.Web.WebApi.Controllers.BasicController.ResponseResult&lt;AppToken&gt;(target.Code, <span style="color: #0000ff;">new</span> AppToken { @accesstoken =<span style="color: #000000;"> token2.AccessToken }, target.Message);
+                    </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">.ConvertContentToBody(context, EasyJsonSerializer.Serialize(appresult), enctryptor);
+                }
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">验证不成功，返回验证信息</span>
+                <span style="color: #0000ff;">var</span> appresult2 = <span style="color: #0000ff;">new</span> Never.Web.WebApi.Controllers.BasicController.ResponseResult&lt;AppToken&gt;(target.Code, <span style="color: #0000ff;">new</span> AppToken { @accesstoken = <span style="color: #0000ff;">string</span><span style="color: #000000;">.Empty }, target.Message);
+                </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">.ConvertContentToBody(context, EasyJsonSerializer.Serialize(appresult2), enctryptor);
+            }
+    }
+}</span></pre>
+</div>
+<p>AccessToken是用户身份标识，这里都已经可以拿到了用户了，想要实现传统的鉴权，应该不难了吧。</p>
+<p>上面用的路由方式去表述了host与api之间的约定，还有很多方案的，举个栗子：api在登陆与注册的处理中在header返回个标识，或者返回个特定的status。</p>
+<h2>host的限流</h2>
+<p>从上面我们可以拿到了apiurl元素，每个apiurl正在处理的请求有多少都是可以统计出来的，只要这个统计数达到限流后便可以达到限流作用。当然限流目前会有2种处理方式：等待，放弃。</p>
+<p>1、放弃 通常我们不要先选择放弃，我们可以尝试使用其他的api，因为上面说到"首先我们通过发现服务里面的<span style="color: #000000;">ProxyRouteDispatcher对象我们可知道当前待转发的ApiUrl，存在2个以上的我们就要使用策略去选择我们应该用哪一条</span>"，所以应该尽可能遍历所有可用的ApiUrl，实在找不到可用的再放弃，response直接返回，比如返回503。</p>
+<p>2、等待，可以使用让重试，线程睡眠，自旋等技术，感兴趣的去看看文章：<a href="https://www.cnblogs.com/raoshaoquan/articles/6636067.html" target="_blank">熔断，限流，降级</a></p>
+<p><strong>程序中没有做限流技术，目前最快也只是加载放弃，重试几次手段。</strong></p>
+<h2><strong>关于集群<br /></strong></h2>
+<p>大家可以发现这里的没有集群信息的，由于host对api有健康检查，集群不会放到api；配置中心又会做心跳与重连接，host有可能挂，因此集群应该是放到host + 配置中心。我们后面可以尝试实现一些，期待后面的更新吧！</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

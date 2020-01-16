@@ -1,0 +1,143 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修WeihanLi.Npoi 1.7.0 更新' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>WeihanLi.Npoi 1.7.0 更新</center></div><div class='banquan'>原文出处:本文由博客园博主WeihanLi提供。<br/>
+原文连接:https://www.cnblogs.com/weihanli/p/weihanli-npoi-1_7_0_Released.html</div><br>
+    <h1 id="weihanli.npoi-1.7.0-更新介绍">WeihanLi.Npoi 1.7.0 更新介绍</h1>
+<h2 id="intro">Intro</h2>
+<p>昨天晚上发布了 WeihanLi.Npoi 1.7.0 版本，增加了 <code>ColumnInputFormatter</code>/<code>ColumnOutputFormatter</code>，又进一步增强了导入导出的灵活性，来看下面的示例</p>
+<h2 id="columninputformattercolumnoutputformatter">ColumnInputFormatter/ColumnOutputFormatter</h2>
+<p>示例 Model:</p>
+<pre><code><code>internal abstract class BaseEntity
+{
+    public int PKID { get; set; }
+}
+
+internal class TestEntity : BaseEntity
+{
+    public Guid SettingId { get; set; }
+
+    public string SettingName { get; set; }
+
+    public string DisplayName { get; set; }
+    public string SettingValue { get; set; }
+
+    public string CreatedBy { get; set; } = &quot;liweihan&quot;;
+
+    public DateTime CreatedTime { get; set; } = DateTime.Now;
+
+    public string UpdatedBy { get; set; }
+
+    public DateTime UpdatedTime { get; set; }
+
+    public bool Enabled { get; set; }
+}
+</code></pre>
+<p>示例配置：</p>
+<pre><code><code>var setting = ExcelHelper.SettingFor&lt;TestEntity&gt;();
+// ExcelSetting
+setting.HasAuthor(&quot;WeihanLi&quot;)
+    .HasTitle(&quot;WeihanLi.Npoi test&quot;)
+    .HasDescription(&quot;WeihanLi.Npoi test&quot;)
+    .HasSubject(&quot;WeihanLi.Npoi test&quot;);
+
+setting.HasSheetConfiguration(0, &quot;SystemSettingsList&quot;, 1, true);
+
+// setting.HasFilter(0, 1).HasFreezePane(0, 1, 2, 1);
+
+setting.Property(_ =&gt; _.SettingId)
+    .HasColumnIndex(0);
+
+setting.Property(_ =&gt; _.SettingName)
+    .HasColumnTitle(&quot;SettingName&quot;)
+    .HasColumnIndex(1);
+
+setting.Property(_ =&gt; _.DisplayName)
+    .HasOutputFormatter((entity, displayName) =&gt; $&quot;AAA_{entity.SettingName}_{displayName}&quot;)
+    .HasInputFormatter((entity, originVal) =&gt; originVal.Split(new[] { &#39;_&#39; })[2])
+    .HasColumnTitle(&quot;DisplayName&quot;)
+    .HasColumnIndex(2);
+
+setting.Property(_ =&gt; _.SettingValue)
+    .HasColumnTitle(&quot;SettingValue&quot;)
+    .HasColumnIndex(3);
+
+setting.Property(_ =&gt; _.CreatedTime)
+    .HasColumnTitle(&quot;CreatedTime&quot;)
+    .HasColumnIndex(4)
+    .HasColumnWidth(10)
+    .HasColumnFormatter(&quot;yyyy-MM-dd HH:mm:ss&quot;);
+
+setting.Property(_ =&gt; _.CreatedBy)
+    .HasColumnInputFormatter(x =&gt; x += &quot;_test&quot;)
+    .HasColumnIndex(4)
+    .HasColumnTitle(&quot;CreatedBy&quot;);
+
+setting.Property(x =&gt; x.Enabled)
+    .HasColumnInputFormatter(val =&gt; &quot;启用&quot;.Equals(val))
+    .HasColumnOutputFormatter(v =&gt; v ? &quot;启用&quot; : &quot;禁用&quot;);
+
+setting.Property(&quot;HiddenProp&quot;)
+    .HasOutputFormatter((entity, val) =&gt; $&quot;HiddenProp_{entity.PKID}&quot;);
+
+setting.Property(_ =&gt; _.PKID).Ignored();
+setting.Property(_ =&gt; _.UpdatedBy).Ignored();
+setting.Property(_ =&gt; _.UpdatedTime).Ignored();</code></pre>
+<p>测试代码：</p>
+<pre><code><code>var entities = new List&lt;TestEntity&gt;()
+{
+    new TestEntity()
+    {
+        PKID = 1,
+        SettingId = Guid.NewGuid(),
+        SettingName = &quot;Setting1&quot;,
+        SettingValue = &quot;Value1&quot;,
+        DisplayName = &quot;ddd1&quot;
+    },
+    new TestEntity()
+    {
+        PKID=2,
+        SettingId = Guid.NewGuid(),
+        SettingName = &quot;Setting2&quot;,
+        SettingValue = &quot;Value2&quot;,
+        Enabled = true
+    },
+};
+var path = $@&quot;{tempDirPath}\test.xlsx&quot;;
+entities.ToExcelFile(path);
+var entitiesT0 = ExcelHelper.ToEntityList&lt;TestEntity&gt;(path);</code></pre>
+<p>导出结果：</p>
+<p><img src="./images/WeihanLi.Npoi 1.7.0 更新0.png" /></p>
+<p>导入结果：</p>
+<p><img src="./images/WeihanLi.Npoi 1.7.0 更新1.png" /></p>
+<p><img src="./images/WeihanLi.Npoi 1.7.0 更新2.png" /></p>
+<h2 id="more">More</h2>
+<p>新版本发布，快来尝鲜吧~</p>
+<p><code>ColumnInputFormatter</code> 结合之前的 <code>InputFormatter</code>/<code>OutputFormatter</code> 能够帮助你更灵活的导入导出，快来试试吧~~</p>
+<h2 id="reference">Reference</h2>
+<ul>
+<li><a href="https://github.com/WeihanLi/WeihanLi.Npoi" class="uri">https://github.com/WeihanLi/WeihanLi.Npoi</a></li>
+<li><a href="https://github.com/WeihanLi/WeihanLi.Npoi/blob/dev/samples/DotNetCoreSample/Program.cs" class="uri">https://github.com/WeihanLi/WeihanLi.Npoi/blob/dev/samples/DotNetCoreSample/Program.cs</a></li>
+<li><a href="https://www.nuget.org/packages/WeihanLi.Npoi/" class="uri">https://www.nuget.org/packages/WeihanLi.Npoi/</a></li>
+</ul>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

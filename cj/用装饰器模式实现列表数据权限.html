@@ -1,0 +1,188 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修用装饰器模式实现列表数据权限' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>用装饰器模式实现列表数据权限</center></div><div class='banquan'>原文出处:本文由博客园博主Weisskunig提供。<br/>
+原文连接:https://www.cnblogs.com/lws66/p/11186560.html</div><br>
+    <p>最近一直在重构系统，看到我们原来的代码里，对于数据权限的实现居然是在查询语句里写死的。</p>
+<p>正感慨这祖传代码怎么这么坑，领导就让我重新设计权限模块。这....</p>
+<p>好吧，反正都在重构代码，直接推翻重来也不算填坑。</p>
+<p>&nbsp;</p>
+<p>先开始梳理需求，所谓&ldquo;数据权限&rdquo;，即经过普通的菜单、按钮权限后，对用户能获取到的数据再进行一次权限校验。只显示用户有权限访问的数据。</p>
+<p>经过一番思考我总结出了这个功能的几个要点：</p>
+<p>1.权限针对用户能看到的数据（看不到也就无从操作了），这些数据的来源都是<span style="color: #ff0000;"><strong>列表查询</strong></span>。</p>
+<p>2.这些列表查询都含有<span style="color: #ff0000;"><strong>需要校验权限的字段</strong></span>。</p>
+<p>3.同一种需要校验权限的字段存在<strong><span style="color: #ff0000;">不同的权限校验方式</span></strong>。<strong><span style="color: #ff0000;"><br /></span></strong></p>
+<p>分析完需求，我马上想到了设计模式里的装饰器模式。</p>
+<p>什么是装饰器模式？</p>
+<p>装饰器模式就是当你要给一个对象&ldquo;穿衣服&rdquo;时，把衣服封装起来。穿衣服的类不需要关心&ldquo;衣服&rdquo;的实现，只管穿。</p>
+<p>这样一来就可以在不修改类的情况下随意增加或者重新设计&ldquo;衣服&rdquo;种类。</p>
+<p>代入我们的场景，装饰器模式的实现就变成了这样：</p>
+<p>我的query需要经过权限校验筛选出更少的数据，我们把权限校验筛选的操作封装起来，再设计一个校验引擎之类的方法来给query选择该如何校验。这样一来原来写好的query不需要改变。</p>
+<p>query不需要改变是最关键的。整个系统那么多列表查询，如果权限改变了就全都要修改（如原来的那种写法），那简直是灾难。</p>
+<p>&nbsp;</p>
+<p>简单了解了什么是装饰器模式之后，我们再做一些准备工作就可以开始写装饰器了。</p>
+<p>准备工作就是给我们的query写一个接口，配合泛型使用，让装饰器知道传进来的query一定含有<span style="color: #ff0000;"><strong>需要校验权限的字段</strong></span>。</p>
+<div class="cnblogs_code">
+<pre><code>    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">interface</span><span style="color: #000000;"> IAuthorityEntity
+    {
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;">  管理部门
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span><span style="color: #0000ff;">string</span> MaintainDept { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+     ｝</span></pre>
+</div>
+<p>有了这个接口，我们现在可以开始动手写装饰器了，首先我们定义一个装饰器接口：</p>
+<p>这里使用泛型约束规定传进来的query必须实现我们刚才定义的IAuthorityEntiy接口。</p>
+<p>所有的装饰器都必须实现Filter方法，我们通过这个方法来将不满足权限的数据过滤掉。</p>
+<div class="cnblogs_code">
+<pre><code>    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">interface</span> IAuthorityComponent&lt;T&gt; <span style="color: #0000ff;">where</span> T : <span style="color: #0000ff;">class</span><span style="color: #000000;">,IAuthorityEntity
+    {
+        IQueryable</span>&lt;T&gt; Filter(IQueryable&lt;T&gt; query,<span style="color: #0000ff;">string</span><span style="color: #000000;"> key);
+    }</span></pre>
+</div>
+<p>所有装饰器要实现这个接口，这样我们的校验引擎可以通过依赖注入的方式来获取不同的装饰器实现。</p>
+<p>接下来我们先简单实现几个基于部门筛选的装饰器：</p>
+<div class="cnblogs_code">
+<pre><code>    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">abstract</span> <span style="color: #0000ff;">class</span> AbstractDepartmentFilter&lt;T&gt; : IAuthorityComponent&lt;T&gt; <span style="color: #0000ff;">where</span> T : <span style="color: #0000ff;">class</span><span style="color: #000000;">,IAuthorityEntity
+    {
+        </span><span style="color: #0000ff;">protected</span><span style="color: #000000;"> IOrganizationBLL organizationBLL;
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">virtual</span> IQueryable&lt;T&gt; Filter(IQueryable&lt;T&gt; query, <span style="color: #0000ff;">string</span><span style="color: #000000;"> departmentID)
+        {
+            query </span>= query.Where(f =&gt;<span style="color: #000000;"> f.MaintainDept.Contains(departmentID));
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> query;
+        }
+    }
+
+    </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+    <span style="color: #808080;">///</span><span style="color: #008000;"> 本部门
+    </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> DepartmentFilter&lt;T&gt; : AbstractDepartmentFilter&lt;T&gt; <span style="color: #0000ff;">where</span> T : <span style="color: #0000ff;">class</span><span style="color: #000000;">, IAuthorityEntity
+    {
+    }
+
+    </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+    <span style="color: #808080;">///</span><span style="color: #008000;"> 指定部门
+    </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> DesignatedDepartmentFilter&lt;T&gt; : AbstractDepartmentFilter&lt;T&gt; <span style="color: #0000ff;">where</span> T : <span style="color: #0000ff;">class</span><span style="color: #000000;">, IAuthorityEntity
+    {
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">override</span> IQueryable&lt;T&gt; Filter(IQueryable&lt;T&gt; query, <span style="color: #0000ff;">string</span><span style="color: #000000;"> deptID)
+        {
+            </span><span style="color: #0000ff;">if</span> (!<span style="color: #0000ff;">string</span><span style="color: #000000;">.IsNullOrWhiteSpace(deptID))
+            {
+                </span><span style="color: #0000ff;">var</span> keys = deptID.Split(<span style="color: #800000;">'</span><span style="color: #800000;">,</span><span style="color: #800000;">'</span><span style="color: #000000;">);
+                query </span>= query.Where(f =&gt;<span style="color: #000000;"> keys.Contains(f.MaintainDept));
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> query;
+            }
+            </span><span style="color: #0000ff;">return</span> query.Where(f =&gt; <span style="color: #0000ff;">false</span><span style="color: #000000;">);
+        }
+    }
+
+    </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+    <span style="color: #808080;">///</span><span style="color: #008000;"> 本部门及子部门
+    </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> DepartmentAndChildDepartmentFilter&lt;T&gt; : AbstractDepartmentFilter&lt;T&gt; <span style="color: #0000ff;">where</span> T : <span style="color: #0000ff;">class</span><span style="color: #000000;">, IAuthorityEntity
+    {
+        ......</span><span style="color: #000000;">
+    }</span></pre>
+</div>
+<p>好了，有了这些装饰器，我们可以开始写引擎来装饰query了。</p>
+<p>也是一样先来个接口和抽象类：</p>
+<div class="cnblogs_code">
+<pre><code>    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">interface</span> IAuthority&lt;T&gt; <span style="color: #0000ff;">where</span> T : <span style="color: #0000ff;">class</span><span style="color: #000000;">, IAuthorityEntity
+    {
+        IQueryable</span>&lt;T&gt; AuthorityFilter(IQueryable&lt;T&gt; query, EnumAccessScope accessScope, <span style="color: #0000ff;">string</span><span style="color: #000000;"> key);
+    }</span></pre>
+</div>
+<div class="cnblogs_code">
+<pre><code>    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">abstract</span> <span style="color: #0000ff;">class</span> AbstractAuthority&lt;T&gt; : IAuthority&lt;T&gt; <span style="color: #0000ff;">where</span> T : <span style="color: #0000ff;">class</span><span style="color: #000000;">, IAuthorityEntity
+    {
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">virtual</span> IQueryable&lt;T&gt; AuthorityFilter(IQueryable&lt;T&gt; query, EnumAccessScope accessScope, <span style="color: #0000ff;">string</span><span style="color: #000000;"> key)
+        {
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> AuthorityCore(query, accessScope, key);
+        }
+
+        </span><span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">virtual</span> IQueryable&lt;T&gt; AuthorityCore(IQueryable&lt;T&gt; query, EnumAccessScope accessScope, <span style="color: #0000ff;">string</span><span style="color: #000000;"> key)
+        {
+            </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> ExecutionException(<span style="color: #800000;">"</span><span style="color: #800000;">该方法未实现</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+        }
+    }</span></pre>
+</div>
+<p>接下来实现一个基于部门校验的引擎：</p>
+<div class="cnblogs_code">
+<pre><code>    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> DepartmentAuthority&lt;T&gt; : AbstractAuthority&lt;T&gt; <span style="color: #0000ff;">where</span> T : <span style="color: #0000ff;">class</span><span style="color: #000000;">, IAuthorityEntity
+    {
+        IOrganizationBLL organizationBLL;
+
+        </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> DepartmentAuthority(IOrganizationBLL organizationBLL)
+        {
+            </span><span style="color: #0000ff;">this</span>.organizationBLL =<span style="color: #000000;"> organizationBLL;
+        }
+
+        </span><span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">override</span> IQueryable&lt;T&gt; AuthorityCore(IQueryable&lt;T&gt; query, EnumAccessScope accessScope, <span style="color: #0000ff;">string</span><span style="color: #000000;"> key)
+        {
+            </span><span style="color: #0000ff;">var</span> deptQuery =<span style="color: #000000;"> query;
+            </span><span style="color: #0000ff;">switch</span><span style="color: #000000;"> (accessScope)
+            {
+                </span><span style="color: #0000ff;">case</span> EnumAccessScope.All: { <span style="color: #0000ff;">break</span><span style="color: #000000;">; }
+                </span><span style="color: #0000ff;">case</span><span style="color: #000000;"> EnumAccessScope.Department:
+                    {
+                        query </span>= <span style="color: #0000ff;">new</span> DepartmentFilter&lt;T&gt;<span style="color: #000000;">().Filter(deptQuery, key);
+                        </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+                    }
+                </span><span style="color: #0000ff;">case</span><span style="color: #000000;"> EnumAccessScope.DepartmentAndChildDepartment:
+                    {
+                        query </span>= <span style="color: #0000ff;">new</span> DepartmentAndChildDepartmentFilter&lt;T&gt;<span style="color: #000000;">(organizationBLL).Filter(deptQuery, key);
+                        </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+                    }
+                </span><span style="color: #0000ff;">case</span><span style="color: #000000;"> EnumAccessScope.DesignatedDepartment:
+                    {
+                        query </span>= <span style="color: #0000ff;">new</span> DesignatedDepartmentFilter&lt;T&gt;<span style="color: #000000;">().Filter(deptQuery, key);
+                        </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+                    }
+                </span><span style="color: #0000ff;">default</span>: { <span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> Exception(<span style="color: #800000;">"</span><span style="color: #800000;">权限读取错误</span><span style="color: #800000;">"</span><span style="color: #000000;">); }
+            }
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> query;
+        }
+    }</span></pre>
+</div>
+<p>如果以后新增了一个权限是需要用到不止一种判断（如指定部门+本部门），在case里多调一个或多个Filter即可实现&ldquo;套餐&rdquo;权限。</p>
+<p>&nbsp;</p>
+<p>写完引擎之后，接下来就是在外面调用时选择适合自己的权限套餐了：</p>
+<p>这里跟我们系统的业务代码相关性比较高，我就把一些逻辑省略了。</p>
+<p>大体思路是注入合适版本的权限引擎，然后将query,权限和参数（如指定的部门ID）传入引擎。</p>
+<div class="cnblogs_code">
+<pre><code>        <span style="color: #0000ff;">protected</span> IQueryable&lt;T&gt; Authority&lt;T&gt;(IQueryable&lt;T&gt; query, <span style="color: #0000ff;">string</span> controllerName) <span style="color: #0000ff;">where</span> T : <span style="color: #0000ff;">class</span><span style="color: #000000;">, IAuthorityEntity
+        {
+            </span><span style="color: #0000ff;">var</span> factoryKey = <span style="color: #0000ff;">string</span><span style="color: #000000;">.Empty;
+            </span><span style="color: #0000ff;">var</span> accessScope = <span style="color: #800080;">0</span><span style="color: #000000;">;
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">具体的权限获取和判断逻辑省略
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">这里使用autofac来注入权限引擎</span>
+            <span style="color: #0000ff;">var</span> factory = AutofacConfig.container.Resolve&lt;AuthorityFactory&lt;T&gt;&gt;<span style="color: #000000;">();
+            </span><span style="color: #0000ff;">var</span> authority =<span style="color: #000000;"> factory.Classes[factoryKey];
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> authority.AuthorityFilter(query, accessScope, key);
+        }</span></pre>
+</div>
+<p>到这里代码其实已经写完了。</p>
+<p>感兴趣的朋友们可以想想如果要添加一个基于用户校验要怎么写代码。</p>
+<p>&nbsp;</p>
+<p>如果有更好的写法欢迎各位大神交流讨论。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,297 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C#线程学习笔记十：async &amp; await入门三' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C#线程学习笔记十：async &amp; await入门三</center></div><div class='banquan'>原文出处:本文由博客园博主缥缈的尘埃提供。<br/>
+原文连接:https://www.cnblogs.com/atomy/p/12052082.html</div><br>
+    <p>&nbsp; &nbsp; <strong>一、Task.Yield</strong></p>
+<p>&nbsp; &nbsp;&nbsp;Task.Yield简单来说就是创建时就已经完成的Task，或者说执行时间为0的Task，或者说是空任务，也就是在创建时就将Task的IsCompeted值设置为0。</p>
+<p>&nbsp; &nbsp; 我们知道await的Task完成时会释放线程，然后从线程池中申请新的线程继续执行await之后的代码，那产生的空任务又意义何在呢？</p>
+<p>&nbsp; &nbsp; 事实上，Task.Yield产生的空任务仅仅是借await做嫁衣来达到线程切换的目的，即让await之后的操作重新去线程池排队申请新线程来继续执行。</p>
+<p>&nbsp; &nbsp; 这样一来，假如有一个优先级低但执行时间长的任务，可以将它拆分成多个小任务，每个小任务执行完成后就重新去线程池中排队申请新线程来执行</p>
+<p>下一个小任务，这样任务就不会一直霸占着某个线程了（出让执行权），让别的优先急高或执行时间短的任务可以去执行，而不是干瞪眼着急。</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('e9681af0-93bd-43a7-83a5-b2bb0a4ed774')"><img id="code_img_closed_e9681af0-93bd-43a7-83a5-b2bb0a4ed774" class="code_img_closed" src="./images/C#线程学习笔记十：async &amp; await入门三0.png" alt="" /><img id="code_img_opened_e9681af0-93bd-43a7-83a5-b2bb0a4ed774" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('e9681af0-93bd-43a7-83a5-b2bb0a4ed774',event)" src="./images/C#线程学习笔记十：async &amp; await入门三1.png" alt="" />
+<div id="cnblogs_code_open_e9681af0-93bd-43a7-83a5-b2bb0a4ed774" class="cnblogs_code_hide">
+<pre><code>    <span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            </span><span style="color: #0000ff;">#region</span> async &amp; await入门三之Task.Yield 
+            <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">int</span> num = <span style="color: #800080;">10000</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">var</span> task =<span style="color: #000000;"> YieldPerTimes(num);
+
+            </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; <span style="color: #800080;">10</span>; i++<span style="color: #000000;">)
+            {
+                Task.Factory.StartNew(n </span>=&gt; Loop((<span style="color: #0000ff;">int</span>)n), num / <span style="color: #800080;">10</span><span style="color: #000000;">);
+            }
+
+            Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">Sum: {task.Result}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            Console.Read();
+            </span><span style="color: #0000ff;">#endregion</span><span style="color: #000000;">
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 循环
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="num"&gt;&lt;/param&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Loop(<span style="color: #0000ff;">int</span><span style="color: #000000;"> num)
+        {
+            </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> i = <span style="color: #800080;">0</span>; i &lt; num; i++<span style="color: #000000;">) ;
+            Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">Loop-&gt;Current thread id is:{Thread.CurrentThread.ManagedThreadId}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            Thread.Sleep(</span><span style="color: #800080;">10</span><span style="color: #000000;">);
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 分批出让执行权
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="times"&gt;&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">async</span> Task&lt;<span style="color: #0000ff;">int</span>&gt; YieldPerTimes(<span style="color: #0000ff;">int</span><span style="color: #000000;"> num)
+        {
+            </span><span style="color: #0000ff;">var</span> sum = <span style="color: #800080;">0</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">1</span>; i &lt;= num; i++<span style="color: #000000;">)
+            {
+                sum </span>+=<span style="color: #000000;"> i;
+                </span><span style="color: #0000ff;">if</span> (i % <span style="color: #800080;">1000</span> == <span style="color: #800080;">0</span><span style="color: #000000;">)
+                {
+                    Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">Yield-&gt;Current thread id is:{Thread.CurrentThread.ManagedThreadId}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                    Thread.Sleep(</span><span style="color: #800080;">10</span><span style="color: #000000;">);
+                    </span><span style="color: #0000ff;">await</span><span style="color: #000000;"> Task.Yield();
+                }
+            }
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> sum;
+        }
+    }</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp; &nbsp; 运行结果如下：</p>
+<p><img src="./images/C#线程学习笔记十：async &amp; await入门三2.png" alt="" /></p>
+<p>&nbsp; &nbsp; <strong>二、在WinForm中使用异步Lambda表达式</strong></p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('c6b11556-97cd-4ad9-aef6-b0c7153cb130')"><img id="code_img_closed_c6b11556-97cd-4ad9-aef6-b0c7153cb130" class="code_img_closed" src="./images/C#线程学习笔记十：async &amp; await入门三0.png" alt="" /><img id="code_img_opened_c6b11556-97cd-4ad9-aef6-b0c7153cb130" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('c6b11556-97cd-4ad9-aef6-b0c7153cb130',event)" src="./images/C#线程学习笔记十：async &amp; await入门三1.png" alt="" />
+<div id="cnblogs_code_open_c6b11556-97cd-4ad9-aef6-b0c7153cb130" class="cnblogs_code_hide">
+<pre><code>        <span style="color: #0000ff;">public</span><span style="color: #000000;"> Main()
+        {
+            InitializeComponent();
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">异步表达式：async (sender, e)</span>
+            btnDoIt.Click += <span style="color: #0000ff;">async</span> (sender, e) =&gt;<span style="color: #000000;">
+            {
+                DoIt(</span><span style="color: #0000ff;">false</span>, <span style="color: #800000;">"</span><span style="color: #800000;">开始搬砖啦...</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                </span><span style="color: #0000ff;">await</span> Task.Delay(<span style="color: #800080;">3000</span><span style="color: #000000;">);
+                DoIt(</span><span style="color: #0000ff;">true</span>, <span style="color: #800000;">"</span><span style="color: #800000;">终于搬完了。</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            };
+        }
+
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> DoIt(<span style="color: #0000ff;">bool</span> isEnable, <span style="color: #0000ff;">string</span><span style="color: #000000;"> text)
+        {
+            btnDoIt.Enabled </span>=<span style="color: #000000;"> isEnable;
+            lblText.Text </span>=<span style="color: #000000;"> text;
+        }</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp; &nbsp; 运行结果如下：</p>
+<p><img src="./images/C#线程学习笔记十：async &amp; await入门三5.png" alt="" /></p>
+<p><strong>&nbsp; &nbsp; 三、滚动条应用</strong></p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('5ff0e464-c246-4586-99e3-a56baff07525')"><img id="code_img_closed_5ff0e464-c246-4586-99e3-a56baff07525" class="code_img_closed" src="./images/C#线程学习笔记十：async &amp; await入门三0.png" alt="" /><img id="code_img_opened_5ff0e464-c246-4586-99e3-a56baff07525" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('5ff0e464-c246-4586-99e3-a56baff07525',event)" src="./images/C#线程学习笔记十：async &amp; await入门三1.png" alt="" />
+<div id="cnblogs_code_open_5ff0e464-c246-4586-99e3-a56baff07525" class="cnblogs_code_hide">
+<pre><code>        <span style="color: #0000ff;">private</span><span style="color: #000000;"> CancellationTokenSource source;
+        </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> CancellationToken token;
+
+        </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> ProcessBar()
+        {
+            InitializeComponent();
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 初始化
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> InitTool()
+        {
+            progressBar1.Value </span>= <span style="color: #800080;">0</span><span style="color: #000000;">;
+            btnDoIt.Enabled </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+            btnCancel.Enabled </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 开始任务
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="sender"&gt;&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="e"&gt;&lt;/param&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">async</span> <span style="color: #0000ff;">void</span> btnDoIt_Click(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)
+        {
+            btnDoIt.Enabled </span>= <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+
+            source </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> CancellationTokenSource();
+            token </span>=<span style="color: #000000;"> source.Token;
+
+            </span><span style="color: #0000ff;">var</span> completedPercent = <span style="color: #800080;">0</span>;               <span style="color: #008000;">//</span><span style="color: #008000;">完成百分比</span>
+            <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">int</span> loopTimes = <span style="color: #800080;">10</span>;               <span style="color: #008000;">//</span><span style="color: #008000;">循环次数</span>
+            <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">int</span> increment = <span style="color: #800080;">100</span> / loopTimes;  <span style="color: #008000;">//</span><span style="color: #008000;">进度条每次增加的进度值</span>
+
+            <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> i = <span style="color: #800080;">1</span>; i &lt;= loopTimes; i++<span style="color: #000000;">)
+            {
+                </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (token.IsCancellationRequested)
+                {
+                    </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+                }
+
+                </span><span style="color: #0000ff;">try</span><span style="color: #000000;">
+                {
+                    </span><span style="color: #0000ff;">await</span> Task.Delay(<span style="color: #800080;">200</span><span style="color: #000000;">, token);
+                    completedPercent </span>= i *<span style="color: #000000;"> increment;
+                }
+                </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception)
+                {
+                    completedPercent </span>= i *<span style="color: #000000;"> increment;
+                }
+                </span><span style="color: #0000ff;">finally</span><span style="color: #000000;">
+                {
+                    progressBar1.Value </span>=<span style="color: #000000;"> completedPercent;
+                }
+            }
+
+            </span><span style="color: #0000ff;">var</span> msg = token.IsCancellationRequested ? $<span style="color: #800000;">"</span><span style="color: #800000;">任务被取消，已执行进度为：{completedPercent}%。</span><span style="color: #800000;">"</span> : $<span style="color: #800000;">"</span><span style="color: #800000;">任务执行完成。</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            MessageBox.Show(msg, </span><span style="color: #800000;">"</span><span style="color: #800000;">提示</span><span style="color: #800000;">"</span><span style="color: #000000;">, MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+            progressBar1.Value </span>= <span style="color: #800080;">0</span><span style="color: #000000;">;
+            InitTool();
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 取消任务
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="sender"&gt;&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="e"&gt;&lt;/param&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> btnCancel_Click(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)
+        {
+            </span><span style="color: #0000ff;">if</span> (btnDoIt.Enabled) <span style="color: #0000ff;">return</span><span style="color: #000000;">;
+
+            btnCancel.Enabled </span>= <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+            source.Cancel();
+        }
+    }</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp; &nbsp; 运行结果如下：</p>
+<p><img src="./images/C#线程学习笔记十：async &amp; await入门三8.png" alt="" /></p>
+<p>&nbsp; &nbsp; <strong>四、BackgroundWorker</strong></p>
+<p>&nbsp; &nbsp; 与async &amp; await不同的是，有时候可能需要一个额外的线程，它在后台持续完成某个任务并不时与主线程通信，这时就需要用到BackgroundWorker类。</p>
+<p>（主要用于GUI程序）</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('68cdffd3-de55-4734-9263-db45e8e11983')"><img id="code_img_closed_68cdffd3-de55-4734-9263-db45e8e11983" class="code_img_closed" src="./images/C#线程学习笔记十：async &amp; await入门三0.png" alt="" /><img id="code_img_opened_68cdffd3-de55-4734-9263-db45e8e11983" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('68cdffd3-de55-4734-9263-db45e8e11983',event)" src="./images/C#线程学习笔记十：async &amp; await入门三1.png" alt="" />
+<div id="cnblogs_code_open_68cdffd3-de55-4734-9263-db45e8e11983" class="cnblogs_code_hide">
+<pre><code>        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">readonly</span> BackgroundWorker bgWorker = <span style="color: #0000ff;">new</span><span style="color: #000000;"> 
+        BackgroundWorker();
+
+        </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> ProcessBar()
+        {
+            InitializeComponent();
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">设置BackgroundWorker属性</span>
+            bgWorker.WorkerReportsProgress = <span style="color: #0000ff;">true</span>;      <span style="color: #008000;">//</span><span style="color: #008000;">能否报告进度更新</span>
+            bgWorker.WorkerSupportsCancellation = <span style="color: #0000ff;">true</span>; <span style="color: #008000;">//</span><span style="color: #008000;">是否支持异步取消
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">连接BackgroundWorker对象的处理程序</span>
+            bgWorker.DoWork +=<span style="color: #000000;"> bgWorker_DoWork;
+            bgWorker.ProgressChanged </span>+=<span style="color: #000000;"> bgWorker_ProgressChanged;
+            bgWorker.RunWorkerCompleted </span>+=<span style="color: #000000;"> bgWorker_RunWorkerCompleted;
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 开始执行后台操作触发，即调用BackgroundWorker.RunWorkerAsync时发生。
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="sender"&gt;&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="e"&gt;&lt;/param&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> bgWorker_DoWork(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, DoWorkEventArgs e)
+        {
+            </span><span style="color: #0000ff;">if</span> (!(sender <span style="color: #0000ff;">is</span><span style="color: #000000;"> BackgroundWorker worker))
+            {
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;">;
+            }
+
+            </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> i = <span style="color: #800080;">1</span>; i &lt;= <span style="color: #800080;">10</span>; i++<span style="color: #000000;">)
+            {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">判断程序是否已请求取消后台操作</span>
+                <span style="color: #0000ff;">if</span><span style="color: #000000;"> (worker.CancellationPending)
+                {
+                    e.Cancel </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+                    </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+                }
+
+                worker.ReportProgress(i </span>* <span style="color: #800080;">10</span>);  <span style="color: #008000;">//</span><span style="color: #008000;">触发BackgroundWorker.ProgressChanged事件</span>
+                Thread.Sleep(<span style="color: #800080;">200</span>);              <span style="color: #008000;">//</span><span style="color: #008000;">线程挂起200毫秒</span>
+<span style="color: #000000;">            }
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 调用BackgroundWorker.ReportProgress(System.Int32)时发生
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="sender"&gt;&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="e"&gt;&lt;/param&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> bgWorker_ProgressChanged(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, ProgressChangedEventArgs e)
+        {
+            progressBar1.Value </span>= e.ProgressPercentage;  <span style="color: #008000;">//</span><span style="color: #008000;">异步任务的进度百分比</span>
+<span style="color: #000000;">        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 当后台操作已完成或被取消或引发异常时发生
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="sender"&gt;&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="e"&gt;&lt;/param&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> bgWorker_RunWorkerCompleted(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, RunWorkerCompletedEventArgs e)
+        {
+            MessageBox.Show(e.Cancelled </span>? $<span style="color: #800000;">@"</span><span style="color: #800000;">任务已被取消，已执行进度为：{progressBar1.Value}%</span><span style="color: #800000;">"</span> : $<span style="color: #800000;">@"</span><span style="color: #800000;">任务执行完成，已执行进度为：{progressBar1.Value}%</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            progressBar1.Value </span>= <span style="color: #800080;">0</span><span style="color: #000000;">;
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 开始任务
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="sender"&gt;&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="e"&gt;&lt;/param&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> btnDoIt_Click(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)
+        {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">判断BackgroundWorker是否正在执行异步操作</span>
+            <span style="color: #0000ff;">if</span> (!<span style="color: #000000;">bgWorker.IsBusy)
+            {
+                bgWorker.RunWorkerAsync();  </span><span style="color: #008000;">//</span><span style="color: #008000;">开始执行后台操作</span>
+<span style="color: #000000;">            }
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 取消任务
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="sender"&gt;&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="e"&gt;&lt;/param&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> btnCancel_Click(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)
+        {
+            bgWorker.CancelAsync(); </span><span style="color: #008000;">//</span><span style="color: #008000;">请求取消挂起的后台操作</span>
+        }</pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp; &nbsp; 运行结果如下：</p>
+<p><img src="./images/C#线程学习笔记十：async &amp; await入门三11.png" alt="" /></p>
+<p>&nbsp; &nbsp; 参考自：</p>
+<p>&nbsp; &nbsp;&nbsp;<a href="https://www.cnblogs.com/dudu/archive/2018/10/24/task-yield.html">https://www.cnblogs.com/dudu/archive/2018/10/24/task-yield.html</a></p>
+<p>&nbsp; &nbsp;&nbsp;<a href="https://www.cnblogs.com/liqingwen/p/5877042.html">https://www.cnblogs.com/liqingwen/p/5877042.html</a></p>
+<p>&nbsp; &nbsp; 后记：</p>
+<p>&nbsp; &nbsp; 关于更详细的BackgroundWorker知识，可查看此篇博客：</p>
+<p>&nbsp; &nbsp;&nbsp;<a href="https://www.cnblogs.com/sparkdev/p/5906272.html">https://www.cnblogs.com/sparkdev/p/5906272.html</a></p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

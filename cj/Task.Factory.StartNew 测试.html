@@ -1,0 +1,430 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Task.Factory.StartNew 测试' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Task.Factory.StartNew 测试</center></div><div class='banquan'>原文出处:本文由博客园博主秋荷雨翔提供。<br/>
+原文连接:https://www.cnblogs.com/s0611163/p/12041295.html</div><br>
+    <p>到底该用多少线程？线程数、CPU核心数、本地计算时间、等待时间的关系 线程数 = CPU核心数 * ( 本地计算时间 + 等待时间 ) / 本地计算时间</p>
+<p>下面是Task.Factory.StartNew和自己写的TaskHelper.LargeTask.Run对比测试</p>
+<p>&nbsp;</p>
+<p><strong>一、Task.Factory.StartNew 使用 TaskCreationOptions.LongRunning 参数</strong></p>
+<p><strong>代码：</strong></p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('4b668fc2-3bab-4554-881e-d7b2e9caef09')"><img id="code_img_closed_4b668fc2-3bab-4554-881e-d7b2e9caef09" class="code_img_closed" src="./images/Task.Factory.StartNew 测试0.png" alt="" /><img id="code_img_opened_4b668fc2-3bab-4554-881e-d7b2e9caef09" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('4b668fc2-3bab-4554-881e-d7b2e9caef09',event)" src="./images/Task.Factory.StartNew 测试1.png" alt="" />
+<div id="cnblogs_code_open_4b668fc2-3bab-4554-881e-d7b2e9caef09" class="cnblogs_code_hide">
+<pre><code><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">int</span> n = <span style="color: #800080;">50000</span>; <span style="color: #008000;">//</span><span style="color: #008000;">问题规模</span>
+<span style="color: #0000ff;">private</span> <span style="color: #0000ff;">int</span> t = <span style="color: #800080;">25</span>; <span style="color: #008000;">//</span><span style="color: #008000;">等待时间</span>
+<span style="color: #0000ff;">private</span> <span style="color: #0000ff;">int</span> pageSize = <span style="color: #800080;">1000</span>; <span style="color: #008000;">//</span><span style="color: #008000;">打印分页</span>
+
+<span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> TestTaskStartNew()
+{
+    Task.Factory.StartNew(() </span>=&gt;<span style="color: #000000;">
+    {
+        Stopwatch stopwatch </span>=<span style="color: #000000;"> Stopwatch.StartNew();
+
+        List</span>&lt;Task&gt; taskList = <span style="color: #0000ff;">new</span> List&lt;Task&gt;<span style="color: #000000;">();
+        </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt;= n; i++<span style="color: #000000;">)
+        {
+            Task task </span>= Task.Factory.StartNew((obj) =&gt;<span style="color: #000000;">
+            {
+                Thread.Sleep(t); </span><span style="color: #008000;">//</span><span style="color: #008000;">等待时间</span>
+
+                <span style="color: #0000ff;">int</span> index = (<span style="color: #0000ff;">int</span><span style="color: #000000;">)obj;
+                </span><span style="color: #0000ff;">if</span> (index % pageSize == <span style="color: #800080;">0</span><span style="color: #000000;">)
+                {
+                    </span><span style="color: #0000ff;">this</span>.TryInvoke2(() =&gt;<span style="color: #000000;">
+                    {
+                        textBox1.AppendText(index.ToString() </span>+ <span style="color: #800000;">"</span>  <span style="color: #800000;">"</span><span style="color: #000000;">);
+                    });
+                }
+            }, i, TaskCreationOptions.LongRunning);
+            taskList.Add(task);
+        }
+        Task.WaitAll(taskList.ToArray());
+
+        </span><span style="color: #0000ff;">this</span>.TryInvoke2(() =&gt;<span style="color: #000000;">
+        {
+            textBox1.AppendText(</span><span style="color: #0000ff;">string</span>.Format(<span style="color: #800000;">"</span><span style="color: #800000;">\r\n【Task.Factory.StartNew 问题规模:{0} 等待时间:{1} 耗时：{2}秒】\r\n</span><span style="color: #800000;">"</span><span style="color: #000000;">, n, t, stopwatch.Elapsed.TotalSeconds));
+        });
+    });
+}
+
+</span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> TestTaskHelper()
+{
+    Task.Factory.StartNew(() </span>=&gt;<span style="color: #000000;">
+    {
+        Stopwatch stopwatch </span>=<span style="color: #000000;"> Stopwatch.StartNew();
+
+        List</span>&lt;Task&gt; taskList = <span style="color: #0000ff;">new</span> List&lt;Task&gt;<span style="color: #000000;">();
+        </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt;= n; i++<span style="color: #000000;">)
+        {
+            Task task </span>= TaskHelper.LargeTask.Run((obj) =&gt;<span style="color: #000000;">
+            {
+                Thread.Sleep(t); </span><span style="color: #008000;">//</span><span style="color: #008000;">等待时间</span>
+
+                <span style="color: #0000ff;">int</span> index = (<span style="color: #0000ff;">int</span><span style="color: #000000;">)obj;
+                </span><span style="color: #0000ff;">if</span> (index % pageSize == <span style="color: #800080;">0</span><span style="color: #000000;">)
+                {
+                    </span><span style="color: #0000ff;">this</span>.TryInvoke2(() =&gt;<span style="color: #000000;">
+                    {
+                        textBox1.AppendText(index.ToString() </span>+ <span style="color: #800000;">"</span>  <span style="color: #800000;">"</span><span style="color: #000000;">);
+                    });
+                }
+            }, i);
+            taskList.Add(task);
+        }
+        Task.WaitAll(taskList.ToArray());
+
+        </span><span style="color: #0000ff;">this</span>.TryInvoke2(() =&gt;<span style="color: #000000;">
+        {
+            textBox1.AppendText(</span><span style="color: #0000ff;">string</span>.Format(<span style="color: #800000;">"</span><span style="color: #800000;">\r\n【TaskHelper.LargeTask.Run {3}线程 问题规模:{0} 等待时间:{1} 耗时：{2}秒】\r\n</span><span style="color: #800000;">"</span><span style="color: #000000;">, n, t, stopwatch.Elapsed.TotalSeconds, TaskHelper.LargeTask.ThreadCount));
+        });
+    });
+}</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p><strong>测试结果：</strong></p>
+<p>0 1000 2000 3000 4000 5000 6000 7000 8000 9000 10000 11000 12000 13000 14000 15000 16000 17000 18000 19000 20000 21000 22000 23000 24000 25000 26000 27000 28000 29000 30000 31000 32000 33000 34000 35000 36000 37000 38000 39000 40000 41000 42000 43000 44000 45000 46000 47000 48000 49000 50000 <br /><span style="color: #ff0000;">【TaskHelper.LargeTask.Run 128线程 问题规模:50000 等待时间:25 耗时：10.5975181秒】</span><br />0  1000  2000  3000  4000  5000  6000  7000  8000  9000  10000  11000  12000  13000  14000  15000  16000  17000  18000  19000  20000  21000  22000  23000  24000  25000  26000  27000  28000  29000  30000  31000  32000  33000  34000  35000  36000  37000  38000  39000  40000  41000  42000  43000  44000  45000  46000  47000  48000  49000  50000  <br /><span style="color: #ff0000;">【Task.Factory.StartNew 问题规模:50000 等待时间:25 耗时：8.2380754秒】</span><br />0  1000  2000  3000  4000  5000  6000  7000  8000  9000  10000  11000  12000  13000  14000  15000  16000  17000  18000  19000  20000  21000  22000  23000  24000  25000  26000  27000  28000  29000  30000  31000  32000  33000  34000  35000  36000  37000  38000  39000  40000  41000  42000  43000  44000  45000  46000  47000  48000  49000  50000  <br /><span style="color: #ff0000;">【TaskHelper.LargeTask.Run 128线程 问题规模:50000 等待时间:25 耗时：10.4376939秒】</span><br />0  1000  2000  3000  4000  5000  6000  7000  8000  9000  10000  11000  12000  13000  14000  15000  16000  17000  18000  19000  20000  21000  22000  23000  24000  25000  26000  27000  28000  29000  30000  31000  32000  33000  34000  35000  36000  37000  38000  39000  40000  41000  42000  43000  44000  45000  46000  47000  48000  49000  50000  <br /><span style="color: #ff0000;">【Task.Factory.StartNew 问题规模:50000 等待时间:25 耗时：9.2322552秒】</span></p>
+<p><strong>测试结果说明：</strong></p>
+<p><span style="color: #ff0000;">我的电脑的CPU是i5-8265U，4核8线程</span><br /><span style="color: #ff0000;">根据等待时间设置合适的线程数对TaskHelper.LargeTask.Run有利</span><br /><span style="color: #ff0000;">使用TaskHelper.LargeTask.Run运行时的CPU占用在5%以下，创建128个线程的瞬间CPU占用达到30%，使用Task.Factory.StartNew运行时的CPU占用接近100%</span><br /><span style="color: #ff0000;">资源释放情况：Task.Factory.StartNew使用TaskCreationOptions.LongRunning参数运行完成后线程数立即释放，句柄数未立即释放，而TaskHelper.LargeTask.Run提供了手动释放的方法可以立即释放线程数和句柄数，但需要手动调用才能释放</span></p>
+<p>&nbsp;</p>
+<p><strong>&nbsp;二、Task.Factory.StartNew 不使用 TaskCreationOptions.LongRunning 参数</strong></p>
+<p><strong>代码：</strong></p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('2b19ed35-3a6a-41dd-b2a9-ec253909a24a')"><img id="code_img_closed_2b19ed35-3a6a-41dd-b2a9-ec253909a24a" class="code_img_closed" src="./images/Task.Factory.StartNew 测试0.png" alt="" /><img id="code_img_opened_2b19ed35-3a6a-41dd-b2a9-ec253909a24a" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('2b19ed35-3a6a-41dd-b2a9-ec253909a24a',event)" src="./images/Task.Factory.StartNew 测试1.png" alt="" />
+<div id="cnblogs_code_open_2b19ed35-3a6a-41dd-b2a9-ec253909a24a" class="cnblogs_code_hide">
+<pre><code><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">int</span> n = <span style="color: #800080;">2000</span>; <span style="color: #008000;">//</span><span style="color: #008000;">问题规模</span>
+<span style="color: #0000ff;">private</span> <span style="color: #0000ff;">int</span> t = <span style="color: #800080;">100</span>; <span style="color: #008000;">//</span><span style="color: #008000;">等待时间</span>
+<span style="color: #0000ff;">private</span> <span style="color: #0000ff;">int</span> pageSize = <span style="color: #800080;">100</span>; <span style="color: #008000;">//</span><span style="color: #008000;">打印分页</span>
+
+<span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> TestTaskStartNew()
+{
+    Task.Factory.StartNew(() </span>=&gt;<span style="color: #000000;">
+    {
+        Stopwatch stopwatch </span>=<span style="color: #000000;"> Stopwatch.StartNew();
+
+        List</span>&lt;Task&gt; taskList = <span style="color: #0000ff;">new</span> List&lt;Task&gt;<span style="color: #000000;">();
+        </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt;= n; i++<span style="color: #000000;">)
+        {
+            Task task </span>= Task.Factory.StartNew((obj) =&gt;<span style="color: #000000;">
+            {
+                Thread.Sleep(t); </span><span style="color: #008000;">//</span><span style="color: #008000;">等待时间</span>
+
+                <span style="color: #0000ff;">int</span> index = (<span style="color: #0000ff;">int</span><span style="color: #000000;">)obj;
+                </span><span style="color: #0000ff;">if</span> (index % pageSize == <span style="color: #800080;">0</span><span style="color: #000000;">)
+                {
+                    </span><span style="color: #0000ff;">this</span>.TryInvoke2(() =&gt;<span style="color: #000000;">
+                    {
+                        textBox1.AppendText(index.ToString() </span>+ <span style="color: #800000;">"</span>  <span style="color: #800000;">"</span><span style="color: #000000;">);
+                    });
+                }
+            }, i);
+            taskList.Add(task);
+        }
+        Task.WaitAll(taskList.ToArray());
+
+        </span><span style="color: #0000ff;">this</span>.TryInvoke2(() =&gt;<span style="color: #000000;">
+        {
+            textBox1.AppendText(</span><span style="color: #0000ff;">string</span>.Format(<span style="color: #800000;">"</span><span style="color: #800000;">\r\n【Task.Factory.StartNew 问题规模:{0} 等待时间:{1} 耗时：{2}秒】\r\n</span><span style="color: #800000;">"</span><span style="color: #000000;">, n, t, stopwatch.Elapsed.TotalSeconds));
+        });
+    });
+}
+
+</span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> TestTaskHelper()
+{
+    Task.Factory.StartNew(() </span>=&gt;<span style="color: #000000;">
+    {
+        Stopwatch stopwatch </span>=<span style="color: #000000;"> Stopwatch.StartNew();
+
+        List</span>&lt;Task&gt; taskList = <span style="color: #0000ff;">new</span> List&lt;Task&gt;<span style="color: #000000;">();
+        </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt;= n; i++<span style="color: #000000;">)
+        {
+            Task task </span>= TaskHelper.LargeTask.Run((obj) =&gt;<span style="color: #000000;">
+            {
+                Thread.Sleep(t); </span><span style="color: #008000;">//</span><span style="color: #008000;">等待时间</span>
+
+                <span style="color: #0000ff;">int</span> index = (<span style="color: #0000ff;">int</span><span style="color: #000000;">)obj;
+                </span><span style="color: #0000ff;">if</span> (index % pageSize == <span style="color: #800080;">0</span><span style="color: #000000;">)
+                {
+                    </span><span style="color: #0000ff;">this</span>.TryInvoke2(() =&gt;<span style="color: #000000;">
+                    {
+                        textBox1.AppendText(index.ToString() </span>+ <span style="color: #800000;">"</span>  <span style="color: #800000;">"</span><span style="color: #000000;">);
+                    });
+                }
+            }, i);
+            taskList.Add(task);
+        }
+        Task.WaitAll(taskList.ToArray());
+
+        </span><span style="color: #0000ff;">this</span>.TryInvoke2(() =&gt;<span style="color: #000000;">
+        {
+            textBox1.AppendText(</span><span style="color: #0000ff;">string</span>.Format(<span style="color: #800000;">"</span><span style="color: #800000;">\r\n【TaskHelper.LargeTask.Run {3}线程 问题规模:{0} 等待时间:{1} 耗时：{2}秒】\r\n</span><span style="color: #800000;">"</span><span style="color: #000000;">, n, t, stopwatch.Elapsed.TotalSeconds, TaskHelper.LargeTask.ThreadCount));
+        });
+    });
+}</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p><strong>测试结果：</strong></p>
+<p>0 100 200 300 400 500 600 700 800 900 1000 1100 1200 1300 1400 1500 1600 1700 1800 1900 2000 <br /><span style="color: #ff0000;">【TaskHelper.LargeTask.Run 96线程 问题规模:2000 等待时间:100 耗时：2.1529565秒】</span><br />0  2000  100  200  300  400  500  600  700  800  900  1900  1000  1100  1200  1300  1400  1500  1600  1700  1800  <br /><span style="color: #ff0000;">【Task.Factory.StartNew 问题规模:2000 等待时间:100 耗时：17.309869秒】</span><br />0  100  200  300  400  500  600  700  800  900  1000  1100  1200  1300  1400  1500  1600  1700  1800  1900  2000  <br /><span style="color: #ff0000;">【TaskHelper.LargeTask.Run 96线程 问题规模:2000 等待时间:100 耗时：2.143763秒】</span><br />0  2000  100  200  300  400  500  600  700  800  900  1000  1100  1200  1300  1400  1500  1600  1700  1800  1900  <br /><span style="color: #ff0000;">【Task.Factory.StartNew 问题规模:2000 等待时间:100 耗时：8.8674353秒】</span><br />0  2000  100  200  300  400  500  600  700  800  900  1000  1100  1200  1300  1400  1500  1600  1700  1800  1900  <br /><span style="color: #ff0000;">【Task.Factory.StartNew 问题规模:2000 等待时间:100 耗时：6.5490833秒】</span><br />0  2000  100  200  300  400  500  600  700  800  900  1000  1100  1200  1300  1400  1500  1600  1700  1800  1900  <br /><span style="color: #ff0000;">【Task.Factory.StartNew 问题规模:2000 等待时间:100 耗时：5.1381533秒】</span><br />0  2000  100  200  300  400  500  600  700  800  900  1000  1100  1200  1300  1400  1500  1600  1700  1800  1900  <br /><span style="color: #ff0000;">【Task.Factory.StartNew 问题规模:2000 等待时间:100 耗时：4.434294秒】</span><br />0  2000  100  200  300  400  500  600  700  800  900  1000  1100  1200  1300  1400  1500  1600  1700  1800  1900  <br /><span style="color: #ff0000;">【Task.Factory.StartNew 问题规模:2000 等待时间:100 耗时：4.329009秒】</span><br />2000  0  100  200  300  400  500  600  700  800  900  1000  1100  1200  1300  1400  1500  1600  1700  1800  1900  <br /><span style="color: #ff0000;">【Task.Factory.StartNew 问题规模:2000 等待时间:100 耗时：3.6231239秒】</span><br />2000  0  100  200  300  400  500  600  700  800  900  1000  1100  1200  1300  1400  1500  1600  1700  1800  1900  <br /><span style="color: #ff0000;">【Task.Factory.StartNew 问题规模:2000 等待时间:100 耗时：3.6303149秒】</span></p>
+<p><strong>测试结论：</strong></p>
+<p><span style="color: #ff0000;">Task.Factory.StartNew在不使用TaskCreationOptions.LongRunning参数时，运行大量耗时任务，线程数增加缓慢，导致需要花费很长时间，如果线程池耗尽，或者线程池未耗尽但有大量耗时任务时，其它任务调用Task.Factory.StartNew会有延迟</span></p>
+<p><span style="color: #ff0000;">我想了一天，多任务还是不要共用线程池比较好，一个任务一个线程池，互不干扰，TaskHelper.LargeTask.Run就是按这个思路写的，不知道可有问题</span></p>
+<p>&nbsp;</p>
+<p><strong>附：</strong></p>
+<p><strong>LimitedTaskScheduler代码：</strong></p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('72913673-4ab8-49b1-b95f-7cdc52ea4268')"><img id="code_img_closed_72913673-4ab8-49b1-b95f-7cdc52ea4268" class="code_img_closed" src="./images/Task.Factory.StartNew 测试0.png" alt="" /><img id="code_img_opened_72913673-4ab8-49b1-b95f-7cdc52ea4268" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('72913673-4ab8-49b1-b95f-7cdc52ea4268',event)" src="./images/Task.Factory.StartNew 测试1.png" alt="" />
+<div id="cnblogs_code_open_72913673-4ab8-49b1-b95f-7cdc52ea4268" class="cnblogs_code_hide">
+<pre><code><span style="color: #0000ff;">using</span><span style="color: #000000;"> System;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Collections.Concurrent;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Collections.Generic;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Linq;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Runtime.InteropServices;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Text;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Threading;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Threading.Tasks;
+
+</span><span style="color: #0000ff;">namespace</span><span style="color: #000000;"> Utils
+{
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> LimitedTaskScheduler : TaskScheduler, IDisposable
+    {
+        </span><span style="color: #0000ff;">#region</span> 外部方法<span style="color: #000000;">
+        [DllImport(</span><span style="color: #800000;">"</span><span style="color: #800000;">kernel32.dll</span><span style="color: #800000;">"</span>, EntryPoint = <span style="color: #800000;">"</span><span style="color: #800000;">SetProcessWorkingSetSize</span><span style="color: #800000;">"</span><span style="color: #000000;">)]
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">extern</span> <span style="color: #0000ff;">int</span> SetProcessWorkingSetSize(IntPtr process, <span style="color: #0000ff;">int</span> minSize, <span style="color: #0000ff;">int</span><span style="color: #000000;"> maxSize);
+        </span><span style="color: #0000ff;">#endregion</span>
+
+        <span style="color: #0000ff;">#region</span> 变量属性事件
+        <span style="color: #0000ff;">private</span> BlockingCollection&lt;Task&gt; _tasks = <span style="color: #0000ff;">new</span> BlockingCollection&lt;Task&gt;<span style="color: #000000;">();
+        List</span>&lt;Thread&gt; _threadList = <span style="color: #0000ff;">new</span> List&lt;Thread&gt;<span style="color: #000000;">();
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">int</span> _threadCount = <span style="color: #800080;">0</span><span style="color: #000000;">;
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">int</span> _timeOut =<span style="color: #000000;"> Timeout.Infinite;
+        </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> Task _tempTask;
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> ThreadCount
+        {
+            </span><span style="color: #0000ff;">get</span><span style="color: #000000;">
+            {
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> _threadCount;
+            }
+        }
+        </span><span style="color: #0000ff;">#endregion</span>
+
+        <span style="color: #0000ff;">#region</span> 构造函数
+        <span style="color: #0000ff;">public</span> LimitedTaskScheduler(<span style="color: #0000ff;">int</span> threadCount = <span style="color: #800080;">10</span><span style="color: #000000;">)
+        {
+            CreateThreads(threadCount);
+        }
+        </span><span style="color: #0000ff;">#endregion</span>
+
+        <span style="color: #0000ff;">#region</span> override GetScheduledTasks
+        <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">override</span> IEnumerable&lt;Task&gt;<span style="color: #000000;"> GetScheduledTasks()
+        {
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> _tasks;
+        }
+        </span><span style="color: #0000ff;">#endregion</span>
+
+        <span style="color: #0000ff;">#region</span> override TryExecuteTaskInline
+        <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">override</span> <span style="color: #0000ff;">bool</span> TryExecuteTaskInline(Task task, <span style="color: #0000ff;">bool</span><span style="color: #000000;"> taskWasPreviouslyQueued)
+        {
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+        }
+        </span><span style="color: #0000ff;">#endregion</span>
+
+        <span style="color: #0000ff;">#region</span> override QueueTask
+        <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">override</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> QueueTask(Task task)
+        {
+            _tasks.Add(task);
+        }
+        </span><span style="color: #0000ff;">#endregion</span>
+
+        <span style="color: #0000ff;">#region</span> 资源释放
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 资源释放
+        </span><span style="color: #808080;">///</span><span style="color: #008000;"> 如果尚有任务在执行，则会在调用此方法的线程上引发System.Threading.ThreadAbortException，请使用Task.WaitAll等待任务执行完毕后，再调用该方法
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> Dispose()
+        {
+            _timeOut </span>= <span style="color: #800080;">100</span><span style="color: #000000;">;
+
+            </span><span style="color: #0000ff;">foreach</span> (Thread item <span style="color: #0000ff;">in</span><span style="color: #000000;"> _threadList)
+            {
+                item.Abort();
+            }
+            _threadList.Clear();
+
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            </span><span style="color: #0000ff;">if</span> (Environment.OSVersion.Platform ==<span style="color: #000000;"> PlatformID.Win32NT)
+            {
+                SetProcessWorkingSetSize(System.Diagnostics.Process.GetCurrentProcess().Handle, </span>-<span style="color: #800080;">1</span>, -<span style="color: #800080;">1</span><span style="color: #000000;">);
+            }
+        }
+        </span><span style="color: #0000ff;">#endregion</span>
+
+        <span style="color: #0000ff;">#region</span> 创建线程池
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 创建线程池
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> CreateThreads(<span style="color: #0000ff;">int</span>? threadCount = <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+        {
+            </span><span style="color: #0000ff;">if</span> (threadCount != <span style="color: #0000ff;">null</span>) _threadCount =<span style="color: #000000;"> threadCount.Value;
+            _timeOut </span>=<span style="color: #000000;"> Timeout.Infinite;
+
+            </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; _threadCount; i++<span style="color: #000000;">)
+            {
+                Thread thread </span>= <span style="color: #0000ff;">new</span> Thread(<span style="color: #0000ff;">new</span> ThreadStart(() =&gt;<span style="color: #000000;">
+                {
+                    Task task;
+                    </span><span style="color: #0000ff;">while</span> (_tasks.TryTake(<span style="color: #0000ff;">out</span><span style="color: #000000;"> task, _timeOut))
+                    {
+                        TryExecuteTask(task);
+                    }
+                }));
+                thread.IsBackground </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+                thread.Start();
+                _threadList.Add(thread);
+            }
+        }
+        </span><span style="color: #0000ff;">#endregion</span>
+
+        <span style="color: #0000ff;">#region</span> 全部取消
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 全部取消
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> CancelAll()
+        {
+            </span><span style="color: #0000ff;">while</span> (_tasks.TryTake(<span style="color: #0000ff;">out</span><span style="color: #000000;"> _tempTask)) { }
+        }
+        </span><span style="color: #0000ff;">#endregion</span><span style="color: #000000;">
+
+    }
+}</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p><strong>TaskHelper代码：</strong></p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('87892f2d-6999-420f-a9a1-c07ea1654825')"><img id="code_img_closed_87892f2d-6999-420f-a9a1-c07ea1654825" class="code_img_closed" src="./images/Task.Factory.StartNew 测试0.png" alt="" /><img id="code_img_opened_87892f2d-6999-420f-a9a1-c07ea1654825" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('87892f2d-6999-420f-a9a1-c07ea1654825',event)" src="./images/Task.Factory.StartNew 测试1.png" alt="" />
+<div id="cnblogs_code_open_87892f2d-6999-420f-a9a1-c07ea1654825" class="cnblogs_code_hide">
+<pre><code><span style="color: #0000ff;">using</span><span style="color: #000000;"> System;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Collections.Generic;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Linq;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Text;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Threading.Tasks;
+
+</span><span style="color: #0000ff;">namespace</span><span style="color: #000000;"> Utils
+{
+    </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+    <span style="color: #808080;">///</span><span style="color: #008000;"> Task帮助类基类
+    </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> TaskHelper
+    {
+        </span><span style="color: #0000ff;">#region</span> UI任务
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span><span style="color: #000000;"> LimitedTaskScheduler _UITask;
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> UI任务(4个线程)
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span><span style="color: #000000;"> LimitedTaskScheduler UITask
+        {
+            </span><span style="color: #0000ff;">get</span><span style="color: #000000;">
+            {
+                </span><span style="color: #0000ff;">if</span> (_UITask == <span style="color: #0000ff;">null</span>) _UITask = <span style="color: #0000ff;">new</span> LimitedTaskScheduler(<span style="color: #800080;">4</span><span style="color: #000000;">);
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> _UITask;
+            }
+        }
+        </span><span style="color: #0000ff;">#endregion</span>
+
+        <span style="color: #0000ff;">#region</span> 计算任务
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span><span style="color: #000000;"> LimitedTaskScheduler _CalcTask;
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 计算任务(8个线程)
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span><span style="color: #000000;"> LimitedTaskScheduler CalcTask
+        {
+            </span><span style="color: #0000ff;">get</span><span style="color: #000000;">
+            {
+                </span><span style="color: #0000ff;">if</span> (_CalcTask == <span style="color: #0000ff;">null</span>) _CalcTask = <span style="color: #0000ff;">new</span> LimitedTaskScheduler(<span style="color: #800080;">8</span><span style="color: #000000;">);
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> _CalcTask;
+            }
+        }
+        </span><span style="color: #0000ff;">#endregion</span>
+
+        <span style="color: #0000ff;">#region</span> 网络请求
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span><span style="color: #000000;"> LimitedTaskScheduler _RequestTask;
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 网络请求(32个线程)
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span><span style="color: #000000;"> LimitedTaskScheduler RequestTask
+        {
+            </span><span style="color: #0000ff;">get</span><span style="color: #000000;">
+            {
+                </span><span style="color: #0000ff;">if</span> (_RequestTask == <span style="color: #0000ff;">null</span>) _RequestTask = <span style="color: #0000ff;">new</span> LimitedTaskScheduler(<span style="color: #800080;">32</span><span style="color: #000000;">);
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> _RequestTask;
+            }
+        }
+        </span><span style="color: #0000ff;">#endregion</span>
+
+        <span style="color: #0000ff;">#region</span> 数据库任务
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span><span style="color: #000000;"> LimitedTaskScheduler _DBTask;
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 数据库任务(32个线程)
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span><span style="color: #000000;"> LimitedTaskScheduler DBTask
+        {
+            </span><span style="color: #0000ff;">get</span><span style="color: #000000;">
+            {
+                </span><span style="color: #0000ff;">if</span> (_DBTask == <span style="color: #0000ff;">null</span>) _DBTask = <span style="color: #0000ff;">new</span> LimitedTaskScheduler(<span style="color: #800080;">32</span><span style="color: #000000;">);
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> _DBTask;
+            }
+        }
+        </span><span style="color: #0000ff;">#endregion</span>
+
+        <span style="color: #0000ff;">#region</span> IO任务
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span><span style="color: #000000;"> LimitedTaskScheduler _IOTask;
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> IO任务(8个线程)
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span><span style="color: #000000;"> LimitedTaskScheduler IOTask
+        {
+            </span><span style="color: #0000ff;">get</span><span style="color: #000000;">
+            {
+                </span><span style="color: #0000ff;">if</span> (_IOTask == <span style="color: #0000ff;">null</span>) _IOTask = <span style="color: #0000ff;">new</span> LimitedTaskScheduler(<span style="color: #800080;">8</span><span style="color: #000000;">);
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> _IOTask;
+            }
+        }
+        </span><span style="color: #0000ff;">#endregion</span>
+
+        <span style="color: #0000ff;">#region</span> 大线程池任务
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span><span style="color: #000000;"> LimitedTaskScheduler _LargeTask;
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 大线程池任务(64个线程)
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span><span style="color: #000000;"> LimitedTaskScheduler LargeTask
+        {
+            </span><span style="color: #0000ff;">get</span><span style="color: #000000;">
+            {
+                </span><span style="color: #0000ff;">if</span> (_LargeTask == <span style="color: #0000ff;">null</span>) _LargeTask = <span style="color: #0000ff;">new</span> LimitedTaskScheduler(<span style="color: #800080;">128</span><span style="color: #000000;">);
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> _LargeTask;
+            }
+        }
+        </span><span style="color: #0000ff;">#endregion</span><span style="color: #000000;">
+
+    }
+}</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

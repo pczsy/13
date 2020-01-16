@@ -1,0 +1,483 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C#通讯框架改写' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C#通讯框架改写</center></div><div class='banquan'>原文出处:本文由博客园博主Frank.Hang提供。<br/>
+原文连接:https://www.cnblogs.com/frank-hang/p/10906227.html</div><br>
+    <p style="text-align: left;">现有项目是利用C#的socket与PLC进行实时通讯，PLC有两种通讯模式&mdash;&mdash;常规采集&amp;高频采集。</p>
+<p style="text-align: left;">其中常规采集大概在10ms左右发送一次数据，高频采集大概在2ms左右发送一次数据。</p>
+<p style="text-align: left;">现有代码框架：在与PLC进行连接时，通过建立委托并创建线程的方式，来循环读取数据</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;">创建委托</span>
+<span style="color: #0000ff;">public</span> <span style="color: #0000ff;">delegate</span> <span style="color: #0000ff;">void</span> PLC_HD_Receive(<span style="color: #0000ff;">byte</span><span style="color: #000000;">[] recv_data);
+
+</span><span style="color: #0000ff;">public</span><span style="color: #000000;"> PLC_HD_Receive PLC_Recv_Delegate_HD;
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">给委托绑定方法</span>
+PLC_Recv_Delegate_HD = <span style="color: #0000ff;">new</span><span style="color: #000000;"> PLC_HD_Receive(PLC_Receive_Callback_HD);
+<br /><span style="color: #008000;">//<span data-mce-="">创建线程</span></span>
+PLC_Thread_HD </span>= <span style="color: #0000ff;">new</span> Thread(<span style="color: #0000ff;">new</span><span style="color: #000000;"> ThreadStart(PLC_ReadThread_HD));<br />
+PLC_Thread_HD.IsBackground </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+
+PLC_Thread_HD.Start();
+<br /><span style="color: #008000;">//在线程内调用委托
+</span></span><span style="color: #0000ff;">this</span>.BeginInvoke(<span style="color: #0000ff;">this</span>.PLC_Recv_Delegate_HD, <span style="color: #0000ff;">new</span> Object[] { recv_buffer_hd });</pre>
+</div>
+<p>&nbsp;只要连接PLC成功后，会一直在后台读取PLC发送来的数据，并解析数据</p>
+<p>现有问题：实时性和数据完整性不够，有些操作会导致socket断掉连接。</p>
+<p><strong><span style="font-size: 14pt;">计划：改写现有代码框架，加深对通讯的理解，和对实时数据流的处理。　 &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 2019-5-22</span></strong></p>
+<p>**************************************************************************************************************************************************</p>
+<p>思路：原有框架读取数据使用的是同步通信，出错时反馈TimeOut错误，先准备改成异步通信</p>
+<div class="cnblogs_code">
+<pre><code> <span style="color: #800080;">1</span><span style="color: #000000;">                     SocketError socket_error;
+ </span><span style="color: #800080;">2</span> 
+ <span style="color: #800080;">3</span>                     <span style="color: #0000ff;">while</span> (total_length &lt;<span style="color: #000000;"> recv_buffer_len_hd)
+ </span><span style="color: #800080;">4</span><span style="color: #000000;">                     {
+ </span><span style="color: #800080;">5</span>                        <span style="color: #008000;">//</span><span style="color: #008000;">同步接收数据</span>
+ <span style="color: #800080;">6</span>                         ret_length = m_socket_hd.Receive(recv_buffer_hd, total_length, data_left, SocketFlags.None, <span style="color: #0000ff;">out</span><span style="color: #000000;"> socket_error);
+ </span><span style="color: #800080;">7</span>                         <span style="color: #0000ff;">if</span> (socket_error == SocketError.TimedOut || socket_error == SocketError.Shutdown || socket_error == SocketError.ConnectionAborted || ret_length == <span style="color: #800080;">0</span><span style="color: #000000;">)
+ </span><span style="color: #800080;">8</span><span style="color: #000000;">                         {
+ </span><span style="color: #800080;">9</span>                             <span style="color: #008000;">//</span><span style="color: #008000;"> 网络不正常，委托退出接收线程</span>
+<span style="color: #800080;">10</span>                             thread_id = <span style="color: #800080;">1</span><span style="color: #000000;">;
+</span><span style="color: #800080;">11</span>                             <span style="color: #0000ff;">this</span>.Invoke(<span style="color: #0000ff;">this</span>.PLC_ExitThread_Delegate_HD, <span style="color: #0000ff;">new</span><span style="color: #000000;"> Object[] { thread_id });
+</span><span style="color: #800080;">12</span>                             <span style="color: #0000ff;">return</span><span style="color: #000000;">;
+</span><span style="color: #800080;">13</span><span style="color: #000000;">                         }
+</span><span style="color: #800080;">14</span>                         total_length +=<span style="color: #000000;"> ret_length;
+</span><span style="color: #800080;">15</span>                         data_left -=<span style="color: #000000;"> ret_length;
+</span><span style="color: #800080;">16</span>                     }  </pre>
+</div>
+<p><span style="color: #0000ff; font-size: 14pt;">控制台异步输出数据</span></p>
+<p>首先搭建一个简单的winform窗口demo，实现控制台异步输出数据</p>
+<p>此处参考链接：<a href="https://www.cnblogs.com/wangtonghui/p/3277303.html" target="_blank">https://blog.csdn.net/smartsmile2012/article/details/71172450 异步接收</a></p>
+<p>但网上搜到的大部分都是服务器接收，项目上的应用是客户端接收，做了一点修改</p>
+<p>搭建的过程中遇到了winform无法直接控制台输出，需要引用AllocConsole()和FreeConsole()</p>
+<p>此处参考链接：<a href="https://blog.csdn.net/b510030/article/details/52621312" target="_blank">https://blog.csdn.net/b510030/article/details/52621312 WinForm添加Console</a></p>
+<p>在反复点击按钮的过程中发现，AllocConsole()最好在窗口构造函数中使用，否则多次调用AllocConsole()会导致Console.Readkey()报错</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">  1</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">partial</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Form1 : Form
+</span><span style="color: #008080;">  2</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;">  3</span>         <span style="color: #008000;">//</span><span style="color: #008000;">winform调用console窗口</span>
+<span style="color: #008080;">  4</span>         [DllImport(<span style="color: #800000;">"</span><span style="color: #800000;">Kernel32.dll</span><span style="color: #800000;">"</span><span style="color: #000000;">)]
+</span><span style="color: #008080;">  5</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">extern</span><span style="color: #000000;"> Boolean AllocConsole();
+</span><span style="color: #008080;">  6</span> 
+<span style="color: #008080;">  7</span>         [DllImport(<span style="color: #800000;">"</span><span style="color: #800000;">Kernel32.dll</span><span style="color: #800000;">"</span><span style="color: #000000;">)]
+</span><span style="color: #008080;">  8</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">extern</span><span style="color: #000000;"> Boolean FreeConsole();
+</span><span style="color: #008080;">  9</span>         <span style="color: #008000;">//</span><span style="color: #008000;">socket模块</span>
+<span style="color: #008080;"> 10</span> <span style="color: #000000;">        IPAddress ip;
+</span><span style="color: #008080;"> 11</span> <span style="color: #000000;">        Socket m_sokcet;
+</span><span style="color: #008080;"> 12</span> <span style="color: #000000;">        IPEndPoint local_endpoint;
+</span><span style="color: #008080;"> 13</span>         <span style="color: #0000ff;">byte</span><span style="color: #000000;">[] buffer;<br /> </span><span style="color: #008080;">19</span>         <span style="color: #0000ff;">public</span><span style="color: #000000;"> Form1()
+</span><span style="color: #008080;"> 20</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 21</span>             buffer = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">byte</span>[<span style="color: #800080;">8</span><span style="color: #000000;">];
+</span><span style="color: #008080;"> 22</span> <span style="color: #000000;">            InitializeComponent();</span><span style="color: #008080;"> <br /> 25</span> <span style="color: #000000;">            AllocConsole();
+</span><span style="color: #008080;"> 26</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 27</span> 
+<span style="color: #008080;"> 28</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> button1_Click(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)
+</span><span style="color: #008080;"> 29</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 30</span>             ip = IPAddress.Parse(<span style="color: #800000;">"</span><span style="color: #800000;">127.0.0.1</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 31</span>             local_endpoint = <span style="color: #0000ff;">new</span> IPEndPoint(ip, <span style="color: #800080;">60000</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 32</span>             m_sokcet = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+</span><span style="color: #008080;"> 33</span> <span style="color: #000000;">            m_sokcet.Connect(local_endpoint);
+</span><span style="color: #008080;"> 34</span>             m_sokcet.BeginReceive(buffer, <span style="color: #800080;">0</span>, buffer.Length, SocketFlags.None, <span style="color: #0000ff;">new</span><span style="color: #000000;"> AsyncCallback(ReceiveCallback), m_sokcet);
+</span><span style="color: #008080;"> 35</span> <span style="color: #000000;">            Console.ReadKey();
+</span><span style="color: #008080;"> 36</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">71</span>         <span style="color: #0000ff;">void</span><span style="color: #000000;"> ReceiveCallback(IAsyncResult result)
+</span><span style="color: #008080;"> 72</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 73</span>             Socket m_sokcet =<span style="color: #000000;"> (Socket)result.AsyncState;
+</span><span style="color: #008080;"> 74</span>             <span style="color: #000000;">m_sokcet.EndReceive(result);
+</span><span style="color: #008080;"> 75</span> <span style="color: #000000;">            result.AsyncWaitHandle.Close();</span><span style="color: #008080;"> <br /> 91</span>             <span style="color: #000000;">Console.WriteLine("收到消息：{0}", Encoding.ASCII.GetString(buffer));</span><span style="color: #008080;"> <br /></span><span style="color: #008080;"> 94</span>             <span style="color: #008000;">//</span><span style="color: #008000;">清空数据，重新开始异步接收</span>
+<span style="color: #008080;"> 95</span>             buffer = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">byte</span><span style="color: #000000;">[buffer.Length];
+</span><span style="color: #008080;"> 96</span>             m_sokcet.BeginReceive(buffer, <span style="color: #800080;">0</span>, buffer.Length, SocketFlags.None, <span style="color: #0000ff;">new</span><span style="color: #000000;"> AsyncCallback(ReceiveCallback), m_sokcet);
+</span><span style="color: #008080;"> 97</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 98</span>     }</pre>
+</div>
+<p>服务端利用socketTool调试工具，发送数据后看控制台窗口的刷新情况，测试结果如下：</p>
+<p><img src="./images/C#通讯框架改写0.png" alt="" /></p>
+<p><strong>测试结果OK</strong></p>
+<p>**************************************************************************************************************************************************</p>
+<p><span style="color: #0000ff; font-size: 14pt;">&nbsp;流式数据框架构思</span></p>
+<p>&nbsp;此处参考链接：<a href="https://www.csdn.net/article/2014-06-12/2820196-Storm" target="_blank">https://www.csdn.net/article/2014-06-12/2820196-Storm 实时计算</a></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">二．  实时计算的相关技术
+主要分为三个阶段（大多是日志流）:
+数据的产生与收集阶段、传输与分析处理阶段、存储对对外提供服务阶段</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>链接内说的是大数据和流式处理框架Storm，项目上还远远达不到大数据级别，所以只是参考一下思路。</p>
+<p><img src="./images/C#通讯框架改写1.png" alt="" /></p>
+<p>数据的产生：PLC，数据的接受：Socket，数据的存储：队列，数据的分析处理：解析数据，数据的对外服务：刷新UI</p>
+<p>框架思路有了，接下来就是具体实现</p>
+<p>**************************************************************************************************************************************************</p>
+<p><span style="color: #0000ff; font-size: 14pt;" data-mce-="">生产者-消费者模式和队列</span></p>
+<p>此处参考链接：<a href="https://www.cnblogs.com/samgk/p/4772806.html" target="_blank">https://www.cnblogs.com/samgk/p/4772806.html 队列</a></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span>         <span style="color: #008000;">//</span><span style="color: #008000;">队列模块</span>
+<span style="color: #008080;"> 2</span>         <span style="color: #0000ff;">readonly</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">object</span> _locker = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">object</span><span style="color: #000000;">();
+</span><span style="color: #008080;"> 3</span>         Queue&lt;<span style="color: #0000ff;">byte</span>[]&gt; _tasks = <span style="color: #0000ff;">new</span> Queue&lt;<span style="color: #0000ff;">byte</span>[]&gt;<span style="color: #000000;">();
+</span><span style="color: #008080;"> 4</span>         EventWaitHandle _wh = <span style="color: #0000ff;">new</span> AutoResetEvent(<span style="color: #0000ff;">false</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 5</span> <span style="color: #000000;">        Thread _worker;
+</span><span style="color: #008080;"> 6</span> 
+<span style="color: #008080;"> 7</span>         <span style="color: #008000;">//</span><span style="color: #008000;">窗口初始化时开始消费者线程</span>
+<span style="color: #008080;"> 8</span>         <span style="color: #0000ff;">public</span><span style="color: #000000;"> Form1()
+</span><span style="color: #008080;"> 9</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">10</span>             buffer = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">byte</span>[<span style="color: #800080;">8</span><span style="color: #000000;">];
+</span><span style="color: #008080;">11</span> <span style="color: #000000;">            InitializeComponent();
+</span><span style="color: #008080;">12</span>             _worker = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Thread(Work);
+</span><span style="color: #008080;">13</span> <span style="color: #000000;">            _worker.Start();
+</span><span style="color: #008080;">14</span> <span style="color: #000000;">            AllocConsole();
+</span><span style="color: #008080;">15</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">16</span> 
+<span style="color: #008080;">17</span>        <span style="color: #008000;">//</span><span style="color: #008000;">加了锁和信号量</span>
+<span style="color: #008080;">18</span>         <span style="color: #0000ff;">void</span><span style="color: #000000;"> Work()
+</span><span style="color: #008080;">19</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">20</span>             <span style="color: #0000ff;">while</span> (<span style="color: #0000ff;">true</span><span style="color: #000000;">)
+</span><span style="color: #008080;">21</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">22</span>                 <span style="color: #0000ff;">byte</span>[] work = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+</span><span style="color: #008080;">23</span>                 <span style="color: #0000ff;">lock</span><span style="color: #000000;"> (_locker)
+</span><span style="color: #008080;">24</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">25</span>                     <span style="color: #0000ff;">if</span> (_tasks.Count &gt; <span style="color: #800080;">0</span><span style="color: #000000;">)
+</span><span style="color: #008080;">26</span> <span style="color: #000000;">                    {
+</span><span style="color: #008080;">27</span>                         work = _tasks.Dequeue(); <span style="color: #008000;">//</span><span style="color: #008000;"> 有任务时，出列任务</span>
+<span style="color: #008080;">28</span> 
+<span style="color: #008080;">29</span>                         <span style="color: #0000ff;">if</span> (work == <span style="color: #0000ff;">null</span>)  <span style="color: #008000;">//</span><span style="color: #008000;"> 退出机制：当遇见一个null任务时，代表任务结束</span>
+<span style="color: #008080;">30</span>                             <span style="color: #0000ff;">return</span><span style="color: #000000;">;
+</span><span style="color: #008080;">31</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">32</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">33</span> 
+<span style="color: #008080;">34</span>                 <span style="color: #0000ff;">if</span> (work != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+</span><span style="color: #008080;">35</span>                     SaveData(work);  <span style="color: #008000;">//</span><span style="color: #008000;"> 任务不为null时，处理并保存数据</span>
+<span style="color: #008080;">36</span>                 <span style="color: #0000ff;">else</span>
+<span style="color: #008080;">37</span>                     _wh.WaitOne();   <span style="color: #008000;">//</span><span style="color: #008000;"> 没有任务了，等待信号</span>
+<span style="color: #008080;">38</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">39</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">40</span>  
+<span style="color: #008080;">41</span>         <span style="color: #008000;">//</span><span style="color: #008000;">在异步接收的方法中把控制台输出修改为加入队列</span>
+<span style="color: #008080;">42</span>         <span style="color: #0000ff;">void</span> EnqueueTask(<span style="color: #0000ff;">byte</span><span style="color: #000000;">[] task)
+</span><span style="color: #008080;">43</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">44</span>             <span style="color: #0000ff;">lock</span><span style="color: #000000;"> (_locker)
+</span><span style="color: #008080;">45</span>                 _tasks.Enqueue(task);  <span style="color: #008000;">//</span><span style="color: #008000;"> 向队列中插入任务 </span>
+<span style="color: #008080;">46</span> 
+<span style="color: #008080;">47</span>             _wh.Set();  <span style="color: #008000;">//</span><span style="color: #008000;"> 给工作线程发信号</span>
+<span style="color: #008080;">48</span>         }</pre>
+</div>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span>                 <span style="color: #008000;">//</span><span style="color: #008000;">TODO 将收到的数据放入队列</span>
+<span style="color: #008080;">2</span> <span style="color: #000000;">                EnqueueTask(buffer);
+</span><span style="color: #008080;">3</span>                 Thread.Sleep(<span style="color: #800080;">10</span><span style="color: #000000;">);
+</span><span style="color: #008080;">4</span>                 <span style="color: #008000;">//</span><span style="color: #008000;">Console.WriteLine("收到消息：{0}", Encoding.ASCII.GetString(buffer));</span>
+<span style="color: #008080;">5</span>                 <span style="color: #008000;">//</span></pre>
+</div>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span>          <span style="color: #0000ff;">void</span> SaveData(<span style="color: #0000ff;">byte</span><span style="color: #000000;">[] buffer)
+</span><span style="color: #008080;">2</span> <span style="color: #000000;">         {
+</span><span style="color: #008080;">3</span>             <span style="color: #008000;">//</span><span style="color: #008000;">从队列中取出数据           </span>
+<span style="color: #008080;">4</span> &nbsp;           Console.WriteLine("收到消息：{0}", Encoding.ASCII.GetString(buffer));
+<span style="color: #008080;">5</span>          }</pre>
+</div>
+<p>&nbsp;</p>
+<p>这样就把数据先存入队列，再取出数据，通过控制台输出数据，实现了生产者-消费者模式和队列存储数据　　 &nbsp; &nbsp; &nbsp; &nbsp; 　2019-5-23</p>
+<p>**************************************************************************************************************************************************</p>
+<p>&nbsp;<span style="color: #0000ff; font-size: 14pt;">解析数据&amp;刷新UI</span></p>
+<p>&nbsp;项目真正的业务需求是解析数据和刷新UI，所以我们需要把SaveData方法改造一下</p>
+<p>&nbsp;PLC会源源不断的输出数据，我们需要在接收到数据后对数据进行处理和刷新UI，不可能对每一个数据都进行处理</p>
+<p>&nbsp;而且项目不是大数据级别的，不使用数据库存放数据，纯粹的实时处理，我们需要定义一下处理数据的采集时间和UI的刷新时间</p>
+<p>&nbsp;原有框架的常规采集是16ms，高频采集是2ms，所以在测试阶段定义10ms采集一次，UI刷新500ms一次</p>
+<p>逻辑是在最后解析&amp;刷新时间记录时间戳，和SaveData当前执行时间戳比较，大于10ms则解析，大于500ms则刷新</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span>         <span style="color: #0000ff;">int</span> count_UI = <span style="color: #800080;">0</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 2</span>         <span style="color: #0000ff;">int</span> count_Data = <span style="color: #800080;">0</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 3</span>         <span style="color: #0000ff;">float</span> time_UI =<span style="color: #000000;"> 0F;
+</span><span style="color: #008080;"> 4</span>         <span style="color: #0000ff;">float</span> time_Data =<span style="color: #000000;"> 0F;
+</span><span style="color: #008080;"> 5</span>         <span style="color: #0000ff;">float</span> time_over_UI =<span style="color: #000000;"> 0F;
+</span><span style="color: #008080;"> 6</span>         <span style="color: #0000ff;">float</span> time_over_Data =<span style="color: #000000;"> 0F;
+</span><span style="color: #008080;"> 7</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span><span style="color: #008000;">处理保存</span><span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;"> 8</span>         <span style="color: #0000ff;">bool</span> SaveData(<span style="color: #0000ff;">byte</span><span style="color: #000000;">[] buffer)
+</span><span style="color: #008080;"> 9</span> <span style="color: #000000;">        {</span>
+<span style="color: #008080;">11</span>             <span style="color: #008000;">//</span><span style="color: #008000;">从队列中取出数据，解析并刷新UI</span>
+<span style="color: #008080;">13</span>             <span style="color: #008000;">//</span><span style="color: #008000;">解析数据</span>
+<span style="color: #008080;">14</span>             time_Data = Environment.TickCount -<span style="color: #000000;"> time_over_Data;
+</span><span style="color: #008080;">15</span>             time_UI = Environment.TickCount -<span style="color: #000000;"> time_over_UI;
+</span><span style="color: #008080;">16</span>             <span style="color: #008000;">//</span><span style="color: #008000;">if (time_Data &gt; 10)//解析数据&mdash;&mdash;10ms一次
+</span><span style="color: #008080;">17</span>             <span style="color: #008000;">//</span><span style="color: #008000;">{
+</span><span style="color: #008080;">18</span>             <span style="color: #008000;">//</span><span style="color: #008000;">解析数据函数</span>
+<span style="color: #008080;">19</span>             count_Data++<span style="color: #000000;">;<br /></span><span style="color: #008080;">23</span>             <span style="color: #000000;">Console.WriteLine("解析成功：{0},耗时{1}ms,序号：{2}", Encoding.ASCII.GetString(buffer), time_Data.ToString(), count_Data.ToString());</span>
+<span style="color: #008080;">24</span>             time_over_Data =<span style="color: #000000;"> Environment.TickCount;
+</span><span style="color: #008080;">25</span>             <span style="color: #008000;">//</span><span style="color: #008000;">}
+</span><span style="color: #008080;">26</span> 
+<span style="color: #008080;">27</span>             <span style="color: #008000;">//</span><span style="color: #008000;">刷新UI&mdash;&mdash;500ms一次</span>
+<span style="color: #008080;">28</span>             <span style="color: #0000ff;">if</span> (time_UI &gt; <span style="color: #800080;">500</span><span style="color: #000000;">)
+</span><span style="color: #008080;">29</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">30</span>                 <span style="color: #008000;">//</span><span style="color: #008000;">刷新UI函数</span>
+<span style="color: #008080;">31</span>                 count_UI++<span style="color: #000000;">;<br /></span><span style="color: #008080;">33</span>                 <span style="color: #000000;">Console.WriteLine("刷新UI：{0},耗时{1}ms,序号：{2}", Encoding.ASCII.GetString(buffer), time_UI.ToString(), count_UI.ToString());</span>
+<span style="color: #008080;">34</span>                 time_over_UI =<span style="color: #000000;"> Environment.TickCount;
+</span><span style="color: #008080;">35</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">36</span>             Thread.Sleep(200);<span data-mce-=""><span style="color: #008000;">//</span><span data-mce-=""><span style="color: #008000;"> 模拟数据保存<br /></span></span></span><span style="color: #008080;">37</span>             <span data-mce-="">return <span data-mce-=""><span style="color: #0000ff;">true</span><span data-mce-="">;</span></span></span>
+<span style="color: #008080;">38</span>         }</pre>
+</div>
+<p>&nbsp;</p>
+<p>使用SockeTool发送数据100次，会看到数据被过滤到了一部分</p>
+<p><img src="./images/C#通讯框架改写2.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>测试到这里我对时间片有一点疑惑，查阅了一些资料和做了一些实际测试</p>
+<p>&nbsp;</p>
+<p>&nbsp;此处参考链接：<a href="https://zhidao.baidu.com/question/1051646628145878899.html" target="_blank">https://zhidao.baidu.com/question/1051646628145878899.html 时间片</a></p>
+<p>&nbsp;</p>
+<p>socket处理数据流的速度非常快，如果不加10ms的过滤则每一条数据都会显示在控制台页面，如果加了10ms的过滤则只显示一部分，至于为什么大部分情况下是16ms，和线程调度有关</p>
+<p><img src="./images/C#通讯框架改写3.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>我们现在把解析数据的函数和UI调用的函数放在指定的地方就可以实测了。</p>
+<p>**************************************************************************************************************************************************</p>
+<p><span style="color: #0000ff; font-size: 14pt;">socket粘包&amp;服务端断开连接异常&amp;异步接收检测socket通断</span></p>
+<p>1、粘包&mdash;&mdash;在测试过程中发现，如果buffer的大小与每次发送的数据不一致，会发生粘包现象。</p>
+<p><img src="./images/C#通讯框架改写4.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>项目上PLC发送的数据固定为4096字节，所以和服务端保持一致即可。</p>
+<p>&nbsp;</p>
+<p>2、服务端连接断开&mdash;&mdash;测试的另一个问题是如果服务端断开连接，客户端无法有效监测，回调函数会一直执行。</p>
+<p><img src="./images/C#通讯框架改写5.png" alt="" /></p>
+<p>3、监测通断&mdash;&mdash;网上查了很多资料，利用select方法和poll方法的，试了一下没有效果，最后采用flag的方式成功在连接异常后终止回调函数</p>
+<p>&nbsp;</p>
+<p>EndReceive方法会反馈当前获取到的字节数，否则没有数据则为0，如果重复接收20次，每次延时100ms都没有为0，则判断为连接已断。</p>
+<p>项目是和PLC连接，和其他互联网应用有一定的差异。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span>         <span style="color: #0000ff;">int</span> flag_connect = <span style="color: #800080;">0</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 2</span>         <span style="color: #0000ff;">void</span><span style="color: #000000;"> ReceiveCallback(IAsyncResult result)
+</span><span style="color: #008080;"> 3</span> <span style="color: #000000;">        {</span>
+<span style="color: #008080;">11</span>             Socket m_sokcet =<span style="color: #000000;"> (Socket)result.AsyncState;
+</span><span style="color: #008080;">12</span>             <span style="color: #0000ff;">int</span> a =<span style="color: #000000;"> m_sokcet.EndReceive(result);
+</span><span style="color: #008080;">13</span> <span style="color: #000000;">            result.AsyncWaitHandle.Close();
+</span><span style="color: #008080;">14</span>             <span style="color: #0000ff;">if</span> (a == <span style="color: #800080;">0</span><span style="color: #000000;">)
+</span><span style="color: #008080;">15</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">16</span>                 <span style="color: #0000ff;">if</span> (flag_connect == <span style="color: #800080;">20</span><span style="color: #000000;">)
+</span><span style="color: #008080;">17</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">18</span>                     flag_connect = <span style="color: #800080;">0</span><span style="color: #000000;">;
+</span><span style="color: #008080;">19</span>                     <span style="color: #0000ff;">return</span><span style="color: #000000;">;
+</span><span style="color: #008080;">20</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">21</span>                 flag_connect++<span style="color: #000000;">;
+</span><span style="color: #008080;">22</span>                 Thread.Sleep(<span style="color: #800080;">100</span><span style="color: #000000;">);
+</span><span style="color: #008080;">23</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">24</span>             <span style="color: #0000ff;">else</span>
+<span style="color: #008080;">25</span> <span style="color: #000000;">            {</span>
+<span style="color: #008080;">27</span> <span style="color: #000000;">                EnqueueTask(buffer);</span><span style="color: #008080;">32</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">33</span>             <span style="color: #008000;">//</span><span style="color: #008000;">清空数据，重新开始异步接收</span>
+<span style="color: #008080;">34</span>             buffer = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">byte</span><span style="color: #000000;">[buffer.Length];
+</span><span style="color: #008080;">35</span>             m_sokcet.BeginReceive(buffer, <span style="color: #800080;">0</span>, buffer.Length, SocketFlags.None, <span style="color: #0000ff;">new</span><span style="color: #000000;"> AsyncCallback(ReceiveCallback), m_sokcet);
+</span><span style="color: #008080;">36</span>         }</pre>
+</div>
+<p>&nbsp;</p>
+<p>**************************************************************************************************************************************************</p>
+<p><span style="color: #0000ff; font-size: 14pt;">解析数据连接PLC实测</span></p>
+<p>&nbsp;</p>
+<p>上面的测试都是笔记本电脑上利用socketTool测试的，现在开始连接PLC做真实的数据解析测试</p>
+<p>1、测试遇到的问题是，如何断开解析数据线程和异步接收回调函数</p>
+<p>一开始直接使用的是Abort方法，但是效果不好，没有办法再次连接</p>
+<p>查询相关资料后，使用flag的方式来退出线程，使用信号量的方式来结束回调函数</p>
+<p>另外考虑到PLC是无限的数据流，对队列的最大数量做了一个限制，如果超过1000个则停止接收</p>
+<p>此处参考链接：<a href="https://blog.csdn.net/pc0de/article/details/52841458" target="_blank">https://blog.csdn.net/pc0de/article/details/52841458 Abort异常</a></p>
+<p>此处参考链接：<a href="https://blog.csdn.net/shizhibuyi1234/article/details/78202647" target="_blank">https://blog.csdn.net/shizhibuyi1234/article/details/78202647 结束线程</a></p>
+<p>还有两个线程相关的，Mark一下日后学习</p>
+<p><a href="https://www.cnblogs.com/doforfuture/p/6293926.html" target="_blank">https://www.cnblogs.com/doforfuture/p/6293926.html 线程池相关</a><br /><a href="https://www.cnblogs.com/wjcnet/p/6955756.html" target="_blank">https://www.cnblogs.com/wjcnet/p/6955756.html&nbsp; Task</a></p>
+<p>2、连接断开过程中的，队列内的数据处理。经过测试，最后还是采用信号量的方式</p>
+<p>在队列达到最大数量1000时，异步接收回调函数等待。</p>
+<p>在队列为空时，解析数据线程给异步接收回调函数发信号。</p>
+<p>另外，实测Queue为空时，调用Dequeue会报错队列为空。</p>
+<p>完整代码：&nbsp;</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">  1</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">partial</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Form1 : Form
+</span><span style="color: #008080;">  2</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;">  3</span>         <span style="color: #008000;">//</span><span style="color: #008000;">winform调用console窗口</span>
+<span style="color: #008080;">  4</span>         [DllImport(<span style="color: #800000;">"</span><span style="color: #800000;">Kernel32.dll</span><span style="color: #800000;">"</span><span style="color: #000000;">)]
+</span><span style="color: #008080;">  5</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">extern</span><span style="color: #000000;"> Boolean AllocConsole();
+</span><span style="color: #008080;">  6</span> 
+<span style="color: #008080;">  7</span>         [DllImport(<span style="color: #800000;">"</span><span style="color: #800000;">Kernel32.dll</span><span style="color: #800000;">"</span><span style="color: #000000;">)]
+</span><span style="color: #008080;">  8</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">extern</span><span style="color: #000000;"> Boolean FreeConsole();
+</span><span style="color: #008080;">  9</span>         <span style="color: #008000;">//</span><span style="color: #008000;">socket模块</span>
+<span style="color: #008080;"> 10</span> <span style="color: #000000;">        IPAddress ip;
+</span><span style="color: #008080;"> 11</span> <span style="color: #000000;">        Socket m_sokcet;
+</span><span style="color: #008080;"> 12</span> <span style="color: #000000;">        IPEndPoint local_endpoint;
+</span><span style="color: #008080;"> 13</span>         <span style="color: #0000ff;">byte</span><span style="color: #000000;">[] buffer;
+</span><span style="color: #008080;"> 14</span>         <span style="color: #008000;">//</span><span style="color: #008000;">队列模块</span>
+<span style="color: #008080;"> 15</span>         <span style="color: #0000ff;">readonly</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">object</span> _locker = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">object</span><span style="color: #000000;">();
+</span><span style="color: #008080;"> 16</span>         Queue&lt;<span style="color: #0000ff;">byte</span>[]&gt; _tasks = <span style="color: #0000ff;">new</span> Queue&lt;<span style="color: #0000ff;">byte</span>[]&gt;<span style="color: #000000;">();
+</span><span style="color: #008080;"> 17</span> <span style="color: #000000;">        EventWaitHandle _wh;
+</span><span style="color: #008080;"> 18</span> <span style="color: #000000;">        EventWaitHandle _recieve_call;
+</span><span style="color: #008080;"> 19</span> <span style="color: #000000;">        Thread _worker;
+</span><span style="color: #008080;"> 20</span>         <span style="color: #0000ff;">public</span><span style="color: #000000;"> Form1()
+</span><span style="color: #008080;"> 21</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 22</span>             buffer = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">byte</span>[<span style="color: #800080;">256</span><span style="color: #000000;">];
+</span><span style="color: #008080;"> 23</span> <span style="color: #000000;">            InitializeComponent();
+</span><span style="color: #008080;"> 24</span> <span style="color: #000000;">            AllocConsole();
+</span><span style="color: #008080;"> 25</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 26</span> 
+<span style="color: #008080;"> 27</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> button1_Click(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)
+</span><span style="color: #008080;"> 28</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 29</span>             connect_status = <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 30</span>             <span style="color: #0000ff;">if</span> (_wh == <span style="color: #0000ff;">null</span><span style="color: #000000;">)<span style="color: #008000;">//队列信号量
+</span></span><span style="color: #008080;"> 31</span>                 _wh = <span style="color: #0000ff;">new</span> AutoResetEvent(<span style="color: #0000ff;">false</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 32</span>             <span style="color: #0000ff;">if</span> (_recieve_call == <span style="color: #0000ff;">null</span><span style="color: #000000;">)<span style="color: #008000;">//队列满或空信号量
+</span></span><span style="color: #008080;"> 33</span>                 _recieve_call = <span style="color: #0000ff;">new</span> AutoResetEvent(<span style="color: #0000ff;">false</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 34</span>             _worker = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Thread(Work);
+</span><span style="color: #008080;"> 35</span> <span style="color: #000000;">            _worker.Start();
+</span><span style="color: #008080;"> 36</span>             <span style="color: #0000ff;">if</span> (m_sokcet == <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+</span><span style="color: #008080;"> 37</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 38</span>                 ip = IPAddress.Parse(<span style="color: #800000;">"</span><span style="color: #800000;">169.254.11.22</span><span style="color: #800000;">"</span>);<span style="color: #008000;">//</span><span style="color: #008000;">TODO IP修改</span>
+<span style="color: #008080;"> 39</span>                 local_endpoint = <span style="color: #0000ff;">new</span> IPEndPoint(ip, <span style="color: #800080;">2001</span>);<span style="color: #008000;">//</span><span style="color: #008000;">TODO 端口修改</span>
+<span style="color: #008080;"> 40</span>                 m_sokcet = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+</span><span style="color: #008080;"> 41</span> <span style="color: #000000;">                m_sokcet.Connect(local_endpoint);
+</span><span style="color: #008080;"> 42</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 43</span>             m_sokcet.BeginReceive(buffer, <span style="color: #800080;">0</span>, buffer.Length, SocketFlags.None, <span style="color: #0000ff;">new</span><span style="color: #000000;"> AsyncCallback(ReceiveCallback), m_sokcet);
+</span><span style="color: #008080;"> 44</span>             <span style="color: #008000;">//</span><span style="color: #008000;">Console.ReadKey();</span>
+<span style="color: #008080;"> 45</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 46</span> 
+<span style="color: #008080;"> 47</span>         <span style="color: #0000ff;">bool</span> connect_status = <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 48</span>         <span style="color: #0000ff;">int</span> flag_connect = <span style="color: #800080;">0</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 49</span>         <span style="color: #0000ff;">void</span><span style="color: #000000;"> ReceiveCallback(IAsyncResult result)
+</span><span style="color: #008080;"> 50</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 51</span>             <span style="color: #0000ff;">if</span> (_tasks.Count &gt; <span style="color: #800080;">10000</span><span style="color: #000000;">)
+</span><span style="color: #008080;"> 52</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 53</span>                 <span style="color: #008000;">//</span><span style="color: #008000;">TODO 区分当前连接状态，执行wait还是return</span>
+<span style="color: #008080;"> 54</span> <span style="color: #000000;">                _recieve_call.WaitOne();
+</span><span style="color: #008080;"> 55</span>                 <span style="color: #008000;">//</span><span style="color: #008000;">return;</span>
+<span style="color: #008080;"> 56</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 57</span> 
+<span style="color: #008080;"> 58</span>             Socket m_sokcet =<span style="color: #000000;"> (Socket)result.AsyncState;
+</span><span style="color: #008080;"> 59</span>             <span style="color: #0000ff;">int</span> a =<span style="color: #000000;"> m_sokcet.EndReceive(result);
+</span><span style="color: #008080;"> 60</span> <span style="color: #000000;">            result.AsyncWaitHandle.Close();
+</span><span style="color: #008080;"> 61</span>             <span style="color: #0000ff;">if</span> (a == <span style="color: #800080;">0</span><span style="color: #000000;">)<span style="color: #008000;">//判断是否与服务端断开连接
+</span></span><span style="color: #008080;"> 62</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 63</span>                 <span style="color: #0000ff;">if</span> (flag_connect == <span style="color: #800080;">20</span><span style="color: #000000;">)
+</span><span style="color: #008080;"> 64</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;"> 65</span>                     flag_connect = <span style="color: #800080;">0</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 66</span>                     <span style="color: #0000ff;">return</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 67</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;"> 68</span>                 flag_connect++<span style="color: #000000;">;
+</span><span style="color: #008080;"> 69</span>                 Thread.Sleep(<span style="color: #800080;">100</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 70</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 71</span>             <span style="color: #0000ff;">else</span>
+<span style="color: #008080;"> 72</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 73</span>                 <span style="color: #008000;">//</span><span style="color: #008000;">TODO 将收到的数据放入队列</span>
+<span style="color: #008080;"> 74</span> <span style="color: #000000;">                EnqueueTask(buffer);
+</span><span style="color: #008080;"> 75</span>                 <span style="color: #008000;">//</span><span style="color: #008000;">Thread.Sleep(1);
+</span><span style="color: #008080;"> 76</span>                 <span style="color: #008000;">//</span><span style="color: #008000;">Delay(1);
+</span><span style="color: #008080;"> 77</span>                 <span style="color: #008000;">//</span><span style="color: #008000;">Console.WriteLine("收到消息：{0}", Encoding.ASCII.GetString(buffer));
+</span><span style="color: #008080;"> 78</span>                 <span style="color: #008000;">//
+</span><span style="color: #008080;"> 79</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 80</span>             <span style="color: #008000;">//</span><span style="color: #008000;">清空数据，重新开始异步接收</span>
+<span style="color: #008080;"> 81</span>             buffer = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">byte</span><span style="color: #000000;">[buffer.Length];
+</span><span style="color: #008080;"> 82</span>             m_sokcet.BeginReceive(buffer, <span style="color: #800080;">0</span>, buffer.Length, SocketFlags.None, <span style="color: #0000ff;">new</span><span style="color: #000000;"> AsyncCallback(ReceiveCallback), m_sokcet);
+</span><span style="color: #008080;"> 83</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 84</span> 
+<span style="color: #008080;"> 85</span>         <span style="color: #0000ff;">void</span><span style="color: #000000;"> Work()
+</span><span style="color: #008080;"> 86</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 87</span>             <span style="color: #0000ff;">bool</span><span style="color: #000000;"> result;
+</span><span style="color: #008080;"> 88</span>             <span style="color: #0000ff;">while</span><span style="color: #000000;"> (connect_status)
+</span><span style="color: #008080;"> 89</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 90</span>                 <span style="color: #0000ff;">byte</span>[] work = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 91</span>                 <span style="color: #0000ff;">lock</span><span style="color: #000000;"> (_locker)
+</span><span style="color: #008080;"> 92</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;"> 93</span>                     <span style="color: #0000ff;">if</span> (_tasks.Count &gt; <span style="color: #800080;">0</span><span style="color: #000000;">)
+</span><span style="color: #008080;"> 94</span> <span style="color: #000000;">                    {
+</span><span style="color: #008080;"> 95</span>                         work = _tasks.Dequeue(); <span style="color: #008000;">//</span><span style="color: #008000;"> 有任务时，出列任务</span>
+<span style="color: #008080;"> 96</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;"> 97</span>                     <span style="color: #0000ff;">else</span>
+<span style="color: #008080;"> 98</span> <span style="color: #000000;">                    {
+</span><span style="color: #008080;"> 99</span> <span style="color: #000000;">                        _recieve_call.Set();
+</span><span style="color: #008080;">100</span>                         <span style="color: #008000;">//</span><span style="color: #008000;">return;</span>
+<span style="color: #008080;">101</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">102</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">103</span> 
+<span style="color: #008080;">104</span>                 <span style="color: #0000ff;">if</span> (work != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+</span><span style="color: #008080;">105</span>                     result = SaveData(work);  <span style="color: #008000;">//</span><span style="color: #008000;"> 任务不为null时，处理并保存数据</span>
+<span style="color: #008080;">106</span>                 <span style="color: #0000ff;">else</span>
+<span style="color: #008080;">107</span>                     _wh.WaitOne();   <span style="color: #008000;">//</span><span style="color: #008000;"> 没有任务了，等待信号</span>
+<span style="color: #008080;">108</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">109</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">110</span> 
+<span style="color: #008080;">111</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span><span style="color: #008000;">插入任务</span><span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">112</span>         <span style="color: #0000ff;">void</span> EnqueueTask(<span style="color: #0000ff;">byte</span><span style="color: #000000;">[] task)
+</span><span style="color: #008080;">113</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">114</span>             <span style="color: #0000ff;">lock</span><span style="color: #000000;"> (_locker)
+</span><span style="color: #008080;">115</span>                 _tasks.Enqueue(task);  <span style="color: #008000;">//</span><span style="color: #008000;"> 向队列中插入任务 </span>
+<span style="color: #008080;">116</span> 
+<span style="color: #008080;">117</span>             _wh.Set();  <span style="color: #008000;">//</span><span style="color: #008000;"> 给工作线程发信号</span>
+<span style="color: #008080;">118</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">119</span> 
+<span style="color: #008080;">120</span>         <span style="color: #0000ff;">int</span> count_UI = <span style="color: #800080;">0</span><span style="color: #000000;">;
+</span><span style="color: #008080;">121</span>         <span style="color: #0000ff;">int</span> count_Data = <span style="color: #800080;">0</span><span style="color: #000000;">;
+</span><span style="color: #008080;">122</span>         <span style="color: #0000ff;">float</span> time_UI =<span style="color: #000000;"> 0F;
+</span><span style="color: #008080;">123</span>         <span style="color: #0000ff;">float</span> time_Data =<span style="color: #000000;"> 0F;
+</span><span style="color: #008080;">124</span>         <span style="color: #0000ff;">float</span> time_over_UI =<span style="color: #000000;"> 0F;
+</span><span style="color: #008080;">125</span>         <span style="color: #0000ff;">float</span> time_over_Data =<span style="color: #000000;"> 0F;
+</span><span style="color: #008080;">126</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span><span style="color: #008000;">处理保存</span><span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">127</span>         <span style="color: #0000ff;">bool</span> SaveData(<span style="color: #0000ff;">byte</span><span style="color: #000000;">[] buffer)
+</span><span style="color: #008080;">128</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">129</span> 
+<span style="color: #008080;">130</span>             <span style="color: #008000;">//</span><span style="color: #008000;">TODO 从队列中取出数据，解析并刷新UI
+</span><span style="color: #008080;">131</span> 
+<span style="color: #008080;">132</span>             <span style="color: #008000;">//</span><span style="color: #008000;">解析数据&mdash;&mdash;全部解析并保存</span>
+<span style="color: #008080;">133</span>             time_Data = Environment.TickCount -<span style="color: #000000;"> time_over_Data;
+</span><span style="color: #008080;">134</span>             time_UI = Environment.TickCount -<span style="color: #000000;"> time_over_UI;
+</span><span style="color: #008080;">135</span>             <span style="color: #008000;">//</span><span style="color: #008000;">if (time_Data &gt; 10)
+</span><span style="color: #008080;">136</span>             <span style="color: #008000;">//</span><span style="color: #008000;">{
+</span><span style="color: #008080;">137</span>             <span style="color: #008000;">//</span><span style="color: #008000;">解析数据函数</span>
+<span style="color: #008080;">138</span>             count_Data++<span style="color: #000000;">;
+</span><span style="color: #008080;">139</span>             <span style="color: #0000ff;">bool</span> result =<span style="color: #000000;"> PLC_Receive_Callback_HD(buffer);
+</span><span style="color: #008080;">140</span>             <span style="color: #008000;">//</span><span style="color: #008000;">Console.WriteLine(count_Data.ToString() + "," + _tasks.Count.ToString() + "," + result.ToString());
+</span><span style="color: #008080;">141</span>             <span style="color: #008000;">//</span><span style="color: #008000;">Thread.Sleep(1);</span>
+<span style="color: #008080;">142</span>             Console.WriteLine(<span style="color: #800000;">"</span><span style="color: #800000;">解析成功：{0},耗时{1}ms,序号：{2}</span><span style="color: #800000;">"</span><span style="color: #000000;">, Encoding.ASCII.GetString(buffer), time_Data.ToString(), count_Data.ToString());
+</span><span style="color: #008080;">143</span>             time_over_Data =<span style="color: #000000;"> Environment.TickCount;
+</span><span style="color: #008080;">144</span>             <span style="color: #008000;">//</span><span style="color: #008000;">}
+</span><span style="color: #008080;">145</span> 
+<span style="color: #008080;">146</span>             <span style="color: #008000;">//</span><span style="color: #008000;">刷新UI&mdash;&mdash;500ms刷新一次</span>
+<span style="color: #008080;">147</span>             <span style="color: #0000ff;">if</span> (time_UI &gt; <span style="color: #800080;">500</span><span style="color: #000000;">)
+</span><span style="color: #008080;">148</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">149</span>                 <span style="color: #008000;">//</span><span style="color: #008000;">刷新UI函数</span>
+<span style="color: #008080;">150</span>                 count_UI++<span style="color: #000000;">;
+</span><span style="color: #008080;">151</span>                 <span style="color: #008000;">//</span><span style="color: #008000;">Console.WriteLine(count_UI.ToString() + "," + _tasks.Count.ToString() + "刷新UI成功");</span>
+<span style="color: #008080;">152</span>                 Console.WriteLine(<span style="color: #800000;">"</span><span style="color: #800000;">刷新UI：{0},耗时{1}ms,序号：{2}</span><span style="color: #800000;">"</span><span style="color: #000000;">, Encoding.ASCII.GetString(buffer), time_UI.ToString(), count_UI.ToString());
+</span><span style="color: #008080;">153</span>                 time_over_UI =<span style="color: #000000;"> Environment.TickCount;
+</span><span style="color: #008080;">154</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">155</span>             <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+</span><span style="color: #008080;">156</span>             <span style="color: #008000;">//</span><span style="color: #008000;">Thread.Sleep(200);  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 模拟数据保存</span>
+<span style="color: #008080;">157</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">158</span> 
+<span style="color: #008080;">159</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> button2_Click(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)
+</span><span style="color: #008080;">160</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">161</span>             connect_status = <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+</span><span style="color: #008080;">162</span>             <span style="color: #0000ff;">if</span> (_worker != <span style="color: #0000ff;">null</span> &amp;&amp;<span style="color: #000000;"> _worker.IsAlive)
+</span><span style="color: #008080;">163</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">164</span> <span style="color: #000000;">                _wh.Set();
+</span><span style="color: #008080;">165</span>                 <span style="color: #008000;">//</span><span style="color: #008000;">_worker.Join();</span>
+<span style="color: #008080;">166</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">167</span>         }</pre>
+</div>
+<p>&nbsp;最后加入了解析数据的函数，对4096个字节解析，但是把刷新UI全部屏蔽</p>
+<p>实测PLC_Receive_Callback_HD内900多行代码解析数据很快</p>
+<p>原打算采用异步调用方式调用解析数据函数，现在看来不需要，因为不涉及数据存储</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>通讯框架基本改写完成，剩下的就是把刷新UI的函数加上去</p>
+<p>**************************************************************************************************************************************************</p>
+<p><span style="color: #0000ff; font-size: 14pt;">总结：</span></p>
+<p>&nbsp;</p>
+<p>参考了网上的很多资料，实现了一个简单的异步通讯和生产者-消费者模式加队列存储，实际测试效果自己还是比较满意的</p>
+<p>果然用轮子不如造轮子，重复造轮子是提升技术的最好方法。 &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&nbsp; 2019-5-24</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

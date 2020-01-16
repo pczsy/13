@@ -1,0 +1,470 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修【C#夯实】我与接口二三事：IEnumerable、IQueryable 与 LINQ' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>【C#夯实】我与接口二三事：IEnumerable、IQueryable 与 LINQ</center></div><div class='banquan'>原文出处:本文由博客园博主Carcar019提供。<br/>
+原文连接:https://www.cnblogs.com/carmen-019/p/10842673.html</div><br>
+    <p><span style="font-size: 16px;"><strong><span style="font-family: 'Microsoft YaHei';">序</span></strong></span></p>
+<p>　　学生时期，有过小组作业，当时分工一人做那么两三个页面，然而在前端差不多的时候，我和另一个同学发生了争执。当时用的是简单的三层架构（DLL、BLL、UI），我个人觉得各写各的吧，到时候合并，而他觉得应该把底层先写好，他好直接调用中间层的方法。</p>
+<p>　　到出来工作之后，接触接口，想整理一下这个：接口到底是个什么概念呢？</p>
+<p>　　需要说明一点的是，我这里说的接口，不是API那个接口，而是&ldquo;暂时没实现&rdquo;那个接口。</p>
+<p>　　刚接触接口类型的时候，还不太熟练，看到返回接口类型的方法，总在奇怪，这个返回的对象怎么知道它取哪个实现？可以看一个简单的例子：</p>
+<table border="1" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td valign="top" width="243">
+<p align="right"><span style="color: #ff0000;"><strong>报错&nbsp;&nbsp;</strong></span></p>
+<p align="right"><span style="color: #ff0000;"><strong><span style="color: #888888;">（无法创建抽象类或接口的实例<strong>）</strong></span>&nbsp;&nbsp;<br /></strong></span></p>
+
+
+
+
+
+</td>
+<td valign="top" width="469">
+<p align="left"><strong>&nbsp;&nbsp;&nbsp; </strong>var&nbsp;test = new ITestInterface();</p>
+
+
+
+
+
+</td>
+
+
+
+
+
+</tr>
+<tr>
+<td valign="top" width="243">
+<p align="right"><span style="color: #339966;"><strong>正确&nbsp; &nbsp;</strong></span></p>
+
+
+
+
+
+</td>
+<td valign="top" width="469">
+<p align="left">&nbsp;&nbsp;&nbsp; ITestInterface infa = new TestInterface();</p>
+<p align="left">&nbsp;&nbsp;&nbsp; infa.Func1();</p>
+
+
+
+
+
+</td>
+
+
+
+
+
+</tr>
+
+
+
+
+
+</tbody>
+
+
+
+
+
+</table>
+<p>　　也即，<span style="text-decoration: underline;">返回的类型总是具类，是确定的，方法已经实现的</span>。</p>
+<div class="cnblogs_code">
+<pre><code>ITestInterface infa = <span style="color: #0000ff;">new</span> TestInterface();</pre>
+</div>
+<p>&nbsp;　　其中的 ITestInterface 更像一个模具，对应这个模具造型的内容，由TestInerface提供。</p>
+<p>　　那么，接口到底如何使用？</p>
+<p>　　<span style="text-decoration: underline;">接口</span>的使用，要这样看：&ldquo;<span style="text-decoration: underline;">具备某种特征（功能）</span>&rdquo;。</p>
+<p>　　例如看 ITestInterface infa = new TestInterface(); 其中，TestInterface具备有ITestInterface的特征，而ITestInterface作为有某种特征（功能）的标记，它对具体如何达到这种特征（功能）是不感兴趣的，有标记就有特征。这种标记的体现，在C#里面就是继承。</p>
+<p>　　说到这里，老朋友IEnumerable是一定要介绍的。</p>
+<p>&nbsp;</p>
+<p><span style="font-size: 16px;"><strong><span style="font-family: 'Microsoft YaHei';">一、迭代器 IEnumerable</span></strong></span></p>
+<p>　　集合这种数据结构是很常见的，通常的操作是对集合的内容做筛选，或排序。IEnumerable接口描述的是返回可循环访问集合的枚举数，继承这个接口，需要实现 public IEnumerator GetEnumerator() {} 方法。</p>
+<p align="left">　　那么，IEnumerator是个什么er？继承这个接口之后，IDE提示需要实现的方法&mdash;&mdash;</p>
+<div class="cnblogs_code">
+<pre><code>    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Iterator : IEnumerator
+    {
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">object</span> Current =&gt; <span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> NotImplementedException();
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">bool</span><span style="color: #000000;"> MoveNext()  { &hellip; }
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> Reset()  { &hellip; }
+    }</span></pre>
+</div>
+<p>&nbsp;　　有一个当前对象，一个是否能指向下一个的判断，还有一个重置。那么，可以想象迭代器应该是这样用的：</p>
+<div class="cnblogs_code">
+<pre><code>    Iterator iterator = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Iterator();
+    </span><span style="color: #0000ff;">while</span><span style="color: #000000;"> (iterator.MoveNext())
+    {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> Get iterator.Current to do something..</span>
+<span style="color: #000000;">        Console.WriteLine(iterator.Current.ToString());
+    }</span></pre>
+</div>
+<p>　　但这看起来，并不太聪明，或者这样使用比较&ldquo;合理&rdquo;：</p>
+<p align="center">&nbsp;<img src="./images/【C#夯实】我与接口二三事：IEnumerable、IQueryable 与 LINQ0.png" alt="" /></p>
+<p align="left">　　是不是get到了某种真相？foreach里面接受的是IEnumerable对象，并且会在此处调用到GetEnumerator去得到Enumerator。那么到底public IEnumerator GetEnumerator(){}要怎么实现呢，C# 2已经提供了yield语句简化迭代器。</p>
+<div class="cnblogs_code">
+<pre><code>    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> IterationSample : IEnumerable
+    {
+        </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> IEnumerator GetEnumerator()
+        {
+            </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> index = <span style="color: #800080;">0</span>; index &lt; values.Length; index++<span style="color: #000000;">)
+            {
+                </span><span style="color: #0000ff;">yield</span> <span style="color: #0000ff;">return</span> values[(index + startingPoint) %<span style="color: #000000;"> values.Length];
+            }
+        }
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">object</span><span style="color: #000000;">[] values;
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> startingPoint;
+
+        </span><span style="color: #0000ff;">public</span> IterationSample(<span style="color: #0000ff;">object</span>[] values, <span style="color: #0000ff;">int</span><span style="color: #000000;"> startingPoint)
+        {
+            </span><span style="color: #0000ff;">this</span>.values =<span style="color: #000000;"> values;
+            </span><span style="color: #0000ff;">this</span>.startingPoint =<span style="color: #000000;"> startingPoint;
+        }
+    }</span></pre>
+</div>
+<p>&nbsp;　　再来使用Enumerator：</p>
+<div class="cnblogs_code">
+<pre><code>    <span style="color: #0000ff;">object</span>[] objs = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">object</span>[]{<span style="color: #800000;">"</span><span style="color: #800000;">a</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">b</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">c</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">d</span><span style="color: #800000;">"</span><span style="color: #000000;">};
+    IterationSample sam </span>= <span style="color: #0000ff;">new</span> IterationSample(objs, <span style="color: #800080;">0</span><span style="color: #000000;">);
+    </span><span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">var</span> str <span style="color: #0000ff;">in</span><span style="color: #000000;"> sam)
+    {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> do something..</span>
+    }</pre>
+</div>
+<p>　　可以想象，yield是个怎么样的存在，&ldquo;一次一次返回&rdquo;这是我对yield的第一印象描述。但总觉得还是有些说不清楚，这种时候还是得看看书：</p>
+<p>　　&ldquo;yield return 语句指表示 &rsquo;暂时地&rsquo; 退出方法&mdash;&mdash;事实上，可以把它当做暂停&rdquo;，</p>
+<p>　　既然有这种说法，那还得给出个demo[1]，关于怎么个&ldquo;暂停&rdquo;。</p>
+<p>　　（这里悄咪咪用C# 6的新语法using static System.Console; 实在懒得打 Console.WriteLine();）</p>
+<div class="cnblogs_code">
+<pre><code>    <span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            IEnumerable</span>&lt;<span style="color: #0000ff;">int</span>&gt; iterable =<span style="color: #000000;"> CreateEnumerable();
+            IEnumerator</span>&lt;<span style="color: #0000ff;">int</span>&gt; iterator =<span style="color: #000000;"> iterable.GetEnumerator();
+            WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Starting to iterate</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            </span><span style="color: #0000ff;">while</span> (<span style="color: #0000ff;">true</span><span style="color: #000000;">)
+            {
+                WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Calling MoveNext()..</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                </span><span style="color: #0000ff;">bool</span> result =<span style="color: #000000;"> iterator.MoveNext();
+                WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">MoveNext result = {result}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                </span><span style="color: #0000ff;">if</span> (!result) <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+                WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Fetching Current..</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">..Current result = {iterator.Current.ToString()}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            }
+            ReadLine();
+        }
+
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">readonly</span> <span style="color: #0000ff;">string</span> Padding = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">string</span>(<span style="color: #800000;">'</span> <span style="color: #800000;">'</span>, <span style="color: #800080;">30</span><span style="color: #000000;">);
+ 
+        </span><span style="color: #0000ff;">static</span> IEnumerable&lt;<span style="color: #0000ff;">int</span>&gt;<span style="color: #000000;"> CreateEnumerable()
+        {
+            WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Start of CreateEnumerable()</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; <span style="color: #800080;">2</span>; i++<span style="color: #000000;">)
+            {
+                WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">{Padding} About to yield {i}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                </span><span style="color: #0000ff;">yield</span> <span style="color: #0000ff;">return</span><span style="color: #000000;"> i;
+                WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">{Padding} After yield</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            }
+            WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">{Padding} Yielding final value</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            </span><span style="color: #0000ff;">yield</span> <span style="color: #0000ff;">return</span> -<span style="color: #800080;">1</span><span style="color: #000000;">;
+
+            WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">{Padding} End of CreateEnumerable</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+        }
+    }</span></pre>
+</div>
+<p align="center"><img src="./images/【C#夯实】我与接口二三事：IEnumerable、IQueryable 与 LINQ1.png" alt="" />&nbsp;</p>
+<p>　　此处可以留意&ldquo;After yield&rdquo;是什么时候出现的，就会发现[1]：</p>
+<p>　　　l&nbsp;&nbsp; 在第一次调用MoveNext之前，CreateEnumerable中的代码不会被调用；</p>
+<p>　　　l&nbsp;&nbsp; 当调用MoveNext时，Current也同时变化；</p>
+<p>　　　l&nbsp;&nbsp; 在yield return的位置，代码就停止执行，在下一次调用MoveNext时又继续执行（再return一次）</p>
+<p>　　yield的故事还没有完，此处就简短介绍。</p>
+<p>&nbsp;</p>
+<p>　　yield return提供了逐个返回的条件，对于仅是取集合当中符合筛选条件的一项，用yield是方便的，逐个返回的情况下，不会占用过多的存储空间。但如果涉及到排序（或者比大小、最值）的问题，那必然要求集合当中的所有数据处于可用状态，这里也出现了一些传值的概念。</p>
+<p>　　yield return属于延迟执行（Deferred Execution），延迟执行再区分为惰性求值（Lazy Evaluation）和热情求值（Eager Evaluation）。&nbsp;</p>
+<div align="center">
+<table border="1" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td valign="top" width="356">
+<p align="center"><strong>Deferred but eager execution</strong></p>
+</td>
+<td valign="top" width="356">
+<p align="center"><strong>Deferred and lazy execution</strong></p>
+</td>
+</tr>
+<tr>
+<td valign="top" width="356">
+<p>&nbsp; &nbsp; IEnumerable&lt;int&gt; GetComputation(int maxIndex)</p>
+<p>&nbsp; &nbsp;&nbsp;{</p>
+<p>&nbsp;&nbsp;&nbsp; &nbsp; &nbsp;&nbsp;var result = new int[maxIndex];</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; for(int i = 0; i &lt; maxIndex; i++)</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; {</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; result[i] = Computation(i);</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; }</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; foreach(var value in result)</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; {</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; yield return value;</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; }</p>
+<p>&nbsp; &nbsp; }</p>
+</td>
+<td valign="top" width="356">
+<p>&nbsp; &nbsp; IEnumerable&lt;int&gt; GetComputation(int maxIndex)</p>
+<p>&nbsp; &nbsp; {</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; for(int i = 0; i &lt; maxIndex; i++)</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; {</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; yield return Computation(i);</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; }</p>
+<p>&nbsp; &nbsp; }</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>　　详见：<a href="https://stackoverflow.com/questions/2515796/deferred-execution-and-eager-evaluation">https://stackoverflow.com/questions/2515796/deferred-execution-and-eager-evaluation</a></p>
+<p>&nbsp;</p>
+<p>　　下面这个例子，是惰性求值，迭代器返回的值受lambda表达式控制，并且是在每一次访问到这一个&ldquo;点&rdquo;的时候，再去返回 &ldquo;点&rdquo;的处理结果。热情求值是直接返回&ldquo;点&rdquo;，没有再过处理。两相比较，还得看具体的编程情况以作选择，此处不赘述。</p>
+<div class="cnblogs_code">
+<pre><code>    <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+    {
+        </span><span style="color: #0000ff;">var</span> sequence = Generate(<span style="color: #800080;">10</span>, () =&gt;<span style="color: #000000;"> DateTime.Now);
+        </span><span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">var</span> value <span style="color: #0000ff;">in</span><span style="color: #000000;"> sequence)
+            WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">{value:T}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+    }
+
+    </span><span style="color: #0000ff;">static</span> IEnumerable&lt;TResult&gt; Generate&lt;TResult&gt;(<span style="color: #0000ff;">int</span> number, Func&lt;TResult&gt;<span style="color: #000000;"> generator)
+    {
+        </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> i = <span style="color: #800080;">0</span>; i &lt; number; i++<span style="color: #000000;">)
+        {
+            Sleep(</span><span style="color: #800080;">400</span><span style="color: #000000;">);
+            </span><span style="color: #0000ff;">yield</span> <span style="color: #0000ff;">return</span><span style="color: #000000;"> generator();
+        }
+    }</span></pre>
+</div>
+<p>&nbsp;　　（为了逻辑上的全面性，）与延迟执行相对的是立即执行（Immediately Execution），是一次返回就完成函数的操作。</p>
+<p>&nbsp;</p>
+<p><span style="font-size: 16px;"><strong><span style="font-family: 'Microsoft YaHei';">二、迭代器 IQueryable</span></strong></span></p>
+<p>　　LINQ to Object 是针对本地数据存储（local data store）来执行查询的，系统会根据lambda表达式里面的逻辑创建匿名的委托，并执行代码；</p>
+<p>　　LINQ to SQL 针对的是在数据库执行的，会把查询条件解析成T-SQL，并且把SQL语句发送给数据库引擎。</p>
+<p>&nbsp;</p>
+<p>　　关于，自动生成SQL语句这一点，可以做个尝试，例如：创建了一个EF，调试监控连接数据库后返回的变量类型。</p>
+<div class="cnblogs_code">
+<pre><code>    <span style="color: #0000ff;">var</span> dbcontext = <span style="color: #0000ff;">new</span><span style="color: #000000;"> CM_FORTESTEntities();
+    </span><span style="color: #0000ff;">var</span> tb1 =<span style="color: #000000;"> dbcontext.tblEmployees;
+    </span><span style="color: #0000ff;">var</span> tb2 = dbcontext.tblEmployees.Where(a =&gt; a.Id == <span style="color: #800080;">1</span><span style="color: #000000;">);
+    </span><span style="color: #0000ff;">var</span> tb3 = dbcontext.tblEmployees.Where(a =&gt; a.Gender == <span style="color: #800000;">"</span><span style="color: #800000;">Male</span><span style="color: #800000;">"</span>).OrderByDescending(a =&gt; a.Id);</pre>
+</div>
+<p align="center">&nbsp;</p>
+<p align="center"><img src="./images/【C#夯实】我与接口二三事：IEnumerable、IQueryable 与 LINQ2.png" alt="" />&nbsp;</p>
+<p>&nbsp;</p>
+<p>　　咋一看，怎么还能是不同类型？但是再看类成员，会发现一些端倪：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">abstract</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> DbSet : DbQuery, IInternalSetAdapter
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">abstract</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> DbQuery : IOrderedQueryable, IQueryable, IEnumerable, IListSource, IInternalQueryAdapter
+
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">interface</span> IOrderedQueryable : IQueryable, IEnumerable</pre>
+</div>
+<p>&nbsp;</p>
+<p>　　好了，终于引入到这个朋友&mdash;&mdash;IQueryable，IQueryable有些什么必要实现的方法呢？</p>
+<div class="cnblogs_code">
+<pre><code>    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> QueryableSample : IQueryable
+    {
+        </span><span style="color: #0000ff;">public</span> Expression Expression =&gt; <span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> NotImplementedException();
+        </span><span style="color: #0000ff;">public</span> Type ElementType =&gt; <span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> NotImplementedException();
+        </span><span style="color: #0000ff;">public</span> IQueryProvider Provider =&gt; <span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> NotImplementedException();
+        </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> IEnumerator GetEnumerator()
+        {  </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> NotImplementedException(); }
+    }</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>　　IQueryable是IEnumerable的孩子（IQueryable : IEnumerable），它是一个有自己花样的迭代器。这个花样如何体现呢？关键还在于Expression、IQueryProvider上。</p>
+<p>　　从字面上来看，Expression是查询条件的表达式树；那么Provider就是提供数据的成员了。</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('117e9d97-ff0a-46ab-b166-cdbf9775dc75')"><img id="code_img_closed_117e9d97-ff0a-46ab-b166-cdbf9775dc75" class="code_img_closed" src="./images/【C#夯实】我与接口二三事：IEnumerable、IQueryable 与 LINQ3.png" alt="" /><img id="code_img_opened_117e9d97-ff0a-46ab-b166-cdbf9775dc75" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('117e9d97-ff0a-46ab-b166-cdbf9775dc75',event)" src="./images/【C#夯实】我与接口二三事：IEnumerable、IQueryable 与 LINQ4.png" alt="" />
+<div id="cnblogs_code_open_117e9d97-ff0a-46ab-b166-cdbf9775dc75" class="cnblogs_code_hide">
+<pre><code>    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> QueryableSample : IQueryable
+    {
+        </span><span style="color: #0000ff;">public</span> Expression Expression { <span style="color: #0000ff;">get</span><span style="color: #000000;">; }
+        </span><span style="color: #0000ff;">public</span> Type ElementType =&gt; <span style="color: #0000ff;">typeof</span><span style="color: #000000;">(ModelItem);
+        </span><span style="color: #0000ff;">public</span> IQueryProvider Provider { <span style="color: #0000ff;">get</span><span style="color: #000000;">; }
+
+        </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> IEnumerator GetEnumerator()
+        {
+            </span><span style="color: #0000ff;">return</span> Provider.Execute&lt;IEnumerable&gt;<span style="color: #000000;">(Expression).GetEnumerator();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> GetEnumerator();
+        }
+
+        </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> QueryableSample(IQueryProvider provider, Expression expression)
+        {
+            </span><span style="color: #0000ff;">if</span> (provider == <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+                </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> ArgumentNullException(<span style="color: #800000;">"</span><span style="color: #800000;">provider</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            </span><span style="color: #0000ff;">if</span> (expression == <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+                </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> ArgumentNullException(<span style="color: #800000;">"</span><span style="color: #800000;">expression</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+
+            Provider </span>=<span style="color: #000000;"> provider;
+            Expression </span>=<span style="color: #000000;"> expression;
+        }
+    }</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>　　预感中，Provider会是个重要角色：</p>
+<table border="1" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td colspan="2" valign="top" width="712">
+<p align="center"><span style="font-size: 14px;"><strong>public&nbsp;</strong><strong>class&nbsp;</strong><strong>QueryProvider</strong><strong> : IQueryProvider</strong></span></p>
+</td>
+</tr>
+<tr>
+<td valign="top" width="395">
+<p align="left"><strong>IQueryable CreateQuery(Expression expression)</strong></p>
+</td>
+<td valign="top" width="317">
+<p align="left">return new QueryableSample(this, expression);</p>
+</td>
+</tr>
+<tr>
+<td valign="top" width="395">
+<p align="left"><strong>IQueryable&lt;TElement&gt; CreateQuery&lt;</strong><strong>TElement</strong><strong>&gt;(Expression expression)</strong></p>
+</td>
+<td valign="top" width="317">
+<p align="left">return (IQueryable&lt;TElement&gt;) new QueryableSample(this, expression);</p>
+</td>
+</tr>
+<tr>
+<td valign="top" width="395">
+<p align="left"><strong>object</strong><strong> Execute(Expression expression)</strong></p>
+</td>
+<td valign="top" width="317">
+<p align="left">return QueryResult.Execute(expression, false);</p>
+</td>
+</tr>
+<tr>
+<td valign="top" width="395">
+<p align="left"><strong>TResult Execute&lt;</strong><strong>TResult</strong><strong>&gt;(Expression expression)</strong></p>
+</td>
+<td valign="top" width="317">
+<p align="left">bool IsEnumerable = (typeof(TResult).Name == "IEnumerable`1");</p>
+<p align="left">return (TResult)QueryResult.Execute(expression, IsEnumerable);</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p align="left">&nbsp;</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('ac8b08c4-c251-4a68-8a02-6f5dcc4571f2')"><img id="code_img_closed_ac8b08c4-c251-4a68-8a02-6f5dcc4571f2" class="code_img_closed" src="./images/【C#夯实】我与接口二三事：IEnumerable、IQueryable 与 LINQ3.png" alt="" /><img id="code_img_opened_ac8b08c4-c251-4a68-8a02-6f5dcc4571f2" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('ac8b08c4-c251-4a68-8a02-6f5dcc4571f2',event)" src="./images/【C#夯实】我与接口二三事：IEnumerable、IQueryable 与 LINQ4.png" alt="" />
+<div id="cnblogs_code_open_ac8b08c4-c251-4a68-8a02-6f5dcc4571f2" class="cnblogs_code_hide">
+<pre><code>    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> QueryProvider : IQueryProvider
+    {
+        </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> IQueryable CreateQuery(Expression expression)
+        {
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span> QueryableSample(<span style="color: #0000ff;">this</span><span style="color: #000000;">, expression);
+        }
+        </span><span style="color: #0000ff;">public</span> IQueryable&lt;TElement&gt; CreateQuery&lt;TElement&gt;<span style="color: #000000;">(Expression expression)
+        {
+            </span><span style="color: #0000ff;">return</span> (IQueryable&lt;TElement&gt;) <span style="color: #0000ff;">new</span> QueryableSample(<span style="color: #0000ff;">this</span><span style="color: #000000;">, expression);
+        }
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">object</span><span style="color: #000000;"> Execute(Expression expression)
+        {
+            </span><span style="color: #0000ff;">return</span> QueryResult.Execute(expression, <span style="color: #0000ff;">false</span><span style="color: #000000;">);
+        }
+        </span><span style="color: #0000ff;">public</span> TResult Execute&lt;TResult&gt;<span style="color: #000000;">(Expression expression)
+        {
+            </span><span style="color: #0000ff;">bool</span> IsEnumerable = (<span style="color: #0000ff;">typeof</span>(TResult).Name == <span style="color: #800000;">"</span><span style="color: #800000;">IEnumerable`1</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> (TResult)QueryResult.Execute(expression, IsEnumerable);
+        }
+    }
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">sealed</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> QueryResult
+    {
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">object</span> Execute(Expression expression, <span style="color: #0000ff;">bool</span><span style="color: #000000;"> isEnumerable)
+        { </span><span style="color: #008000;">//</span><span style="color: #008000;"> 利用expression得到数据结果，设其为records</span>
+            QueryableSample records = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (isEnumerable)
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> records.Provider.CreateQuery(expression);
+            </span><span style="color: #0000ff;">else</span>
+                <span style="color: #0000ff;">return</span><span style="color: #000000;"> records.Provider.Execute(expression);
+        }
+    }</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p align="center">&nbsp;<img src="./images/【C#夯实】我与接口二三事：IEnumerable、IQueryable 与 LINQ7.png" alt="" /></p>
+<p>　　在github上找到了个详尽些的QueryableDemo可以看：&nbsp;<a href="https://github.com/andreychizhov/NestQueryableProvider">https://github.com/andreychizhov/NestQueryableProvider</a></p>
+<p>&nbsp;</p>
+<p><span style="font-size: 16px;"><strong><span style="font-family: 'Microsoft YaHei';">三、IEnumerable 与 IQueryable</span></strong></span></p>
+<p>&nbsp;　　下面以一个例子比较二者最大的区别[2]：</p>
+<table style="height: 384px; width: 745px;" border="1" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td valign="top" width="338">
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; var q = from c in dbContext.Customers</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;where c.City == "London"</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;select c;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; var finalAnswer = from c in q</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; orderby c.Name</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; select c;</p>
+<p>&nbsp;</p>
+</td>
+<td valign="top" width="365">
+<p>使用IQueryable&lt;T&gt;所内置的LINQ to SQL机制。</p>
+<p>（LINQ to SQL程序库会把相关的查询操作合起来执行，仅向数据库发出一次调用，即where和orderby都是在同一次SQL查询中完成。）</p>
+</td>
+</tr>
+<tr>
+<td valign="top" width="338">
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; var q = (from c in dbContext.Customers</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; where c.City == "London"</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; select c).AsEnumerable();</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; var finalAnswer = from c in q</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; orderby c.Name</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; select c;</p>
+<p>&nbsp;</p>
+</td>
+<td valign="top" width="365">
+<p>把数据库对象强制转换成IEnumerable形式的序列，并把排序等工作放在本地完成。</p>
+<p>（即会把where字句后得到的结果转换成IEnumerable&lt;T&gt;的序列，再采用LINQ to Objects机制完成后续，排序是通过委托在本地执行。）</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p>　　注意：</p>
+<p>　　两种不同的数据处理方式，依循着两套完全不同的流程。无论是用lambda表达式来撰写查询逻辑还是以函数参数的形式来表示这些逻辑，针对IEnumerable&lt;T&gt;所设计的那些扩展方法都将其视为委托。反之，针对IQueryable&lt;T&gt;的那些扩展方法用的则是表达式树。【<em><span style="text-decoration: underline;">表达式树</span></em>&nbsp;可以把各种逻辑合并起来成<strong><span style="text-decoration: underline;">一条</span></strong>SQL语句。】</p>
+<p>&nbsp;</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> IEnumerable&lt;TSource&gt; Where&lt;TSource&gt;(<span style="color: #0000ff;">this</span> IEnumerable&lt;TSource&gt; source, Func&lt;TSource, <span style="color: #0000ff;">bool</span>&gt;<span style="color: #000000;"> predicate)
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> IQueryable&lt;TSource&gt; Where&lt;TSource&gt;(<span style="color: #0000ff;">this</span> IQueryable&lt;TSource&gt; source, Expression&lt;Func&lt;TSource, <span style="color: #0000ff;">bool</span>&gt;&gt; predicate)</pre>
+</div>
+<p>&nbsp;</p>
+<p>　　如果使用IEnumerable&lt;T&gt;，则必须在本地进行。系统把lambda表达式编译到方法里，在本地计算机上运行，这意味着无论有待处理的数据在不在本地，都必须先获取过来才行。</p>
+<p>　　同时，用来支持IQueryable的那些Provider未必能够完全解析每一种查询，通常这些Provider只能解读几种固定的（.NET Framework已经实现）的运算符（方法），如果要在查询操作里面调用除此之外的其它方法，那可能就得把序列当成IEnumerable来查询。</p>
+<p>&nbsp;</p>
+<p><span style="color: #339966;">吐槽&nbsp; &nbsp; ：emmmmmm，，，本来是想写我与接口二三事，结果竟然如此跑偏，太多细节能扣啦，知识点冥冥间也有关联，慢慢捋吧~</span></p>
+<p><span style="color: #339966;">立Flag：本月开启机器学习，今年要把C#基础篇搞定。</span></p>
+<p>&nbsp;</p>
+<p><span style="font-family: 黑体; font-size: 18px; color: #999999;">注释：</span></p>
+<p><span style="color: #999999;">[1] 自《深入理解C#》（第3版）Jon Skeet 著&nbsp; 姚琪琳 译</span></p>
+<p><span style="color: #999999;">[2] 自《Effective C#》（第3版） 比尔&middot;瓦格纳 著</span></p>
+<p><span style="color: #999999;">&nbsp;</span></p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

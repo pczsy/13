@@ -1,0 +1,603 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Csharp TreeList Drag and Drop' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Csharp TreeList Drag and Drop</center></div><div class='banquan'>原文出处:本文由博客园博主®Geovin Du Dream Park™提供。<br/>
+原文连接:https://www.cnblogs.com/geovindu/p/11139142.html</div><br>
+    <div class="cnblogs_Highlighter">
+<pre><code>  /// &lt;summary&gt;
+    /// https://www.codeproject.com/articles/3225/treelistview
+    /// https://www.codeproject.com/Tips/572728/TreeListViewEx-Tree-List-and-Drag-and-Drop     
+    /// https://sourceforge.net/projects/objectlistview/
+    /// 涂聚文 20190704
+    /// Geovin Du
+    /// &lt;/summary&gt;
+    public partial class TryTreeListView : Form
+    {
+        List&lt;int&gt; selectindex = new List&lt;int&gt;();//
+  
+        TreeListViewItem draggedNode=new TreeListViewItem();
+        /// &lt;summary&gt;
+        /// 
+        /// &lt;/summary&gt;
+        public string draggtext
+        {
+            set;
+            get;
+        }
+        /// &lt;summary&gt;
+        /// 
+        /// &lt;/summary&gt;
+        string beforeEdit = "";
+        /// &lt;summary&gt;
+        /// 
+        /// &lt;/summary&gt;
+        string beforeEditName = "";
+        /// &lt;summary&gt;
+        /// 
+        /// &lt;/summary&gt;
+        string afterEdit = "";
+        string nodechildid = "";
+        string nodeparentid = "";
+        string nodechild = "";
+        string nodeparent = "";
+        string nodetitle = "";
+        /// &lt;summary&gt;
+        /// 
+        /// &lt;/summary&gt;
+        List&lt;TreeListViewItem&gt; getList = new List&lt;TreeListViewItem&gt;();
+        /// &lt;summary&gt;
+        /// 
+        /// &lt;/summary&gt;
+        /// &lt;returns&gt;&lt;/returns&gt;
+       DataTable setList()
+       {
+
+            DataTable dt = new DataTable();
+            dt.Columns.Add("Id", typeof(int));
+            dt.Columns.Add("Name", typeof(string));
+            dt.Columns.Add("ParentId", typeof(int));
+            dt.Columns.Add("Level", typeof(int));
+            dt.Rows.Add(1, "六福集团", 0,0);
+            dt.Rows.Add(2, "广州六福", 1,1);
+            dt.Rows.Add(3, "北京六福", 1,1);
+            dt.Rows.Add(4, "上海六福", 1,1);
+            dt.Rows.Add(5, "深圳六福", 1,1);
+            dt.Rows.Add(6, "人事部", 5,2);
+            dt.Rows.Add(7, "科技部", 5,2);
+            dt.Rows.Add(8, "恒大集团", 0, 0);
+            dt.Rows.Add(9, "恒大广州", 8, 1);
+            dt.Rows.Add(10, "恒大北京", 8, 1);
+            dt.Rows.Add(11, "恒大上海", 8, 1);
+            dt.Rows.Add(12, "恒大深圳", 8, 1);
+            dt.Rows.Add(13, "人事部", 11, 2);
+            dt.Rows.Add(14, "科技部", 11, 2);
+
+
+            return dt;
+       }
+       /// &lt;summary&gt;
+       /// 
+       /// &lt;/summary&gt;
+       /// &lt;param name="tr1"&gt;&lt;/param&gt;
+       /// &lt;param name="parentId"&gt;&lt;/param&gt;
+       private void setTreeView(TreeView tr1, int parentId)
+       {
+
+           DataRow[] ds = setList().Select("ParentId=" + parentId.ToString());
+           if (ds.Length &gt; 0)
+           {
+               int pId = -1;
+               foreach (DataRow row in ds)
+               {
+                   TreeNode node = new TreeNode();
+                   node.Text = row["Name"].ToString();
+                   node.Tag = (int)row["Id"];
+                   pId = (int)row["ParentId"];
+                   if (pId == 0)
+                   {
+                       //添加根节点
+                       tr1.Nodes.Add(node);
+                   }
+                   else
+                   {
+                       //添加根节点之外的其他节点
+                       RefreshChildNode(tr1, node, pId);
+                   }
+                   //查找以node为父节点的子节点
+                   setTreeView(tr1, (int)node.Tag);
+
+               }
+           }
+                  
+       }
+        /// &lt;summary&gt;
+        /// 
+        /// &lt;/summary&gt;
+        public void bind()
+       {
+
+           ColumnHeader head=new ColumnHeader();
+           head.Text = "Level";        
+           treeListView1.Columns.Add(head);
+           DataRow[] ds = setList().Select("ParentId=0");
+           
+           
+
+           foreach (DataRow row in ds)
+           {
+
+               //第一层
+               TreeListViewItem itemA = new TreeListViewItem(row["Name"].ToString(), 0);
+               itemA.Expand();
+               itemA.SubItems.Add(row["Id"].ToString());
+               itemA.SubItems.Add(row["ParentId"].ToString());
+               itemA.SubItems.Add(row["Level"].ToString());
+               itemA.ToolTipText = row["ParentId"].ToString();
+               treeListView1.Items.Add(itemA);
+               DataRow[] ds1 = setList().Select("ParentId=" + row["Id"].ToString());
+               if (ds1.Length &gt; 0)
+               {
+                   //第二层
+                   foreach (DataRow row1 in ds1)
+                   {
+                       if (row["Id"].ToString() == row1["ParentId"].ToString())
+                       {
+                           TreeListViewItem item = new TreeListViewItem(row1["Name"].ToString(), 1);
+                           item.SubItems.Add(row1["Id"].ToString());
+                           item.SubItems.Add(row1["ParentId"].ToString());
+                           item.SubItems.Add(row1["Level"].ToString());
+                           item.ToolTipText = row1["ParentId"].ToString();
+                           itemA.Items.Add(item);
+
+                           DataRow[] ds2 = setList().Select("ParentId=" + row1["Id"].ToString());
+                           if (ds2.Length &gt; 0)
+                           {
+                               foreach (DataRow row2 in ds2)
+                               {
+                                   //第三层
+                                   if (row1["Id"].ToString() == row2["ParentId"].ToString())
+                                   {
+                                       TreeListViewItem item2 = new TreeListViewItem(row2["Name"].ToString(), 2);
+                                       item2.SubItems.Add(row2["Id"].ToString());
+                                       item2.SubItems.Add(row2["ParentId"].ToString());
+                                       item2.SubItems.Add(row2["Level"].ToString());
+                                       item2.ToolTipText = row2["ParentId"].ToString();
+                                       item.Items.Add(item2);
+                                   }
+
+
+                               }
+                           }
+                       }    
+                   }
+               }
+
+
+
+           }
+
+       }
+       /// &lt;summary&gt;
+       /// 处理根节点的子节点
+       /// &lt;/summary&gt;
+       /// &lt;param name="tr1"&gt;&lt;/param&gt;
+       /// &lt;param name="treeNode"&gt;&lt;/param&gt;
+       /// &lt;param name="parentId"&gt;&lt;/param&gt;
+       private void RefreshChildNode(TreeView tr1, TreeNode treeNode, int parentId)
+       {
+           foreach (TreeNode node in tr1.Nodes)
+           {
+               if ((int)node.Tag == parentId)
+               {
+                   node.Nodes.Add(treeNode);
+                   return;
+               }
+               else if (node.Nodes.Count &gt; 0)
+               {
+                   FindChildNode(node, treeNode, parentId);
+               }
+           }
+       }
+       /// &lt;summary&gt;
+       /// 处理根节点的子节点的子节点
+       /// &lt;/summary&gt;
+       /// &lt;param name="tNode"&gt;&lt;/param&gt;
+       /// &lt;param name="treeNode"&gt;&lt;/param&gt;
+       /// &lt;param name="parentId"&gt;&lt;/param&gt;
+       private void FindChildNode(TreeNode tNode, TreeNode treeNode, int parentId)
+       {
+
+           foreach (TreeNode node in tNode.Nodes)
+           {
+               if ((int)node.Tag == parentId)
+               {
+                   node.Nodes.Add(treeNode);
+                   return;
+               }
+               else if (node.Nodes.Count &gt; 0)
+               {
+                   FindChildNode(node, treeNode, parentId);
+
+               }
+
+           }
+
+       }
+
+
+        /// &lt;summary&gt;
+        /// 
+        /// &lt;/summary&gt;
+        public TryTreeListView()
+        {
+            InitializeComponent();
+        }
+        /// &lt;summary&gt;
+        /// 
+        /// &lt;/summary&gt;
+        /// &lt;param name="sender"&gt;&lt;/param&gt;
+        /// &lt;param name="e"&gt;&lt;/param&gt;
+        private void TryTreeListView_Load(object sender, EventArgs e)
+        {
+            setTreeView(this.treeView1, 0);
+            this.treeView1.ExpandAll();
+            bind();
+        }
+        /// &lt;summary&gt;
+        /// 
+        /// &lt;/summary&gt;
+        /// &lt;param name="sender"&gt;&lt;/param&gt;
+        /// &lt;param name="e"&gt;&lt;/param&gt;
+        private void treeListView1_ItemCheck(object sender, ItemCheckEventArgs e)
+        {
+
+            TreeListViewItem item = new TreeListViewItem();
+            //MessageBox.Show(e.Index.ToString());
+            // TreeListViewItem
+            //MessageBox.Show(treeListView1.SelectedItems.Count.ToString());
+            // MessageBox.Show(treeListView1.Items[0].SubItems[0].Text);
+            //MessageBox.Show(treeListView1.GetTreeListViewItemFromIndex(e.Index).Text);
+            if (treeListView1.GetTreeListViewItemFromIndex(e.Index).Checked == false)
+            {
+
+                //MessageBox.Show(treeListView1.GetTreeListViewItemFromIndex(e.Index).SubItems[0].Text);  //从子节点开始
+                item = treeListView1.GetTreeListViewItemFromIndex(e.Index);
+                getList.Add(item);
+            }
+
+            //取消
+            //if (treeListView1.GetTreeListViewItemFromIndex(e.Index).Checked == true)
+            //{
+            //    MessageBox.Show(treeListView1.GetTreeListViewItemFromIndex(e.Index).SubItems[0].Text);
+            //}
+
+            //MessageBox.Show(e.Index.ToString());
+        }
+        /// &lt;summary&gt;
+        /// 
+        /// &lt;/summary&gt;
+        /// &lt;param name="sender"&gt;&lt;/param&gt;
+        /// &lt;param name="e"&gt;&lt;/param&gt;
+        private void treeListView1_ItemActivate(object sender, EventArgs e)
+        {
+            
+        }
+        /// &lt;summary&gt;
+        /// 
+        /// &lt;/summary&gt;
+        /// &lt;param name="sender"&gt;&lt;/param&gt;
+        /// &lt;param name="e"&gt;&lt;/param&gt;
+        private void button1_Click(object sender, EventArgs e)
+        {
+            this.textBox1.Text=getList.Count.ToString();
+            string s = getList[0].FullPath; //节点路径
+            string l=getList[0].Level.ToString();
+            string ss = getList[0].Parent.Text;
+            string sb = getList[0].Parent.SubItems[0].Text;
+            Form1 frm = new Form1();
+            frm.fullpath = getList[0].FullPath; //节点路径
+            frm.editname = getList[0].Text;
+            frm.id = getList[0].SubItems[1].Text;
+            if (frm.ShowDialog() == DialogResult.OK)
+            {
+
+            }
+             getList = new List&lt;TreeListViewItem&gt;();
+
+          
+
+            
+        }
+        /// &lt;summary&gt;
+        /// 
+        /// &lt;/summary&gt;
+        /// &lt;param name="sender"&gt;&lt;/param&gt;
+        /// &lt;param name="e"&gt;&lt;/param&gt;
+        private void treeListView1_ItemMouseHover(object sender, ListViewItemMouseHoverEventArgs e)
+        {
+            //MessageBox.Show(e.Item.Text);
+        }
+        /// &lt;summary&gt;
+        /// 编辑前的值
+        /// &lt;/summary&gt;
+        /// &lt;param name="sender"&gt;&lt;/param&gt;
+        /// &lt;param name="e"&gt;&lt;/param&gt;
+        private void treeListView1_BeforeLabelEdit(object sender, TreeListViewBeforeLabelEditEventArgs e)
+        {
+            MessageBox.Show(e.Item.Text);
+        }
+
+        /// &lt;summary&gt;
+        /// 
+        /// &lt;/summary&gt;
+        /// &lt;param name="sender"&gt;&lt;/param&gt;
+        /// &lt;param name="e"&gt;&lt;/param&gt;
+        private void treeListView1_AfterLabelEdit(object sender, TreeListViewLabelEditEventArgs e)
+        {
+            MessageBox.Show(e.Item.Text);
+        }
+        /// &lt;summary&gt;
+        /// 拖放完成发生
+        /// &lt;/summary&gt;
+        /// &lt;param name="sender"&gt;&lt;/param&gt;
+        /// &lt;param name="e"&gt;&lt;/param&gt;
+        private void treeListView1_DragDrop(object sender, DragEventArgs e)
+        {
+            try
+            {
+
+                // Retrieve the client coordinates of the drop location.
+                Point targetPoint = treeListView1.PointToClient(new Point(e.X, e.Y));
+                //所要放置的位置
+                // Retrieve the node at the drop location.
+                TreeListViewItem targetNode = treeListView1.GetItemAt(targetPoint);
+                TreeListViewItem fullNode = treeListView1.GetItemAtFullRow(targetPoint);
+                // draggedNode = (TreeListViewItem)e.Data.GetData(typeof(TreeListViewItem));
+                //string s = e.Data.GetData(typeof(TreeListViewItem)).ToString();
+                System.Windows.Forms.TreeListView.DragItemData data = (System.Windows.Forms.TreeListView.DragItemData)e.Data.GetData(typeof(System.Windows.Forms.TreeListView.DragItemData));
+                draggedNode = (TreeListViewItem)data.DragItems[0];
+
+                if (!draggedNode.Equals(targetNode) &amp;&amp; !ContainsNode(draggedNode, targetNode))
+                {
+                    // If it is a move operation, remove the node from its current 
+                    // location and add it to the node at the drop location.
+                    if (e.Effect == DragDropEffects.Move)
+                    {
+
+
+                        //draggedNode.Remove();
+                        // int indx=targetNode.Index;
+                        // targetNode.Items.Insert(draggedNode.Index,draggedNode);
+                        //treeListView1.Items.Insert(indx, targetNode);
+
+                        draggedNode.Remove();
+                        targetNode.Items.Add(draggedNode);
+
+                        // targetNode.Items.Insert(indx, draggedNode); //父节点，添加移动的子节点
+
+                        nodechildid = draggedNode.SubItems[1].Text;//子节点
+                        nodeparentid = targetNode.SubItems[1].Text;//父节点
+                        nodechild = draggedNode.Text;//子节点
+                        nodeparent = targetNode.Text;//父节点
+                        nodetitle = draggedNode.ToolTipText;
+
+                        //bookKindListInfo.BookKindID = int.Parse(nodechildid);
+                        //bookKindListInfo.BookKindParent = int.Parse(nodeparentid);
+                        //bookKindListInfo.BookKindName = nodechild;
+                        //bookKindListInfo.BookKindCode = nodetitle;
+                        //this.textBox1.Text = nodeparent;
+                        //this.textBox2.Text = nodechild;
+                        //this.textBox3.Text = nodetitle;
+                        //formOperatingStringInfo.NodeMoveUpdated = true;
+
+                        //button1.Text = "移動區域節點";
+
+                        //administrativeAreaListInfo.AreaID = int.Parse(nodechildid);                  
+                        //administrativeAreaListInfo.AreaParentID = int.Parse(nodeparentid);
+                        //administrativeAreaListInfo.AreaName = nodechild;
+                        //int k = bookKindListBLL.UpdateBookKindList(bookKindListInfo);
+                        //if (k &gt;= 1)
+                        //{
+                        //    MessageBox.Show("移動书目录成功！");
+                        //    InitDataTable();
+                        //    BindRoot();
+                        //    treeView1.ExpandAll(); //全部展开
+                        //}
+                        //else
+                        //{
+                        //    MessageBox.Show("移動书目录不成功！");
+                        //}
+
+
+                        /// MessageBox.Show("子节点：" + nodechild + ",父节点：" + nodeparent, "拖动节点", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+
+                    // If it is a copy operation, clone the dragged node 
+                    // and add it to the node at the drop location.
+                    else if (e.Effect == DragDropEffects.Copy)
+                    {
+                        targetNode.Items.Add((TreeListViewItem)draggedNode.Clone());
+                    }
+
+                    // Expand the node at the location 
+                    // to show the dropped node.
+                    targetNode.Expand();
+                }
+            }
+            catch (Exception ex)
+            {
+                ex.Message.ToString();
+            }
+        }
+
+        /// &lt;summary&gt;
+        ///Determine whether one node is a parent 
+        ///or ancestor of a second node.
+        /// &lt;/summary&gt;
+        /// &lt;param name="node1"&gt;&lt;/param&gt;
+        /// &lt;param name="node2"&gt;&lt;/param&gt;
+        /// &lt;returns&gt;&lt;/returns&gt;
+        private bool ContainsNode(TreeListViewItem node1, TreeListViewItem node2)
+        {
+            // Check the parent node of the second node.
+            if (node2.Parent == null) return false;
+            if (node2.Parent.Equals(node1)) return true;
+
+            // If the parent node is not null or equal to the first node, 
+            // call the ContainsNode method recursively using the parent of 
+            // the second node.
+            return ContainsNode(node1, node2.Parent);
+        }
+
+        /// &lt;summary&gt;
+        /// 施放离开边界时发生
+        /// &lt;/summary&gt;
+        /// &lt;param name="sender"&gt;&lt;/param&gt;
+        /// &lt;param name="e"&gt;&lt;/param&gt;
+        private void treeListView1_DragLeave(object sender, EventArgs e)
+        {
+            
+        }
+        /// &lt;summary&gt;
+        /// 
+        /// &lt;/summary&gt;
+        /// &lt;param name="sender"&gt;&lt;/param&gt;
+        /// &lt;param name="e"&gt;&lt;/param&gt;
+        private void treeListView1_DragEnter(object sender, DragEventArgs e)
+        {
+            e.Effect = e.AllowedEffect;
+            
+            
+        }
+        /// &lt;summary&gt;
+        /// 
+        /// &lt;/summary&gt;
+        /// &lt;param name="sender"&gt;&lt;/param&gt;
+        /// &lt;param name="e"&gt;&lt;/param&gt;
+        private void treeListView1_ItemDrag(object sender, ItemDragEventArgs e)
+        {
+            // Move the dragged node when the left mouse button is used.
+            if (e.Button == MouseButtons.Left)
+            {
+                DoDragDrop(e.Item, DragDropEffects.Move);
+                draggedNode = (TreeListViewItem)e.Item;
+
+            }
+
+            // Copy the dragged node when the right mouse button is used.
+            else if (e.Button == MouseButtons.Right)
+            {
+                DoDragDrop(e.Item, DragDropEffects.Copy);
+                draggedNode = (TreeListViewItem)e.Item;
+            }
+        }
+
+        /// &lt;summary&gt;
+        /// 
+        /// &lt;/summary&gt;
+        /// &lt;param name="sender"&gt;&lt;/param&gt;
+        /// &lt;param name="e"&gt;&lt;/param&gt;
+        private void treeListView1_DragOver(object sender, DragEventArgs e)
+        {
+            //draggedNode = (TreeListViewItem)e.Data.GetData(typeof(TreeListViewItem));
+
+                //Point draggedPoint = treeListView1.PointToClient(new Point(e.X, e.Y));
+                //draggedNode = treeListView1.GetItemAt(draggedPoint);         
+
+
+        }
+        /// &lt;summary&gt;
+        /// 双控件
+        /// &lt;/summary&gt;
+        /// &lt;param name="sender"&gt;&lt;/param&gt;
+        /// &lt;param name="e"&gt;&lt;/param&gt;
+        private void treeListView1_DoubleClick(object sender, EventArgs e)
+        {
+           string selectedname=treeListView1.SelectedItems[0].Text;
+           Form1 frm = new Form1();
+           frm.fullpath = treeListView1.SelectedItems[0].FullPath; //节点路径
+           frm.editname = treeListView1.SelectedItems[0].Text;
+           frm.id = treeListView1.SelectedItems[0].SubItems[1].Text;
+           if (frm.ShowDialog() == DialogResult.OK)
+           {
+
+           }
+           this.textBox1.Text = selectedname;
+        }
+        /// &lt;summary&gt;
+        /// 
+        /// &lt;/summary&gt;
+        /// &lt;param name="sender"&gt;&lt;/param&gt;
+        /// &lt;param name="e"&gt;&lt;/param&gt;
+        private void treeListView1_Leave(object sender, EventArgs e)
+        {
+            if (treeListView1.SelectedItems!= null)
+            {
+                //让选中项背景色呈现红色
+                treeListView1.SelectedItems[0].BackColor = Color.Red;
+                //前景色为白色
+                treeListView1.SelectedItems[0].ForeColor = Color.White;
+            }
+        }
+        /// &lt;summary&gt;
+        /// 添加子节点
+        /// &lt;/summary&gt;
+        /// &lt;param name="sender"&gt;&lt;/param&gt;
+        /// &lt;param name="e"&gt;&lt;/param&gt;
+        private void addToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+
+        }
+        /// &lt;summary&gt;
+        /// 编辑当前节点
+        /// &lt;/summary&gt;
+        /// &lt;param name="sender"&gt;&lt;/param&gt;
+        /// &lt;param name="e"&gt;&lt;/param&gt;
+        private void editToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+
+        }
+        /// &lt;summary&gt;
+        /// 删除当前节点
+        /// &lt;/summary&gt;
+        /// &lt;param name="sender"&gt;&lt;/param&gt;
+        /// &lt;param name="e"&gt;&lt;/param&gt;
+        private void delToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+
+        }
+        /// &lt;summary&gt;
+        /// 添加同层节点
+        /// &lt;/summary&gt;
+        /// &lt;param name="sender"&gt;&lt;/param&gt;
+        /// &lt;param name="e"&gt;&lt;/param&gt;
+        private void addLevelToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+
+        }
+
+
+    }
+</pre>
+</div>
+<p>　　<img src="./images/Csharp TreeList Drag and Drop0.png" alt="" /></p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

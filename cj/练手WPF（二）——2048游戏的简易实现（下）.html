@@ -1,0 +1,265 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修练手WPF（二）——2048游戏的简易实现（下）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>练手WPF（二）——2048游戏的简易实现（下）</center></div><div class='banquan'>原文出处:本文由博客园博主sssion提供。<br/>
+原文连接:https://www.cnblogs.com/moonblogcore/p/10931905.html</div><br>
+    <p>接着上一篇继续~~~</p>
+<p><strong>6、动画显示增加分数</strong></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #808080;">///</span><span style="color: #008000;"> 动画显示增加得分
+</span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="addScore"&gt;&lt;/param&gt;</span>
+<span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> ShowAddScore(<span style="color: #0000ff;">int</span><span style="color: #000000;"> addScore)
+{
+    lblAddScore.Content </span>= <span style="color: #800000;">"</span><span style="color: #800000;">+</span><span style="color: #800000;">"</span> +<span style="color: #000000;"> addScore.ToString();
+
+    DoubleAnimation top </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> DoubleAnimation();
+    DoubleAnimation opacity </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> DoubleAnimation();
+    opacity.AutoReverse </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+    opacity.From </span>= <span style="color: #800080;">0</span><span style="color: #000000;">;
+    opacity.To </span>= <span style="color: #800080;">1</span><span style="color: #000000;">;
+    top.From </span>= <span style="color: #800080;">0</span><span style="color: #000000;">;
+    top.To </span>= -<span style="color: #800080;">40</span><span style="color: #000000;">;
+    Duration duration </span>= <span style="color: #0000ff;">new</span> Duration(TimeSpan.FromMilliseconds(<span style="color: #800080;">500</span><span style="color: #000000;">));
+    top.Duration </span>=<span style="color: #000000;"> duration;
+    opacity.Duration </span>=<span style="color: #000000;"> duration;
+
+    tt.BeginAnimation(TranslateTransform.YProperty, top);
+    lblAddScore.BeginAnimation(Label.OpacityProperty, opacity);
+}</span></pre>
+</div>
+<p>该动画通过位置向上移动和透明度变化实现。</p>
+<p>&nbsp;</p>
+<p><strong>7、移动操作</strong><br /><strong>&nbsp; 7.1 移动操作方法</strong><br />每按下一次上下左右键，则调用相应的移动操作方法。以前实现的，代码比较繁琐，这次没去精简清理，看看就好。这是左移操作方法：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #808080;">///</span><span style="color: #008000;"> 左移
+</span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> MoveLeft()
+{
+    </span><span style="color: #0000ff;">int</span> score = <span style="color: #800080;">0</span><span style="color: #000000;">;
+
+    Storyboard sb1 </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Storyboard();
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 移去左侧和中间的空块（左移）</span>
+    <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> y = <span style="color: #800080;">0</span>; y &lt; <span style="color: #800080;">4</span>; y++<span style="color: #000000;">)
+    {
+        </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> x = <span style="color: #800080;">0</span>; x &lt; <span style="color: #800080;">4</span>; x++<span style="color: #000000;">)
+        {
+            </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = x + <span style="color: #800080;">1</span>; i &lt; <span style="color: #800080;">4</span>; i++<span style="color: #000000;">)
+            {
+                </span><span style="color: #0000ff;">if</span> (gridData[y, i] != <span style="color: #800080;">0</span> &amp;&amp; gridData[y, x] == <span style="color: #800080;">0</span><span style="color: #000000;">)
+                {
+                    gridData[y, x] </span>=<span style="color: #000000;"> gridData[y, i];
+
+                    </span><span style="color: #0000ff;">if</span> (lblArray[y, i] == <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+                    {
+                        lblArray[y, i] </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Label();
+                        lblArray[y, i].SetValue(Canvas.LeftProperty, lblPadding </span>* ((i) + <span style="color: #800080;">1</span>) + (<span style="color: #0000ff;">double</span>)((i) *<span style="color: #000000;"> lblWidth));
+                        lblArray[y, i].SetValue(Canvas.TopProperty, lblPadding </span>* (y + <span style="color: #800080;">1</span>) + (<span style="color: #0000ff;">double</span>)(y *<span style="color: #000000;"> lblWidth));
+                        lblArray[y, i].SetValue(Label.ContentProperty, gridData[y, i].ToString());
+                        lblArray[y, i].SetValue(Label.BackgroundProperty, SetBackground(gridData[y, i]));
+                        lblArray[y, i].SetValue(Button.FontSizeProperty, (</span><span style="color: #0000ff;">double</span><span style="color: #000000;">)SetFontSize(gridData[y, i]));
+                    }
+
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 左移方块动画</span>
+                    DoubleAnimation da1 = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+                    </span><span style="color: #0000ff;">double</span> <span style="color: #0000ff;">from</span> = (<span style="color: #0000ff;">double</span><span style="color: #000000;">)lblArray[y, i].GetValue(Canvas.LeftProperty);
+                    </span><span style="color: #0000ff;">double</span> to = (x + <span style="color: #800080;">1</span>) * lblPadding + x *<span style="color: #000000;"> lblWidth;
+                    da1 </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> DoubleAnimation(
+                        </span><span style="color: #0000ff;">from</span><span style="color: #000000;">,
+                        to,
+                        </span><span style="color: #0000ff;">new</span> Duration(TimeSpan.FromMilliseconds(<span style="color: #800080;">300</span><span style="color: #000000;">)));
+                    da1.AccelerationRatio </span>= <span style="color: #800080;">0.1</span><span style="color: #000000;">;
+                    da1.DecelerationRatio </span>= <span style="color: #800080;">0.1</span><span style="color: #000000;">;
+
+                    Storyboard.SetTarget(da1, lblArray[y, i]);
+                    Storyboard.SetTargetProperty(da1, </span><span style="color: #0000ff;">new</span> PropertyPath(<span style="color: #800000;">"</span><span style="color: #800000;">(Canvas.Left)</span><span style="color: #800000;">"</span><span style="color: #000000;">));
+                    sb1.Children.Add(da1);
+
+                    gridData[y, i] </span>= <span style="color: #800080;">0</span><span style="color: #000000;">;
+                }
+            }
+        }
+    }
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 相邻相同方块合并后加到左侧</span>
+    <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> y = <span style="color: #800080;">0</span>; y &lt; <span style="color: #800080;">4</span>; y++<span style="color: #000000;">)
+    {
+        </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> x = <span style="color: #800080;">0</span>; x &lt; <span style="color: #800080;">4</span>; x++<span style="color: #000000;">)
+        {
+            </span><span style="color: #0000ff;">if</span> (x + <span style="color: #800080;">1</span> &lt; <span style="color: #800080;">4</span> &amp;&amp; gridData[y, x] == gridData[y, x + <span style="color: #800080;">1</span><span style="color: #000000;">])
+            {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;"> 如果右侧的方块未及时生成</span>
+                <span style="color: #0000ff;">if</span> (gridData[y, x + <span style="color: #800080;">1</span>] != <span style="color: #800080;">0</span>)<span style="color: #008000;">//</span><span style="color: #008000;"> &amp;&amp; gridData[y,x]!=0)</span>
+<span style="color: #000000;">                {
+                    </span><span style="color: #0000ff;">if</span> (lblArray[y, x + <span style="color: #800080;">1</span>] == <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+                    {
+                        lblArray[y, x </span>+ <span style="color: #800080;">1</span>] = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Label();
+                        lblArray[y, x </span>+ <span style="color: #800080;">1</span>].SetValue(Canvas.LeftProperty, lblPadding * ((x + <span style="color: #800080;">1</span>) + <span style="color: #800080;">1</span>) + (<span style="color: #0000ff;">double</span>)((x + <span style="color: #800080;">1</span>) *<span style="color: #000000;"> lblWidth));
+                        lblArray[y, x </span>+ <span style="color: #800080;">1</span>].SetValue(Canvas.TopProperty, lblPadding * (y + <span style="color: #800080;">1</span>) + (<span style="color: #0000ff;">double</span>)(y *<span style="color: #000000;"> lblWidth));
+                        lblArray[y, x </span>+ <span style="color: #800080;">1</span>].SetValue(Label.ContentProperty, gridData[y, x + <span style="color: #800080;">1</span><span style="color: #000000;">].ToString());
+                        lblArray[y, x </span>+ <span style="color: #800080;">1</span>].SetValue(Label.BackgroundProperty, SetBackground(gridData[y, x + <span style="color: #800080;">1</span><span style="color: #000000;">]));
+                        lblArray[y, x </span>+ <span style="color: #800080;">1</span>].SetValue(Button.FontSizeProperty, (<span style="color: #0000ff;">double</span>)SetFontSize(gridData[y, x + <span style="color: #800080;">1</span><span style="color: #000000;">]));
+                    }
+
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 左移动画</span>
+                    DoubleAnimation da2 = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+                    </span><span style="color: #0000ff;">double</span> <span style="color: #0000ff;">from</span> = (<span style="color: #0000ff;">double</span>)lblArray[y, x + <span style="color: #800080;">1</span><span style="color: #000000;">].GetValue(Canvas.LeftProperty);
+                    </span><span style="color: #0000ff;">double</span> to = <span style="color: #0000ff;">from</span> - lblWidth -<span style="color: #000000;"> lblPadding;
+                    da2 </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> DoubleAnimation(
+                        </span><span style="color: #0000ff;">from</span><span style="color: #000000;">,
+                        to,
+                        </span><span style="color: #0000ff;">new</span> Duration(TimeSpan.FromMilliseconds(<span style="color: #800080;">200</span><span style="color: #000000;">)));
+                    da2.AccelerationRatio </span>= <span style="color: #800080;">0.1</span><span style="color: #000000;">;
+                    da2.DecelerationRatio </span>= <span style="color: #800080;">0.1</span><span style="color: #000000;">;
+                    Storyboard.SetTarget(da2, lblArray[y, x </span>+ <span style="color: #800080;">1</span><span style="color: #000000;">]);
+                    Storyboard.SetTargetProperty(da2, </span><span style="color: #0000ff;">new</span> PropertyPath(<span style="color: #800000;">"</span><span style="color: #800000;">(Canvas.Left)</span><span style="color: #800000;">"</span><span style="color: #000000;">));
+                    sb1.Children.Add(da2);
+                }
+                gridData[y, x] </span>*= <span style="color: #800080;">2</span><span style="color: #000000;">;
+                gridData[y, x </span>+ <span style="color: #800080;">1</span>] = <span style="color: #800080;">0</span><span style="color: #000000;">;
+
+                score </span>+=<span style="color: #000000;"> gridData[y, x];
+            }
+        }
+    }
+
+    </span><span style="color: #0000ff;">if</span> (score != <span style="color: #800080;">0</span><span style="color: #000000;">)
+    {
+        ShowAddScore(score);
+        currScore </span>+=<span style="color: #000000;"> score;
+        lblCurrScore.Content </span>=<span style="color: #000000;"> currScore.ToString();
+    }
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 将合并后出现的中间空方块移去（再次左移一次）</span>
+    <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> y = <span style="color: #800080;">0</span>; y &lt; <span style="color: #800080;">4</span>; y++<span style="color: #000000;">)
+    {
+        </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> x = <span style="color: #800080;">0</span>; x &lt; <span style="color: #800080;">4</span>; x++<span style="color: #000000;">)
+        {
+            </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = x + <span style="color: #800080;">1</span>; i &lt; <span style="color: #800080;">4</span>; i++<span style="color: #000000;">)
+            {
+                </span><span style="color: #0000ff;">if</span> (gridData[y, i] != <span style="color: #800080;">0</span> &amp;&amp; gridData[y, x] == <span style="color: #800080;">0</span><span style="color: #000000;">)
+                {
+                    gridData[y, x] </span>=<span style="color: #000000;"> gridData[y, i];
+
+                    </span><span style="color: #0000ff;">if</span> (lblArray[y, i] == <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+                    {
+                        lblArray[y, i] </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Label();
+                        lblArray[y, i].SetValue(Canvas.LeftProperty, lblPadding </span>* ((i) + <span style="color: #800080;">1</span>) + (<span style="color: #0000ff;">double</span>)((i) *<span style="color: #000000;"> lblWidth));
+                        lblArray[y, i].SetValue(Canvas.TopProperty, lblPadding </span>* (y + <span style="color: #800080;">1</span>) + (<span style="color: #0000ff;">double</span>)(y *<span style="color: #000000;"> lblWidth));
+                        lblArray[y, i].SetValue(Label.ContentProperty, gridData[y, i].ToString());
+                        lblArray[y, i].SetValue(Label.BackgroundProperty, SetBackground(gridData[y, i]));
+                        lblArray[y, i].SetValue(Button.FontSizeProperty, (</span><span style="color: #0000ff;">double</span><span style="color: #000000;">)SetFontSize(gridData[y, i]));
+                    }
+
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 左移动画</span>
+                    DoubleAnimation da = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+                    </span><span style="color: #0000ff;">double</span> <span style="color: #0000ff;">from</span> = (<span style="color: #0000ff;">double</span><span style="color: #000000;">)lblArray[y, i].GetValue(Canvas.LeftProperty);
+                    </span><span style="color: #0000ff;">double</span> to = (x + <span style="color: #800080;">1</span>) * lblPadding + x *<span style="color: #000000;"> lblWidth;
+                    da </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> DoubleAnimation(
+                        </span><span style="color: #0000ff;">from</span><span style="color: #000000;">,
+                        to,
+                        </span><span style="color: #0000ff;">new</span> Duration(TimeSpan.FromMilliseconds(<span style="color: #800080;">200</span><span style="color: #000000;">)));
+                    da.AccelerationRatio </span>= <span style="color: #800080;">0.1</span><span style="color: #000000;">;
+                    da.DecelerationRatio </span>= <span style="color: #800080;">0.1</span><span style="color: #000000;">;
+                    Storyboard.SetTarget(da, lblArray[y, i]);
+                    Storyboard.SetTargetProperty(da, </span><span style="color: #0000ff;">new</span> PropertyPath(<span style="color: #800000;">"</span><span style="color: #800000;">(Canvas.Left)</span><span style="color: #800000;">"</span><span style="color: #000000;">));
+                    sb1.Children.Add(da);
+
+                    gridData[y, i] </span>= <span style="color: #800080;">0</span><span style="color: #000000;">;
+
+                 </span><span style="color: #008000;">//</span><span style="color: #008000;">   isMove = true;</span>
+<span style="color: #000000;">                }
+            }
+        }
+    }
+
+    sb1.Completed </span>+= Sb1_Completed;     <span style="color: #008000;">//</span><span style="color: #008000;"> 所有动画完成后执行事件</span>
+<span style="color: #000000;">    sb1.Begin();
+}
+
+</span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #808080;">///</span><span style="color: #008000;"> 动画完成后运行事件
+</span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="sender"&gt;&lt;/param&gt;</span>
+<span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="e"&gt;&lt;/param&gt;</span>
+<span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> Sb1_Completed(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)
+{
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 检查游戏是否结束</span>
+    <span style="color: #0000ff;">if</span><span style="color: #000000;"> (isGameOver())
+    {
+         ShowGameOver();
+    }
+    </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+    {
+        NewNum();
+        ShowAllLabel();
+    }
+}</span></pre>
+</div>
+<p>向右、向上和向下的方法类似。<br /><br /></p>
+<p><strong>&nbsp; 7.2 xaml文件中添加Window控件的keyDown事件</strong><br />KeyDown="Window_KeyDown"<br />对应的cs代码如下：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> Window_KeyDown(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, KeyEventArgs e)
+{
+    </span><span style="color: #0000ff;">if</span> (!<span style="color: #000000;">isStarted)
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;">;
+
+    </span><span style="color: #0000ff;">switch</span><span style="color: #000000;"> (e.Key)
+    {
+        </span><span style="color: #0000ff;">case</span><span style="color: #000000;"> Key.Left:
+            </span><span style="color: #0000ff;">if</span> (!<span style="color: #000000;">isGameOver())
+                MoveLeft();
+            </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+                ShowGameOver();
+            </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+
+        </span><span style="color: #0000ff;">case</span><span style="color: #000000;"> Key.Right:
+            </span><span style="color: #0000ff;">if</span> (!<span style="color: #000000;">isGameOver())
+                MoveRight();
+            </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+                ShowGameOver();
+
+            </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+
+        </span><span style="color: #0000ff;">case</span><span style="color: #000000;"> Key.Up:
+            </span><span style="color: #0000ff;">if</span> (!<span style="color: #000000;">isGameOver())
+                MoveUp();
+            </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+                ShowGameOver();
+
+            </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+
+        </span><span style="color: #0000ff;">case</span><span style="color: #000000;"> Key.Down:
+            </span><span style="color: #0000ff;">if</span> (!<span style="color: #000000;">isGameOver())
+                MoveDown();
+            </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+                ShowGameOver();
+            </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+    }
+}</span></pre>
+</div>
+<p>大致如此。最后看看效果图吧~~</p>
+<p><img src="./images/练手WPF（二）——2048游戏的简易实现（下）0.png" alt="" /></p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

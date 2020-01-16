@@ -1,0 +1,56 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修《C#并发编程经典实例》学习笔记—2.7 避免上下文延续' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>《C#并发编程经典实例》学习笔记—2.7 避免上下文延续</center></div><div class='banquan'>原文出处:本文由博客园博主repeatedly提供。<br/>
+原文连接:https://www.cnblogs.com/AlienXu/p/11177434.html</div><br>
+    <h2 id="避免上下文延续">避免上下文延续</h2>
+<p>在默认情况下，一个 async 方法在被 await 调用后恢复运行时，会在原来的上下文中运行。<br />
+为了避免在上下文中恢复运行，可让 await 调用 ConfigureAwait 方法的返回值，参数 <code>continueOnCapturedContext</code> 设为 false ：</p>
+<pre><code><code>async Task ResumeOnContextAsync () {
+    await Task.Delay (TimeSpan.FromSeconds (1));
+    // 这个方法在同一个上下文中恢复运行。
+}
+async Task ResumeWithoutContextAsync () {
+    await Task.Delay (TimeSpan.FromSeconds (1)).ConfigureAwait (false);
+    // 这个方法在恢复运行时，会丢弃上下文。
+}</code></pre>
+<h2 id="可能导致性能问题">可能导致性能问题</h2>
+<p>作者Stephen提到，当在UI线程大量使用async方法，可能需要考虑线程切换导致上下文恢复导致的性能消耗。当然性能消耗问题不会是单一的原因导致，代码的优化永无止境。</p>
+<p>可能会有人对性能消耗的理解不太具体，大概解释一下，async方法会生成一个状态机，该状态机可能是一个class或者struct用来存储上下文信息，这些都要消耗存储空间和进行后续的GC回收。<br />
+关于状态机的更多信息可以访问<a href="https://www.cnblogs.com/AlienXu/p/9529541.html">《C#并发编程经典实例》学习笔记—异步编程关键字 Async和Await</a> 查看。</p>
+<p>Stephen提到UI线程中如果每秒有1000个任务就太多了。这个结论来自于视频<a href="https://channel9.msdn.com/Series/Three-Essential-Tips-for-Async/Async-library-methods-should-consider-using-Task-ConfigureAwait-false-">Tip 6: Async library methods should consider using Task.ConfigureAwait(false)</a></p>
+<h2 id="避免使用不当导致死锁">避免使用不当导致死锁</h2>
+<p>文章<a href="https://blogs.msdn.microsoft.com/lucian/2013/11/22/talk-async-best-practices/">Talk: Async best practices</a>给出的第6条建议提到作为一个类库提供者，应该需要注意ConfigureAwait的问题，避免该类库的使用者在UI线程使用该类库时产生额外的性能消耗。还提到类库使用者对异步方法不当的使用时将会导致死锁，而避免该类死锁的最佳办法是，参数<br />
+continueOnCapturedContext 设为 false 即使用<code>ConfigureAwait (false)</code>。</p>
+<p>个人总结一下不当的使用包括但不限于以下几类：</p>
+<ul>
+<li>同步方法中使用异步方法。所以一个类库的提供者，应尽量提供一个方法的同步实现和异步实现，并在异步实现中使用<code>ConfigureAwait (false)</code>。</li>
+<li>在UI线程使用<code>Task.Wait()</code>或者<code>Task.Result</code>。</li>
+</ul>
+<p>参考文章：</p>
+<ul>
+<li><a href="https://blog.walterlv.com/post/deadlock-in-task-wait.html" class="uri">https://blog.walterlv.com/post/deadlock-in-task-wait.html</a></li>
+<li><a href="https://blog.walterlv.com/post/using-configure-await-to-avoid-deadlocks.html" class="uri">https://blog.walterlv.com/post/using-configure-await-to-avoid-deadlocks.html</a></li>
+<li><a href="https://blogs.msdn.microsoft.com/lucian/2013/02/17/talk-the-new-async-design-patterns/" class="uri">https://blogs.msdn.microsoft.com/lucian/2013/02/17/talk-the-new-async-design-patterns/</a></li>
+</ul>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

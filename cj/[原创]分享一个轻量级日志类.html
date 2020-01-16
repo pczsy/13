@@ -1,0 +1,418 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修[原创]分享一个轻量级日志类' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>[原创]分享一个轻量级日志类</center></div><div class='banquan'>原文出处:本文由博客园博主疯狂的老贾提供。<br/>
+原文连接:https://www.cnblogs.com/vbcrazy/p/10934163.html</div><br>
+    <p>日常开发中，常常会在程序部署到生产环境后发现有些问题，但无法直接调试，这就需要用到日志，本来想找一些开源的完善的日志类来实现，但试了几个都感觉太重。于是意识到一个问题，懒是偷不得的，只好撸起袖子，自己写一个。这个日志类是基于订阅模式的，而且是线程安全的，现在分享给大家，希望能给大家带来帮助。</p>
+<p>闲话不多说，直接上代码。代码有两个实现版本（Java与C#），这里放出的是C#。</p>
+<p>一共用到三个类：JzgLogs.cs主类，LogBuffer.cs日志缓冲类，LogInfo是用于日志缓冲中做记录的实体类，基本原理是把所有待写入的日志写到缓冲中，然后一个线程轮询缓冲，发现有需要写入的数据，就写入，否则就下一次。</p>
+<p>No.1&nbsp; JzgLogs.cs</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">  1</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System;
+</span><span style="color: #008080;">  2</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Collections.Generic;
+</span><span style="color: #008080;">  3</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Linq;
+</span><span style="color: #008080;">  4</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Text;
+</span><span style="color: #008080;">  5</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.IO;
+</span><span style="color: #008080;">  6</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Text.RegularExpressions;
+</span><span style="color: #008080;">  7</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Threading;
+</span><span style="color: #008080;">  8</span> 
+<span style="color: #008080;">  9</span> <span style="color: #008000;">/*</span><span style="color: #008000;">***************************************************************************
+</span><span style="color: #008080;"> 10</span> <span style="color: #008000;">单例类     ：日志记录类
+</span><span style="color: #008080;"> 11</span> <span style="color: #008000;">作者       ：贾渊
+</span><span style="color: #008080;"> 12</span> <span style="color: #008000;">版本       ：1.5
+</span><span style="color: #008080;"> 13</span> <span style="color: #008000;">上一版本   ：1.4
+</span><span style="color: #008080;"> 14</span> <span style="color: #008000;">更新日志   ：
+</span><span style="color: #008080;"> 15</span> <span style="color: #008000;">    2018-07-06  创建
+</span><span style="color: #008080;"> 16</span> <span style="color: #008000;">    2018-08-06  增加了属性LogMode，用于改变记录日志的方式
+</span><span style="color: #008080;"> 17</span> <span style="color: #008000;">    2018-12-26  修改了读写文件的线程锁定方式
+</span><span style="color: #008080;"> 18</span> <span style="color: #008000;">    2019-01-14  改进日志写入的时的对象锁定方式
+</span><span style="color: #008080;"> 19</span> <span style="color: #008000;">    2019-01-15  改进了日志写入的方式为多线程队列写入，操你大爷的Lock，又慢又烂
+</span><span style="color: #008080;"> 20</span> <span style="color: #008000;">***************************************************************************</span><span style="color: #008000;">*/</span>
+<span style="color: #008080;"> 21</span> 
+<span style="color: #008080;"> 22</span> <span style="color: #0000ff;">namespace</span><span style="color: #000000;"> Jzg.Logs
+</span><span style="color: #008080;"> 23</span> <span style="color: #000000;">{
+</span><span style="color: #008080;"> 24</span>     <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;"> 25</span>     <span style="color: #808080;">///</span><span style="color: #008000;"> 日志记录类
+</span><span style="color: #008080;"> 26</span>     <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;"> 27</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> JzgLogs : IDisposable
+</span><span style="color: #008080;"> 28</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;"> 29</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;"> 30</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 记录类型：消息
+</span><span style="color: #008080;"> 31</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;"> 32</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">string</span> LOGTYPE_INFO = <span style="color: #800000;">"</span><span style="color: #800000;">INFO</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 33</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;"> 34</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 记录类型：错误
+</span><span style="color: #008080;"> 35</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;"> 36</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">string</span> LOGTYPE_ERROR = <span style="color: #800000;">"</span><span style="color: #800000;">ERROR</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 37</span> 
+<span style="color: #008080;"> 38</span>         <span style="color: #008000;">//</span><span style="color: #008000;">线程锁</span>
+<span style="color: #008080;"> 39</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">readonly</span> <span style="color: #0000ff;">object</span> locker = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">object</span><span style="color: #000000;">();
+</span><span style="color: #008080;"> 40</span> 
+<span style="color: #008080;"> 41</span>         <span style="color: #008000;">//</span><span style="color: #008000;">日志记录路径</span>
+<span style="color: #008080;"> 42</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">string</span> logPath = <span style="color: #800000;">""</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 43</span> 
+<span style="color: #008080;"> 44</span>         <span style="color: #008000;">//</span><span style="color: #008000;">日志记录方式</span>
+<span style="color: #008080;"> 45</span>         <span style="color: #0000ff;">private</span> LogMode logMode =<span style="color: #000000;"> LogMode.lmAll;
+</span><span style="color: #008080;"> 46</span> 
+<span style="color: #008080;"> 47</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;"> 48</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 日志记录方式，从枚举LogMode中取值
+</span><span style="color: #008080;"> 49</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;"> 50</span>         <span style="color: #0000ff;">public</span><span style="color: #000000;"> LogMode LogMode
+</span><span style="color: #008080;"> 51</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 52</span>             <span style="color: #0000ff;">get</span>
+<span style="color: #008080;"> 53</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 54</span>                 <span style="color: #0000ff;">return</span><span style="color: #000000;"> logMode;
+</span><span style="color: #008080;"> 55</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 56</span> 
+<span style="color: #008080;"> 57</span>             <span style="color: #0000ff;">set</span>
+<span style="color: #008080;"> 58</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 59</span>                 logMode =<span style="color: #000000;"> value;
+</span><span style="color: #008080;"> 60</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 61</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 62</span> 
+<span style="color: #008080;"> 63</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;"> 64</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 私有构造方法
+</span><span style="color: #008080;"> 65</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;"> 66</span>         <span style="color: #0000ff;">private</span><span style="color: #000000;"> JzgLogs()
+</span><span style="color: #008080;"> 67</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 68</span>             <span style="color: #008000;">//</span><span style="color: #008000;">默认为全记录</span>
+<span style="color: #008080;"> 69</span>             logMode =<span style="color: #000000;"> LogMode.lmAll;
+</span><span style="color: #008080;"> 70</span>             <span style="color: #008000;">//</span><span style="color: #008000;">创建线程安全的消息队列</span>
+<span style="color: #008080;"> 71</span>             LogQueue = <span style="color: #0000ff;">new</span><span style="color: #000000;"> LogBuffer();
+</span><span style="color: #008080;"> 72</span>             <span style="color: #008000;">//</span><span style="color: #008000;">开启写入线程</span>
+<span style="color: #008080;"> 73</span>             WriteThread = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Thread(FlushBuffer);
+</span><span style="color: #008080;"> 74</span>             WriteThread.IsBackground = <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 75</span> <span style="color: #000000;">            WriteThread.Start();
+</span><span style="color: #008080;"> 76</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 77</span> 
+<span style="color: #008080;"> 78</span>         <span style="color: #0000ff;">private</span><span style="color: #000000;"> LogBuffer LogQueue;
+</span><span style="color: #008080;"> 79</span> 
+<span style="color: #008080;"> 80</span>         <span style="color: #008000;">//</span><span style="color: #008000;">是否停止处理缓存</span>
+<span style="color: #008080;"> 81</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">volatile</span> <span style="color: #0000ff;">bool</span> _FlushAlive = <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 82</span> 
+<span style="color: #008080;"> 83</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> FlushBuffer()
+</span><span style="color: #008080;"> 84</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 85</span>             <span style="color: #0000ff;">while</span><span style="color: #000000;"> (_FlushAlive)
+</span><span style="color: #008080;"> 86</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 87</span>                 LogInfo logInfo =<span style="color: #000000;"> LogQueue.ReadBuffer();
+</span><span style="color: #008080;"> 88</span>                 <span style="color: #0000ff;">if</span> (logInfo == <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+</span><span style="color: #008080;"> 89</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;"> 90</span>                     <span style="color: #008000;">//</span><span style="color: #008000;">如果没有要写入的内容则延时100毫秒再看</span>
+<span style="color: #008080;"> 91</span>                     Thread.Sleep(<span style="color: #800080;">200</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 92</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;"> 93</span>                 <span style="color: #0000ff;">else</span>
+<span style="color: #008080;"> 94</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;"> 95</span>                     <span style="color: #0000ff;">try</span>
+<span style="color: #008080;"> 96</span> <span style="color: #000000;">                    {
+</span><span style="color: #008080;"> 97</span>                         <span style="color: #0000ff;">using</span> (FileStream fs = <span style="color: #0000ff;">new</span><span style="color: #000000;"> FileStream(logInfo.LogFile, FileMode.OpenOrCreate, FileAccess.Write, FileShare.ReadWrite))
+</span><span style="color: #008080;"> 98</span> <span style="color: #000000;">                        {
+</span><span style="color: #008080;"> 99</span>                             <span style="color: #0000ff;">using</span> (StreamWriter sw = <span style="color: #0000ff;">new</span><span style="color: #000000;"> StreamWriter(fs))
+</span><span style="color: #008080;">100</span> <span style="color: #000000;">                            {
+</span><span style="color: #008080;">101</span>                                 sw.BaseStream.Seek(<span style="color: #800080;">0</span><span style="color: #000000;">, SeekOrigin.End);
+</span><span style="color: #008080;">102</span> <span style="color: #000000;">                                sw.WriteLine(logInfo.LogContent);
+</span><span style="color: #008080;">103</span> <span style="color: #000000;">                                sw.Flush();
+</span><span style="color: #008080;">104</span> <span style="color: #000000;">                            }
+</span><span style="color: #008080;">105</span> <span style="color: #000000;">                        }
+</span><span style="color: #008080;">106</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">107</span>                     <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception)
+</span><span style="color: #008080;">108</span> <span style="color: #000000;">                    {
+</span><span style="color: #008080;">109</span>                         <span style="color: #008000;">//</span><span style="color: #008000;">出错就不管丫的</span>
+<span style="color: #008080;">110</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">111</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">112</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">113</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">114</span> 
+<span style="color: #008080;">115</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> JzgLogs instance = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+</span><span style="color: #008080;">116</span> 
+<span style="color: #008080;">117</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">118</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 获取或设置日志记录路径
+</span><span style="color: #008080;">119</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">120</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span><span style="color: #000000;"> LogPath
+</span><span style="color: #008080;">121</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">122</span>             <span style="color: #0000ff;">get</span>
+<span style="color: #008080;">123</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">124</span>                 <span style="color: #008000;">//</span><span style="color: #008000;">补齐路径结束的\符号</span>
+<span style="color: #008080;">125</span>                 <span style="color: #0000ff;">if</span> (!logPath.EndsWith(<span style="color: #800000;">"</span><span style="color: #800000;">\\</span><span style="color: #800000;">"</span><span style="color: #000000;">))
+</span><span style="color: #008080;">126</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">127</span>                     logPath += <span style="color: #800000;">"</span><span style="color: #800000;">\\</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+</span><span style="color: #008080;">128</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">129</span>                 <span style="color: #0000ff;">return</span><span style="color: #000000;"> logPath;
+</span><span style="color: #008080;">130</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">131</span> 
+<span style="color: #008080;">132</span>             <span style="color: #0000ff;">set</span>
+<span style="color: #008080;">133</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">134</span>                 logPath =<span style="color: #000000;"> value;
+</span><span style="color: #008080;">135</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">136</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">137</span> 
+<span style="color: #008080;">138</span> 
+<span style="color: #008080;">139</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">140</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 静态方法：获取实例（单例模式）
+</span><span style="color: #008080;">141</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">142</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+<span style="color: #008080;">143</span>         [Obsolete(<span style="color: #800000;">"</span><span style="color: #800000;">该方法已过时，推荐使用静态属性Instance代替</span><span style="color: #800000;">"</span><span style="color: #000000;">)]
+</span><span style="color: #008080;">144</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span><span style="color: #000000;"> JzgLogs getInstance()
+</span><span style="color: #008080;">145</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">146</span>             <span style="color: #008000;">//</span><span style="color: #008000;">2019-01-14 改为二次验证单例模式，提高了性能和并发安全性</span>
+<span style="color: #008080;">147</span>             <span style="color: #0000ff;">if</span> (instance == <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+</span><span style="color: #008080;">148</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">149</span>                 <span style="color: #0000ff;">lock</span><span style="color: #000000;"> (locker)
+</span><span style="color: #008080;">150</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">151</span>                     <span style="color: #0000ff;">if</span> (instance == <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+</span><span style="color: #008080;">152</span> <span style="color: #000000;">                    {
+</span><span style="color: #008080;">153</span>                         <span style="color: #0000ff;">var</span> tmp = <span style="color: #0000ff;">new</span><span style="color: #000000;"> JzgLogs();
+</span><span style="color: #008080;">154</span> <span style="color: #000000;">                        Thread.MemoryBarrier();
+</span><span style="color: #008080;">155</span>                         instance =<span style="color: #000000;"> tmp;
+</span><span style="color: #008080;">156</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">157</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">158</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">159</span> 
+<span style="color: #008080;">160</span>             <span style="color: #0000ff;">return</span><span style="color: #000000;"> instance;
+</span><span style="color: #008080;">161</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">162</span> 
+<span style="color: #008080;">163</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">164</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 静态属性：单例实例
+</span><span style="color: #008080;">165</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">166</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span><span style="color: #000000;"> JzgLogs Instance
+</span><span style="color: #008080;">167</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">168</span>             <span style="color: #0000ff;">get</span>
+<span style="color: #008080;">169</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">170</span>                 <span style="color: #008000;">//</span><span style="color: #008000;">2019-01-14 改为二次验证单例模式，提高了性能和并发安全性</span>
+<span style="color: #008080;">171</span>                 <span style="color: #0000ff;">if</span> (instance == <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+</span><span style="color: #008080;">172</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">173</span>                     <span style="color: #0000ff;">lock</span><span style="color: #000000;"> (locker)
+</span><span style="color: #008080;">174</span> <span style="color: #000000;">                    {
+</span><span style="color: #008080;">175</span>                         <span style="color: #0000ff;">if</span> (instance == <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+</span><span style="color: #008080;">176</span> <span style="color: #000000;">                        {
+</span><span style="color: #008080;">177</span>                             <span style="color: #0000ff;">var</span> tmp = <span style="color: #0000ff;">new</span><span style="color: #000000;"> JzgLogs();
+</span><span style="color: #008080;">178</span> <span style="color: #000000;">                            Thread.MemoryBarrier();
+</span><span style="color: #008080;">179</span>                             instance =<span style="color: #000000;"> tmp;
+</span><span style="color: #008080;">180</span> <span style="color: #000000;">                        }
+</span><span style="color: #008080;">181</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">182</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">183</span> 
+<span style="color: #008080;">184</span>                 <span style="color: #0000ff;">return</span><span style="color: #000000;"> instance;
+</span><span style="color: #008080;">185</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">186</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">187</span> 
+<span style="color: #008080;">188</span>         <span style="color: #008000;">//</span><span style="color: #008000;">写入线程</span>
+<span style="color: #008080;">189</span>         <span style="color: #0000ff;">private</span> Thread WriteThread = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+</span><span style="color: #008080;">190</span> 
+<span style="color: #008080;">191</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">192</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 记录日志
+</span><span style="color: #008080;">193</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">194</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="subPath"&gt;</span><span style="color: #008000;">子路径</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;">195</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="logType"&gt;</span><span style="color: #008000;">记录类型</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;">196</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="tag"&gt;</span><span style="color: #008000;">模块标识</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;">197</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="logContent"&gt;</span><span style="color: #008000;">记录内容</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;">198</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> Log(<span style="color: #0000ff;">string</span> subPath, <span style="color: #0000ff;">string</span> logType, <span style="color: #0000ff;">string</span> tag, <span style="color: #0000ff;">string</span><span style="color: #000000;"> logContent)
+</span><span style="color: #008080;">199</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">200</span>             <span style="color: #008000;">//</span><span style="color: #008000;">如果未设置路径则抛出错误</span>
+<span style="color: #008080;">201</span>             <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">string</span><span style="color: #000000;">.IsNullOrEmpty(logPath))
+</span><span style="color: #008080;">202</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">203</span>                 <span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> Exception(<span style="color: #800000;">"</span><span style="color: #800000;">logPath not set</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">204</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">205</span> 
+<span style="color: #008080;">206</span>             <span style="color: #008000;">//</span><span style="color: #008000;">判断记录模式</span>
+<span style="color: #008080;">207</span>             <span style="color: #0000ff;">bool</span> canLog = (logMode == LogMode.lmAll) || (logMode == LogMode.lmError &amp;&amp; logType == LOGTYPE_ERROR) || (logMode == LogMode.lmInfo &amp;&amp; logType ==<span style="color: #000000;"> LOGTYPE_INFO);
+</span><span style="color: #008080;">208</span>             <span style="color: #008000;">//</span><span style="color: #008000;">如果不需要记录则直接退出</span>
+<span style="color: #008080;">209</span>             <span style="color: #0000ff;">if</span> (!<span style="color: #000000;">canLog)
+</span><span style="color: #008080;">210</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">211</span>                 <span style="color: #0000ff;">return</span><span style="color: #000000;">;
+</span><span style="color: #008080;">212</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">213</span> 
+<span style="color: #008080;">214</span>             <span style="color: #008000;">//</span><span style="color: #008000;">当前时间</span>
+<span style="color: #008080;">215</span>             DateTime logTime =<span style="color: #000000;"> DateTime.Now;
+</span><span style="color: #008080;">216</span>             <span style="color: #008000;">//</span><span style="color: #008000;">记录时间的字符串</span>
+<span style="color: #008080;">217</span>             <span style="color: #0000ff;">string</span> logTimeStr = logTime.ToString(<span style="color: #800000;">"</span><span style="color: #800000;">yyyy/MM/dd HH:mm:ss:fff</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">218</span>             <span style="color: #008000;">//</span><span style="color: #008000;">文件名</span>
+<span style="color: #008080;">219</span>             <span style="color: #0000ff;">string</span> fileName = String.Format(<span style="color: #800000;">"</span><span style="color: #800000;">log_{0}.log</span><span style="color: #800000;">"</span>, DateTime.Now.ToString(<span style="color: #800000;">"</span><span style="color: #800000;">yyyyMMdd</span><span style="color: #800000;">"</span><span style="color: #000000;">));
+</span><span style="color: #008080;">220</span> 
+<span style="color: #008080;">221</span>             <span style="color: #008000;">//</span><span style="color: #008000;">计算子路径</span>
+<span style="color: #008080;">222</span>             <span style="color: #0000ff;">string</span> fullLogPath = LogPath +<span style="color: #000000;"> subPath;
+</span><span style="color: #008080;">223</span>             <span style="color: #008000;">//</span><span style="color: #008000;">补齐路径结尾\符号</span>
+<span style="color: #008080;">224</span>             <span style="color: #0000ff;">if</span> (!fullLogPath.EndsWith(<span style="color: #800000;">"</span><span style="color: #800000;">\\</span><span style="color: #800000;">"</span>) &amp;&amp; !<span style="color: #000000;">String.IsNullOrEmpty(fullLogPath))
+</span><span style="color: #008080;">225</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">226</span>                 fullLogPath += <span style="color: #800000;">"</span><span style="color: #800000;">\\</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+</span><span style="color: #008080;">227</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">228</span>             <span style="color: #008000;">//</span><span style="color: #008000;">自动创建路径</span>
+<span style="color: #008080;">229</span>             DirectoryInfo di = <span style="color: #0000ff;">new</span><span style="color: #000000;"> DirectoryInfo(fullLogPath);
+</span><span style="color: #008080;">230</span>             <span style="color: #0000ff;">if</span> (!<span style="color: #000000;">di.Exists)
+</span><span style="color: #008080;">231</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">232</span> <span style="color: #000000;">                di.Create();
+</span><span style="color: #008080;">233</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">234</span> 
+<span style="color: #008080;">235</span>             <span style="color: #008000;">//</span><span style="color: #008000;">文件完整路径</span>
+<span style="color: #008080;">236</span>             <span style="color: #0000ff;">string</span> fullFilePath = fullLogPath +<span style="color: #000000;"> fileName;
+</span><span style="color: #008080;">237</span>             <span style="color: #008000;">//</span><span style="color: #008000;">记录格式模板</span>
+<span style="color: #008080;">238</span>             <span style="color: #0000ff;">string</span> contentTemplate = <span style="color: #800000;">"</span><span style="color: #800000;">【{0}】 【{1}】 【{2}】 【记录】{3}</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+</span><span style="color: #008080;">239</span>             logContent = Regex.Replace(logContent, <span style="color: #800000;">@"</span><span style="color: #800000;">[\n\r]</span><span style="color: #800000;">"</span>, <span style="color: #800000;">""</span>);<span style="color: #008000;">//</span><span style="color: #008000;">去掉换行符
+</span><span style="color: #008080;">240</span>                                                                   <span style="color: #008000;">//</span><span style="color: #008000;">计算日志内容</span>
+<span style="color: #008080;">241</span>             <span style="color: #0000ff;">string</span> lineContent =<span style="color: #000000;"> String.Format(contentTemplate, logType, logTimeStr, tag, logContent);
+</span><span style="color: #008080;">242</span> 
+<span style="color: #008080;">243</span>             LogInfo logInfo = <span style="color: #0000ff;">new</span><span style="color: #000000;"> LogInfo()
+</span><span style="color: #008080;">244</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">245</span>                 LogFile =<span style="color: #000000;"> fullFilePath,
+</span><span style="color: #008080;">246</span>                 LogContent =<span style="color: #000000;"> lineContent
+</span><span style="color: #008080;">247</span> <span style="color: #000000;">            };
+</span><span style="color: #008080;">248</span> 
+<span style="color: #008080;">249</span>             <span style="color: #008000;">//</span><span style="color: #008000;">写入缓存</span>
+<span style="color: #008080;">250</span> <span style="color: #000000;">            LogQueue.WriteBuffer(logInfo);
+</span><span style="color: #008080;">251</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">252</span> 
+<span style="color: #008080;">253</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">254</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 记录日志
+</span><span style="color: #008080;">255</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">256</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="logType"&gt;</span><span style="color: #008000;">记录类型</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;">257</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="tag"&gt;</span><span style="color: #008000;">模块标识</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;">258</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="logContent"&gt;</span><span style="color: #008000;">记录内容</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;">259</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> Log(<span style="color: #0000ff;">string</span> logType, <span style="color: #0000ff;">string</span> tag, <span style="color: #0000ff;">string</span><span style="color: #000000;"> logContent)
+</span><span style="color: #008080;">260</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">261</span>             Log(<span style="color: #800000;">""</span><span style="color: #000000;">, logType, tag, logContent);
+</span><span style="color: #008080;">262</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">263</span> 
+<span style="color: #008080;">264</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">265</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 释放资源
+</span><span style="color: #008080;">266</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">267</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> Dispose()
+</span><span style="color: #008080;">268</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">269</span>             _FlushAlive = <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+</span><span style="color: #008080;">270</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">271</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">272</span> 
+<span style="color: #008080;">273</span>     <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">274</span>     <span style="color: #808080;">///</span><span style="color: #008000;"> 枚举：日志记录方式
+</span><span style="color: #008080;">275</span>     <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">276</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">enum</span><span style="color: #000000;"> LogMode
+</span><span style="color: #008080;">277</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;">278</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">279</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 不记录
+</span><span style="color: #008080;">280</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">281</span>         lmNone = <span style="color: #800080;">0</span><span style="color: #000000;">,
+</span><span style="color: #008080;">282</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">283</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 全记录
+</span><span style="color: #008080;">284</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">285</span>         lmAll = <span style="color: #800080;">1</span><span style="color: #000000;">,
+</span><span style="color: #008080;">286</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">287</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 只记录Info类型
+</span><span style="color: #008080;">288</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">289</span>         lmInfo = <span style="color: #800080;">2</span><span style="color: #000000;">,
+</span><span style="color: #008080;">290</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">291</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 只记录Error类型
+</span><span style="color: #008080;">292</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">293</span>         lmError = <span style="color: #800080;">3</span>
+<span style="color: #008080;">294</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">295</span> }</pre>
+</div>
+<p>No.2&nbsp; LogBuffer.cs</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System;
+</span><span style="color: #008080;"> 2</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Collections.Generic;
+</span><span style="color: #008080;"> 3</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Linq;
+</span><span style="color: #008080;"> 4</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Text;
+</span><span style="color: #008080;"> 5</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Collections.Concurrent;
+</span><span style="color: #008080;"> 6</span> 
+<span style="color: #008080;"> 7</span> <span style="color: #0000ff;">namespace</span><span style="color: #000000;"> Jzg.Logs
+</span><span style="color: #008080;"> 8</span> <span style="color: #000000;">{
+</span><span style="color: #008080;"> 9</span>     <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">10</span>     <span style="color: #808080;">///</span><span style="color: #008000;"> 日志写入缓冲
+</span><span style="color: #008080;">11</span>     <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">12</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> LogBuffer
+</span><span style="color: #008080;">13</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;">14</span>         <span style="color: #0000ff;">private</span> ConcurrentQueue&lt;LogInfo&gt;<span style="color: #000000;"> Logs;
+</span><span style="color: #008080;">15</span> 
+<span style="color: #008080;">16</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">17</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 构造方法
+</span><span style="color: #008080;">18</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">19</span>         <span style="color: #0000ff;">public</span><span style="color: #000000;"> LogBuffer()
+</span><span style="color: #008080;">20</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">21</span>             Logs = <span style="color: #0000ff;">new</span> ConcurrentQueue&lt;LogInfo&gt;<span style="color: #000000;">();
+</span><span style="color: #008080;">22</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">23</span> 
+<span style="color: #008080;">24</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">25</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 把日志加入写入队列末端
+</span><span style="color: #008080;">26</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">27</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="logInfo"&gt;</span><span style="color: #008000;">要写入的日志对象</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;">28</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> WriteBuffer(LogInfo logInfo)
+</span><span style="color: #008080;">29</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">30</span> <span style="color: #000000;">            Logs.Enqueue(logInfo);
+</span><span style="color: #008080;">31</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">32</span> 
+<span style="color: #008080;">33</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">34</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 从日志中取出开头的一条
+</span><span style="color: #008080;">35</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">36</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;</span><span style="color: #008000;">为null表示队列为空了</span><span style="color: #808080;">&lt;/returns&gt;</span>
+<span style="color: #008080;">37</span>         <span style="color: #0000ff;">public</span><span style="color: #000000;"> LogInfo ReadBuffer()
+</span><span style="color: #008080;">38</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">39</span>             LogInfo logInfo = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+</span><span style="color: #008080;">40</span> 
+<span style="color: #008080;">41</span>             <span style="color: #0000ff;">if</span> (!Logs.TryDequeue(<span style="color: #0000ff;">out</span><span style="color: #000000;"> logInfo))
+</span><span style="color: #008080;">42</span>                 <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+</span><span style="color: #008080;">43</span> 
+<span style="color: #008080;">44</span>             <span style="color: #0000ff;">return</span><span style="color: #000000;"> logInfo;
+</span><span style="color: #008080;">45</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">46</span>         
+<span style="color: #008080;">47</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">48</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 队列中的数量
+</span><span style="color: #008080;">49</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">50</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+<span style="color: #008080;">51</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> Count()
+</span><span style="color: #008080;">52</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">53</span>             <span style="color: #0000ff;">return</span><span style="color: #000000;"> Logs.Count;
+</span><span style="color: #008080;">54</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">55</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">56</span> }</pre>
+</div>
+<p>No.3&nbsp; LogInfo.cs</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System;
+</span><span style="color: #008080;"> 2</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Collections.Generic;
+</span><span style="color: #008080;"> 3</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Linq;
+</span><span style="color: #008080;"> 4</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Text;
+</span><span style="color: #008080;"> 5</span> 
+<span style="color: #008080;"> 6</span> <span style="color: #0000ff;">namespace</span><span style="color: #000000;"> Jzg.Logs
+</span><span style="color: #008080;"> 7</span> <span style="color: #000000;">{
+</span><span style="color: #008080;"> 8</span>     <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;"> 9</span>     <span style="color: #808080;">///</span><span style="color: #008000;"> 用于缓存的日志记录实体
+</span><span style="color: #008080;">10</span>     <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">11</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> LogInfo
+</span><span style="color: #008080;">12</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;">13</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">14</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 要记录到哪个文件里
+</span><span style="color: #008080;">15</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">16</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span><span style="color: #000000;"> LogFile
+</span><span style="color: #008080;">17</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">18</span>             <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">;
+</span><span style="color: #008080;">19</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">20</span> 
+<span style="color: #008080;">21</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">22</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 记录的文字内容
+</span><span style="color: #008080;">23</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">24</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span><span style="color: #000000;"> LogContent
+</span><span style="color: #008080;">25</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">26</span>             <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">;
+</span><span style="color: #008080;">27</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">28</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">29</span> }</pre>
+</div>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

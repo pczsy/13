@@ -1,0 +1,307 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C#委托(delegate、Action、Func、predicate)和事件' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C#委托(delegate、Action、Func、predicate)和事件</center></div><div class='banquan'>原文出处:本文由博客园博主不灬赖提供。<br/>
+原文连接:https://www.cnblogs.com/ljdong7/p/11996953.html</div><br>
+    <h1 class="postTitle">一、前言</h1>
+<div id="cnblogs_post_body" class="blogpost-body ">
+<div id="cnblogs_post_body" class="blogpost-body ">
+<p>刚开始工作的时候，觉得委托和事件有些神秘，而当你理解他们之后，也觉得好像没有想象中的那么难。在项目中运用委托和事件，你会发现他非常棒，这篇博文算是自己对委托和事件的一次梳理和总结。</p>
+<h2>二、委托</h2>
+<p>C#中的委托，相当于C++中的指针函数，但委托是面向对象的，是安全的，是一个特殊的类，当然他也是引用类型，委托传递的是对方法的引用。</p>
+<h3>2.1、delegate</h3>
+<p>声明委托就必须使用关键字&ldquo;delegate&rdquo;，委托是先声明，后实例化。至少0个参数，至多32个参数</p>
+<p>格式如下所示：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">private <span style="color: #0000ff;">delegate <span style="color: #0000ff;">string GetAsString();</span></span></span></pre>
+</div>
+<p>委托是一个类，所以他的实例化跟类的实例化一样，只是他总是接受一个将委托方法作为参数的构造函数。调用委托方法就有两种方式，如下所示：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">int i = 10;
+var method = <span style="color: #0000ff;">new GetAsString(i.ToString);
+<span style="color: #008000;">//调用方法一
+Console.WriteLine($"<span style="color: #8b0000;">method方法{method()}");
+<span style="color: #008000;">//调用方法二
+Console.WriteLine($"<span style="color: #8b0000;">method.Invoke方法{method.Invoke()}");
+</span></span></span></span></span></span></pre>
+</div>
+<p>运行结果：</p>
+<p><a href="https://img2018.cnblogs.com/blog/1764554/201909/1764554-20190914215153740-2130519783.png"><img style="display: inline; background-image: none;" title="image" src="./images/C#委托(delegate、Action、Func、predicate)和事件0.png" alt="image" width="394" height="152" border="0" /></a></p>
+<h3>2.2、Action</h3>
+<p>Action是无返回值的泛型委托，可以接受0个至16个传入参数</p>
+<p>Action 表示无参，无返回值的委托</p>
+<p>Action&lt;int,string&gt; 表示有传入参数int,string无返回值的委托</p>
+<p>前面我们【<a href="https://www.cnblogs.com/snailblog/p/11484436.html" target="_blank">Log4Net 日志记录的实现</a>】中，就使用了Action。如：</p>
+<div class="cnblogs_code">
+<pre><code> <span style="color: #0000ff;">public <span style="color: #0000ff;">static <span style="color: #0000ff;">void Debug(<span style="color: #0000ff;">string message, Action RegistedProperties)
+        {
+            RegistedProperties();
+            log.Debug(message);
+        }</span></span></span></span></pre>
+</div>
+<p>调用方式为：</p>
+<div class="cnblogs_code">
+<pre><code>PFTLog.Debug("<span style="color: #8b0000;">测试扩展字段", () =&gt; {
+    LogicalThreadContext.Properties["<span style="color: #8b0000;">LogType"] = "<span style="color: #8b0000;">扩展字段内容";
+});
+</span></span></span></pre>
+</div>
+<p>在运行中，直接运行Action中的内容即可。</p>
+<h3>2.3、Func</h3>
+<p>Func是有返回值的泛型委托，可以接受0个至16个传入参数</p>
+<p>Func&lt;int&gt; 表示无参，返回值为int的委托</p>
+<p>Func&lt;object,string,int&gt; 表示传入参数为object, string 返回值为int的委托</p>
+<p>&nbsp;</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public <span style="color: #0000ff;">static <span style="color: #0000ff;">decimal GetTotal(Func&lt;<span style="color: #0000ff;">int, <span style="color: #0000ff;">int, <span style="color: #0000ff;">decimal&gt; func, <span style="color: #0000ff;">int a, <span style="color: #0000ff;">int b)
+{
+    <span style="color: #0000ff;">return func(a, b);
+}
+</span></span></span></span></span></span></span></span></span></pre>
+</div>
+<p>调用方式</p>
+<div class="cnblogs_code">
+<pre><code>var total = GetTotal((a, b) =&gt; { <span style="color: #0000ff;">return (<span style="color: #0000ff;">decimal)a + b; }, 1, 2);
+Console.WriteLine($"<span style="color: #8b0000;">结果为{total}");
+</span></span></span></pre>
+</div>
+<p>运行结果</p>
+<p><a href="https://img2018.cnblogs.com/blog/1764554/201909/1764554-20190914215154463-548373136.png"><img style="display: inline; background-image: none;" title="image" src="./images/C#委托(delegate、Action、Func、predicate)和事件1.png" alt="image" width="331" height="128" border="0" /></a></p>
+<h3>2.4、predicate</h3>
+<p>predicate 是返回bool型的泛型委托，只能接受一个传入参数</p>
+<p>predicate&lt;int&gt; 表示传入参数为int 返回bool的委托</p>
+<p>定义一个方法：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public <span style="color: #0000ff;">static <span style="color: #0000ff;">bool FindPoints(<span style="color: #0000ff;">int a)
+{
+    <span style="color: #0000ff;">return a &gt;= 60;
+}</span></span></span></span></span></pre>
+</div>
+<p>定义Predicate委托</p>
+<div class="cnblogs_code">
+<pre><code> Predicate&lt;<span style="color: #0000ff;">int&gt; predicate = FindPoints;</span></pre>
+</div>
+<p>调用</p>
+<div class="cnblogs_code">
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#委托(delegate、Action、Func、predicate)和事件2.png" alt="复制代码" /></a></span></div>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#委托(delegate、Action、Func、predicate)和事件2.png" alt="复制代码" /></a></span></div>
+<pre><code>var points = <span style="color: #0000ff;">new <span style="color: #0000ff;">int[] {
+    10,
+    50,
+    60,
+    80,
+    100 };
+var result = Array.FindAll(points, predicate);
+
+Console.WriteLine($"<span style="color: #8b0000;">结果为{string.Join(";"<span style="color: #8b0000;">, result)}");</span></span></span></span></pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#委托(delegate、Action、Func、predicate)和事件2.png" alt="复制代码" /></a></span></div>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#委托(delegate、Action、Func、predicate)和事件2.png" alt="复制代码" /></a></span></div>
+</div>
+<p>运行结果</p>
+<p><a href="https://img2018.cnblogs.com/blog/1764554/201909/1764554-20190914215155036-2113546305.png"><img style="display: inline; background-image: none;" title="image" src="./images/C#委托(delegate、Action、Func、predicate)和事件6.png" alt="image" width="383" height="151" border="0" /></a></p>
+<h3>2.5、多播委托</h3>
+<p>前面的只包含了一个方法的调用，委托可以包含多个方法，这种委托就叫做多播委托。多播委托利用&ldquo;+=&rdquo;和&ldquo;-+&rdquo;两种运算符进行添加和删除委托。</p>
+<p>先定义两个方法</p>
+<div class="cnblogs_code">
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#委托(delegate、Action、Func、predicate)和事件2.png" alt="复制代码" /></a></span></div>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#委托(delegate、Action、Func、predicate)和事件2.png" alt="复制代码" /></a></span></div>
+<pre><code><span style="color: #0000ff;">public <span style="color: #0000ff;">static <span style="color: #0000ff;">void MultiplyByTwo(<span style="color: #0000ff;">double v)
+{
+    <span style="color: #0000ff;">double result = v * 2;
+    Console.WriteLine($"<span style="color: #8b0000;">传值：{v}；MultiplyByTwo结果为{result}");
+}
+<span style="color: #0000ff;">public <span style="color: #0000ff;">static <span style="color: #0000ff;">void Square(<span style="color: #0000ff;">double v)
+{
+    <span style="color: #0000ff;">double result = v * v;
+    Console.WriteLine($"<span style="color: #8b0000;">传值：{v}；Square结果为{result}");
+}</span></span></span></span></span></span></span></span></span></span></span></span></pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#委托(delegate、Action、Func、predicate)和事件2.png" alt="复制代码" /></a></span></div>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#委托(delegate、Action、Func、predicate)和事件2.png" alt="复制代码" /></a></span></div>
+</div>
+<p>然后调用</p>
+<div class="cnblogs_code">
+<pre><code>Action&lt;<span style="color: #0000ff;">double&gt; operations = MultiplyByTwo;
+operations(1);
+operations += Square;
+operations(2);
+</span></pre>
+</div>
+<p>运行结果：</p>
+<p><a href="https://img2018.cnblogs.com/blog/1764554/201909/1764554-20190914215155696-1425683022.png"><img style="display: inline; background-image: none;" title="image" src="./images/C#委托(delegate、Action、Func、predicate)和事件11.png" alt="image" width="378" height="144" border="0" /></a></p>
+<h2>三、事件</h2>
+<p>事件是基于委托，为委托提供一种发布/订阅机制，声明事件需要使用event关键字。</p>
+<p>发布者（Publisher）：一个事件的发行者，也称作是发送者（sender），其实就是个对象，这个对象会自行维护本身的状态信息，当本身状态信息变动时，便触发一个事件，并通知说有的事件订阅者；</p>
+<p>订阅者（Subscriber）：对事件感兴趣的对象，也称为Receiver，可以注册感兴趣的事件，在事件发行者触发一个事件后，会自动执行这段代码</p>
+<p>是不是看到sender，就有种很熟悉的感觉！！！先不忙着急，我们先看下事件的声明和使用</p>
+<p>有这样一个应用场景，如果系统有异常，需要及时的通知管理员。那么需要在我们的日志记录里面添加通知管理员的功能，但是问题来了，该怎么通知管理员呢？至少现在无法知道。所以我们就需要在使用到事件。</p>
+<p>添加代码如下，如果不知道日志功能的可以参考【<a href="https://www.cnblogs.com/snailblog/p/11484436.html" target="_blank">Log4Net 日志记录的实现</a>】</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//声明一个通知的委托
+<span style="color: #0000ff;">public <span style="color: #0000ff;">delegate <span style="color: #0000ff;">void NoticeEventHander(<span style="color: #0000ff;">string message);
+<span style="color: #008000;">//在委托的机制下我们建立以个通知事件
+<span style="color: #0000ff;">public <span style="color: #0000ff;">static <span style="color: #0000ff;">event NoticeEventHander OnNotice;</span></span></span></span></span></span></span></span></span></pre>
+</div>
+<p>调用方式</p>
+<div class="cnblogs_code">
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#委托(delegate、Action、Func、predicate)和事件2.png" alt="复制代码" /></a></span></div>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#委托(delegate、Action、Func、predicate)和事件2.png" alt="复制代码" /></a></span></div>
+<pre><code><span style="color: #0000ff;">public <span style="color: #0000ff;">static <span style="color: #0000ff;">void Debug(<span style="color: #0000ff;">string message, Action RegistedProperties)
+{
+    RegistedProperties();
+    log.Debug(message);
+    <span style="color: #008000;">//执行通知
+    OnNotice?.Invoke($"<span style="color: #8b0000;">系统异常，请及时处理，异常信息：{message}");
+}
+</span></span></span></span></span></span></pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#委托(delegate、Action、Func、predicate)和事件2.png" alt="复制代码" /></a></span></div>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#委托(delegate、Action、Func、predicate)和事件2.png" alt="复制代码" /></a></span></div>
+</div>
+<p>在引用场景的代码，先定义一个通知管理员的方法（这里我们直接Console.WriteLine出来）</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public <span style="color: #0000ff;">static <span style="color: #0000ff;">void Notice(<span style="color: #0000ff;">string message)
+{
+    Console.WriteLine($"<span style="color: #8b0000;">通知内容为{message}");
+}</span></span></span></span></span></pre>
+</div>
+<p>先注册，然后触发异常消息</p>
+<div class="cnblogs_code">
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#委托(delegate、Action、Func、predicate)和事件2.png" alt="复制代码" /></a></span></div>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#委托(delegate、Action、Func、predicate)和事件2.png" alt="复制代码" /></a></span></div>
+<pre><code><span style="color: #008000;">//注册方式一
+PFTLog.OnNotice += Notice;
+<span style="color: #008000;">//注册方式二
+<span style="color: #008000;">//PFTLog.OnNotice += new PFTLog.NoticeEventHander(Notice);
+
+PFTLog.Debug("<span style="color: #8b0000;">测试扩展字段", () =&gt; {
+    LogicalThreadContext.Properties["<span style="color: #8b0000;">LogType"] = "<span style="color: #8b0000;">扩展字段内容";
+});
+</span></span></span></span></span></span></pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#委托(delegate、Action、Func、predicate)和事件2.png" alt="复制代码" /></a></span></div>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#委托(delegate、Action、Func、predicate)和事件2.png" alt="复制代码" /></a></span></div>
+</div>
+<p>运行结果</p>
+<p><a href="https://img2018.cnblogs.com/blog/1764554/201909/1764554-20190914215156334-1200140224.png"><img style="display: inline; background-image: none;" title="image" src="./images/C#委托(delegate、Action、Func、predicate)和事件20.png" alt="image" width="539" height="135" border="0" /></a></p>
+<p>这里面我只需要定义好发布者，你可以以任何方式订阅，是不是很非常简单。</p>
+<p>弄明白了上面的事件，我们在来说说.Net经常出现的object sender和EventArgs e</p>
+<p>.Net Framework的编码规范：</p>
+<p>一、委托类型的名称都应该以EventHandler结束</p>
+<p>二、委托的原型定义：有一个void返回值，并接受两个输入参数：一个Object 类型，一个 EventArgs类型(或继承自EventArgs)</p>
+<p>三、事件的命名为 委托去掉 EventHandler之后剩余的部分</p>
+<p>四、继承自EventArgs的类型应该以EventArgs结尾</p>
+<p>现在我们以一个新书发布的自定义事件为例</p>
+<p>创建对应的类文件：<a href="https://img2018.cnblogs.com/blog/1764554/201909/1764554-20190914215156936-1856222097.png"><img style="display: inline; background-image: none;" title="image" src="./images/C#委托(delegate、Action、Func、predicate)和事件21.png" alt="image" width="368" height="83" border="0" /></a></p>
+<p>事件者发布代码：</p>
+<div class="cnblogs_code">
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#委托(delegate、Action、Func、predicate)和事件2.png" alt="复制代码" /></a></span></div>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#委托(delegate、Action、Func、predicate)和事件2.png" alt="复制代码" /></a></span></div>
+<pre><code><span style="color: #0000ff;">public <span style="color: #0000ff;">class BookInfoEventArgs : EventArgs
+{
+    <span style="color: #0000ff;">public BookInfoEventArgs(<span style="color: #0000ff;">string bookName)
+    {
+        BookName = bookName;
+    }
+
+    <span style="color: #0000ff;">public <span style="color: #0000ff;">string BookName { <span style="color: #0000ff;">get; <span style="color: #0000ff;">set; }
+
+}
+</span></span></span></span></span></span></span></span></pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#委托(delegate、Action、Func、predicate)和事件2.png" alt="复制代码" /></a></span></div>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#委托(delegate、Action、Func、predicate)和事件2.png" alt="复制代码" /></a></span></div>
+</div>
+<div class="cnblogs_code">
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#委托(delegate、Action、Func、predicate)和事件2.png" alt="复制代码" /></a></span></div>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#委托(delegate、Action、Func、predicate)和事件2.png" alt="复制代码" /></a></span></div>
+<pre><code><span style="color: #0000ff;">public <span style="color: #0000ff;">class BookDealer
+{
+    <span style="color: #008000;">//泛型委托，定义了两个参数，一个是object sender,第二个是泛型 TEventArgs 的e
+    <span style="color: #008000;">//简化了如下的定义
+    <span style="color: #008000;">//public delegate void NewBookInfoEventHandler(object sender, BookInfoEventArgs e);
+    <span style="color: #008000;">//public event NewBookInfoEventHandler NewBookInfo;
+    <span style="color: #0000ff;">public <span style="color: #0000ff;">event EventHandler&lt;BookInfoEventArgs&gt; NewBookInfo;
+    <span style="color: #0000ff;">public <span style="color: #0000ff;">void NewBook(<span style="color: #0000ff;">string bookName)
+    {
+        RaiseNewBookInfo(bookName);
+    }
+
+    <span style="color: #0000ff;">public <span style="color: #0000ff;">void RaiseNewBookInfo(<span style="color: #0000ff;">string bookName)
+    {
+        NewBookInfo?.Invoke(<span style="color: #0000ff;">this, <span style="color: #0000ff;">new BookInfoEventArgs(bookName));
+    }
+}
+</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#委托(delegate、Action、Func、predicate)和事件2.png" alt="复制代码" /></a></span></div>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#委托(delegate、Action、Func、predicate)和事件2.png" alt="复制代码" /></a></span></div>
+</div>
+<p>事件订阅者</p>
+<div class="cnblogs_code">
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#委托(delegate、Action、Func、predicate)和事件2.png" alt="复制代码" /></a></span></div>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#委托(delegate、Action、Func、predicate)和事件2.png" alt="复制代码" /></a></span></div>
+<pre><code><span style="color: #0000ff;">public <span style="color: #0000ff;">class Consumer
+{
+    <span style="color: #0000ff;">public Consumer(<span style="color: #0000ff;">string name)
+    {
+        Name = name;
+    }
+
+    <span style="color: #0000ff;">public <span style="color: #0000ff;">string Name { <span style="color: #0000ff;">get; <span style="color: #0000ff;">set; }
+
+    <span style="color: #0000ff;">public <span style="color: #0000ff;">void NewBookHere(<span style="color: #0000ff;">object sender, BookInfoEventArgs e)
+    {
+        Console.WriteLine($"<span style="color: #8b0000;">用户：{Name},收到书名为：{ e.BookName}");
+    }
+}
+</span></span></span></span></span></span></span></span></span></span></span></span></pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#委托(delegate、Action、Func、predicate)和事件2.png" alt="复制代码" /></a></span></div>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#委托(delegate、Action、Func、predicate)和事件2.png" alt="复制代码" /></a></span></div>
+</div>
+<p>事件订阅和取消订阅</p>
+<div class="cnblogs_code">
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#委托(delegate、Action、Func、predicate)和事件2.png" alt="复制代码" /></a></span></div>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#委托(delegate、Action、Func、predicate)和事件2.png" alt="复制代码" /></a></span></div>
+<pre><code>var dealer = <span style="color: #0000ff;">new BookDealer();
+var consumer1 = <span style="color: #0000ff;">new Consumer("<span style="color: #8b0000;">用户A");
+dealer.NewBookInfo += consumer1.NewBookHere;
+dealer.NewBook("<span style="color: #8b0000;">book112");
+
+
+var consumer2 = <span style="color: #0000ff;">new Consumer("<span style="color: #8b0000;">用户B");
+dealer.NewBookInfo += consumer2.NewBookHere;
+
+
+dealer.NewBook("<span style="color: #8b0000;">book_abc");
+
+dealer.NewBookInfo -= consumer1.NewBookHere;
+
+
+dealer.NewBook("<span style="color: #8b0000;">book_all");
+</span></span></span></span></span></span></span></span></pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#委托(delegate、Action、Func、predicate)和事件2.png" alt="复制代码" /></a></span></div>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/C#委托(delegate、Action、Func、predicate)和事件2.png" alt="复制代码" /></a></span></div>
+</div>
+<p>运行结果</p>
+<p><a href="https://img2018.cnblogs.com/blog/1764554/201909/1764554-20190914215157581-221088652.png"><img style="display: inline; background-image: none;" title="image" src="./images/C#委托(delegate、Action、Func、predicate)和事件38.png" alt="image" width="767" height="258" border="0" /></a></p>
+<p>经过这个例子，我们可以知道Object sender参数代表的是事件发布者本身，而EventArgs e 也就是监视对象了。深入理解之后，是不是觉得也没有想象中的那么难了。</p>
+<h2>四、总结</h2>
+<p>这里我们讲了委托和事件，在.Net开发中使用委托和事件，可以减少依赖性和层的耦合，开发出具有更高的重用性的组件。</p>
+</div>
+</div>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

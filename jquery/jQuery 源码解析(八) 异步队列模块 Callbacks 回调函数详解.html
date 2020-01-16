@@ -1,0 +1,252 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修jQuery 源码解析(八) 异步队列模块 Callbacks 回调函数详解' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>jQuery 源码解析(八) 异步队列模块 Callbacks 回调函数详解</center></div><div class='banquan'>原文出处:本文由博客园博主大沙漠提供。<br/>
+原文连接:https://www.cnblogs.com/greatdesert/p/11433365.html</div><br>
+    <p>异步队列用于实现异步任务和回调函数的解耦，为ajax模块、队列模块、ready事件提供基础功能，包含三个部分:Query.Callbacks(flags)、jQuery.Deferred(funct)和jQuery.when()。本节讲解Callbacks,也就是回调函数列表</p>
+<p>回调函数用于管理一组回调函数，支持添加、移除、触发、锁定和禁用回调函数，为jQuery.ajax、jQuery.Deferred()和ready()事件提供基础功能，我们也可以基于它编写新的组件。</p>
+<p>使用方法:$.Callbacks(flags),flags是一个参数，用于指定传递的标记，可以为空，可以设置为以下四个选项之一，或者任意组合也可以，如下:</p>
+<p>　　unique&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; 　　&nbsp;&nbsp;&nbsp; 确保一个回调函数只能被添加一次<br />　　stopOnFlase 　　当某个回调函数返回false时中断执行<br />　　once&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp; 　　&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 确保回调函数列表只能被触发一次&nbsp; <br />　　memory&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp; 　　 记录上一次触发回调函数列表时的参数,之后添加的任何函数都将用记录的参数值立即调用</p>
+<p>执行成功后返回一个对象，该函数含有如下几个方法:</p>
+<p>　　add(fn/arr)　　　　　　　　 &nbsp; 添加一个/多个回调函数到list数组中</p>
+<p>　　remove(fn1,fn2,fn3...)　　　 &nbsp;&nbsp;从list中移除多个回调函数</p>
+<p>　　empty()　　　　　　　　　　清空list数组</p>
+<p>　　disable()　　　　　　　　　 禁用列表，使他不再做任何事情，该操作不可还原</p>
+<p>　　disabled()　　　　　　　　&nbsp; 判断是否已禁用列表，如果已经禁用了则返回true</p>
+<p>　　lock() 　　　　　　　　　　 锁定memory模式下的回调函数的上下文和参数</p>
+<p>　　locked()　　　　　　　　 &nbsp; &nbsp;&nbsp;判断回调函数列表是否已被锁定</p>
+<p>　　fireWith(content,args) 　　　以content为上下文，args为上下文，执行所有函数列表</p>
+<p>　　fire(arguments) 　　　　　　指定上下文为当前回调函数列表来调用fireWith</p>
+<p>　　fired()　　　　　　　　　　&nbsp;通过检测变量memory的值来判断回调函数列表是否被触发过</p>
+<p>这些方法归纳起来就是新增/移除/触发回调函数，还有几个是查看当前的状态的(是否已触发、是否被禁用等)</p>
+<p>$.Callbacks()可以传入任意组合，也可以为空，例如:</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;!</span><span style="color: #ff00ff;">DOCTYPE html</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">html </span><span style="color: #ff0000;">lang</span><span style="color: #0000ff;">="en"</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">head</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">meta </span><span style="color: #ff0000;">charset</span><span style="color: #0000ff;">="UTF-8"</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">title</span><span style="color: #0000ff;">&gt;</span>Document<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">title</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script </span><span style="color: #ff0000;">src</span><span style="color: #0000ff;">="http://libs.baidu.com/jquery/1.11.1/jquery.min.js"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">head</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">body</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span>
+        <span style="background-color: #f5f5f5; color: #0000ff;">function</span><span style="background-color: #f5f5f5; color: #000000;"> fn1(val){console.log(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">fn1 says:</span><span style="background-color: #f5f5f5; color: #000000;">'</span> <span style="background-color: #f5f5f5; color: #000000;">+</span><span style="background-color: #f5f5f5; color: #000000;"> val);}
+        </span><span style="background-color: #f5f5f5; color: #0000ff;">function</span><span style="background-color: #f5f5f5; color: #000000;"> fn2(val){console.log(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">fn2 says </span><span style="background-color: #f5f5f5; color: #000000;">'</span> <span style="background-color: #f5f5f5; color: #000000;">+</span><span style="background-color: #f5f5f5; color: #000000;"> val);}
+        </span><span style="background-color: #f5f5f5; color: #0000ff;">function</span><span style="background-color: #f5f5f5; color: #000000;"> fn3(val){console.log(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">fn3 says </span><span style="background-color: #f5f5f5; color: #000000;">'</span> <span style="background-color: #f5f5f5; color: #000000;">+</span><span style="background-color: #f5f5f5; color: #000000;"> val);}    
+        
+        </span><span style="background-color: #f5f5f5; color: #0000ff;">var</span><span style="background-color: #f5f5f5; color: #000000;"> cbs </span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #000000;"> $.Callbacks();        </span><span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;">创建Callbacks对象</span>
+<span style="background-color: #f5f5f5; color: #000000;">        cbs.add([fn1,fn2,fn3]);            </span><span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;">添加函数到回调函数列表中</span>
+<span style="background-color: #f5f5f5; color: #000000;">        cbs.fire(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">test1</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">);                </span><span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;">触发回调函数，参数是test1    输出:fn1 says:test1、fn2 says:test1和fn3 says:test</span>
+<span style="background-color: #f5f5f5; color: #000000;">        cbs.remove(fn1,fn3);            </span><span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;">移除回调函数fn1,fn3</span>
+<span style="background-color: #f5f5f5; color: #000000;">        cbs.fire(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">test2</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">);                </span><span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;">触发回调函数，输出:fn2 says test2</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">body</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">html</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<p>输出如下:</p>
+<p><img src="./images/jQuery 源码解析(八) 异步队列模块 Callbacks 回调函数详解0.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>这里我们定义了一个Callback()，没有传入任何参数，比较常用的是once和memory的组合,例如:</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;!</span><span style="color: #ff00ff;">DOCTYPE html</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">html </span><span style="color: #ff0000;">lang</span><span style="color: #0000ff;">="en"</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">head</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">meta </span><span style="color: #ff0000;">charset</span><span style="color: #0000ff;">="UTF-8"</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">title</span><span style="color: #0000ff;">&gt;</span>Document<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">title</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script </span><span style="color: #ff0000;">src</span><span style="color: #0000ff;">="http://libs.baidu.com/jquery/1.11.1/jquery.min.js"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">head</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">body</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span>
+        <span style="background-color: #f5f5f5; color: #0000ff;">function</span><span style="background-color: #f5f5f5; color: #000000;"> fn1(val){console.log(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">fn1 says:</span><span style="background-color: #f5f5f5; color: #000000;">'</span> <span style="background-color: #f5f5f5; color: #000000;">+</span><span style="background-color: #f5f5f5; color: #000000;"> val);}
+        </span><span style="background-color: #f5f5f5; color: #0000ff;">function</span><span style="background-color: #f5f5f5; color: #000000;"> fn2(val){console.log(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">fn2 says </span><span style="background-color: #f5f5f5; color: #000000;">'</span> <span style="background-color: #f5f5f5; color: #000000;">+</span><span style="background-color: #f5f5f5; color: #000000;"> val);}
+        </span><span style="background-color: #f5f5f5; color: #0000ff;">function</span><span style="background-color: #f5f5f5; color: #000000;"> fn3(val){console.log(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">fn3 says </span><span style="background-color: #f5f5f5; color: #000000;">'</span> <span style="background-color: #f5f5f5; color: #000000;">+</span><span style="background-color: #f5f5f5; color: #000000;"> val);}
+        
+        </span><span style="background-color: #f5f5f5; color: #0000ff;">var</span><span style="background-color: #f5f5f5; color: #000000;"> cbs </span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #000000;"> $.Callbacks(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">once memory</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">);
+        cbs.add([fn1,fn2]);            
+        cbs.fire(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">test</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">);        </span><span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;">输出:fn1 says:test和fn2 says:test</span>
+<span style="background-color: #f5f5f5; color: #000000;">        cbs.fire(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">test</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">);        </span><span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;">没有输出，因为设置了once标志，当调用cbs.fire('test')后就把list清空了</span>
+<span style="background-color: #f5f5f5; color: #000000;">        cbs.add(fn3);    
+    </span><span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">body</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">html</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<p>输出如下:</p>
+<p><img src="./images/jQuery 源码解析(八) 异步队列模块 Callbacks 回调函数详解1.png" alt="" /></p>
+<p>如果传入once+memory的组合，这时回调函数被触发后再调用fire()去触发时是不会执行回调函数了的，因为当第一次fire()触发回调函数后，如果由once标记就把内部的list设为了undefined,可以理解为把list给禁用了，加入了memory标记的话当执行fire()时jQuery内部会把当时的上下文和参数保存起来，这样下次直接添加回调函数就会自动回掉函数了</p>
+<p>&nbsp;</p>
+<p>&nbsp;<strong><span style="font-size: 18pt;">源码分析</span></strong></p>
+<hr />
+<p class="hwi">writer by:大沙漠 QQ:22969969</p>
+<p>$.Callbacks()的实现原理很简单，Callbacks是jQuery内部的一个函数，第一次执行时该函数会把传入的标记给缓存起来，通过作用域保存在内部的一个变量中，之后调用add()添加函数时也会一个个的缓存起来，最后调用fire()触发回调函数时会遍历这些回调函数列表，一个个的去触发，中间根据不同的标记做不同的处理。</p>
+<p>$.Callbacks是直接定义在内部的jQuery上的，大致如下</p>
+<div class="cnblogs_code">
+<pre><code>jQuery.Callbacks = <span style="color: #0000ff;">function</span>( flags ) {                    <span style="color: #008000;">//</span><span style="color: #008000;">在jQuery上添加一个Callbacks方法    </span>
+
+    <span style="color: #008000;">//</span><span style="color: #008000;"> Convert flags from String-formatted to Object-formatted</span>
+    <span style="color: #008000;">//</span><span style="color: #008000;"> (we check in cache first)</span>
+    flags = flags ? ( flagsCache[ flags ] || createFlags( flags ) ) : {};            <span style="color: #008000;">//</span><span style="color: #008000;">先尝试从缓存对象flagsCache中获取标记字符串flags对应的标记对象。如果没找到再<span style="color: #ff0000;">调用工具函数createFlags()创建标记</span></span>
+
+    <span style="color: #0000ff;">var</span> <span style="color: #008000;">//</span><span style="color: #008000;"> Actual callback list</span>
+        list =<span style="color: #000000;"> [],
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> Stack of fire calls for repeatable lists</span>
+        stack =<span style="color: #000000;"> [],
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> Last fire value (for non-forgettable lists)</span>
+<span style="color: #000000;">        memory,
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> Flag to know if list is currently firing</span>
+<span style="color: #000000;">        firing,
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> First callback to fire (used internally by add and fireWith)</span>
+<span style="color: #000000;">        firingStart,
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> End of the loop when firing</span>
+<span style="color: #000000;">        firingLength,
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> Index of currently firing callback (modified by remove if needed)</span>
+<span style="color: #000000;">        firingIndex,
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> Add one or several callbacks to the list</span>
+        add = <span style="color: #0000ff;">function</span><span style="color: #000000;">( args ) {
+            </span><span style="color: #008000;">/*</span><span style="color: #008000;">add 是一个工具函数，用于添加回调函数</span><span style="color: #008000;">*/</span><span style="color: #000000;">
+        },
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> Fire callbacks</span>
+        fire = <span style="color: #0000ff;">function</span><span style="color: #000000;">( context, args ) {
+            </span><span style="color: #008000;">/*</span><span style="color: #008000;">fire也是一个工具函数，用于触发回调函数列表</span><span style="color: #008000;">*/</span><span style="color: #000000;">
+        },
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> Actual Callbacks object</span>
+        self =<span style="color: #000000;"> {
+            </span><span style="color: #008000;">/*</span><span style="color: #008000;">对象的定义</span><span style="color: #008000;">*/</span><span style="color: #000000;">
+        };
+
+    </span><span style="color: #0000ff;">return</span> self;                                                    <span style="color: #008000;">//</span><span style="color: #008000;">最后返回self,这是一个对象，<span style="color: #ff0000;">该对象内定义的属性也就是对外的接口，供我们使用的</span></span>
+};</pre>
+</div>
+<p>createFlags用于将字符串格式的标记转换为对象格式的标记，如下:</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">function</span> createFlags( flags ) {                        <span style="color: #008000;">//</span><span style="color: #008000;">将字符串格式的标记转换为对象格式的标记</span>
+    <span style="color: #0000ff;">var</span> object = flagsCache[ flags ] = {},                    <span style="color: #008000;">//</span><span style="color: #008000;">初始化object和flagsCache[flags]为空对象</span>
+<span style="color: #000000;">        i, length;
+    flags </span>= flags.split( /\s+/ );                            <span style="color: #008000;">//</span><span style="color: #008000;">对flags用空格分隔</span>
+    <span style="color: #0000ff;">for</span> ( i = 0, length = flags.length; i &lt; length; i++ ) {    <span style="color: #008000;">//</span><span style="color: #008000;">遍历每个标记</span>
+        object[ flags[i] ] = <span style="color: #0000ff;">true</span>;                                <span style="color: #008000;">//</span><span style="color: #008000;">属性值一律设为true，这里访问对象用方括号表示法，可以用变量来表示对象的属性。</span>
+<span style="color: #000000;">    }
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> object;
+}</span></pre>
+</div>
+<p>以上面的第二个例子为例(once+memory)，执行到这里返回后对应的如下:</p>
+<p><img src="./images/jQuery 源码解析(八) 异步队列模块 Callbacks 回调函数详解2.png" alt="" /></p>
+<p>&nbsp;然后返回内部的self对象，这样$.Callbacks()就执行完毕了，后面我们调用add添加回调函数时会执行self内的add函数，如下:</p>
+<div class="cnblogs_code">
+<pre><code>add: <span style="color: #0000ff;">function</span>() {                    <span style="color: #008000;">//</span><span style="color: #008000;">添加回调函数</span>
+    <span style="color: #0000ff;">if</span><span style="color: #000000;"> ( list ) {
+        </span><span style="color: #0000ff;">var</span> length =<span style="color: #000000;"> list.length;
+        add( arguments );                                    </span><span style="color: #008000;">//</span><span style="color: #ff0000;">用工具函数add添加回调函数</span>
+        <span style="color: #008000;">//</span><span style="color: #008000;"> Do we need to add the callbacks to the</span>
+        <span style="color: #008000;">//</span><span style="color: #008000;"> current firing batch?</span>
+        <span style="color: #0000ff;">if</span><span style="color: #000000;"> ( firing ) {
+            firingLength </span>=<span style="color: #000000;"> list.length;
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> With memory, if we're not firing then</span>
+        <span style="color: #008000;">//</span><span style="color: #008000;"> we should call right away, unless previous</span>
+        <span style="color: #008000;">//</span><span style="color: #008000;"> firing was halted (stopOnFalse)</span>
+        } <span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> ( memory &amp;&amp; memory !== <span style="color: #0000ff;">true</span><span style="color: #000000;"> ) {
+            firingStart </span>=<span style="color: #000000;"> length;
+            fire( memory[ </span>0 ], memory[ 1<span style="color: #000000;"> ] );
+        }
+    }
+    </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+},</span></pre>
+</div>
+<p>这里红色标记的add是在self对象同作用域的add，这是一个工具函数，如下:</p>
+<div class="cnblogs_code">
+<pre><code>add = <span style="color: #0000ff;">function</span>( args ) {            <span style="color: #008000;">//</span><span style="color: #008000;">添加一个或多个回调函数到数组list中</span>
+    <span style="color: #0000ff;">var</span><span style="color: #000000;"> i,
+        length,
+        elem,
+        type,
+        actual;
+    </span><span style="color: #0000ff;">for</span> ( i = 0, length = args.length; i &lt; length; i++ ) {        <span style="color: #008000;">//</span><span style="color: #008000;">遍历参数</span>
+        elem = args[ i ];                                            <span style="color: #008000;">//</span><span style="color: #008000;">第一个参数的内容</span>
+        type = jQuery.type( elem );                                    <span style="color: #008000;">//</span><span style="color: #008000;">第一个参数的类型    ;是array或者function</span>
+        <span style="color: #0000ff;">if</span> ( type === "array" ) {                                    <span style="color: #008000;">//</span><span style="color: #008000;">如果参数是数组</span>
+            <span style="color: #008000;">//</span><span style="color: #008000;"> Inspect recursively        </span>
+            add( elem );                                                <span style="color: #008000;">//</span><span style="color: #008000;">则递归调用自身</span>
+        } <span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> ( type === "function" ) {                            <span style="color: #008000;">//</span><span style="color: #008000;">如果参数是函数</span>
+            <span style="color: #008000;">//</span><span style="color: #008000;"> Add if not in unique mode and callback is not in</span>
+            <span style="color: #0000ff;">if</span> ( !flags.unique || !self.has( elem ) ) {                <span style="color: #008000;">//</span><span style="color: #008000;">如果不是unique模式(该模式一个函数只能添加一次,就是回调函数列表中没有重复值)，或者 是unique模式但未添加过该函数。</span>
+                list.push( elem );                                        <span style="color: #008000;">//</span><span style="color: #008000;">添加args[i]到数组list中</span>
+<span style="color: #000000;">            }
+        }
+    }
+},</span></pre>
+</div>
+<p>最后会push到list中，也就是上一层作用域的list中，例子里执行到这里list中的数据如下:</p>
+<p><img src="./images/jQuery 源码解析(八) 异步队列模块 Callbacks 回调函数详解3.png" alt="" /></p>
+<p>这样三个函数都被缓存起来了，最后调用fire()触发回调函数时会执行self内的fire()函数，如下:</p>
+<div class="cnblogs_code">
+<pre><code>fire: <span style="color: #0000ff;">function</span><span style="color: #000000;">() {
+    self.fireWith( </span><span style="color: #0000ff;">this</span>, arguments );            <span style="color: #008000;">//</span><span style="color: #008000;">指定上下文为当前回调函数列表来调用fireWith(context, args)</span>
+    <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+}</span></pre>
+</div>
+<p>fire()会将当前this作为参数，直接调用fireWith,fireWith如下:</p>
+<div class="cnblogs_code">
+<pre><code>fireWith: <span style="color: #0000ff;">function</span>( context, args ) {            <span style="color: #008000;">//</span><span style="color: #008000;">使用指定的上下文和参数触发回调函数列表中的所有回调函数</span>
+    <span style="color: #0000ff;">if</span><span style="color: #000000;"> ( stack ) {        
+        </span><span style="color: #0000ff;">if</span> ( firing ) {                                    <span style="color: #008000;">//</span><span style="color: #008000;">如果回调函数正在执行当中</span>
+            <span style="color: #0000ff;">if</span> ( !<span style="color: #000000;">flags.once ) {            
+                stack.push( [ context, args ] );
+            }
+        } </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> ( !( flags.once &amp;&amp; memory ) ) {        <span style="color: #008000;">//</span><span style="color: #008000;">如果回调函数未在执行中，并且不是已经触发过的once模式，</span>
+            fire( context, args );                            <span style="color: #008000;">//</span><span style="color: #008000;">调用工具函数fire(context, args )执行所有函数</span>
+<span style="color: #000000;">        }
+    }
+    </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+},</span></pre>
+</div>
+<p>最后会调用fire，也就是self同作用域的工具fire函数,如下:</p>
+<div class="cnblogs_code">
+<pre><code>fire = <span style="color: #0000ff;">function</span>( context, args ) {            <span style="color: #008000;">//</span><span style="color: #008000;">使用指定的上下文context和参数args调用数组list中的回调函数</span>
+    args = args ||<span style="color: #000000;"> [];
+    memory </span>= !flags.memory || [ context, args ];                <span style="color: #008000;">//</span><span style="color: #008000;">如果当前不是memory模式，则设置memory为ture,表示当前函数回调函数列表被触发过。如果当前回调函数是memory模式,设置momory为[context,args]，除了表示当前函数回调函数列表被触发过，还能保存上下文和参数。</span>
+    firing = <span style="color: #0000ff;">true</span>;                                                <span style="color: #008000;">//</span><span style="color: #008000;">把firing设为ture，表示回调函数正在执行当中</span>
+    firingIndex = firingStart || 0<span style="color: #000000;">;
+    firingStart </span>= 0<span style="color: #000000;">;
+    firingLength </span>=<span style="color: #000000;"> list.length;
+    </span><span style="color: #0000ff;">for</span> ( ; list &amp;&amp; firingIndex &lt; firingLength; firingIndex++ ) {                        <span style="color: #008000;">//</span><span style="color: #008000;">如果没有禁用列表则循环执行每个函数</span>
+        <span style="color: #0000ff;">if</span> ( list[ firingIndex ].apply( context, args ) === <span style="color: #0000ff;">false</span> &amp;&amp; flags.stopOnFalse ) {    <span style="color: #008000;">//</span><span style="color: #008000;">执行list数组里的每一个函数，如果开启了stopOnFalse标记且有一个回调函数返回false</span>
+            memory = <span style="color: #0000ff;">true</span>; <span style="color: #008000;">//</span><span style="color: #008000;"> Mark as halted                                                    //则把memory设置为ture(清除上下文)，且退出余下所有函数列表的执行。</span>
+            <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+        }
+    }
+    firing </span>= <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+    </span><span style="color: #0000ff;">if</span> ( list ) {                                                <span style="color: #008000;">//</span><span style="color: #008000;">如果没有禁用列表</span>
+        <span style="color: #0000ff;">if</span> ( !flags.once ) {                                        <span style="color: #008000;">//</span><span style="color: #008000;">如果不是once模式，即可多次触发回调函数列表</span>
+            <span style="color: #0000ff;">if</span> ( stack &amp;&amp;<span style="color: #000000;"> stack.length ) {
+                memory </span>=<span style="color: #000000;"> stack.shift();
+                self.fireWith( memory[ </span>0 ], memory[ 1<span style="color: #000000;"> ] );
+            }
+        } </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> ( memory === <span style="color: #0000ff;">true</span> ) {                                <span style="color: #008000;">//</span><span style="color: #008000;">如果(是once模式，而且不是memory模式) 或者 (是once+memory 且设置了stopOnFlase模式，并且某个回调函数返回了false)</span>
+            self.disable();                                                <span style="color: #008000;">//</span><span style="color: #008000;">则禁用回调函数列表</span>
+        } <span style="color: #0000ff;">else</span> {                                                    <span style="color: #008000;">//</span><span style="color: #008000;">如果是once模式+memory模式</span>
+            list = [];                                                    <span style="color: #008000;">//</span><span style="color: #008000;">则清空数组list，后续添加的回调函数还会立即执行。</span>
+<span style="color: #000000;">        }
+    }
+},</span></pre>
+</div>
+<p>fire()执行完后回调函数列表就执行完毕了，中间通过一些标记做处理，如果由传入memory，则会保存上下文，下次通过add添加回调函数时会立即执行的</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

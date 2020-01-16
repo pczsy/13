@@ -1,0 +1,199 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修你真的了解foreach吗？' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>你真的了解foreach吗？</center></div><div class='banquan'>原文出处:本文由博客园博主爱在846提供。<br/>
+原文连接:https://www.cnblogs.com/aizai846/p/11996940.html</div><br>
+    <h3>引言</h3>
+<p>有C#基础的，当问到循环有哪些，会毫不犹豫的说出的for、do while、foreach及while这几种，但是到具体实际开发中，我们遇到一些问题，比如：到底选择哪种？为什么选择这种？哪种好像都可以？，其实在大多数情况下基本上可以通用，但是遇到比如Dictionary &lt;[key] , [value] &gt;只能用foreach遍历，本文带你了解foreach的原理，以及使用场景。</p>
+<h3>foreach原理</h3>
+<p>在上边博客《<a id="cb_post_title_url" class="postTitle2" href="https://www.cnblogs.com/aizai846/p/11978715.html">IEnumerable和IEnumerator详解</a>》中，我们自定义了一个集合People，在遍历的时候采用两种方法如下：</p>
+<div class="cnblogs_code">
+<pre><code>Person[] peopleArray = <span style="color: #0000ff;">new</span> Person[<span style="color: #800080;">3</span><span style="color: #000000;">]
+{
+      </span><span style="color: #0000ff;">new</span> Person(<span style="color: #800000;">"</span><span style="color: #800000;">张三</span><span style="color: #800000;">"</span>, <span style="color: #800080;">15</span><span style="color: #000000;">),
+      </span><span style="color: #0000ff;">new</span> Person(<span style="color: #800000;">"</span><span style="color: #800000;">李四</span><span style="color: #800000;">"</span>, <span style="color: #800080;">18</span><span style="color: #000000;">),
+      </span><span style="color: #0000ff;">new</span> Person(<span style="color: #800000;">"</span><span style="color: #800000;">王五</span><span style="color: #800000;">"</span>, <span style="color: #800080;">21</span><span style="color: #000000;">),
+};
+People peopleList </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> People(peopleArray);
+
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">第一种方法(foreach)</span>
+<span style="color: #0000ff;">foreach</span> (Person p <span style="color: #0000ff;">in</span><span style="color: #000000;"> peopleList)
+{
+     Console.WriteLine(p.Name </span>+ <span style="color: #800000;">"</span><span style="color: #800000;">\t</span><span style="color: #800000;">"</span> +<span style="color: #000000;"> p.Age);
+}
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">第二种方法(while)</span>
+IEnumerator enumeratorSimple =<span style="color: #000000;"> peopleList.GetEnumerator();
+</span><span style="color: #0000ff;">while</span><span style="color: #000000;"> (enumeratorSimple.MoveNext())
+{
+     Person p </span>= enumeratorSimple.Current <span style="color: #0000ff;">as</span><span style="color: #000000;"> Person;
+     Console.WriteLine(p</span>?.Name + <span style="color: #800000;">"</span><span style="color: #800000;">\t</span><span style="color: #800000;">"</span> + p?<span style="color: #000000;">.Age);
+}</span></pre>
+</div>
+<p>上边的例子，两种遍历方式是等价，但是我们是否发现foreach遍历更加简洁，其实foreach相当于是一种语法糖，目的是让开发者写代码更加便捷。</p>
+<p>官方给出的介绍如下：</p>
+<p><span data-ttu-id="9d7f2-103">foreach语句为类型实例中实现&nbsp;System.Collections.IEnumerable&nbsp;或&nbsp;System.Collections.Generic.IEnumerable&lt;T&gt;&nbsp;接口的每个元素执行语句或语句块。&nbsp;foreach<span data-ttu-id="9d7f2-104">语句不局限于这些类型，它可应用于满足以下条件的任何类型的实例：</span></span></p>
+<ul>
+<li><span data-ttu-id="9d7f2-105">具有公共无参数GetEnumerator方法，其返回类型为类、结构或接口类型。</span></li>
+<li><span data-ttu-id="9d7f2-106">GetEnumerator方法的返回类型具有公共Current属性和公共无参数MoveNext方法（其返回类型为&nbsp;Boolean）。</span></li>
+</ul>
+<p><span data-ttu-id="9d7f2-106">大致意思只要继承IEnumerable 或.IEnumerable&lt;T&gt; 接口的类，都可以用foreach进行遍历，凡是用for可以遍历的数组，基本上都可以用foreach遍历。</span></p>
+<h3><span data-ttu-id="9d7f2-106">foreach具体用法</span></h3>
+<p><span data-ttu-id="9d7f2-106">遍历数组中的值，这种很简单，代码如下：</span></p>
+<div class="cnblogs_code">
+<pre><code>List&lt;<span style="color: #0000ff;">int</span>&gt; countList = <span style="color: #0000ff;">new</span> List&lt;<span style="color: #0000ff;">int</span>&gt;() {<span style="color: #800080;">0</span>, <span style="color: #800080;">1</span>, <span style="color: #800080;">2</span>, <span style="color: #800080;">3</span>, <span style="color: #800080;">4</span>, <span style="color: #800080;">5</span><span style="color: #000000;">};
+</span><span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">var</span> item <span style="color: #0000ff;">in</span><span style="color: #000000;"> countList)
+{
+      Console.WriteLine(item);
+}</span></pre>
+</div>
+<p>倘若我们遍历数据，并修改每项的值，这个怎么做，比如下边的代码：</p>
+<p><img src="./images/你真的了解foreach吗？0.png" alt="" />&nbsp;</p>
+<p>当我们试图给item变量赋值的时候，vs智能提示，因为是迭代变量，无法赋值，也就是说当前变量是只读的，不能赋值，那基于这种情况，我们怎么整呢？</p>
+<p>其实，foreach已经为我们提供了解决此问题的方法：用ref 迭代变量来设置 stackalloc 数组中每个项的值，具体代码如下：</p>
+<div class="cnblogs_code">
+<pre><code>Span&lt;<span style="color: #0000ff;">int</span>&gt; countList = <span style="color: #0000ff;">stackalloc</span> <span style="color: #0000ff;">int</span>[] { <span style="color: #800080;">0</span>, <span style="color: #800080;">1</span>, <span style="color: #800080;">2</span>, <span style="color: #800080;">3</span>, <span style="color: #800080;">4</span>, <span style="color: #800080;">5</span><span style="color: #000000;"> };
+</span><span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">ref</span> <span style="color: #0000ff;">int</span> item <span style="color: #0000ff;">in</span><span style="color: #000000;"> countList)
+{
+     item</span>++<span style="color: #000000;">;
+}</span></pre>
+</div>
+<p>注意：&ldquo;引用 foreach 迭代变量&rdquo;只能在C#7.3及更高的版本中使用（其中，通过NuGet安装System.Memory），所以低版本开发的童鞋还是采用for遍历赋值吧，C#版本和.NET版本对应关系如下：</p>
+<table class="gridtable">
+<thead>
+<tr class="header"><th>C#版本</th><th>.NET版本</th><th>发布日期</th><th>特性</th></tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>C# 1.0</td>
+<td>.NET Framework 1.0</td>
+<td>2002-02-13</td>
+<td>委托、事件</td>
+</tr>
+<tr class="even">
+<td>C# 1.1</td>
+<td>.NET Framework 1.1</td>
+<td>2003-04-24</td>
+<td>APM（异步编程模型）</td>
+</tr>
+<tr class="odd">
+<td>C# 2.0</td>
+<td>.NET Framework 2.0</td>
+<td>2005-11-07</td>
+<td>泛型、匿名方法、迭代器、可空类型</td>
+</tr>
+<tr class="even">
+<td>C# 3.0</td>
+<td>.NET Framework 3.0</td>
+<td>2007-11-06</td>
+<td>隐式类型</td>
+</tr>
+<tr class="odd">
+<td>&nbsp;</td>
+<td>.NET Framework 3.5</td>
+<td>2007-11-19</td>
+<td>对象集合初始化、自动实现属性、匿名类型、扩展方法、查询表达式、Lambda表达式、 表达式树、分部类和方法、Linq</td>
+</tr>
+<tr class="even">
+<td>C# 4.0</td>
+<td>.NET Framework 4.0</td>
+<td>2010-04-12</td>
+<td>动态绑定、命名和可选参数、泛型的协变和逆变、互操作性</td>
+</tr>
+<tr class="odd">
+<td>C# 5.0</td>
+<td>.NET Framework 4.5</td>
+<td>2012-08-15</td>
+<td>异步和等待(async和await)、调用方信息(Caller Information)</td>
+</tr>
+<tr class="even">
+<td>C# 6.0</td>
+<td>.NET Framework 4.6</td>
+<td>2015-07-20</td>
+<td><a href="https://docs.microsoft.com/zh-cn/dotnet/csharp/whats-new/csharp-6">C# 6 中的新增功能</a></td>
+</tr>
+<tr class="odd">
+<td>&nbsp;</td>
+<td>.NET Core 1.0</td>
+<td>2016-06-27</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="even">
+<td>C# 7.0</td>
+<td>.NET Framework 4.6.2</td>
+<td>2016-08-02</td>
+<td><a href="https://docs.microsoft.com/zh-cn/dotnet/csharp/whats-new/csharp-7">C# 7.0 中的新增功能</a></td>
+</tr>
+<tr class="odd">
+<td>C# 7.1</td>
+<td>.NET Framework 4.7</td>
+<td>2017-04-05</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="even">
+<td>&nbsp;</td>
+<td>.NET Core 2.0</td>
+<td>2016-08-14</td>
+<td><a href="https://docs.microsoft.com/zh-cn/dotnet/core/whats-new/dotnet-core-2-0">.NET Core 2.0 的新增功能</a></td>
+</tr>
+<tr class="odd">
+<td>C# 7.2</td>
+<td>.NET Framework 4.7.1</td>
+<td>2017-10-17</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="even">
+<td>C# 7.3</td>
+<td>.NET Framework 4.7.2</td>
+<td>2018-04-30</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="odd">
+<td>&nbsp;</td>
+<td>.NET Core 2.1</td>
+<td>2018-05-30</td>
+<td><a href="https://docs.microsoft.com/zh-cn/dotnet/core/whats-new/dotnet-core-2-1">.NET Core 2.1 的新增功能</a></td>
+</tr>
+<tr class="even">
+<td>&nbsp;</td>
+<td>.NET Core 2.2</td>
+<td>2018-12-04</td>
+<td><a href="https://docs.microsoft.com/zh-cn/dotnet/core/whats-new/dotnet-core-2-2">.NET Core 2.2 的新增功能</a></td>
+</tr>
+<tr class="odd">
+<td>C# 8.0</td>
+<td>.NET Framework 4.8</td>
+<td>2019-04-18</td>
+<td><a href="https://docs.microsoft.com/zh-cn/dotnet/csharp/whats-new/csharp-8">C# 8.0 中的新增功能</a></td>
+</tr>
+<tr class="even">
+<td>&nbsp;</td>
+<td>.NET Core 3.0</td>
+<td>2019-09-23</td>
+<td><a href="https://docs.microsoft.com/zh-cn/dotnet/core/whats-new/dotnet-core-3-0">.NET Core 3.0 的新增功能</a></td>
+</tr>
+</tbody>
+</table>
+<h3>&nbsp;总结</h3>
+<p>在开发过程，我们对某一知识点不仅要知道怎么用，而且还得知道为什么这么用，只有不断地总结，才能发现具体原理方法，只有这样才能真正的提升自己，不能为了敲代码而敲代码。文中若有不足之处，还望海涵，博文写作不易希望多多支持，后续会更新更多内容，感兴趣的朋友可以加关注，欢迎留言交流！</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

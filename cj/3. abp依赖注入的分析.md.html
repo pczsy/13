@@ -1,0 +1,377 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修3. abp依赖注入的分析.md' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>3. abp依赖注入的分析.md</center></div><div class='banquan'>原文出处:本文由博客园博主又见阿郎提供。<br/>
+原文连接:https://www.cnblogs.com/zhiyong-ITNote/p/12005772.html</div><br>
+    <h5 id="abp依赖注入的原理剖析">abp依赖注入的原理剖析</h5>
+<p>请先移步参考 <a href="https://www.cnblogs.com/myzony/p/10755010.html">[Abp vNext 源码分析] - 3. 依赖注入与拦截器</a> 本文此篇文章的补充和完善。</p>
+<p>abp的依赖注入最后是通过IConventionalRegister接口的AddType方法实现的。先看下该接口：</p>
+<pre><code><code>public interface IConventionalRegistrar
+{
+    void AddAssembly(IServiceCollection services, Assembly assembly);
+
+    void AddTypes(IServiceCollection services, params Type[] types);
+
+    void AddType(IServiceCollection services, Type type);
+}</code></pre>
+<p>该接口定义了三个方法，支持传入程序集、类型数组、具体类型，其实现在一个抽象类==ConventionalRegistrarBase==中：</p>
+<pre><code><code>public abstract class ConventionalRegistrarBase : IConventionalRegistrar
+{
+    public virtual void AddAssembly(IServiceCollection services, Assembly assembly)
+    {
+        var types = AssemblyHelper
+            .GetAllTypes(assembly)
+            .Where(
+                type =&gt; type != null &amp;&amp;
+                        type.IsClass &amp;&amp;
+                        !type.IsAbstract &amp;&amp;
+                        !type.IsGenericType
+            ).ToArray();
+
+        AddTypes(services, types);
+    }
+
+    public virtual void AddTypes(IServiceCollection services, params Type[] types)
+    {
+        foreach (var type in types)
+        {
+            AddType(services, type);
+        }
+    }
+
+    public abstract void AddType(IServiceCollection services, Type type);
+}</code></pre>
+<p>不管是程序集，还是类型数组最后都是调用AddType方法，AddType的实现在这个抽象类的派生类中，abp有一个默认的实现类==DefaultConventionalRegistrar==，该类实现了AddType方法，abp的依赖注入就是通过该类的AddType方法注入的。源码：</p>
+<pre><code><code>public class DefaultConventionalRegistrar : ConventionalRegistrarBase
+{
+    public override void AddType(IServiceCollection services, Type type)
+    {
+        if (IsConventionalRegistrationDisabled(type))
+        {
+            return;
+        }
+
+        var dependencyAttribute = GetDependencyAttributeOrNull(type);
+        var lifeTime = GetLifeTimeOrNull(type, dependencyAttribute);
+
+        if (lifeTime == null)
+        {
+            return;
+        }
+
+        var serviceTypes = ExposedServiceExplorer.GetExposedServices(type);
+
+        TriggerServiceExposing(services, type, serviceTypes);
+
+        foreach (var serviceType in serviceTypes)
+        {
+            var serviceDescriptor = ServiceDescriptor.Describe(serviceType, type, lifeTime.Value);
+
+            if (dependencyAttribute?.ReplaceServices == true)
+            {
+                services.Replace(serviceDescriptor);
+            }
+            else if (dependencyAttribute?.TryRegister == true)
+            {
+                services.TryAdd(serviceDescriptor);
+            }
+            else
+            {
+                services.Add(serviceDescriptor);
+            }
+        }
+    }
+    
+    // 其他方法实现
+}</code></pre>
+<p>从这个类中可以看出abp依赖注入的实现思路：根据GetExposedServices方法返回的服务类型列表去构造服务描述符(服务描述符的第一个参数就是服务类型，第二个参数就是实现类型)。而实现类型就是我们要注入的类型。再将此服务描述符注入到DI容器中。<br />
+GetDependencyAttributeOrNull方法和GetLifeTimeOrNull方法是获取使用了Dependency特性注入的类及其生命周期，如果没有则使用默认的生命周期，因此如果Dependency特性的注入优先级更高。GetExposedServices是在静态类ExposedServiceExplorer中，该静态类是用来获取注入类型的定义及实现的。源码实现：</p>
+<pre><code><code>public static List&lt;Type&gt; GetExposedServices(Type type)
+{
+    return type
+        .GetCustomAttributes()
+        .OfType&lt;IExposedServiceTypesProvider&gt;()
+        .DefaultIfEmpty(DefaultExposeServicesAttribute)
+        .SelectMany(p =&gt; p.GetExposedServiceTypes(type))
+        .ToList();
+}</code></pre>
+<p>IExposedServicveTypeProvider接口定义及实现：</p>
+<pre><code><code>//定义：
+public interface IExposedServiceTypesProvider
+{
+    Type[] GetExposedServiceTypes(Type targetType);
+}
+
+//实现：
+public class ExposeServicesAttribute : Attribute, IExposedServiceTypesProvider
+{
+    public ExposeServicesAttribute(params Type[] serviceTypes)
+    {
+        ServiceTypes = serviceTypes ?? new Type[0];
+    }
+    
+    public Type[] GetExposedServiceTypes(Type targetType)
+    {
+        var serviceList = ServiceTypes.ToList();
+        
+        if (IncludeDefaults == true)
+        {
+            foreach (var type in GetDefaultServices(targetType))
+            {
+                serviceList.AddIfNotContains(type);
+            }
+        
+            if (IncludeSelf != false)
+            {
+                serviceList.AddIfNotContains(targetType);
+            }
+        }
+        else if (IncludeSelf == true)
+        {
+            serviceList.AddIfNotContains(targetType);
+        }
+        
+        return serviceList.ToArray();
+    }
+    
+    private static List&lt;Type&gt; GetDefaultServices(Type type)
+    {
+        var serviceTypes = new List&lt;Type&gt;();
+        
+        foreach (var interfaceType in type.GetTypeInfo().GetInterfaces())
+        {
+            var interfaceName = interfaceType.Name;
+        
+            if (interfaceName.StartsWith(&quot;I&quot;))
+            {
+                interfaceName = interfaceName.Right(interfaceName.Length - 1);
+            }
+        
+            if (type.Name.EndsWith(interfaceName))
+            {
+                serviceTypes.Add(interfaceType);
+            }
+        }
+        
+        return serviceTypes;
+    }
+}
+</code></pre>
+<p>该接口的实现是在ExposeServices特性的实现类中，这是个特性类，是abp三种注入服务的第一种——ExposeServices特性注入。该类的构造函数会直接保存要注入类型的服务列表。其次就是GetDefaultService方法，该方法会返回默认的服务类型。通过反射获取类继承的接口，并截取接口的名称(除去I之后的接口名)，==只有实现类与接口名称相同的条件下才会注入到服务类型列表中==，这点要注意！对于该方法返回的类型会被添加到服务类型列表中(ServiceTypes)。==默认情况下，实现类本身会注入到服务类型列表中==，从源码中可以分析到：</p>
+<pre><code><code>if (IncludeSelf != false)
+{
+    serviceList.AddIfNotContains(targetType);
+}</code></pre>
+<p>targetType就是我们当前注入的类型。在此便注入了类型本身。如此的好处是，可以获取到类的实例，减少了直接实例化而带来依赖。</p>
+<p>如此便返回了注入类型的定义及实现列表(serviceTypes)，而后遍历这个列表，服务描述符(ServiceDescriptor)的参数ServiceType就是这个列表的项。这个服务描述符便注入到了DI容器中。对于Dependency特性注入的方式，如果参数是ReplaceServices，那么将会替换；如果参数是Register，那么将会直接注入。否则的话，直接添加进DI容器中。</p>
+<blockquote>
+<p><strong>三种注入方式的实现：</strong></p>
+</blockquote>
+<ul>
+<li>ExposeServices特性的注入分析</li>
+</ul>
+<pre><code><code>// 接口
+public interface IMessageWriter
+{
+    void Write();
+}
+
+// 实现 1
+[ExposeServices(typeof(IMessageWriter))]
+public class TestMessageTwo : IMessageWriter, ITransientDependency
+{
+    public void Write()
+    {
+        Console.WriteLine(&quot;TestMessageTwo&quot;);
+    }
+}
+
+// 实现 2
+[ExposeServices(typeof(IMessageWriter), typeof(TestMessageOne))]
+public class TestMessageOne : IMessageWriter, ITransientDependency
+{
+    public void Write()
+    {
+        Console.WriteLine(&quot;TestMessageOne&quot;);
+    }
+}
+
+// 注入
+_services = new ServiceCollection();
+_services.AddType&lt;TestMessageOne&gt;();
+_services.AddType&lt;TestMessageTwo&gt;();
+
+// 底层调用：
+var serviceTypes = ExposedServiceExplorer.GetExposedServices(type);
+</code></pre>
+<p>abp底层通过ExposedServiceExplorer静态类的GetExposedServices方法确定需要注册类型的定义和实现。这个静态类最后实际上是调用了ExposeServicesAttribute类的构造函数和GetExposedServiceTypes方法确定了服务类型列表。</p>
+<pre><code><code>public ExposeServicesAttribute(params Type[] serviceTypes)
+{
+    ServiceTypes = serviceTypes ?? new Type[0];
+}
+
+public Type[] GetExposedServiceTypes(Type targetType)
+{
+}</code></pre>
+<ul>
+<li>Dependency特性注入</li>
+</ul>
+<pre><code><code>//接口
+public interface IMyService : ITransientDependency
+{
+}
+
+//实现
+[Dependency(TryRegister = true)]
+public class TryRegisterImplOfMyService : IMyService
+{
+}
+
+//注入
+_services = new ServiceCollection();
+_services.AddTypes(typeof(TryRegisterImplOfMyService));
+
+//底层调用
+ExposeServicesAttribute.GetDefaultServices(typeof(TryRegisterImplOfMyService));
+</code></pre>
+<p>Dependency特性注入在调用GetDefaultServices方法返回服务类型列表，而后在DefaultConventionalRegistrar类的AddType方法中构造服务描述符，注入到DI中。</p>
+<pre><code><code>var serviceDescriptor = ServiceDescriptor.Describe(serviceType, type, lifeTime.Value);
+
+if (dependencyAttribute?.ReplaceServices == true)
+{
+    services.Replace(serviceDescriptor);
+}
+else if (dependencyAttribute?.TryRegister == true)
+{
+    services.TryAdd(serviceDescriptor);
+}</code></pre>
+<blockquote>
+<p>备注：<br />
+对于Dependency注入和接口方式注入，实现类的类名必须以接口名结尾，否则将不能注入到DI中。</p>
+</blockquote>
+<ul>
+<li>接口注入</li>
+</ul>
+<pre><code><code>//接口
+public interface IMyService : ITransientDependency
+{
+}
+
+//实现 1
+public class FirstImplOfMyService : IMyService
+{
+}
+
+//实现 2
+public class SecondImplOfMyService : IMyService
+{
+}
+
+// 注入
+_services = new ServiceCollection();
+_services.AddTypes(typeof(FirstImplOfMyService),typeof(SecondImplOfMyService));
+
+//底层调用
+ExposeServicesAttribute.GetDefaultServices(typeof(TryRegisterImplOfMyService));</code></pre>
+<p>接口方式的注入，也是调用GetDefaultServices返回一个类型列表，然后遍历，保存到服务类型列表中，最后注入到DI容器中。</p>
+<ul>
+<li>ReplaceServices替换<br />
+如果接口方式注入与Dependency特性注入同时使用且接口相同那么就是另外一种情况，示例：</li>
+</ul>
+<pre><code><code>// 接口
+public interface IMyService : ITransientDependency
+{
+}
+
+// 接口方式实现
+public class FirstImplOfMyService : IMyService
+{
+}
+
+// Dependency特性注入 -- 替换掉 接口方式注入的实现
+[Dependency(ReplaceServices = true)]
+public class MyServiceReplacesIMyService : IMyService
+{
+}
+
+// 注入
+_services = new ServiceCollection();
+_services.AddTypes(typeof(FirstImplOfMyService),typeof(MyServiceReplacesIMyService));
+</code></pre>
+<p>使用ReplaceServices将会使Dependency特性注入替换接口方式的注入。因此只有Dependency特性的注入会被添加到DI容器中。</p>
+<hr />
+<p>代码示例：</p>
+<pre><code><code>#region ExposeServices 属性注入
+public interface ICalculator { }
+
+public interface ITaxCalculator { }
+
+[ExposeServices(typeof(IService))]
+public class TaxCalculator : ICalculator, ITaxCalculator, ITransientDependency
+{
+}
+#endregion
+
+
+#region 接口约定 模式注入
+
+public interface IService : ITransientDependency { }
+
+public class MyService : IService
+{
+}
+
+#endregion
+
+#region Dependency特性注入
+
+public interface IMyDependencyTest { }
+
+[Dependency(lifetime: ServiceLifetime.Transient, TryRegister = true)]
+public class MyDependencyTest : IMyDependencyTest { }
+
+#endregion
+
+class Program
+{
+    static void Main(string[] args)
+    {
+        var services = new ServiceCollection();
+        services.AddType(typeof(MyDependencyTest));
+        services.AddType(typeof(MyService));
+        services.AddType&lt;TaxCalculator&gt;();
+
+        foreach(var service in services)
+        {
+            Console.WriteLine($&quot;{service.ServiceType} --- {service.ImplementationType} --- {service.Lifetime}&quot;);
+        }
+
+        Console.Read();
+    }
+}</code></pre>
+<blockquote>
+<p>除去ExposeServices属性注入外，其余的两种模式必须接口与类名相对应。否则，就只能注入类本身，但是，ExposeServics属性注入不会截取接口名与类名比较。</p>
+</blockquote>
+<p>输出：</p>
+<p><img src="./images/3. abp依赖注入的分析.md0.png" alt="img" /></p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,209 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修azure 上传blob到ams(CreateFromBlob)' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>azure 上传blob到ams(CreateFromBlob)</center></div><div class='banquan'>原文出处:本文由博客园博主大稳&#183;杨提供。<br/>
+原文连接:https://www.cnblogs.com/dawenyang/p/10871024.html</div><br>
+    <p>遇到的错误：The destination storage credentials must contain the account key credentials，参数名: destinationStorageCredentials</p>
+<p>解决方法：AccountName与AccountKey参数值错误</p>
+<p>AccountName就是存储账户名字</p>
+<p>AccountKey值获取方式：打开存储账户--&gt;访问秘钥--&gt;key1或者key2</p>
+<p>Azure上传资产SDK</p>
+<div class="cnblogs_code">
+<pre><code>    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> AzureMediaServiceController : ApiController
+    {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> Read values from the App.config file.</span>
+
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">readonly</span> <span style="color: #0000ff;">string</span> _AADTenantDomain =<span style="color: #000000;">
+            ConfigurationManager.AppSettings[</span><span style="color: #800000;">"</span><span style="color: #800000;">AMSAADTenantDomain</span><span style="color: #800000;">"</span><span style="color: #000000;">];
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">readonly</span> <span style="color: #0000ff;">string</span> _RESTAPIEndpoint =<span style="color: #000000;">
+            ConfigurationManager.AppSettings[</span><span style="color: #800000;">"</span><span style="color: #800000;">AMSRESTAPIEndpoint</span><span style="color: #800000;">"</span><span style="color: #000000;">];
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">readonly</span> <span style="color: #0000ff;">string</span> _AMSClientId =<span style="color: #000000;">
+            ConfigurationManager.AppSettings[</span><span style="color: #800000;">"</span><span style="color: #800000;">AMSClientId</span><span style="color: #800000;">"</span><span style="color: #000000;">];
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">readonly</span> <span style="color: #0000ff;">string</span> _AMSClientSecret =<span style="color: #000000;">
+            ConfigurationManager.AppSettings[</span><span style="color: #800000;">"</span><span style="color: #800000;">AMSClientSecret</span><span style="color: #800000;">"</span><span style="color: #000000;">];
+
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> CloudMediaContext _context = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+
+        [HttpPost, Route(</span><span style="color: #800000;">"</span><span style="color: #800000;">api/AzureMediaService/DeliverVideo</span><span style="color: #800000;">"</span><span style="color: #000000;">)]
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> GET: AMSDeliverVideo</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> DeliverVideo(<span style="color: #0000ff;">string</span><span style="color: #000000;"> fileName)
+        {
+            GetCloudMediaContext();
+            IAsset inputAsset </span>=<span style="color: #000000;"> UploadFile(fileName, AssetCreationOptions.None);
+            </span><span style="color: #0000ff;">var</span> strsasUri =<span style="color: #000000;"> PublishAssetGetURLs(inputAsset);
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> strsasUri;
+        }
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 获取媒体文件上下文
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> GetCloudMediaContext()
+        {
+            AzureAdTokenCredentials tokenCredentials </span>=
+                <span style="color: #0000ff;">new</span><span style="color: #000000;"> AzureAdTokenCredentials(_AADTenantDomain,
+                    </span><span style="color: #0000ff;">new</span><span style="color: #000000;"> AzureAdClientSymmetricKey(_AMSClientId, _AMSClientSecret),
+                    AzureEnvironments.AzureCloudEnvironment);
+
+            </span><span style="color: #0000ff;">var</span> tokenProvider = <span style="color: #0000ff;">new</span><span style="color: #000000;"> AzureAdTokenProvider(tokenCredentials);
+
+            _context </span>= <span style="color: #0000ff;">new</span> CloudMediaContext(<span style="color: #0000ff;">new</span><span style="color: #000000;"> Uri(_RESTAPIEndpoint), tokenProvider);
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 创建新资产并上传视频文件
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="fileName"&gt;</span><span style="color: #008000;">上传文件名称,如:F:\BigBuck.mp4</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">public</span> IAsset UploadFile(<span style="color: #0000ff;">string</span><span style="color: #000000;"> fileName, AssetCreationOptions options)
+        {
+            IAsset inputAsset </span>=<span style="color: #000000;"> _context.Assets.CreateFromFile(
+                fileName,
+                options,
+                (af, p) </span>=&gt;<span style="color: #000000;">
+                {
+                    Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Uploading '{0}' - Progress: {1:0.##}%</span><span style="color: #800000;">"</span><span style="color: #000000;">, af.Name, p.Progress);
+                });
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> inputAsset;
+        }
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span><span style="color: #000000;"> PublishAssetGetURLs(IAsset asset)
+        {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> Publish the output asset by creating an Origin locator for adaptive streaming,
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> and a SAS locator for progressive download.
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">用于流媒体（例如 MPEG DASH、HLS 或平滑流式处理）的 OnDemandOrigin 定位符
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">_context.Locators.Create(
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">    LocatorType.OnDemandOrigin,
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">    asset,
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">    AccessPermissions.Read,
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">    TimeSpan.FromDays(30));
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">用于下载媒体文件的访问签名</span>
+<span style="color: #000000;">            _context.Locators.Create(
+                LocatorType.Sas,
+                asset,
+                AccessPermissions.Read,
+                TimeSpan.FromDays(</span><span style="color: #800080;">30</span><span style="color: #000000;">));
+
+
+            IEnumerable</span>&lt;IAssetFile&gt; mp4AssetFiles =<span style="color: #000000;"> asset
+                    .AssetFiles
+                    .ToList()
+                    .Where(af </span>=&gt; af.Name.EndsWith(<span style="color: #800000;">"</span><span style="color: #800000;">.mp4</span><span style="color: #800000;">"</span><span style="color: #000000;">, StringComparison.OrdinalIgnoreCase));
+
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> Get the URls for progressive download for each MP4 file that was generated as a result
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> of encoding.
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">List&lt;Uri&gt; mp4ProgressiveDownloadUris = mp4AssetFiles.Select(af =&gt; af.GetSasUri()).ToList();</span>
+            <span style="color: #0000ff;">string</span> mp4ProgressiveDownloadUris = mp4AssetFiles.Select(af =&gt;<span style="color: #000000;"> af.GetSasUri()).FirstOrDefault().OriginalString;
+
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> mp4ProgressiveDownloadUris;
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> Display the URLs for progressive download.   
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> mp4ProgressiveDownloadUris.ForEach(uri =&gt; Console.WriteLine(uri + "\n"));    </span>
+<span style="color: #000000;">
+        }
+
+
+        </span><span style="color: #0000ff;">string</span> storageConnectionString = ConfigurationManager.AppSettings[<span style="color: #800000;">"</span><span style="color: #800000;">StorageConnectionString</span><span style="color: #800000;">"</span><span style="color: #000000;">];
+        </span><span style="color: #0000ff;">string</span> accountName = ConfigurationManager.AppSettings[<span style="color: #800000;">"</span><span style="color: #800000;">AccountName</span><span style="color: #800000;">"</span><span style="color: #000000;">];
+        </span><span style="color: #0000ff;">string</span> accountKey = ConfigurationManager.AppSettings[<span style="color: #800000;">"</span><span style="color: #800000;">AccountKey</span><span style="color: #800000;">"</span><span style="color: #000000;">];
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 上传blob文件到ams中
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="fileName"&gt;</span><span style="color: #008000;">文件名</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> UploadBlobFile(<span style="color: #0000ff;">string</span><span style="color: #000000;"> fileName)
+        {
+            </span><span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">string</span><span style="color: #000000;">.IsNullOrEmpty(fileName))
+                </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">string</span><span style="color: #000000;">.Empty;
+            CloudStorageAccount storageAccount </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+            CloudBlobContainer cloudBlobContainer </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">if</span> (CloudStorageAccount.TryParse(storageConnectionString, <span style="color: #0000ff;">out</span><span style="color: #000000;"> storageAccount))
+            {
+                </span><span style="color: #0000ff;">try</span><span style="color: #000000;">
+                {
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 创建CloudBlobClient，它代表存储帐户的Blob存储端点。</span>
+                    CloudBlobClient cloudBlobClient =<span style="color: #000000;"> storageAccount.CreateCloudBlobClient();
+
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">fileName = "</span><span style="color: #008000; text-decoration: underline;">https://qdlsstorage.blob.core.windows.net/video/20190514165259-</span><span style="color: #008000;">魔术视频.mp4";
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">通过连接获取容器名字和文件名字</span>
+                    <span style="color: #0000ff;">var</span> index =<span style="color: #000000;"> fileName.IndexOf(accountName, StringComparison.CurrentCultureIgnoreCase);
+                    </span><span style="color: #0000ff;">var</span> temp = fileName.Substring(index + <span style="color: #800080;">1</span><span style="color: #000000;">);
+                    </span><span style="color: #0000ff;">var</span> fs = temp.Split(<span style="color: #800000;">'</span><span style="color: #800000;">/</span><span style="color: #800000;">'</span><span style="color: #000000;">);
+                    </span><span style="color: #0000ff;">var</span> containerName = fs[<span style="color: #800080;">1</span><span style="color: #000000;">];
+                    fileName </span>= fs[<span style="color: #800080;">2</span><span style="color: #000000;">];<strong><span style="color: #ff0000;"> 这一段代码根据你们自己的情况进行修改，我这个是因为传递的全路径才这么写的</span></strong>
+
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 获取Blob容器 </span>
+                    cloudBlobContainer =<span style="color: #000000;"> cloudBlobClient.GetContainerReference(containerName);
+                    GetCloudMediaContext();
+                    </span><span style="color: #0000ff;">var</span> storageCredentials = <span style="color: #0000ff;">new</span><span style="color: #000000;"> StorageCredentials(accountName, accountKey);
+                    </span><span style="color: #0000ff;">var</span> cloudBlockBlob =<span style="color: #000000;"> cloudBlobContainer.GetBlockBlobReference(fileName);
+
+                    <strong><span style="color: #ff0000; font-family: 'Microsoft YaHei';">cloudBlockBlob.FetchAttributes();//这一句是关键，如果不加这一句就会报错，我把报错信息放到下面
+                    </span></strong></span><span style="color: #0000ff;">var</span> inputAsset =<span style="color: #000000;"> _context.Assets.CreateFromBlob(cloudBlockBlob, storageCredentials, AssetCreationOptions.None);
+                    </span><span style="color: #0000ff;">var</span> strsasUri =<span style="color: #000000;"> PublishAssetGetURLs(inputAsset);
+                    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> strsasUri;
+                }
+                </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception e)
+                {
+                    Console.WriteLine(e);
+                }
+
+            }
+
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+        }
+    }</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>报错信息：</p>
+<pre><code><code>&lt;?xml version="1.0" encoding="utf-8"?&gt;&lt;m:error xmlns:m="http://schemas.microsoft.com/ado/2007/08/dataservices/metadata"&gt;&lt;m:code /&gt;&lt;m:message xml:lang="en-US"&gt;AssetFile ContentFileSize must not be negative&lt;/m:message&gt;&lt;/m:error&gt;</code></pre>
+<p>参考地址：<a href="https://github.com/Azure/azure-sdk-for-media-services-extensions/issues/40" target="_blank">https://github.com/Azure/azure-sdk-for-media-services-extensions/issues/40</a>&nbsp; （这是通过谷歌找到的资料，百度根本不行）</p>
+<p>&nbsp;</p>
+<p>直接上传文件到资产中调用方法：</p>
+<div class="cnblogs_code">
+<pre><code> 　　　　　　　　　　　　　  <span style="color: #0000ff;">var</span> virtualPath = <span style="color: #800000;">"</span><span style="color: #800000;">/UploadFile/Files/</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+                        </span><span style="color: #0000ff;">var</span> path =<span style="color: #000000;"> HttpContext.Current.Server.MapPath(virtualPath);
+                        </span><span style="color: #0000ff;">if</span> (!<span style="color: #000000;">Directory.Exists(path))
+                        {
+                            Directory.CreateDirectory(path);
+                        }
+                        </span><span style="color: #0000ff;">var</span> fileFullPath = $<span style="color: #800000;">"</span><span style="color: #800000;">{path}{fileName}</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+                        </span><span style="color: #0000ff;">try</span><span style="color: #000000;">
+                        {
+                            file.SaveAs(fileFullPath);
+                            </span><span style="color: #0000ff;">var</span> ams = <span style="color: #0000ff;">new</span><span style="color: #000000;"> AzureMediaServiceController();
+                            url </span>=<span style="color: #000000;"> ams.DeliverVideo(fileFullPath);
+                            result </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+                            msg </span>= $<span style="color: #800000;">@"</span><span style="color: #800000;">上传视频成功</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+                            File.Delete(fileFullPath);
+                        }
+                        </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception ex)
+                        {
+                            msg </span>= <span style="color: #800000;">"</span><span style="color: #800000;">上传文件写入失败：</span><span style="color: #800000;">"</span> + ex.InnerException + ex.Message + ex.InnerException?.InnerException + <span style="color: #800000;">"</span><span style="color: #800000;">fileFullPath=</span><span style="color: #800000;">"</span> +<span style="color: #000000;"> fileFullPath;
+                        }</span></pre>
+</div>
+<p>因为使用的是HTML自带的file上传控件，传递给接口的文件地址全路径是错误的，所以只能保存到接口服务器本地，上传到azure上去之后再删除这个文件。</p>
+<p>&nbsp;</p>
+<p>上传blob到ams</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">　　　　　　　　　　　　　　 var</span> ams = <span style="color: #0000ff;">new</span><span style="color: #000000;"> AzureMediaServiceController();
+                        </span><span style="color: #0000ff;">var</span> t = ams.UploadBlobFile(fileUrl);</pre>
+</div>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

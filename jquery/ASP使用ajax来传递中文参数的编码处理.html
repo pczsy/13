@@ -1,0 +1,111 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修ASP使用ajax来传递中文参数的编码处理' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>ASP使用ajax来传递中文参数的编码处理</center></div><div class='banquan'>原文出处:本文由博客园博主许善祥提供。<br/>
+原文连接:https://www.cnblogs.com/xusx2014/p/11940441.html</div><br>
+    <h2>背景</h2>
+<p>asp的第一版是0.9测试版，自从1996年ASP1.0诞生，迄今20余载。虽然asp在Windows2000&nbsp;IIS服务5.0所附带的ASP 3.0发布后好像再没有更新过了，但是由于其入手简单，天然的asp+access零配置，在零几年火的就像现在的微信小程序。虽然时过境迁，其至今在国内还有小规模的用户市场。</p>
+<p>据工信部发布消息，截止到2018年底，中国中小企业的数量已经超过了3000万家，个体工商户数量超过7000万户。中小企业信息化普遍面临资金短缺、信息人才不足等问题，为了降低成本，故而企业网站一般外包给其他小规模的网络公司制作、维护，网络公司一般是套站、仿站。操作系统一般使用Windows，web程序搭建上，一般使用php+MySQL或者asp+access的&ldquo;黄金&rdquo;组合。</p>
+<h2>实践</h2>
+<p>这不，笔者最近又用上了asp+access，不过不是企业站的，而是一个小型的教学管理系统。</p>
+<p>开发过程中碰到一个问题，asp页面前后端都是用的gb2312编码，前端使用ajax来传递中文参数，后端进行编码处理后，以免存入access为乱码。</p>
+<blockquote class="wp-block-quote">
+<p>注：建议前后端都是用utf-8编码，就没下面这么麻烦了。</p>
+</blockquote>
+<p>前端代码：</p>
+<pre><code><code>$.post("result.asp?act=update",{
+  val: escape(val)
+},function(result){
+  result = JSON.parse(result);
+});</code></pre>
+<p>后端代码：</p>
+<pre><code><code>Dim val
+val = Trim(vbsUnEscape(request.form("val")))</code></pre>
+<blockquote class="wp-block-quote">
+<p><em>ECMAScript v3 已从标准中删除了 escape() 函数和 unescape() 函数，并反对使用它们，因此应该使用 decodeURI() 和 decodeURIComponent() 取而代之。</em></p>
+<p><em>&hellip; All of the language features and behaviours specified in this annex have one or more undesirable characteristics and in the absence of legacy usage would be removed from this specification. &hellip;<br />&hellip; Programmers should not use or assume the existence of these features and behaviours when writing new ECMAScript code. &hellip;</em></p>
+
+
+
+<cite>https://www-archive.mozilla.org/js/language/E262-3.pdf<br />https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/escape</cite></blockquote>
+<pre><code><code>Function vbsUnEscape(str)
+    Dim i,s,c
+    s=""
+    For i=1 to Len(str)
+        c=Mid(str,i,1)
+        If Mid(str,i,2)="%u" and i&lt;=Len(str)-5 Then
+            If IsNumeric("&amp;H" &amp; Mid(str,i+2,4)) Then
+                s=s &amp; CHRW(CInt("&amp;H" &amp; Mid(str,i+2,4)))
+                i=i+5
+            Else
+                s=s &amp; c
+            End If
+        ElseIf c="%" and i&lt;=Len(str)-2 Then
+            If IsNumeric("&amp;H" &amp; Mid(str,i+1,2)) Then
+                s=s &amp; CHRW(CInt("&amp;H" &amp; Mid(str,i+1,2)))
+                i=i+2
+            Else
+                s=s &amp; c
+            End If
+        Else
+            s=s &amp; c
+        End If
+    Next
+    vbsUnEscape=s
+End Function</code></pre>
+<p>另附上一般这里用不上的vbsEscape：</p>
+<pre><code><code>'escape时不变的7个符号： *(42) +(43) -(45) .(46) /(47) @(64) _(95)
+Function vbsEscape(str)
+&nbsp; &nbsp; dim i,s,c,a
+&nbsp; &nbsp; s=""
+&nbsp; &nbsp; For i=1 to Len(str)
+&nbsp; &nbsp; &nbsp; &nbsp; c=Mid(str,i,1)
+&nbsp; &nbsp; &nbsp; &nbsp; a=ASCW(c)
+&nbsp; &nbsp; &nbsp; &nbsp; If (a&gt;=48 and a&lt;=57) or (a&gt;=65 and a&lt;=90) or (a&gt;=97 and a&lt;=122) Then
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; s = s &amp; c
+&nbsp; &nbsp; &nbsp; &nbsp; ElseIf InStr("@*_+-./",c)&gt;0 Then
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; s = s &amp; c
+&nbsp; &nbsp; &nbsp; &nbsp; ElseIf a&gt;0 and a&lt;16 Then
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; s = s &amp; "%0" &amp; Hex(a)
+&nbsp; &nbsp; &nbsp; &nbsp; ElseIf a&gt;=16 and a&lt;256 Then
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; s = s &amp; "%" &amp; Hex(a)
+&nbsp; &nbsp; &nbsp; &nbsp; Else
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; s = s &amp; "%u" &amp; Hex(a)
+&nbsp; &nbsp; &nbsp; &nbsp; End If
+&nbsp; &nbsp; Next
+&nbsp; &nbsp; vbsEscape = s
+End Function</code></pre>
+<p>如果，在前端使用的是encodeURI/encodeURIComponent，而不是escape，那么，后端还可以像下面这样写：</p>
+<pre><code><code>&lt;%
+Function strDecode(str)
+    Dim objScript
+    Set objScript = Server.CreateObject("ScriptControl")
+    objScript.Language = "JavaScript"
+    strDecode = objScript.Eval("decodeURIComponent(""" &amp; str &amp; """.replace(/\+/g,"" ""))")
+    Set objScript = NOTHING
+End Function
+%&gt;</code></pre>
+<blockquote class="wp-block-quote">
+<p>上面的vbsUnEscape函数也可以这么写！</p>
+</blockquote>
+<p>原文：<a href="https://xushanxiang.com/2019/11/asp-ajax-escape.html">https://xushanxiang.com/2019/11/asp-ajax-escape.html</a></p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,506 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修分享基于.NET动态编译&amp;Newtonsoft.Json封装实现JSON转换器（JsonConverter）原理及JSON操作技巧' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>分享基于.NET动态编译&amp;Newtonsoft.Json封装实现JSON转换器（JsonConverter）原理及JSON操作技巧</center></div><div class='banquan'>原文出处:本文由博客园博主梦在旅途提供。<br/>
+原文连接:https://www.cnblogs.com/zuowj/p/11027166.html</div><br>
+    <p>　　看文章标题就知道，本文的主题就是关于JSON，JSON转换器（JsonConverter）具有将C#定义的类源代码直接转换成对应的JSON字符串，以及将JSON字符串转换成对应的C#定义的类源代码，而JSON操作技巧则说明如何通过JPath来快速的定位JSON的属性节点从而达到灵活读写JSON目的。</p>
+<h2 class="post_body_title">一、JSON转换器（JsonConverter）使用及原理介绍篇</h2>
+<p>　　现在都流行微服务，前后端分离，而微服务之间、前后端之间数据交互更多的是基于REST FUL风格的API，API的请求与响应一般常用格式都是JSON。当编写了一些API后，为了能够清楚的描述API的请求及响应数据格式（即：JSON格式），以便提供给API服务的消费者（其它微服务、前端）开发人员进行对接开发，通常是编写API说明文档，说明文档中一般包含入参JSON格式说明以及响应的JSON格式说明示例，但如果API涉及数目较多，全由开发人员人工编写，那效率就非常低下，而且不一定准确。于是就有了<strong>Swagger</strong>，在API项目中集成swagger组件，就会由swagger根据API的ACTION方法定义及注解生成标准的在线API说明文档，具体用法请参见网上相关文章说明。当然除了swagger还有其它类似的集成式的生成在线API说明文档，大家有兴趣的话可以去网上找找资源。虽说swagger组件确实解放了开发人员的双手，无需人工编写就自动生成在线API文档，但我认为还是有一些不足，或者说是不太方便的地方：一是必需集成到API项目中，与API项目本身有耦合与依赖，无法单独作为API帮助文档项目，在有些情况下可能并不想依赖swagger，不想时刻把swagger生成API文档暴露出来；二是目前都是生成的在线API文档，如果API在某些网络环境下不可访问（比如：受限），那在线的API文档基本等同于没用，虽说swagger也可以通过复杂的配置或改造支持导出离线的API文档，但总归是有一定的学习成本。那有没有什么替代方案能解决swagger类似的在线API文档的不足，又避免人工低效编写的状况呢？可能有，我（梦在旅途）没了解过，但我为了解决上述问题，<strong>基于.NET动态编译&amp;Newtonsoft.Json封装实现了一个JSON转换器（JsonConverter），采用人工编写+JSON自动生成的方式来实现灵活、快速、离线编写API说明文档。</strong></p>
+<p><strong><br /></strong>先来看一下JsonConverter工具的界面吧，如下图示：</p>
+<p><img src="./images/分享基于.NET动态编译&amp;Newtonsoft.Json封装实现JSON转换器（JsonConverter）原理及JSON操作技巧0.png" alt="" width="864" height="528" /></p>
+<p>工具界面很简单，下面简要说明一下操作方法：</p>
+<p>class类源代码转换成Json字符串：先将项目中定义的class类源代码复制粘贴到Class Code文本框区域【<span style="text-decoration: underline; color: #ff0000;">注意：若有继承或属性本身又是另一个类，则相关的class类定义源代码均应一同复制，using合并，namespace允许多个，目的是确保可以动态编译通过</span>】，然后点击上方的【Parse】按钮，以便执行动态编译并解析出Class Code文本框区域中所包含的class Type，最后选择需要生成JSON的class Type，点击中间的【To Json】按钮，即可将选择的class Type&nbsp;序列化生成JSON字符串并展示在右边的Json String文本框中；</p>
+<p>示例效果如下图示：(支持继承，复杂属性)</p>
+<p><img src="./images/分享基于.NET动态编译&amp;Newtonsoft.Json封装实现JSON转换器（JsonConverter）原理及JSON操作技巧1.png" alt="" width="846" height="517" /></p>
+<p>有了这个功能以后，API写好后，只需要把ACTION方法的入参class源代码复制过来然后进行class to JSON转换即可快速生成入参JSON，不论是自己测试还是写文档都很方便。建议使用markdown语法来编写API文档。</p>
+<p>Json字符串转换成class类定义源代码：先将正确的JSON字符串复制粘贴到Json String文本框中，然后直接点击中间的【To Class】按钮，弹出输入要生成的class名对话框，输入后点击确定就执行转换逻辑，最终将转换成功的class定义源代码展示在左边的Class Code文本框区域中；</p>
+<p>示例效果如下图示：（支持复杂属性，能够递归生成JSON所需的子类，类似如下的Address，注意暂不支持数组嵌套数组这种非常规的格式，即：[ [1,2,3],[4,5,6] ]）</p>
+<p><img src="./images/分享基于.NET动态编译&amp;Newtonsoft.Json封装实现JSON转换器（JsonConverter）原理及JSON操作技巧2.png" alt="" width="870" height="535" /></p>
+<p>JsonConverter工具实现原理及代码说明：</p>
+<p>class Code To Json&nbsp;先利用.NET动态编译程序集的方式，把class Code动态编译成一个内存的临时程序集Assembly，然后获得该Assembly中的Class Type,最后通过反射创建一个Class Type空实例，再使用Newtonsoft.Json&nbsp;序列化成JSON字符串即可。</p>
+<p>动态编译是：Parse，序列化是：ToJsonString，需要关注的点是：动态编译时，需要引用相关的.NET运行时DLL，而这些DLL必需在工具的根目录下，否则可能导致引用找不到DLL导致编译失败，故项目中引用了常见的几个DLL，并设置了复制到输出目录中，如果后续有用到其它特殊的类型同样参照该方法先把DLL包含到项目中，并设置复制到输出目录中，然后在动态编译代码中使用cp.ReferencedAssemblies.Add("XXXX.dll");进行添加。核心代码如下：</p>
+<div class="cnblogs_Highlighter">
+<pre><code>        private List&lt;string&gt; Parse(string csCode)
+        {
+
+            var provider = new CSharpCodeProvider();
+            var cp = new CompilerParameters();
+            cp.GenerateExecutable = false;
+            cp.GenerateInMemory = true;
+            cp.IncludeDebugInformation = false;
+            //cp.ReferencedAssemblies.Add("mscorlib.dll");
+            cp.ReferencedAssemblies.Add("System.dll");
+            cp.ReferencedAssemblies.Add("System.Data.dll");
+            cp.ReferencedAssemblies.Add("System.Linq.dll");
+            cp.ReferencedAssemblies.Add("System.ComponentModel.DataAnnotations.dll");
+            cp.ReferencedAssemblies.Add("Newtonsoft.Json.dll");
+
+            CompilerResults result = provider.CompileAssemblyFromSource(cp, csCode);
+            List&lt;string&gt; errList = new List&lt;string&gt;();
+            if (result.Errors.Count &gt; 0)
+            {
+                foreach (CompilerError err in result.Errors)
+                {
+                    errList.Add(string.Format("Line:{0},ErrorNumber:{1},ErrorText:{2}", err.Line, err.ErrorNumber, err.ErrorText));
+                }
+
+                MessageBox.Show("Compile error:\n" + string.Join("\n", errList));
+                return null;
+            }
+
+            dyAssembly = result.CompiledAssembly;
+
+            return dyAssembly.GetTypes().Select(t =&gt; t.FullName).ToList();
+        }
+
+
+        private string ToJsonString(string targetType)
+        {
+            if (dyAssembly == null)
+            {
+                MessageBox.Show("dyAssembly is null!");
+                return null;
+            }
+            var type = dyAssembly.GetType(targetType);
+            var typeConstructor = type.GetConstructor(Type.EmptyTypes);
+            var obj = typeConstructor.Invoke(null);
+            return JsonConvert.SerializeObject(obj, Formatting.Indented, new JsonSerializerSettings { DateFormatString = "yyyy-MM-dd HH:mm:ss" });
+        }
+</pre>
+</div>
+<p>　Json to Class code&nbsp;先使用JObject.Parse将json字符串转换为通用的JSON类型实例，然后直接通过获取所有JSON属性集合并遍历这些属性，通过判断属性节点的类型，若是子JSON类型【即：JObject】则创建对象属性字符串&nbsp;同时递归查找子对象，若是数组类型【即：JArray】则创建List集合属性字符串，同时进一步判断数组的元素类型，若是子JSON类型【即：JObject】则仍是递归查找子对象，最终拼接成所有类及其子类的class定义源代码字符串。核心代码如下：</p>
+<div class="cnblogs_Highlighter">
+<pre><code>   private string ToClassCode(JObject jObject, string className)
+        {
+            var classCodes = new Dictionary&lt;string, string&gt;();
+            classCodes.Add(className, BuildClassCode(jObject, className, classCodes));
+
+            StringBuilder codeBuidler = new StringBuilder();
+            foreach (var code in classCodes)
+            {
+                codeBuidler.AppendLine(code.Value);
+            }
+
+            return codeBuidler.ToString();
+
+        }
+
+
+        private Dictionary&lt;JTokenType, string&gt; jTokenBaseTypeMappings = new Dictionary&lt;JTokenType, string&gt; {
+            { JTokenType.Integer,"int" },{ JTokenType.Date,"DateTime" },{ JTokenType.Bytes,"byte[]"},{ JTokenType.Boolean,"bool"},{ JTokenType.String,"string"},
+            { JTokenType.Null,"object"},{ JTokenType.Float,"float"},{ JTokenType.TimeSpan,"long"}
+        };
+
+        private string BuildClassCode(JObject jObject, string className, Dictionary&lt;string, string&gt; classCodes)
+        {
+            StringBuilder classBuidler = new StringBuilder();
+            classBuidler.Append("public class " + className + " \r\n { \r\n");
+            foreach (var jProp in jObject.Properties())
+            {
+                string propClassName = "object";
+
+                if (jProp.Value.Type == JTokenType.Object)
+                {
+
+                    if (jProp.Value.HasValues)
+                    {
+                        propClassName = GetClassName(jProp.Name);
+                        if (classCodes.ContainsKey(propClassName))
+                        {
+                            propClassName = className + propClassName;
+                        }
+
+                        classCodes.Add(propClassName, BuildClassCode((JObject)jProp.Value, propClassName, classCodes));
+                    }
+
+                    classBuidler.AppendFormat("public {0} {1} {2}\r\n", propClassName, jProp.Name, "{get;set;}");
+                }
+                else if (jProp.Value.Type == JTokenType.Array)
+                {
+                    if (jProp.Value.HasValues)
+                    {
+                        var jPropArrItem = jProp.Value.First;
+                        if (jPropArrItem.Type == JTokenType.Object)
+                        {
+                            propClassName = GetClassName(jProp.Name);
+                            if (classCodes.ContainsKey(propClassName))
+                            {
+                                propClassName = className + propClassName;
+                            }
+                            propClassName += "Item";
+
+                            classCodes.Add(propClassName, BuildClassCode((JObject)jPropArrItem, propClassName, classCodes));
+                        }
+                        else
+                        {
+                            if (jTokenBaseTypeMappings.ContainsKey(jPropArrItem.Type))
+                            {
+                                propClassName = jTokenBaseTypeMappings[jPropArrItem.Type];
+                            }
+                            else
+                            {
+                                propClassName = jPropArrItem.Type.ToString();
+                            }
+                        }
+                    }
+
+                    classBuidler.AppendFormat("public List&lt;{0}&gt; {1} {2}\r\n", propClassName, jProp.Name, "{get;set;}");
+
+                }
+                else
+                {
+                    if (jTokenBaseTypeMappings.ContainsKey(jProp.Value.Type))
+                    {
+                        propClassName = jTokenBaseTypeMappings[jProp.Value.Type];
+                    }
+                    else
+                    {
+                        propClassName = jProp.Value.Type.ToString();
+                    }
+
+                    classBuidler.AppendFormat("public {0} {1} {2} \r\n", propClassName, jProp.Name, "{get;set;}");
+                }
+
+            }
+
+            classBuidler.Append("\r\n } \r\n");
+
+            return classBuidler.ToString();
+        }
+</pre>
+</div>
+<p>　把JSON字符串转换为class类源代码，除了我这个工具外，网上也有一些在线的转换网页可以使用，另外我再分享一个小技巧，即：直接利用VS的编辑-》【选择性粘贴】，然后选择粘贴成JSON类或XML即可，菜单位置：</p>
+<p><img src="./images/分享基于.NET动态编译&amp;Newtonsoft.Json封装实现JSON转换器（JsonConverter）原理及JSON操作技巧3.png" alt="" /></p>
+<p>通过这种粘贴到JSON与我的这个工具的效果基本相同，只是多种选择而矣。</p>
+<p>JsonConverter工具已开源并上传至GitHub，地址：<strong><a href="https://github.com/zuowj/JsonConverter" target="_blank">https://github.com/zuowj/JsonConverter</a></strong></p>
+<h2 class="post_body_title">二、JSON操作技巧篇</h2>
+<p>下面再讲讲JSON数据的读写操作技巧。</p>
+<p>一般操作JSON，大多要么是把class类的实例数据序列化成JSON字符串，以便进行网络传输，要么是把JSON字符串反序列化成class类的数据实例，以便可以在程序获取这些数据。然而其实还有一些不常用的场景，也是与JSON有关，详见如下说明。</p>
+<p><strong>&nbsp;场景一：如果已有JSON字符串，现在需要获得指定属性节点的数据，且指定的属性名不确定，由外部传入或逻辑计算出来的【即：不能直接在代码中写死要获取的属性逻辑】，那么这时该如何快速的按需获取任意JSON节点的数据呢？</strong></p>
+<p>常规解决方案：先反序列化成某个class的实例对象（或JObject实例对象），然后通过反射获取属性，并通过递归及比对属性名找出最终的属性，最后返回该属性的值。</p>
+<p><strong>场景二：如果已有某个class实例对象数据，现在需要动态更改指定属性节点的数据【即动态给某个属性赋值】，该如何操作呢？</strong></p>
+<p>常规解决方案：通过反射获取属性，并通过递归及比对属性名找出最终的属性，最后通过反射给该属性设置值。</p>
+<p><strong>场景三：如果已有JSON字符串，现在需要动态添加新属性节点，该属性节点可以是任意嵌套子对象的属性节点中，该如何操作呢？</strong></p>
+<p>常规解决方案：先反序列化成JObject实例对象，然后递归查找目标位置，最后在指定的位置创建新的属性节点。</p>
+<p>三种场景归纳一下其实就是需要对JSON的某个属性节点数据可以快速动态的增、改、删、查操作，然而常规则解决方案基本上都是需要靠递归+反射+比对，运行性能可想而知，而我今天分享的JSON操作技巧就是解决上述问题的。</p>
+<p>&nbsp;重点来了，我们可以通过<strong>JPath</strong>表达式来快速定位查找JSON的属性节点，就像XML利用XPath一样查找DOM节点。</p>
+<p>JPath表达式是什么呢？&nbsp;详见：<a href="https://goessner.net/articles/JsonPath/" target="_blank">https://goessner.net/articles/JsonPath/</a>&nbsp; ，Xpath与JSONPath对比用法如下图示（图片来源于https://goessner.net/articles/JsonPath/文中）：</p>
+<p><img src="./images/分享基于.NET动态编译&amp;Newtonsoft.Json封装实现JSON转换器（JsonConverter）原理及JSON操作技巧4.png" alt="" width="572" height="387" /></p>
+<p>代码中如何使用JPath表达式呢？<strong>使用JObject.SelectTokens&nbsp;或 SelectToken方法即可</strong>，我们可以使用SelectTokens("jpath")表达式直接快速定位指定的属性节点，然后就可以获得该属性节点的值，若需要该属性设置值，则可以通过该节点找到对应的所属属性信息进行设置值即可，而动态根据指定位置【一般是某个属性节点】添加一个新的属性节点，则可以直接使用<strong>JToken的AddBeforeSelf、AddAfterSelf</strong>在指定属性节点的前面或后面创建同级新属性节点，是不是非常简单。原理已说明，最后贴出已封装好的实现代码：</p>
+<p>&nbsp;</p>
+<div class="cnblogs_Highlighter">
+<pre><code>using Newtonsoft.Json.Linq;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+namespace Zuowj.EasyUtils
+{
+    /// &lt;summary&gt;
+    /// JObject扩展类
+    /// author:zuowenjun
+    /// 2019-6-15
+    /// &lt;/summary&gt;
+    public static class JObjectExtensions
+    {
+
+        /// &lt;summary&gt;
+        /// 根据Jpath查找JSON指定的属性节点值
+        /// &lt;/summary&gt;
+        /// &lt;param name="jObj"&gt;&lt;/param&gt;
+        /// &lt;param name="fieldPath"&gt;&lt;/param&gt;
+        /// &lt;returns&gt;&lt;/returns&gt;
+        public static IEnumerable&lt;JToken&gt; FindJsonNodeValues(this JObject jObj, string fieldPath)
+        {
+            var tks = jObj.SelectTokens(fieldPath, true);
+
+            List&lt;JToken&gt; nodeValues = new List&lt;JToken&gt;();
+            foreach (var tk in tks)
+            {
+                if (tk is JProperty)
+                {
+                    var jProp = tk as JProperty;
+                    nodeValues.Add(jProp.Value);
+                }
+                else
+                {
+                    nodeValues.Add(tk);
+                }
+            }
+
+            return nodeValues;
+        }
+
+
+        /// &lt;summary&gt;
+        /// 根据Jpath查找JSON指定的属性节点并赋值
+        /// &lt;/summary&gt;
+        /// &lt;param name="jObj"&gt;&lt;/param&gt;
+        /// &lt;param name="fieldPath"&gt;&lt;/param&gt;
+        /// &lt;param name="value"&gt;&lt;/param&gt;
+        public static void SetJsonNodeValue(this JObject jObj, string fieldPath, JToken value)
+        {
+            var tks = jObj.SelectTokens(fieldPath, true);
+
+            JArray targetJArray = null;
+            List&lt;int&gt; arrIndexs = new List&lt;int&gt;();
+            foreach (var tk in tks)
+            {
+                JProperty jProp = null;
+                if (tk is JProperty)
+                {
+                    jProp = tk as JProperty;
+                }
+                else if (tk.Parent is JProperty)
+                {
+                    jProp = (tk.Parent as JProperty);
+                }
+                else if (tk.Parent is JObject)
+                {
+                    jProp = (tk.Parent as JObject).Property(tk.Path.Substring(tk.Path.LastIndexOf('.') + 1));
+                }
+
+                if (jProp != null)
+                {
+                    jProp.Value = value;
+                }
+                else if (tk.Parent is JArray) //注意不能直接在for循环中对JArray元素赋值，否则会导致报错
+                {
+                    targetJArray = tk.Parent as JArray;
+                    arrIndexs.Add(targetJArray.IndexOf(tk));
+                }
+                else
+                {
+                    throw new Exception("无法识别的元素");
+                }
+            }
+
+            //单独对找到的数组元素进行重新赋值
+            if (targetJArray != null &amp;&amp; arrIndexs.Count &gt; 0)
+            {
+                foreach (int i in arrIndexs)
+                {
+                    targetJArray[i] = value;
+                }
+            }
+        }
+
+
+        /// &lt;summary&gt;
+        /// 在指定的JPath的属性节点位置前或后创建新的属性节点
+        /// &lt;/summary&gt;
+        /// &lt;param name="jObj"&gt;&lt;/param&gt;
+        /// &lt;param name="fieldPath"&gt;&lt;/param&gt;
+        /// &lt;param name="name"&gt;&lt;/param&gt;
+        /// &lt;param name="value"&gt;&lt;/param&gt;
+        /// &lt;param name="addBefore"&gt;&lt;/param&gt;
+        /// &lt;returns&gt;&lt;/returns&gt;
+        public static void AppendJsonNode(this JObject jObj, string fieldPath, string name, JToken value, bool addBefore = false)
+        {
+            var nodeValues = FindJsonNodeValues(jObj, fieldPath);
+
+            if (nodeValues == null || !nodeValues.Any()) return;
+
+            foreach (var node in nodeValues)
+            {
+                var targetNode = node;
+                if (node is JObject) //注意只能对普能单值 的JToken对象（JProptery）允许添加，若不是则应找对应的属性信息
+                {
+                    targetNode = node.Parent;
+                }
+
+                var jProp = new JProperty(name, value);
+                if (addBefore)
+                {
+                    targetNode.AddBeforeSelf(jProp);
+                }
+                else
+                {
+                    targetNode.AddAfterSelf(jProp);
+                }
+            }
+        }
+    }
+}
+</pre>
+</div>
+<p>用法示例如下代码：</p>
+<div class="cnblogs_Highlighter">
+<pre class="brush:csharp;collapse:true;;gutter:true;">            var jsonObj = new
+            {
+                Root = new
+                {
+                    Lv1 = new
+                    {
+                        col1 = 123,
+                        col2 = true,
+                        col3 = new
+                        {
+                            f1 = "aa",
+                            f2 = "bb",
+                            f3 = "cc",
+                            Lv2 = new
+                            {
+                                flv1 = 1,
+                                flv2 = "flv2-2"
+                            }
+                        }
+                    }
+                },
+                Main = new[] {
+                    new{
+                        mf1="x",
+                        mf2="y",
+                        mf3=123
+                    },
+                    new{
+                        mf1="x2",
+                        mf2="y2",
+                        mf3=225
+                    }
+                }
+            };
+
+            string json = JsonConvert.SerializeObject(jsonObj, Formatting.Indented);
+
+            Console.WriteLine("JSON1:" + json);
+
+            var jObj = JObject.FromObject(jsonObj); //JObject.Parse(json);
+
+            var findResult = jObj.FindJsonNodeValues("Root.Lv1.col3.Lv2.*");
+            Console.WriteLine("FindJsonNodeValues:" + string.Join(",", findResult));
+
+            jObj.SetJsonNodeValue("Main[*].mf2", "*changed value*");
+            json = JsonConvert.SerializeObject(jObj, Formatting.Indented);
+            Console.WriteLine("JSON2:" + json);
+
+            jObj.AppendJsonNode("Root.Lv1.col3.Lv2", "LV2-New", JObject.FromObject(new {flv21="a2",flv22=221,flv23=true }));
+           // jObj.AppendJsonNode("Root.Lv1.col3.Lv2", "LV2-2","single value");
+            json = JsonConvert.SerializeObject(jObj, Formatting.Indented);
+            Console.WriteLine("JSON3:" + json);
+
+            Console.ReadKey();
+</pre>
+</div>
+<p>　控制台输出的结果如下：可以观察JSON1（原JSON），JSON2（改变了JSON值）,JSON3（增加了JSON属性节点）</p>
+<div class="cnblogs_Highlighter">
+<pre><code>JSON1:{
+  "Root": {
+    "Lv1": {
+      "col1": 123,
+      "col2": true,
+      "col3": {
+        "f1": "aa",
+        "f2": "bb",
+        "f3": "cc",
+        "Lv2": {
+          "flv1": 1,
+          "flv2": "flv2-2"
+        }
+      }
+    }
+  },
+  "Main": [
+    {
+      "mf1": "x",
+      "mf2": "y",
+      "mf3": 123
+    },
+    {
+      "mf1": "x2",
+      "mf2": "y2",
+      "mf3": 225
+    }
+  ]
+}
+FindJsonNodeValues:1,flv2-2<br />
+JSON2:{
+  "Root": {
+    "Lv1": {
+      "col1": 123,
+      "col2": true,
+      "col3": {
+        "f1": "aa",
+        "f2": "bb",
+        "f3": "cc",
+        "Lv2": {
+          "flv1": 1,
+          "flv2": "flv2-2"
+        }
+      }
+    }
+  },
+  "Main": [
+    {
+      "mf1": "x",
+      "mf2": "*changed value*",
+      "mf3": 123
+    },
+    {
+      "mf1": "x2",
+      "mf2": "*changed value*",
+      "mf3": 225
+    }
+  ]
+}<br />
+JSON3:{
+  "Root": {
+    "Lv1": {
+      "col1": 123,
+      "col2": true,
+      "col3": {
+        "f1": "aa",
+        "f2": "bb",
+        "f3": "cc",
+        "Lv2": {
+          "flv1": 1,
+          "flv2": "flv2-2"
+        },
+        "LV2-New": {
+          "flv21": "a2",
+          "flv22": 221,
+          "flv23": true
+        }
+      }
+    }
+  },
+  "Main": [
+    {
+      "mf1": "x",
+      "mf2": "*changed value*",
+      "mf3": 123
+    },
+    {
+      "mf1": "x2",
+      "mf2": "*changed value*",
+      "mf3": 225
+    }
+  ]
+}
+</pre>
+</div>
+<p>　好了，本文的内容就分享到这里。更多以往的编码实用技巧详见：《<a href="https://www.cnblogs.com/zuowj/p/9898396.html" target="_blank"><strong>近期开发项目中用到的编码小技巧汇总说明(二)</strong></a>》；</p>
+<p>&nbsp;</p>
+<p>&nbsp;温馨提示：近期还会分期更多编程实用技能，欢迎关注评论，谢谢！　</p>
+<p>　</p>
+<p>　</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

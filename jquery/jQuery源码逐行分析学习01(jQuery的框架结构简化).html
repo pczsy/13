@@ -1,0 +1,76 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修jQuery源码逐行分析学习01(jQuery的框架结构简化)' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>jQuery源码逐行分析学习01(jQuery的框架结构简化)</center></div><div class='banquan'>原文出处:本文由博客园博主learning-python提供。<br/>
+原文连接:https://www.cnblogs.com/xiaowm/p/10857461.html</div><br>
+    <p>最近在学习jQuery源码，在此，特别做一个分享，把所涉及的内容都记录下来，其中有不妥之处还望大家指出，我会及时改正。望各位大神不吝赐教！同时，这也是我的第一篇前端技术博客，对博客编写还不是很熟悉，美化工作可能不够到位，也希望大家多多见谅！</p>
+<p>首先这篇文章要给大家分享的是：jQuery的框架结构，把框架结构简单化处理</p>
+<p>此处我所学习使用的jQuery版本是2.0.3版本(文件已经上传到我的GitHub中，大家可以去下载，地址：https://github.com/cumtchj/jQuery2.0.3)，一个相对比较老的版本，但是其实基本的功能都与新版本类似，该版本开发版代码共8830行。</p>
+<p>此外，2.X相较于1.X版本，去除了对IE6/7/8的支持，这也使得其中减少了很多有关于兼容性的代码，便于我们去理解。</p>
+<p>下面，我们就开始一一深入，剥开jQuery的层层外壳...</p>
+<p>首先是一开始的部分，一部分注释，里面包含了一些jQuery的信息</p>
+<p>接下来从第14行开始就是jQuery真正的源码了</p>
+<p>1 (function(window,undefined){<br />2 })();<br />此处是一个匿名函数自执行，它的好处在于，可以把代码块中所有的变量都变成局部变量，这样就不会造成对全局变量的一个污染，导致代码冲突。下面举个例子：</p>
+<p>1 (function(){<br />2     var a=10;<br />3     function $(){<br />4         alert(a);<br />5     }<br />6 })();<br />7 alert(a);//调用不到<br />8 $();//调用不到<br />但是这样一来，造成了外部调用不到内部局部变量的情况，所以需要对外提供使用内部局部变量和方法的接口</p>
+<p>1 (function(){<br />2     var a=10;<br />3     function $(){<br />4         alert(a);<br />5     }    <br />6     window.$=$;//将函数挂载到window上<br />7 })();<br />8 $();//10<br />在jQuery中就是这样实现的，在前面(21,94)行，jQuery定义了一些变量和函数，在8826行</p>
+<p>1 //(8826)<br />2 window.jQuery=window.$=jQuery;<br />将jQuery挂载到了window上，这样就使得外部可以访问到jQuery内部的变量和方法</p>
+<p>接下来，在(96,283)行</p>
+<p>1 jQuery.fn=jQuery.prototype={}<br />此处，jQuery.prototype，这表明jQuery是一个基于面向对象的程序，往后就是在给jQuery对象添加一些属性和方法。针对面向对象，下面举个例子：</p>
+<p>1 //我们经常会这样写<br />2 $('#div').css();<br />3 $('#div').html();<br />4 //这个类似于<br />5 var arr=new Array();<br />6 arr.push();<br />7 arr.sort();<br />8 //其中<br />9 $('#div')//是一个函数调用,但是其执行结果是一个对象<br />接下来，在(285,347)行</p>
+<p>1 jQuery.extend=jQuery.fn.extend=function(){}<br />extend:jQuery的继承方法,后需添加的代码通过jQuery方法挂载到jQuery对象中,方便扩展</p>
+<p>接下来，在(349,817)行</p>
+<p>1 jQuery.extend()<br />jQuery的扩展工具方法。关于工具方法，下面做一个简单的解释：</p>
+<p>//$()是一个对象,所以其后的方法是一个实例的方法,相对高级,调用工具方法<br />$().css();<br />$().html();<br />//$是一个函数,在函数下扩展方法是一个静态方法,是jQuery最底层的东西<br />$.trim();<br />$.proxy();<br />接下来，在(877,2856)行</p>
+<p>sizzle:这是一个复杂选择器的实现，是第三方独立程序，这意味着以后做相关选择器开发就可单独使用sizzle</p>
+<p>接下来，在(2880,3042)行</p>
+<p>1 jQuery.Callbacks=function(options){}<br />回调对象:通过回调对象统一管理函数。有关于回调对象，下面举个例子：</p>
+<p>1 function fn1(){alert(1)}<br />2 function fn2(){alert(2)}<br />3 var cb=$.Callbacks();<br />4 cb.add(fn1);<br />5 cb.add(fn2);//将fn1，fn2添加到cb上<br />6 cb.fire();//1,2<br />7 cb.remove(fn2);//移除fn2<br />8 cb.fire();//1<br />接下来，在(3043,3183)</p>
+<p>1 jQuery.extend({Deferred:function(func){}})<br />Deferred:延迟对象,对异步的统一管理。下面有关于延迟对象，举一个简单的例子：</p>
+<p>1 setTimeout(function(){<br />2 　　alert(1);<br />3 },1000);<br />4 alert(2);//2,1<br />因为setTimeout定时器是一个异步的，所以输出的结果为2,1，下面我们稍作修改：</p>
+<p>1 var dfd=$.Deferred();<br />2 setTimeout(function(){<br />3     alert(1);<br />4 dfd.resolve();<br />5 },1000);<br />6 dfd.done(function(){<br />7     alert(2)<br />8 });//1,2<br />当使用了延迟对象以后，程序只有执行到resolve方法才会去执行done中的方法，这样输出结果就是1,2了。</p>
+<p>接下来，在(3184,3295)行</p>
+<p>1 jQuery.support=(function(support){});<br />support:功能检测,无需判断浏览器,通过判断功能检测浏览器版本</p>
+<p>例:3199行CheckBox默认状态,webkit中新版本是'on',老版本是''</p>
+<p>接下来，在(3308,3652)行</p>
+<p>data()方法:有关于数据缓存的部分。举个例子：</p>
+<p>1 $('#div1').data('name','hello');<br />2 $('#div1').data('name');//hello<br />接下来，在(3653,3797)行</p>
+<p>1 jQuery.fn.extend({queue:function(type,data){}})<br />queue:队列管理,入队 dequeue:出队</p>
+<p>$('#div1').animate({left:100});<br />$('#div1').animate({top:100});<br />$('#div1').animate({width:100});//left-&gt;top-&gt;width 通过队列管理执行顺序<br />这个就是通过queue队列管理实现的顺序进行动画。</p>
+<p>接下来，在(3803,4299)</p>
+<p>1 jQuery.fn.extend({attr:function(name,value){}})<br />其中定义了attr(), prop(),val(),addClass()...方法,对元素属性的操作。</p>
+<p>接下来，在(4300,5128)行</p>
+<p>其中定义了on() trigger()...方法,事件操作相关方法</p>
+<p>接下来，在(5140,6057)行</p>
+<p>定义了DOM操作的方法:添加,删除,获取,包装,筛选...</p>
+<p>接下来，在(6058,6620)行</p>
+<p>css():样式的操作</p>
+<p>接下来，在(6621,7854)行</p>
+<p>定义了提交数据和ajax():ajax(),load(),getJson()...</p>
+<p>接下来，在(7855,8584)行</p>
+<p>animate():运动的操作</p>
+<p>接下来，在(8585,8792)行</p>
+<p>offset()...:位置和尺寸的方法</p>
+<p>最后，在(8804,8821)</p>
+<p>jQuery支持模块化的模式</p>
+<p>这样，jQuery的整个架构简化就完成了，下面再梳理一下：</p>
+<p> 1 (function(){    <br /> 2     (21 , 94) 定义了一些变量和函数 jQuery = function(){};    <br /> 3     (96 , 283) 给JQ对象，添加一些方法和属性    <br /> 4     (285 , 347) extend : JQ的继承方法    <br /> 5     (349 , 817) jQuery.extend() : 扩展一些工具方法    <br /> 6     (877 , 2856)  Sizzle : 复杂选择器的实现     <br /> 7     (2880 , 3042) Callbacks : 回调对象 : 对函数的统一管理    <br /> 8     (3043 , 3183) Deferred : 延迟对象 : 对异步的统一管理    <br /> 9     (3184 , 3295) support : 功能检测    <br />10     (3308 , 3652) data() : 数据缓存    <br />11     (3653 , 3797) queue() : 队列方法 : 执行顺序的管理     <br />12     (3803 , 4299) attr() prop() val() addClass()等 : 对元素属性的操作    <br />13     (4300 , 5128) on() trigger() : 事件操作的相关方法    <br />14     (5140 , 6057) DOM操作 : 添加 删除 获取 包装 DOM筛选    <br />15     (6058 , 6620) css() : 样式的操作    <br />16     (6621 , 7854) 提交的数据和ajax() : ajax() load() getJSON()    <br />17     (7855 , 8584) animate() : 运动的方法    <br />18     (8585 , 8792) offset() : 位置和尺寸的方法    <br />19     (8804 , 8821) JQ支持模块化的模式    <br />20     (8826)  window.jQuery = window.$ = jQuery;    <br />21 })();<br />谢谢大家来看我的博客(*￣︶￣)<br />--------------------- <br />作者：cumtchj <br />来源：CSDN <br />原文：https://blog.csdn.net/u014177575/article/details/79351161 <br />版权声明：本文为博主原创文章，转载请附上博文链接！</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

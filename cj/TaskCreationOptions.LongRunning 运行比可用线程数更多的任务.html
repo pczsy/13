@@ -1,0 +1,393 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修TaskCreationOptions.LongRunning 运行比可用线程数更多的任务' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>TaskCreationOptions.LongRunning 运行比可用线程数更多的任务</center></div><div class='banquan'>原文出处:本文由博客园博主$(&quot;#阿飞&quot;)提供。<br/>
+原文连接:https://www.cnblogs.com/shipengfei/p/10677783.html</div><br>
+    <p><br />最近在学WebSocket，服务端需要监听多个WebSocket客户端发送的消息。</p>
+<p>开始的解决方法是每个WebSocket客户端都添加一个线程进行监听，代码如下：</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('fc444f6d-6466-4dfa-88c5-0ba3e0b12d65')"><img id="code_img_closed_fc444f6d-6466-4dfa-88c5-0ba3e0b12d65" class="code_img_closed" src="./images/TaskCreationOptions.LongRunning 运行比可用线程数更多的任务0.png" alt="" /><img id="code_img_opened_fc444f6d-6466-4dfa-88c5-0ba3e0b12d65" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('fc444f6d-6466-4dfa-88c5-0ba3e0b12d65',event)" src="./images/TaskCreationOptions.LongRunning 运行比可用线程数更多的任务1.png" alt="" />
+<div id="cnblogs_code_open_fc444f6d-6466-4dfa-88c5-0ba3e0b12d65" class="cnblogs_code_hide">
+<pre><code><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #808080;">///</span><span style="color: #008000;"> 监听端口 创建WebSocket
+</span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="httpListener"&gt;&lt;/param&gt;</span>
+<span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> CreateWebSocket(HttpListener httpListener)
+{
+    </span><span style="color: #0000ff;">if</span> (!<span style="color: #000000;">httpListener.IsListening)
+        </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> Exception(<span style="color: #800000;">"</span><span style="color: #800000;">HttpListener未启动</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+    HttpListenerContext listenerContext </span>=<span style="color: #000000;">  httpListener.GetContextAsync().Result;
+
+    </span><span style="color: #0000ff;">if</span> (!<span style="color: #000000;">listenerContext.Request.IsWebSocketRequest)
+    {
+        CreateWebSocket(httpListener);
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;">;
+    }
+
+    WebSocketContext webSocket </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+    </span><span style="color: #0000ff;">try</span><span style="color: #000000;">
+    {
+        webSocket </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> WebSocketContext(listenerContext, SubProtocol);
+    }
+    </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception ex)
+    {
+        log.Error(ex);
+        CreateWebSocket(HttpListener);
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;">;
+    }
+
+    log.Info($</span><span style="color: #800000;">"</span><span style="color: #800000;">成功创建WebSocket：{webSocket.ID}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+
+    </span><span style="color: #0000ff;">int</span> workerThreads = <span style="color: #800080;">0</span>, completionPortThreads = <span style="color: #800080;">0</span><span style="color: #000000;">;
+    ThreadPool.GetAvailableThreads(</span><span style="color: #0000ff;">out</span> workerThreads, <span style="color: #0000ff;">out</span><span style="color: #000000;"> completionPortThreads);
+    </span><span style="color: #0000ff;">if</span> (workerThreads &lt;= ReservedThreadsCount + <span style="color: #800080;">1</span> || completionPortThreads &lt;= ReservedThreadsCount + <span style="color: #800080;">1</span><span style="color: #000000;">)
+    {
+        </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+         * 可用线程小于预留线程数量
+         * 通知客户端关闭连接
+         * </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+        webSocket.CloseAsync(WebSocketCloseStatus.InternalServerError, </span><span style="color: #800000;">"</span><span style="color: #800000;">可用线程不足，无法连接</span><span style="color: #800000;">"</span><span style="color: #000000;">).Wait();
+    }
+    </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+    {
+        </span><span style="color: #0000ff;">if</span> (OnReceiveMessage != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+            webSocket.OnReceiveMessage </span>+=<span style="color: #000000;"> OnReceiveMessage;
+        webSocket.OnCloseWebSocket </span>+=<span style="color: #000000;"> WebSocket_OnCloseWebSocket;
+        webSocketContexts.Add(webSocket);
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 在线程中监听客户端发送的消息</span>
+        ThreadPool.QueueUserWorkItem(<span style="color: #0000ff;">new</span> WaitCallback(p =&gt;<span style="color: #000000;">
+        {
+            (p </span><span style="color: #0000ff;">as</span><span style="color: #000000;"> WebSocketContext).ReceiveMessageAsync().Wait();
+        }), webSocket);
+
+    }
+
+    CreateWebSocket(HttpListener);
+}</span></pre>
+</div>
+<span class="cnblogs_code_collapse">在线程中添加监听代码</span></div>
+<p>&nbsp;</p>
+<p>但是可用线程数量是有限的，先连接的客户端一直递归接收消息，导致线程无限占用，后连接上的客户端就没有线程用于监听接受消息了。<br />接受消息方法如下：</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('51eed12a-a272-43a7-b75a-3ec6219d8ff5')"><img id="code_img_closed_51eed12a-a272-43a7-b75a-3ec6219d8ff5" class="code_img_closed" src="./images/TaskCreationOptions.LongRunning 运行比可用线程数更多的任务0.png" alt="" /><img id="code_img_opened_51eed12a-a272-43a7-b75a-3ec6219d8ff5" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('51eed12a-a272-43a7-b75a-3ec6219d8ff5',event)" src="./images/TaskCreationOptions.LongRunning 运行比可用线程数更多的任务1.png" alt="" />
+<div id="cnblogs_code_open_51eed12a-a272-43a7-b75a-3ec6219d8ff5" class="cnblogs_code_hide">
+<pre><code><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #808080;">///</span><span style="color: #008000;"> 递归 同步接收消息
+</span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+<span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> ReceiveMessage()
+{
+    WebSocket webSocket </span>=<span style="color: #000000;"> HttpListenerWebSocketContext.WebSocket;
+
+    </span><span style="color: #0000ff;">if</span> (webSocket.State !=<span style="color: #000000;"> WebSocketState.Open)
+        </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> Exception(<span style="color: #800000;">"</span><span style="color: #800000;">Http未握手成功，不能接受消息！</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+    
+    </span><span style="color: #0000ff;">var</span> byteBuffer =<span style="color: #000000;"> WebSocket.CreateServerBuffer(ReceiveBufferSize);
+    WebSocketReceiveResult receiveResult </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+    </span><span style="color: #0000ff;">try</span><span style="color: #000000;">
+    {
+        receiveResult </span>=<span style="color: #000000;"> webSocket.ReceiveAsync(byteBuffer, cancellationToken).Result;
+    }
+    </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (WebSocketException ex)
+    {
+        </span><span style="color: #0000ff;">if</span> (ex.InnerException <span style="color: #0000ff;">is</span><span style="color: #000000;"> HttpListenerException)
+        {
+            log.Error(ex);
+            CloseAsync(WebSocketCloseStatus.ProtocolError, </span><span style="color: #800000;">"</span><span style="color: #800000;">客户端断开连接</span><span style="color: #800000;">"</span> + ex.Message).Wait(TimeSpan.FromSeconds(<span style="color: #800080;">20</span><span style="color: #000000;">));
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;">;
+        }
+        </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+        {
+            log.Error(ex);
+            CloseAsync(WebSocketCloseStatus.ProtocolError, </span><span style="color: #800000;">"</span><span style="color: #800000;">WebSocket 连接异常</span><span style="color: #800000;">"</span> + ex.Message).Wait(TimeSpan.FromSeconds(<span style="color: #800080;">20</span><span style="color: #000000;">));
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;">;
+        }
+    }
+    </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception ex)
+    {
+        log.Error(ex);
+        CloseAsync(WebSocketCloseStatus.ProtocolError, </span><span style="color: #800000;">"</span><span style="color: #800000;">客户端断开连接</span><span style="color: #800000;">"</span> + ex.Message).Wait(TimeSpan.FromSeconds(<span style="color: #800080;">20</span><span style="color: #000000;">));
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;">;
+    }
+    </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (receiveResult.CloseStatus.HasValue)
+    {
+        log.Info(</span><span style="color: #800000;">"</span><span style="color: #800000;">接受到关闭消息！</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+        CloseAsync(receiveResult.CloseStatus.Value, receiveResult.CloseStatusDescription).Wait(TimeSpan.FromSeconds(</span><span style="color: #800080;">20</span><span style="color: #000000;">));
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;">;
+    }
+
+    </span><span style="color: #0000ff;">byte</span>[] bytes = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">byte</span><span style="color: #000000;">[receiveResult.Count];
+    Array.Copy(byteBuffer.Array, bytes, bytes.Length);
+
+    </span><span style="color: #0000ff;">string</span> message =<span style="color: #000000;"> Encoding.GetString(bytes);
+    log.Info($</span><span style="color: #800000;">"</span><span style="color: #800000;">{ID}接收到消息：{message}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+
+    </span><span style="color: #0000ff;">if</span> (OnReceiveMessage != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+        OnReceiveMessage.Invoke(</span><span style="color: #0000ff;">this</span><span style="color: #000000;">, message);
+
+    </span><span style="color: #0000ff;">if</span> (!<span style="color: #000000;">cancellationToken.IsCancellationRequested)
+        ReceiveMessage();
+}</span></pre>
+</div>
+<span class="cnblogs_code_collapse">接受消息方法</span></div>
+<p>这是不能接受的。</p>
+<p>后来在Task中看到，在创建Task时可以设置<a title="TaskCreationOptions" href="https://docs.microsoft.com/zh-cn/dotnet/api/system.threading.tasks.taskcreationoptions?view=netframework-4.7.2" target="_blank">TaskCreationOptions</a>参数</p>
+<p>该枚举有个字段LongRunning&nbsp;</p>
+<table class="nameValue cols3">
+<tbody>
+<tr>
+<td id="System_Threading_Tasks_TaskCreationOptions_LongRunning"><span class="lang-csharp">LongRunning</span></td>
+<td>2</td>
+<td>
+<p><span class="x-hidden-focus" data-ttu-id="07972-118">指定任务将是长时间运行的、粗粒度的操作，涉及比细化的系统更少、更大的组件。&nbsp;<span data-ttu-id="07972-119">它会向&nbsp;<a class="xref" href="https://docs.microsoft.com/zh-cn/dotnet/api/system.threading.tasks.taskscheduler?view=netframework-4.7.2" data-linktype="relative-path">TaskScheduler</a>&nbsp;提示，过度订阅可能是合理的。&nbsp;<span data-ttu-id="07972-120">可以通过过度订阅创建比可用硬件线程数更多的线程。&nbsp;<span data-ttu-id="07972-121">它还将提示任务计划程序：该任务需要附加线程，以使任务不阻塞本地线程池队列中其他线程或工作项的向前推动。</span></span></span></span></p>
+</td>
+</tr>
+</tbody>
+</table>
+<p>经过测试，可同时运行的任务数量的确可以超出可用线程数量。<br />测试如下：<br />没有设置&nbsp;<a title="TaskCreationOptions" href="https://docs.microsoft.com/zh-cn/dotnet/api/system.threading.tasks.taskcreationoptions?view=netframework-4.7.2" target="_blank">TaskCreationOptions</a>.LongRunning&nbsp; 代码如下：</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('708d28a7-22f4-4a12-a4bd-37f625c4cfca')"><img id="code_img_closed_708d28a7-22f4-4a12-a4bd-37f625c4cfca" class="code_img_closed" src="./images/TaskCreationOptions.LongRunning 运行比可用线程数更多的任务0.png" alt="" /><img id="code_img_opened_708d28a7-22f4-4a12-a4bd-37f625c4cfca" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('708d28a7-22f4-4a12-a4bd-37f625c4cfca',event)" src="./images/TaskCreationOptions.LongRunning 运行比可用线程数更多的任务1.png" alt="" />
+<div id="cnblogs_code_open_708d28a7-22f4-4a12-a4bd-37f625c4cfca" class="cnblogs_code_hide">
+<pre><code>        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 测试任务
+        </span><span style="color: #808080;">///</span><span style="color: #008000;"> 只运行了9个任务
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #000000;">        [TestMethod]
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> TestTask1()
+        {
+            </span><span style="color: #0000ff;">var</span> cts = <span style="color: #0000ff;">new</span><span style="color: #000000;"> CancellationTokenSource();
+            </span><span style="color: #0000ff;">int</span> MaxWorkerThreads = <span style="color: #800080;">0</span>, MaxCompletionPortThreads = <span style="color: #800080;">0</span><span style="color: #000000;">;
+            ThreadPool.GetMaxThreads(</span><span style="color: #0000ff;">out</span> MaxWorkerThreads, <span style="color: #0000ff;">out</span><span style="color: #000000;"> MaxCompletionPortThreads);
+            Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">最大可用辅助线程数目为{MaxCompletionPortThreads}，最大可用异步 I/O 线程数目为{MaxCompletionPortThreads}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            MaxWorkerThreads </span>= <span style="color: #800080;">10</span><span style="color: #000000;">;
+            MaxCompletionPortThreads </span>= <span style="color: #800080;">10</span><span style="color: #000000;">;
+            Console.WriteLine(</span><span style="color: #800000;">@"</span><span style="color: #800000;">设置线程池中辅助线程的最大数目为{0}， 线程池中异步 I/O 线程的最大数目为{1}
+同时运行30个长时运行线程，每个线程中运行一个同步方法，看是否30个线程是否都能运行。</span><span style="color: #800000;">"</span><span style="color: #000000;">, MaxWorkerThreads, MaxCompletionPortThreads);
+            ThreadPool.SetMaxThreads(</span><span style="color: #800080;">10</span>, <span style="color: #800080;">10</span><span style="color: #000000;">);
+            ThreadPool.GetMaxThreads(</span><span style="color: #0000ff;">out</span> MaxWorkerThreads, <span style="color: #0000ff;">out</span><span style="color: #000000;"> MaxCompletionPortThreads);
+            Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">最大可用辅助线程数目为{MaxCompletionPortThreads}，最大可用异步 I/O 线程数目为{MaxCompletionPortThreads}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            
+            </span><span style="color: #0000ff;">int</span> count = <span style="color: #800080;">0</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">while</span> (count++ &lt; <span style="color: #800080;">30</span><span style="color: #000000;">)
+            {
+                Task.Factory.StartNew(p </span>=&gt;<span style="color: #000000;">
+                {
+                    </span><span style="color: #0000ff;">int</span> index = (<span style="color: #0000ff;">int</span><span style="color: #000000;">)p;
+                    </span><span style="color: #0000ff;">int</span> runCount = <span style="color: #800080;">0</span><span style="color: #000000;">;
+                    LongRunningTask($</span><span style="color: #800000;">"</span><span style="color: #800000;">线程{index}</span><span style="color: #800000;">"</span><span style="color: #000000;">, runCount, cts.Token);
+                }, count, cts.Token, TaskCreationOptions.None, TaskScheduler.Default);
+            }
+
+            Task.Delay(TimeSpan.FromSeconds(</span><span style="color: #800080;">10</span>)).Wait(TimeSpan.FromSeconds(<span style="color: #800080;">20</span>)); <span style="color: #008000;">//</span><span style="color: #008000;"> 等待超时，等待任务没有执行</span>
+<span style="color: #000000;">            cts.Cancel();
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 长时运行任务
+        </span><span style="color: #808080;">///</span><span style="color: #008000;"> 递归运行
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="taskName"&gt;</span><span style="color: #008000;">任务名称</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="runCount"&gt;</span><span style="color: #008000;">运行次数</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="token"&gt;</span><span style="color: #008000;">传播有关取消操作的通知</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> LongRunningTask(<span style="color: #0000ff;">string</span> taskName, <span style="color: #0000ff;">int</span><span style="color: #000000;"> runCount, CancellationToken token)
+        {
+            PrintTask($</span><span style="color: #800000;">"</span><span style="color: #800000;">任务【{taskName}】线程ID【{Environment.CurrentManagedThreadId}】第【{++runCount}】次运行</span><span style="color: #800000;">"</span><span style="color: #000000;">).Wait();
+            </span><span style="color: #0000ff;">if</span> (!<span style="color: #000000;">token.IsCancellationRequested)
+                LongRunningTask(taskName, runCount, token);
+        }
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 异步打印任务 等待1秒后打印消息
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="message"&gt;</span><span style="color: #008000;">消息</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">private</span> Task PrintTask(<span style="color: #0000ff;">string</span><span style="color: #000000;"> message)
+        {
+            </span><span style="color: #0000ff;">return</span> Task.Factory.StartNew(() =&gt;<span style="color: #000000;">
+            {
+                Thread.Sleep(</span><span style="color: #800080;">1000</span><span style="color: #000000;">);
+                Console.WriteLine(message);
+            });
+        }</span></pre>
+</div>
+<span class="cnblogs_code_collapse">测试代码</span></div>
+<p>&nbsp;测试结果<br /><img src="./images/TaskCreationOptions.LongRunning 运行比可用线程数更多的任务6.png" alt="" /></p>
+<p>测试用了20秒才完成<br /><img src="./images/TaskCreationOptions.LongRunning 运行比可用线程数更多的任务7.png" alt="" /></p>
+<p>主线程创建了一个等待10秒后完成的任务，任务等待超时20秒</p>
+<p>说明主程序创建的任务没有执行，而是等待超时了。</p>
+<p>&nbsp;</p>
+<p>设置了&nbsp;<a title="TaskCreationOptions" href="https://docs.microsoft.com/zh-cn/dotnet/api/system.threading.tasks.taskcreationoptions?view=netframework-4.7.2" target="_blank">TaskCreationOptions</a>.LongRunning&nbsp; 代码如下：</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('1735778d-17b1-4469-88c4-8180079da66e')"><img id="code_img_closed_1735778d-17b1-4469-88c4-8180079da66e" class="code_img_closed" src="./images/TaskCreationOptions.LongRunning 运行比可用线程数更多的任务0.png" alt="" /><img id="code_img_opened_1735778d-17b1-4469-88c4-8180079da66e" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('1735778d-17b1-4469-88c4-8180079da66e',event)" src="./images/TaskCreationOptions.LongRunning 运行比可用线程数更多的任务1.png" alt="" />
+<div id="cnblogs_code_open_1735778d-17b1-4469-88c4-8180079da66e" class="cnblogs_code_hide">
+<pre><code>        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 测试长时运行任务
+        </span><span style="color: #808080;">///</span><span style="color: #008000;"> 30个任务全部都运行了
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #000000;">        [TestMethod]
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> TestTaskLongRunning()
+        {
+            </span><span style="color: #0000ff;">var</span> cts = <span style="color: #0000ff;">new</span><span style="color: #000000;"> CancellationTokenSource();
+            </span><span style="color: #0000ff;">int</span> MaxWorkerThreads = <span style="color: #800080;">0</span>, MaxCompletionPortThreads = <span style="color: #800080;">0</span><span style="color: #000000;">;
+            ThreadPool.GetMaxThreads(</span><span style="color: #0000ff;">out</span> MaxWorkerThreads, <span style="color: #0000ff;">out</span><span style="color: #000000;"> MaxCompletionPortThreads);
+            MaxWorkerThreads </span>= <span style="color: #800080;">10</span><span style="color: #000000;">;
+            MaxCompletionPortThreads </span>= <span style="color: #800080;">10</span><span style="color: #000000;">;
+            Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">最大可用辅助线程数目为{MaxCompletionPortThreads}，最大可用异步 I/O 线程数目为{MaxCompletionPortThreads}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            Console.WriteLine(</span><span style="color: #800000;">@"</span><span style="color: #800000;">设置线程池中辅助线程的最大数目为{0}， 线程池中异步 I/O 线程的最大数目为{1}
+同时运行30个长时运行线程，每个线程中运行一个同步方法，看是否30个线程是否都能运行。</span><span style="color: #800000;">"</span><span style="color: #000000;">, MaxWorkerThreads, MaxCompletionPortThreads);
+            ThreadPool.SetMaxThreads(</span><span style="color: #800080;">10</span>, <span style="color: #800080;">10</span><span style="color: #000000;">);
+            ThreadPool.GetMaxThreads(</span><span style="color: #0000ff;">out</span> MaxWorkerThreads, <span style="color: #0000ff;">out</span><span style="color: #000000;"> MaxCompletionPortThreads);
+            Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">最大可用辅助线程数目为{MaxCompletionPortThreads}，最大可用异步 I/O 线程数目为{MaxCompletionPortThreads}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            
+            </span><span style="color: #0000ff;">int</span> count = <span style="color: #800080;">0</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">while</span> (count++ &lt; <span style="color: #800080;">30</span><span style="color: #000000;">)
+            {
+
+                Task.Factory.StartNew(p </span>=&gt;<span style="color: #000000;">
+                {
+                    </span><span style="color: #0000ff;">int</span> index = (<span style="color: #0000ff;">int</span><span style="color: #000000;">)p;
+                    </span><span style="color: #0000ff;">int</span> runCount = <span style="color: #800080;">0</span><span style="color: #000000;">;
+                    LongRunningTask($</span><span style="color: #800000;">"</span><span style="color: #800000;">线程{index}</span><span style="color: #800000;">"</span><span style="color: #000000;">, runCount, cts.Token);
+                }, count, cts.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+            }
+
+            Task.Delay(TimeSpan.FromSeconds(</span><span style="color: #800080;">10</span>)).Wait(TimeSpan.FromSeconds(<span style="color: #800080;">20</span>));    <span style="color: #008000;">//</span><span style="color: #008000;"> 等待没有超时，等待任务有执行</span>
+<span style="color: #000000;">            cts.Cancel();
+        }</span></pre>
+</div>
+<span class="cnblogs_code_collapse">测试代码</span></div>
+<p>测试结果：</p>
+<p><img src="./images/TaskCreationOptions.LongRunning 运行比可用线程数更多的任务10.png" alt="" /></p>
+<p>测试用了10秒完成</p>
+<p><img src="./images/TaskCreationOptions.LongRunning 运行比可用线程数更多的任务11.png" alt="" /></p>
+<p>主线程创建了一个等待10秒后完成的任务，任务等待超时20秒</p>
+<p>说明主程序创建的任务立即执行了，程序等待了10秒完成。</p>
+<p>&nbsp;使用<a title="TaskCreationOptions" href="https://docs.microsoft.com/zh-cn/dotnet/api/system.threading.tasks.taskcreationoptions?view=netframework-4.7.2" target="_blank">TaskCreationOptions</a>.LongRunning&nbsp; 需要注意的是Action必须是同步方法同时运行任务书才能超出可以用线程数量，否则不能。</p>
+<p>例如：</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('a9007881-5ba2-4284-9be9-76caa9548483')"><img id="code_img_closed_a9007881-5ba2-4284-9be9-76caa9548483" class="code_img_closed" src="./images/TaskCreationOptions.LongRunning 运行比可用线程数更多的任务0.png" alt="" /><img id="code_img_opened_a9007881-5ba2-4284-9be9-76caa9548483" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('a9007881-5ba2-4284-9be9-76caa9548483',event)" src="./images/TaskCreationOptions.LongRunning 运行比可用线程数更多的任务1.png" alt="" />
+<div id="cnblogs_code_open_a9007881-5ba2-4284-9be9-76caa9548483" class="cnblogs_code_hide">
+<pre><code>        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 测试长时运行任务
+        </span><span style="color: #808080;">///</span><span style="color: #008000;"> 只运行了前9个任务
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #000000;">        [TestMethod]
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> TestTaskLongRunning2()
+        {
+            </span><span style="color: #0000ff;">var</span> cts = <span style="color: #0000ff;">new</span><span style="color: #000000;"> CancellationTokenSource();
+            </span><span style="color: #0000ff;">int</span> MaxWorkerThreads = <span style="color: #800080;">0</span>, MaxCompletionPortThreads = <span style="color: #800080;">0</span><span style="color: #000000;">;
+            ThreadPool.GetMaxThreads(</span><span style="color: #0000ff;">out</span> MaxWorkerThreads, <span style="color: #0000ff;">out</span><span style="color: #000000;"> MaxCompletionPortThreads);
+            Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">最大可用辅助线程数目为{MaxCompletionPortThreads}，最大可用异步 I/O 线程数目为{MaxCompletionPortThreads}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+
+            MaxWorkerThreads </span>= <span style="color: #800080;">10</span><span style="color: #000000;">;
+            MaxCompletionPortThreads </span>= <span style="color: #800080;">10</span><span style="color: #000000;">;
+            Console.WriteLine(</span><span style="color: #800000;">@"</span><span style="color: #800000;">设置线程池中辅助线程的最大数目为{0}， 线程池中异步 I/O 线程的最大数目为{1}
+同时运行30个长时运行线程，每个线程中运行一个异步方法，看是否30个线程是否都能运行。</span><span style="color: #800000;">"</span><span style="color: #000000;">, MaxWorkerThreads, MaxCompletionPortThreads);
+            ThreadPool.SetMaxThreads(</span><span style="color: #800080;">10</span>, <span style="color: #800080;">10</span><span style="color: #000000;">);
+            ThreadPool.GetMaxThreads(</span><span style="color: #0000ff;">out</span> MaxWorkerThreads, <span style="color: #0000ff;">out</span><span style="color: #000000;"> MaxCompletionPortThreads);
+            Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">最大可用辅助线程数目为{MaxCompletionPortThreads}，最大可用异步 I/O 线程数目为{MaxCompletionPortThreads}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            
+            </span><span style="color: #0000ff;">int</span> count = <span style="color: #800080;">0</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">while</span> (count++ &lt; <span style="color: #800080;">30</span><span style="color: #000000;">)
+            {
+
+                Task.Factory.StartNew(</span><span style="color: #0000ff;">async</span> p =&gt;<span style="color: #000000;">
+                {
+                    </span><span style="color: #0000ff;">int</span> index = (<span style="color: #0000ff;">int</span><span style="color: #000000;">)p;
+                    </span><span style="color: #0000ff;">int</span> runCount = <span style="color: #800080;">0</span><span style="color: #000000;">;
+                    </span><span style="color: #0000ff;">await</span> LongRunningTaskAsync($<span style="color: #800000;">"</span><span style="color: #800000;">线程{index}</span><span style="color: #800000;">"</span><span style="color: #000000;">, runCount, cts.Token);
+                }, count, cts.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+            }
+
+            Task.Delay(TimeSpan.FromSeconds(</span><span style="color: #800080;">10</span>)).Wait(TimeSpan.FromSeconds(<span style="color: #800080;">20</span>));    <span style="color: #008000;">//</span><span style="color: #008000;"> 等待没有超时，等待任务有执行</span>
+<span style="color: #000000;">            cts.Cancel();
+        }
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 异步长时运行任务
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="taskName"&gt;</span><span style="color: #008000;">任务名称</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="runCount"&gt;</span><span style="color: #008000;">运行次数</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="token"&gt;</span><span style="color: #008000;">传播有关取消操作的通知</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">async</span> Task LongRunningTaskAsync(<span style="color: #0000ff;">string</span> taskName, <span style="color: #0000ff;">int</span><span style="color: #000000;"> runCount, CancellationToken token)
+        {
+            </span><span style="color: #0000ff;">await</span> PrintTask($<span style="color: #800000;">"</span><span style="color: #800000;">任务【{taskName}】线程ID【{Environment.CurrentManagedThreadId}】第【{++runCount}】次运行</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            </span><span style="color: #0000ff;">if</span> (!<span style="color: #000000;">token.IsCancellationRequested)
+                </span><span style="color: #0000ff;">await</span><span style="color: #000000;"> LongRunningTaskAsync(taskName, runCount, token);
+        }</span></pre>
+</div>
+<span class="cnblogs_code_collapse">测试代码</span></div>
+<p>&nbsp;</p>
+<p>测试结果</p>
+<p><img src="./images/TaskCreationOptions.LongRunning 运行比可用线程数更多的任务14.png" alt="" /></p>
+<p>测试用了10秒完成</p>
+<p><img src="./images/TaskCreationOptions.LongRunning 运行比可用线程数更多的任务15.png" alt="" /></p>
+<p>主线程创建了一个等待10秒后完成的任务，任务等待超时20秒</p>
+<p>说明主程序创建的任务立即执行了，程序等待了10秒完成。</p>
+<p>WebSocket修改后的监听方法：</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('620ab1f3-1ebe-4c3b-a18a-f5b6a57132be')"><img id="code_img_closed_620ab1f3-1ebe-4c3b-a18a-f5b6a57132be" class="code_img_closed" src="./images/TaskCreationOptions.LongRunning 运行比可用线程数更多的任务0.png" alt="" /><img id="code_img_opened_620ab1f3-1ebe-4c3b-a18a-f5b6a57132be" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('620ab1f3-1ebe-4c3b-a18a-f5b6a57132be',event)" src="./images/TaskCreationOptions.LongRunning 运行比可用线程数更多的任务1.png" alt="" />
+<div id="cnblogs_code_open_620ab1f3-1ebe-4c3b-a18a-f5b6a57132be" class="cnblogs_code_hide">
+<pre><code>        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 监听端口 创建WebSocket
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="httpListener"&gt;&lt;/param&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> CreateWebSocket(HttpListener httpListener)
+        {
+            </span><span style="color: #0000ff;">if</span> (!<span style="color: #000000;">httpListener.IsListening)
+                </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> Exception(<span style="color: #800000;">"</span><span style="color: #800000;">HttpListener未启动</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            HttpListenerContext listenerContext </span>=<span style="color: #000000;"> httpListener.GetContext();
+
+            </span><span style="color: #0000ff;">if</span> (!<span style="color: #000000;">listenerContext.Request.IsWebSocketRequest)
+            {
+                CreateWebSocket(httpListener);
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;">;
+            }
+
+            WebSocketContext webSocket </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">try</span><span style="color: #000000;">
+            {
+                webSocket </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> WebSocketContext(listenerContext, SubProtocol);
+            }
+            </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception ex)
+            {
+                log.Error(ex);
+                CreateWebSocket(HttpListener);
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;">;
+            }
+
+            log.Info($</span><span style="color: #800000;">"</span><span style="color: #800000;">成功创建WebSocket：{webSocket.ID}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+
+            </span><span style="color: #0000ff;">int</span> workerThreads = <span style="color: #800080;">0</span>, completionPortThreads = <span style="color: #800080;">0</span><span style="color: #000000;">;
+            ThreadPool.GetAvailableThreads(</span><span style="color: #0000ff;">out</span> workerThreads, <span style="color: #0000ff;">out</span><span style="color: #000000;"> completionPortThreads);
+            </span><span style="color: #0000ff;">if</span> (OnReceiveMessage != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+                    webSocket.OnReceiveMessage </span>+=<span style="color: #000000;"> OnReceiveMessage;
+                webSocket.OnCloseWebSocket </span>+=<span style="color: #000000;"> WebSocket_OnCloseWebSocket;
+
+            Task.Factory.StartNew(() </span>=&gt;<span style="color: #000000;">
+            {
+                webSocket.ReceiveMessage();
+            }, cancellationToken, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+
+            CreateWebSocket(HttpListener);
+        }</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp;</p>
+<p>修改后的WebSocket服务可以监听超过可用线程数量的客户端</p>
+<p><img src="./images/TaskCreationOptions.LongRunning 运行比可用线程数更多的任务18.png" alt="" /></p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

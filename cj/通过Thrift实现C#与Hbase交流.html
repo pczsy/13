@@ -1,0 +1,80 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修通过Thrift实现C#与Hbase交流' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>通过Thrift实现C#与Hbase交流</center></div><div class='banquan'>原文出处:本文由博客园博主小龙女先生提供。<br/>
+原文连接:https://www.cnblogs.com/cqhaibin/p/10926553.html</div><br>
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 近期着手的一个项目需要将我方数据存储到Hadoop的大数据环境，由于本人是.net平台的开发者，没有怎么接触过大数据（因为他实在是太高大尚了）。但还好baidu, google后，还是很找到了解决办法，就是C#写数据到hbase，然后大数据开发者在从hbase读取数据进行多维度处理，如将一部分历史数据转移到hive，或者是将一部分数据推送到机器学习库进行学习。</p>
+<h2>一、获取hbase的thrift定义，并生成c#类</h2>
+<h3>1.1 到hbase源码地址获取thrift的定义</h3>
+<p><br /><img src="./images/通过Thrift实现C#与Hbase交流0.png" alt="" /></p>
+<p>注意Hbase的版本一定要与运行的Hbase对应。</p>
+<p><span style="color: #ff0000;">请选择thrift，而不是thrift2</span>，原因thrift接口看上更为好用</p>
+<h2>1.2 获取thrift，生成c#代码</h2>
+<p>&nbsp;&nbsp; thrift生成代码可以参考的我《<a href="https://www.cnblogs.com/cqhaibin/p/9656646.html"><span style="color: #0000ff;">半小时入Thrift</span></a>》</p>
+<h2>二、启动hbase的thrift服务</h2>
+<p>输入如下命令：</p>
+<div class="cnblogs_code" style="padding: 5px; border: 1px solid #cccccc; border-image: none; background-color: #f5f5f5;">
+<pre><code>hbase-daemon.<span style="color: #0000ff;">sh</span><span style="color: #000000;"> start thrift
+hbase</span>-daemons.<span style="color: #0000ff;">sh</span> start thrift (集群版本)</pre>
+</div>
+<p>默认的thrift端口是9090，可以在hbase-site.xml配置文件中修改默认端口。</p>
+<h2>三、用C#编写测试代码</h2>
+<div class="cnblogs_code" style="padding: 5px; border: 1px solid #cccccc; border-image: none; background-color: #f5f5f5;">
+<pre><code><span style="color: #0000ff;">var</span> transport = <span style="color: #0000ff;">new</span> TSocket(<span style="color: #800000;">"</span><span style="color: #800000;">10.34.51.62</span><span style="color: #800000;">"</span>, <span style="color: #800080;">9090</span><span style="color: #000000;">);
+            TProtocol protocol </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> TBinaryProtocol(transport);
+            </span><span style="color: #0000ff;">var</span> client = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Hbase.Client(protocol);
+            transport.Open();
+            </span><span style="color: #0000ff;">var</span> tabls =<span style="color: #000000;"> client.getTableNames();
+            </span><span style="color: #0000ff;">foreach</span>(<span style="color: #0000ff;">var</span> t <span style="color: #0000ff;">in</span><span style="color: #000000;"> tabls)
+            {
+                Console.WriteLine(Encoding.Default.GetString(t));
+            }
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">写</span>
+            Mutation mutation = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Mutation();
+            mutation.Column </span>= Encoding.UTF8.GetBytes(<span style="color: #800000;">"</span><span style="color: #800000;">personal_data:abc</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            mutation.Value </span>= Encoding.UTF8.GetBytes(<span style="color: #800000;">"</span><span style="color: #800000;">Hello</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            client.mutateRow(Encoding.UTF8.GetBytes(</span><span style="color: #800000;">"</span><span style="color: #800000;">emp</span><span style="color: #800000;">"</span>), Encoding.UTF8.GetBytes(<span style="color: #800000;">"</span><span style="color: #800000;">008</span><span style="color: #800000;">"</span>), <span style="color: #0000ff;">new</span> List&lt;Mutation&gt; { mutation }, <span style="color: #0000ff;">null</span><span style="color: #000000;">);
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">add success</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            </span><span style="color: #0000ff;">var</span> row = client.getRow(Encoding.UTF8.GetBytes(<span style="color: #800000;">"</span><span style="color: #800000;">emp</span><span style="color: #800000;">"</span>), Encoding.UTF8.GetBytes(<span style="color: #800000;">"</span><span style="color: #800000;">008</span><span style="color: #800000;">"</span>), <span style="color: #0000ff;">null</span><span style="color: #000000;">);
+            </span><span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">var</span> r <span style="color: #0000ff;">in</span><span style="color: #000000;"> row)
+            { 
+                Console.WriteLine(Encoding.UTF8.GetString(r.Row));
+                </span><span style="color: #0000ff;">foreach</span>(<span style="color: #0000ff;">var</span> c <span style="color: #0000ff;">in</span><span style="color: #000000;"> r.Columns)
+                {
+                    Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">-- </span><span style="color: #800000;">"</span> + Encoding.UTF8.GetString(c.Key) + <span style="color: #800000;">"</span><span style="color: #800000;">:</span><span style="color: #800000;">"</span> +<span style="color: #000000;"> Encoding.UTF8.GetString(c.Value.Value));
+                }
+            }
+            client.deleteAllRow(Encoding.UTF8.GetBytes(</span><span style="color: #800000;">"</span><span style="color: #800000;">emp</span><span style="color: #800000;">"</span>), Encoding.UTF8.GetBytes(<span style="color: #800000;">"</span><span style="color: #800000;">008</span><span style="color: #800000;">"</span>), <span style="color: #0000ff;">null</span><span style="color: #000000;">);
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">delete success</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            Console.ReadKey();
+            transport.Close();</span></pre>
+</div>
+<p>上述代码实现了hbase写入，读取，删除等功用。</p>
+<h2>四、测试结果</h2>
+<p><img src="./images/通过Thrift实现C#与Hbase交流1.png" alt="" /></p>
+<p>成功写入。</p>
+<h2>五、总结</h2>
+<p>1. 注意选择thrift和版本，通过查看maven的依赖获得</p>
+<p><img src="./images/通过Thrift实现C#与Hbase交流2.png" alt="" width="584" height="284" /></p>
+<p>2. 使用thirft版本，而不是thrift2</p>
+<p>3. hbase的rowKey+列Key相同时，会对数据进行修改</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

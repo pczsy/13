@@ -1,0 +1,312 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修jQuery 源码分析(十六)  事件系统模块 底层方法 详解' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>jQuery 源码分析(十六)  事件系统模块 底层方法 详解</center></div><div class='banquan'>原文出处:本文由博客园博主大沙漠提供。<br/>
+原文连接:https://www.cnblogs.com/greatdesert/p/11679334.html</div><br>
+    <p>jQuery事件系统并没有将事件监听函数直接绑定到DOM元素上，而是基于数据缓存模块来管理监听函数的，事件模块代码有点多，我把它分为了三个部分:分底层方法、实例方法和便捷方法、ready事件来讲，好理解一点。</p>
+<p>jQuery的事件分为普通事件和代理事件:</p>
+<ul>
+<li>普通事件　　;当我们再div上定义一个click事件，此时如果点击div或按钮都会触发该普通事件，这是由于冒泡的缘故</li>
+<li>代理事件　　;当我们在div上定义一个代理事件，且selector设置为button时，我们点击div将不会触发该事件，只有点击了这个按钮才会触发这个代理事件</li>
+</ul>
+<p>事件系统模块的底层方法如下:</p>
+<ul>
+<li>$.event.add(elem,types,handler,data,selector)　　;绑定一个或多个类型的事件监听函数，参数如下:
+<ul>
+<li>elem&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;;操作的元素</li>
+<li>types&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;;绑定的事件类型，多个事件类型之间用空格隔开。</li>
+<li>handler&nbsp;&nbsp; &nbsp;;待绑定的事件监听函数，也可以是一个自定义的监听对象。</li>
+<li>data&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;;自定义数据。</li>
+<li>selector&nbsp;&nbsp; &nbsp;;选择器表达式字符串，用于绑定代理事件。&nbsp;&nbsp; &nbsp;;</li>
+</ul>
+</li>
+<li>$.event.remove(elem, types, handler, selector, mappedTypes)　　;移除DOM元素上绑定的一个或多个类型的事件监听函数，参数同$.event.add()。如果只传入一个elem元素则移除该元素上的所有事件。</li>
+<li>$.event.trigger(type,data,elem,onlyHandlers)&nbsp;&nbsp; &nbsp;;手动触发事件，执行绑定的事件监听函数和默认行为，并且会模拟冒泡过程。参数如下:
+<ul>
+<li>type&nbsp;&nbsp; &nbsp;&nbsp;　　 &nbsp; &nbsp; ;事件字符串</li>
+<li>data&nbsp;&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; ;传递给响应函数的数据</li>
+<li>elem&nbsp;　　 &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp; ;触发该事件的DOM对象</li>
+<li>onlyHandlers&nbsp;&nbsp; &nbsp;;是否只触发elem元素对应的事件监听函数，而不冒泡</li>
+</ul>
+</li>
+</ul>
+<p>常用的就是以上三个吧，其它还有$.event.global(记录绑定过的事件)、$.event.removeEvent(用于删除事件)等</p>
+<p>先举栗子前先先简单说一下jQuery里的事件的分类，<span style="color: #ff0000;">jQuery的事件分为普通事件和代理事件</span>:</p>
+<ul>
+<li><span style="color: #ff0000;">普通事件</span>　　;直接绑定在这个元素的某个事件类型上，当在该元素上触发了这个事件时，则执行该事件</li>
+<li><span style="color: #ff0000;">代理事件</span>　　;当事件直接发生在代理元素上时，监听函数不会执行，只有当事件从后代元素冒泡到代理元素上时，才会用参数selector匹配冒泡路上的后代元素，然后用匹配成功的后代元素作为上下文去执行监听函数。</li>
+</ul>
+<p>这样说可能理解不了，举个栗子，我们定义两个DOM元素先</p>
+<p><img src="./images/jQuery 源码分析(十六)  事件系统模块 底层方法 详解0.png" alt="" /></p>
+<p>这里我们定义了一个div，内部含有一个子节点button，渲染如下:</p>
+<p><img src="./images/jQuery 源码分析(十六)  事件系统模块 底层方法 详解1.png" alt="" /></p>
+<p>举个栗子:</p>
+<p style="display: none;">writer by:大沙漠 QQ:22969969</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;!</span><span style="color: #ff00ff;">DOCTYPE html</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">html </span><span style="color: #ff0000;">lang</span><span style="color: #0000ff;">="en"</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">head</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">meta </span><span style="color: #ff0000;">charset</span><span style="color: #0000ff;">="UTF-8"</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">title</span><span style="color: #0000ff;">&gt;</span>Document<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">title</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script </span><span style="color: #ff0000;">src</span><span style="color: #0000ff;">="http://libs.baidu.com/jquery/1.7.1/jquery.min.js"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">style</span><span style="color: #0000ff;">&gt;</span><span style="background-color: #f5f5f5; color: #800000;">div</span><span style="background-color: #f5f5f5; color: #000000;">{</span><span style="background-color: #f5f5f5; color: #ff0000;">width</span><span style="background-color: #f5f5f5; color: #000000;">:</span><span style="background-color: #f5f5f5; color: #0000ff;"> 200px</span><span style="background-color: #f5f5f5; color: #000000;">;</span><span style="background-color: #f5f5f5; color: #ff0000;">padding-top</span><span style="background-color: #f5f5f5; color: #000000;">:</span><span style="background-color: #f5f5f5; color: #0000ff;">50px</span><span style="background-color: #f5f5f5; color: #000000;">;</span><span style="background-color: #f5f5f5; color: #ff0000;">height</span><span style="background-color: #f5f5f5; color: #000000;">:</span><span style="background-color: #f5f5f5; color: #0000ff;"> 150px</span><span style="background-color: #f5f5f5; color: #000000;">;</span><span style="background-color: #f5f5f5; color: #ff0000;">background</span><span style="background-color: #f5f5f5; color: #000000;">:</span><span style="background-color: #f5f5f5; color: #0000ff;"> #ced</span><span style="background-color: #f5f5f5; color: #000000;">;</span><span style="background-color: #f5f5f5; color: #000000;">}</span><span style="background-color: #f5f5f5; color: #800000;">div button</span><span style="background-color: #f5f5f5; color: #000000;">{</span><span style="background-color: #f5f5f5; color: #ff0000;">margin</span><span style="background-color: #f5f5f5; color: #000000;">:</span><span style="background-color: #f5f5f5; color: #0000ff;">0 auto</span><span style="background-color: #f5f5f5; color: #000000;">;</span><span style="background-color: #f5f5f5; color: #ff0000;">display</span><span style="background-color: #f5f5f5; color: #000000;">:</span><span style="background-color: #f5f5f5; color: #0000ff;"> block</span><span style="background-color: #f5f5f5; color: #000000;">;</span><span style="background-color: #f5f5f5; color: #000000;">}</span><span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">style</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">head</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">body</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>        
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">button </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="button"</span><span style="color: #0000ff;">&gt;</span>按钮1<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">button</span><span style="color: #0000ff;">&gt;</span>    
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span><span style="background-color: #f5f5f5; color: #000000;">
+        let div </span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #000000;"> document.getElementsByTagName(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">div</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">)[</span><span style="background-color: #f5f5f5; color: #000000;">0</span><span style="background-color: #f5f5f5; color: #000000;">],
+            btn </span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #000000;"> document.getElementsByTagName(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">button</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">)[</span><span style="background-color: #f5f5f5; color: #000000;">0</span><span style="background-color: #f5f5f5; color: #000000;">];
+
+        $.event.add(div,</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">click</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">,()</span><span style="background-color: #f5f5f5; color: #000000;">=&gt;</span><span style="background-color: #f5f5f5; color: #000000;">console.log(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">div普通单击事件</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">));                </span><span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;">给div绑定一个click事件</span>
+<span style="background-color: #f5f5f5; color: #000000;">        $.event.add(div,</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">click</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">,()</span><span style="background-color: #f5f5f5; color: #000000;">=&gt;</span><span style="background-color: #f5f5f5; color: #000000;">console.log(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">d1代理事件</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">),</span><span style="background-color: #f5f5f5; color: #0000ff;">null</span><span style="background-color: #f5f5f5; color: #000000;">,</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">button</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">);    </span><span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;">给div绑定一个代理事件，监听对象为button</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">body</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">html</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<p>渲染如下:</p>
+<p><img src="./images/jQuery 源码分析(十六)  事件系统模块 底层方法 详解2.png" alt="" /></p>
+<p>&nbsp;我们给div绑定了一个普通事件(类型为click)，还有一个代理事件(代理的元素是button)，当我们点击div元素时将触发普通事件，如下:</p>
+<p><img src="./images/jQuery 源码分析(十六)  事件系统模块 底层方法 详解3.png" alt="" /></p>
+<p>代理事件并没有被触发，当我们点击按钮1时将会同时触发普通事件和代理事件:</p>
+<p><img src="./images/jQuery 源码分析(十六)  事件系统模块 底层方法 详解4.png" alt="" /></p>
+<p>这里的代理事件是在jQuery内部实现的，而普通事件是因为原生的冒泡的事件流所产生的,</p>
+<p>&nbsp;</p>
+<p><strong><span style="font-size: 18pt;">源码分析</span></strong></p>
+<hr />
+<p>jQuery内部的事件绑定也是通过原生的addEventListener或attachEvent来实现的，不过jQuery对这个过程做了优化，它不只是仅仅的调用该API实现绑定，用jQuery绑定事件时，在同一个DOM元素上的绑定的任何事件，其实最后绑定的都是同一个函数，该函数只有几行diamagnetic，最后又会调用jQuery.event.dispatch去进行事件的分发，并执行事件监听函数。</p>
+<p>上面说了事件系统模块是基于数据缓存模块来管理监听函数的，我们通过jQuery绑定的事件都保存到了$. cache里对应的DOM元素的数据缓存对象上(有疑问的可以看下数据缓存模块，前面介绍过了)，比如上面的栗子，我们打印一下$.cache可以看到绑定的信息:</p>
+<p><img src="./images/jQuery 源码分析(十六)  事件系统模块 底层方法 详解5.png" alt="" /></p>
+<p>每个DOM元素在内部数据缓存对上有两个属性是和事件有关的:</p>
+<ul>
+<li>events　　;属性是一个对象，其中存储了该DOM元素的所有事件，该对象的下的每个元素的元素名是事件类型，值是一个数组，是封装了监听函数的handleObject集合</li>
+<li>handle　　;DOM元素的主监听函数，负责分发事件和执行监听函数,对于一个DOM元素，jQuery事件系统只会为之分配一个主监听函数，所有类型的事件都被绑定到这个主监听函数</li>
+</ul>
+<p>&nbsp;好了，现在来说一下源码实现，$.event.add的源码实现如下:</p>
+<div class="cnblogs_code">
+<pre><code>jQuery.event =<span style="color: #000000;"> {
+    add: </span><span style="color: #0000ff;">function</span>( elem, types, handler, data, selector ) {        <span style="color: #008000;">//</span><span style="color: #008000;">绑定一个或多个类型的事件监听函数</span>
+
+        <span style="color: #0000ff;">var</span><span style="color: #000000;"> elemData, eventHandle, events,
+            t, tns, type, namespaces, handleObj,
+            handleObjIn, quick, handlers, special;
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> Don't attach events to noData or text/comment nodes (allow plain objects tho)</span>
+        <span style="color: #0000ff;">if</span> ( elem.nodeType === 3 || elem.nodeType === 8 || !types || !handler || !(elemData = jQuery._data( elem )) ) {        <span style="color: #008000;">//</span><span style="color: #008000;">排除文本节点(浏览器不会在文本节点上触发事件)、注释节点(没有意义)、参数不完整的情况</span>
+            <span style="color: #0000ff;">return</span><span style="color: #000000;">;
+        }
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> Caller can pass in an object of custom data in lieu of the handler</span>
+        <span style="color: #0000ff;">if</span> ( handler.handler ) {                                    <span style="color: #008000;">//</span><span style="color: #008000;">如果参数handle是自定义监听对象，其中的属性价会被设置到后面所创建的新监听对象上。函数cloneCopyEvent(src,dest)将调用该方法</span>
+            handleObjIn =<span style="color: #000000;"> handler;
+            handler </span>=<span style="color: #000000;"> handleObjIn.handler;
+        }
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> Make sure that the handler has a unique ID, used to find/remove it later</span>
+        <span style="color: #0000ff;">if</span> ( !handler.guid ) {                                        <span style="color: #008000;">//</span><span style="color: #008000;">如果函数handler没有guid</span>
+            handler.guid = jQuery.guid++;                                <span style="color: #008000;">//</span><span style="color: #008000;">则为它分配一个唯一标识guid，在移除监听函数时，将通过这个唯一标识来匹配监听函数。</span>
+<span style="color: #000000;">        }
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> Init the element's event structure and main handler, if this is the first</span>
+        events = elemData.events;                                    <span style="color: #008000;">//</span><span style="color: #008000;">尝试取出事件缓存对象</span>
+        <span style="color: #0000ff;">if</span> ( !events ) {                                            <span style="color: #008000;">//</span><span style="color: #008000;">如果不存在，表示从未在当前元素上(通过jQuery事件方法)绑定过事件，</span>
+            elemData.events = events = {};                                <span style="color: #008000;">//</span><span style="color: #008000;">则把它初始化为一个空对象。events对象保存了存放当前元素关联的所有监听函数。</span>
+<span style="color: #000000;">        }    
+        eventHandle </span>= elemData.handle;                                <span style="color: #008000;">//</span><span style="color: #008000;">尝试取出主监听函数handle(event)</span>
+        <span style="color: #0000ff;">if</span> ( !<span style="color: #000000;">eventHandle ) {
+            elemData.handle </span>= eventHandle = <span style="color: #0000ff;">function</span>( e ) {            <span style="color: #008000;">//</span><span style="color: #008000;">如果不存在，表示从未在当前元素上(jQuery事件方法)绑定过事件，则初始化一个主监听函数，并把它存储到事件缓存对象的handle属性上，<span style="color: #ff0000;">这是事件触发时真正执行的函数</span></span>
+                <span style="color: #008000;">//</span><span style="color: #008000;"> Discard the second event of a jQuery.event.trigger() and</span>
+                <span style="color: #008000;">//</span><span style="color: #008000;"> when an event is called after a page has unloaded</span>
+                <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">typeof</span> jQuery !== "undefined" &amp;&amp; (!e || jQuery.event.triggered !== e.type) ?<span style="color: #000000;">
+                    jQuery.event.dispatch.apply( eventHandle.elem, arguments ) :
+                    undefined;
+            };
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> Add elem as a property of the handle fn to prevent a memory leak with IE non-native events</span>
+            eventHandle.elem =<span style="color: #000000;"> elem;
+        }
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> Handle multiple events separated by a space</span>
+        <span style="color: #008000;">//</span><span style="color: #008000;"> jQuery(...).bind("mouseover mouseout", fn);</span>
+        types = jQuery.trim( hoverHack(types) ).split( " " );        <span style="color: #008000;">//</span><span style="color: #008000;">先调用hoverHack()函数修正hover.namespace类型的事件，再调用split把types用空格进行分隔，转换为一个数组</span>
+        <span style="color: #0000ff;">for</span> ( t = 0; t &lt; types.length; t++ ) {                        <span style="color: #008000;">//</span><span style="color: #008000;">遍历需要绑定的每个事件类型，逐个绑定事件</span>
+<span style="color: #000000;">
+            tns </span>= rtypenamespace.exec( types[t] ) || [];                <span style="color: #008000;">//</span><span style="color: #008000;">正则rtypenamespace用于解析事件类型和命名空间，执行后tns[1]是事件类型，tns[2]是一个或多个命名空间，用.分隔</span>
+            type = tns[1];                                                <span style="color: #008000;">//</span><span style="color: #008000;">type就是事件类型</span>
+            namespaces = ( tns[2] || "" ).split( "."<span style="color: #000000;"> ).sort();
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> If event changes its type, use the special event handlers for the changed type</span>
+            special = jQuery.event.special[ type ] ||<span style="color: #000000;"> {};
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> If selector defined, determine special event api type, otherwise given type</span>
+            type = ( selector ? special.delegateType : special.bindType ) ||<span style="color: #000000;"> type;
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> Update special based on newly reset type</span>
+            special = jQuery.event.special[ type ] ||<span style="color: #000000;"> {};
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> handleObj is passed to all event handlers</span>
+            handleObj = jQuery.extend({                                    <span style="color: #008000;">//</span><span style="color: #008000;">把监听函数封装为监听对象，用来支持事件模拟、自定义事件数据等。</span>
+                type: type,                                                    <span style="color: #008000;">//</span><span style="color: #008000;">实际使用的事件类型，不包含命名空间，可能被修改过</span>
+                origType: tns[1],                                            <span style="color: #008000;">//</span><span style="color: #008000;">原始事件类型，不包含命名空件，未经过修正</span>
+                data: data,                                                    <span style="color: #008000;">//</span><span style="color: #008000;">排序后的命名空间，如果传入的事件类型是'click.a.c.b'，那么namespace就是a.b.c</span>
+                handler: handler,                                            <span style="color: #008000;">//</span><span style="color: #008000;">传入的监听函数</span>
+                guid: handler.guid,                                            <span style="color: #008000;">//</span><span style="color: #008000;">分配给监听函数的唯一标识guid</span>
+                selector: selector,                                            <span style="color: #008000;">//</span><span style="color: #008000;">自定义的事件数据</span>
+                quick: quickParse( selector ),                                <span style="color: #008000;">//</span><span style="color: #008000;">入的事件代理选择器表达式，当代理事件被触发时，用该属性过滤代理元素的后代元素。</span>
+                namespace: namespaces.join("."<span style="color: #000000;">)
+            }, handleObjIn );
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> Init the event handler queue if we're the first</span>
+            handlers = events[ type ];                                    <span style="color: #008000;">//</span><span style="color: #008000;">尝试取出事件类型type对应的监听对象数组handlers，其中存放了已绑定的监听对象。</span>
+            <span style="color: #0000ff;">if</span> ( !handlers ) {                                            <span style="color: #008000;">//</span><span style="color: #008000;">如果type事件类型的数组不存在，则进行绑定操作</span>
+                handlers = events[ type ] = [];                                <span style="color: #008000;">//</span><span style="color: #008000;">把监听对象数组的handlers初始化为一个空数组。</span>
+                handlers.delegateCount = 0;                                    <span style="color: #008000;">//</span><span style="color: #008000;">初始化handlers.delegateCount为0，表示代理事件的个数为0 </span>
+
+                <span style="color: #008000;">//</span><span style="color: #008000;"> Only use addEventListener/attachEvent if the special events handler returns false</span>
+                <span style="color: #0000ff;">if</span> ( !special.setup || special.setup.call( elem, data, namespaces, eventHandle ) === <span style="color: #0000ff;">false</span> ) {    <span style="color: #008000;">//</span><span style="color: #008000;">绑定主监听函数 优先调用修正对象的修正方法setup()</span>
+                    <span style="color: #008000;">//</span><span style="color: #008000;"> Bind the global event handler to the element</span>
+                    <span style="color: #0000ff;">if</span> ( elem.addEventListener ) {                            <span style="color: #008000;">//</span><span style="color: #ff0000;">如果浏览器支持addEventListener()方法</span>
+                        elem.addEventListener( type, eventHandle, <span style="color: #0000ff;">false</span> );        <span style="color: #008000;">//</span><span style="color: #ff0000;">调用原生方法addEventListener()绑定主监听函数，以冒泡流的方式。</span>
+<span style="color: #000000;">
+                    } </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> ( elem.attachEvent ) {                        <span style="color: #008000;">//</span><span style="color: #ff0000;">如果没有addEventListener()</span>
+                        elem.attachEvent( "on" + type, eventHandle );            <span style="color: #008000;">//</span><span style="color: #ff0000;">则调用attachEvent()方法绑定主监听函数,IE8及更早的浏览器只支持冒泡</span>
+<span style="color: #000000;">                    }
+                }
+            }
+
+            </span><span style="color: #0000ff;">if</span> ( special.add ) {                                        <span style="color: #008000;">//</span><span style="color: #008000;">如果修正对象有修正方法add()</span>
+                special.add.call( elem, handleObj );                        <span style="color: #008000;">//</span><span style="color: #008000;">则先调用修正方法add()绑定监听函数</span>
+
+                <span style="color: #0000ff;">if</span> ( !<span style="color: #000000;">handleObj.handler.guid ) {
+                    handleObj.handler.guid </span>=<span style="color: #000000;"> handler.guid;
+                }
+            }
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> Add to the element's handler list, delegates in front</span>
+            <span style="color: #0000ff;">if</span> ( selector ) {                                            <span style="color: #008000;">//</span><span style="color: #ff0000;">如果传入了selector参数，则绑定的是代理事件</span>
+                handlers.splice( handlers.delegateCount++, 0, handleObj );    <span style="color: #008000;">//</span><span style="color: #008000;">把代理监听对象插入属性handlers.delegateCount所指定的位置。每次插入代理监听对象后，监听对象数组的属性handlers.delegateCount自动加1，以指示下一个代理监听对象的插入位置。</span>
+            } <span style="color: #0000ff;">else</span> {                                                    <span style="color: #008000;"> //</span><span style="color: #ff0000;">未传入selector参数情况下，则是普通的事件绑定</span>
+                handlers.push( handleObj );                                    <span style="color: #008000;">//</span><span style="color: #008000;">把监听对象插入末尾</span>
+<span style="color: #000000;">            }
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> Keep track of which events have ever been used, for event optimization</span>
+            jQuery.event.global[ type ] = <span style="color: #0000ff;">true</span>;                            <span style="color: #008000;">//</span><span style="color: #008000;">记录绑定过的事件类型</span>
+<span style="color: #000000;">        }
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> Nullify elem to prevent memory leaks in IE</span>
+        elem = <span style="color: #0000ff;">null</span>;                                                    <span style="color: #008000;">//</span><span style="color: #008000;">解除参数elem对DOM元素的引用，以避免内存泄漏(IE)</span>
+<span style="color: #000000;">    },
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">略</span><span style="color: #008000;">*/</span><span style="color: #000000;">
+}</span></pre>
+</div>
+<p>&nbsp;$.event.add会通过addEventListener或attachEvent去绑定事件，当事件被触发时就会执行我们绑定的事件，也就是上面的<span style="color: #000000;">elemData.handle函数，该函数会执行<span style="color: #000000;">jQuery.event.dispatch</span>函数，<span style="color: #000000;">jQuery.event.dispatch</span>就是用于分发事件的，如下:</span></p>
+<p>&nbsp;</p>
+<div class="cnblogs_code">
+<pre><code>jQuery.event =<span style="color: #000000;"> {
+    dispatch: </span><span style="color: #0000ff;">function</span>( event ) {        <span style="color: #008000;">//</span><span style="color: #008000;">分发事件，执行事件监听函数</span>
+
+        <span style="color: #008000;">//</span><span style="color: #008000;"> Make a writable jQuery.Event from the native event object</span>
+        event = jQuery.event.fix( event || window.event );                <span style="color: #008000;">//</span><span style="color: #008000;">调用jQuery.event.fix(event)把原生事件对象封装为jQuery事件对象。</span>
+
+        <span style="color: #0000ff;">var</span> handlers = ( (jQuery._data( <span style="color: #0000ff;">this</span>, "events" ) || {} )[ event.type ] || []),        <span style="color: #008000;">//</span><span style="color: #008000;">取出this元素当前事件类型对应的函数列表。</span>
+            delegateCount = handlers.delegateCount,                                            <span style="color: #008000;">//</span><span style="color: #008000;">代理监听对象个事</span>
+            args = [].slice.call( arguments, 0 ),                                            <span style="color: #008000;">//</span><span style="color: #008000;">把参数arguments转换为真正的数组</span>
+            run_all = !event.exclusive &amp;&amp; !<span style="color: #000000;">event.namespace,
+            handlerQueue </span>=<span style="color: #000000;"> [],
+            i, j, cur, jqcur, ret, selMatch, matched, matches, handleObj, sel, related;
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> Use the fix-ed jQuery.Event rather than the (read-only) native event</span>
+        args[0] = event;                                                                    <span style="color: #008000;">//</span><span style="color: #008000;">将event保存为args[0],监听函数执行时这是作为第一个参数传入的</span>
+        event.delegateTarget = <span style="color: #0000ff;">this</span>;                                                        <span style="color: #008000;">//</span><span style="color: #008000;">当前的DOM对象，等于event.currentTarget属性的值</span>
+
+        <span style="color: #008000;">//</span><span style="color: #008000;"> Determine handlers that should run if there are delegated events</span>
+        <span style="color: #008000;">//</span><span style="color: #008000;"> Avoid disabled elements in IE (#6911) and non-left-click bubbling in Firefox (#3861)</span>
+        <span style="color: #0000ff;">if</span> ( delegateCount &amp;&amp; !event.target.disabled &amp;&amp; !(event.button &amp;&amp; event.type === "click") ) {    <span style="color: #008000;">//</span><span style="color: #008000;">如果当前对象绑定了代理事件，且目标对象target没有禁用  !(event.button &amp;&amp; event.type === "click")的意思是:是鼠标单击时</span>
+
+            <span style="color: #008000;">//</span><span style="color: #008000;"> Pregenerate a single jQuery object for reuse with .is()</span>
+            jqcur = jQuery(<span style="color: #0000ff;">this</span>);                                                                            <span style="color: #008000;">//</span><span style="color: #008000;">用当前元素构造一个jQuery对象，以便在后面的代码中复用它的方法.is(selector)</span>
+            jqcur.context = <span style="color: #0000ff;">this</span>.ownerDocument || <span style="color: #0000ff;">this</span>;                                                        <span style="color: #008000;">//</span><span style="color: #008000;">上下文</span>
+
+            <span style="color: #0000ff;">for</span> ( cur = event.target; cur != <span style="color: #0000ff;">this</span>; cur = cur.parentNode || <span style="color: #0000ff;">this</span> ) {                            <span style="color: #008000;">//</span><span style="color: #008000;">从事件目标开始，再依次到父节点，一直到当前目标为止,遍历从触发事件的元素到代理元素这条路径上的所有后代元素。</span>
+                selMatch = {};                                                                                    <span style="color: #008000;">//</span><span style="color: #008000;">重置selMatch为空对象</span>
+                matches = [];                                                                                    <span style="color: #008000;">//</span><span style="color: #008000;">重置matches为空数组</span>
+                jqcur[0] = cur;                                                                                    <span style="color: #008000;">//</span><span style="color: #008000;">将jqcur绑定到每一个后代元素</span>
+                <span style="color: #0000ff;">for</span> ( i = 0; i &lt; delegateCount; i++ ) {                                                            <span style="color: #008000;">//</span><span style="color: #008000;">遍历所有的代理监听对象数组。</span>
+                    handleObj = handlers[ i ];                                                                        <span style="color: #008000;">//</span><span style="color: #008000;">某个代理监听对象。</span>
+                    sel = handleObj.selector;                                                                        <span style="color: #008000;">//</span><span style="color: #008000;">当前代理监听对象的selector属性    </span>
+
+                    <span style="color: #0000ff;">if</span> ( selMatch[ sel ] === undefined ) {                                                            <span style="color: #008000;">//</span><span style="color: #008000;">如果绑定的事件对应的选择器在selMatch中不存在，则进行检查，看是否符合要求</span>
+                        selMatch[ sel ] =<span style="color: #000000;"> (
+                            handleObj.quick </span>?<span style="color: #000000;"> quickIs( cur, handleObj.quick ) : jqcur.is( sel )
+                        );
+                    }
+                    </span><span style="color: #0000ff;">if</span> ( selMatch[ sel ] ) {                                                                        <span style="color: #008000;">//</span><span style="color: #008000;">当后代元素与代理监听对象的选择器表达式匹配时</span>
+                        matches.push( handleObj );                                                                    <span style="color: #008000;">//</span><span style="color: #008000;">把代理监听对象放入数组matches中。</span>
+<span style="color: #000000;">                    }
+                }
+                </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> ( matches.length ) {
+                    handlerQueue.push({ elem: cur, matches: matches });                                            </span><span style="color: #008000;">//</span><span style="color: #008000;">最后把某个后代元素匹配的所有代理监听对象代理放到数组handlerQueue里。</span>
+<span style="color: #000000;">                }
+            }
+        }
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> Add the remaining (directly-bound) handlers</span>
+        <span style="color: #0000ff;">if</span> ( handlers.length &gt; delegateCount ) {                                                <span style="color: #008000;">//</span><span style="color: #008000;">如果监听对象数组handlers的长度大于代理监听对象的位置计数器delegateCount，则表示为当前元素绑定了普通事件</span>
+            handlerQueue.push({ elem: <span style="color: #0000ff;">this</span>, matches: handlers.slice( delegateCount ) });            <span style="color: #008000;">//</span><span style="color: #008000;">把这些监听对象也放入待执行队列handlerQueue中</span>
+<span style="color: #000000;">        }
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> Run delegates first; they may want to stop propagation beneath us</span>
+        <span style="color: #0000ff;">for</span> ( i = 0; i &lt; handlerQueue.length &amp;&amp; !event.isPropagationStopped(); i++ ) {            <span style="color: #008000;">//</span><span style="color: #008000;">执行数组handlerQueue中的所有函数。遍历待执行队列handlerQueue，如果某个元素的监听函数调用了方法stopPropagation()则终止for循环</span>
+            matched = handlerQueue[ i ];                                                            <span style="color: #008000;">//</span><span style="color: #008000;">matched是数组handlerQueue中的一个对象</span>
+            event.currentTarget = matched.elem;                                                        <span style="color: #008000;">//</span><span style="color: #008000;">把当前正在执行监听函数的元素赋值给事件属性event.currentTarget。这样在事件处理函数内，this等于绑定的代理函数</span>
+
+            <span style="color: #0000ff;">for</span> ( j = 0; j &lt; matched.matches.length &amp;&amp; !event.isImmediatePropagationStopped(); j++ ) {    <span style="color: #008000;">//</span><span style="color: #008000;">遍历元素定对应的监听对象数组，并执行监听对象中的监听函数</span>
+                handleObj = matched.matches[ j ];                                                            <span style="color: #008000;">//</span><span style="color: #008000;">handleObj是一个具体的监听对象handleObj</span>
+
+                <span style="color: #008000;">//</span><span style="color: #008000;"> Triggered event must either 1) be non-exclusive and have no namespace, or</span>
+                <span style="color: #008000;">//</span><span style="color: #008000;"> 2) have namespace(s) a subset or equal to those in the bound event (both can have no namespace).</span>
+                <span style="color: #0000ff;">if</span> ( run_all || (!event.namespace &amp;&amp; !handleObj.namespace) || event.namespace_re &amp;&amp;<span style="color: #000000;"> event.namespace_re.test( handleObj.namespace ) ) {
+
+                    event.data </span>= handleObj.data;                                                        <span style="color: #008000;">//</span><span style="color: #008000;">把监听对象的属性handleObj.data赋值给jQuery事件对象</span>
+                    event.handleObj = handleObj;                                                        <span style="color: #008000;">//</span><span style="color: #008000;">把监听对象赋值给jQuery事件对象event.handleObj上，这样监听函数就可以通过该属性访问监听对象上的诸多属性</span>
+<span style="color: #000000;">
+                    ret </span>= ( (jQuery.event.special[ handleObj.origType ] || {}).handle || handleObj.handler )    <span style="color: #008000;">//</span><span style="color: #008000;">优先调用修正对象的修正方法special.handle()，</span>
+<span style="color: #000000;">                            .apply( matched.elem, args );
+
+                    </span><span style="color: #0000ff;">if</span> ( ret !== undefined ) {                                                            <span style="color: #008000;">//</span><span style="color: #008000;">如果函数有返回值</span>
+                        event.result =<span style="color: #000000;"> ret;
+                        </span><span style="color: #0000ff;">if</span> ( ret === <span style="color: #0000ff;">false</span> ) {                                                            <span style="color: #008000;">//</span><span style="color: #ff0000;">如果监听对象的返回值是false</span>
+                            event.preventDefault();                                                            <span style="color: #008000;">//</span><span style="color: #ff0000;">调用preventDefault()方法阻止默认行为</span>
+                            event.stopPropagation();                                                           <span style="color: #008000;">//</span><span style="color: #ff0000;">stopPropagation()方法停止事件传播</span>
+<span style="color: #000000;">                        }
+                    }
+                }
+            }
+        }
+
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> event.result;
+    },
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">略</span><span style="color: #008000;">*/</span><span style="color: #000000;">
+}</span></pre>
+</div>
+<p>jQuery.event.fix()会把原生事件修正为jQuery事件对象并返回，修正不兼容属性，就是自定义一个对象，保存该事件的信息，比如:类型、创建的时间、原生事件对象等，有兴趣的可以调试一下。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

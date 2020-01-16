@@ -1,0 +1,315 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C# Socket服务器及多客户端连接示例' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C# Socket服务器及多客户端连接示例</center></div><div class='banquan'>原文出处:本文由博客园博主痕迹g提供。<br/>
+原文连接:https://www.cnblogs.com/zh7791/p/11151787.html</div><br>
+    <blockquote>
+<p>服务端代码[控制台示例]</p>
+</blockquote>
+<pre><code><code>static List&lt;Socket&gt; Sockets = new List&lt;Socket&gt;();
+        static void Main(string[] args)
+        {
+            int port = 10;
+            byte[] buffer = new byte[1024];
+
+            IPEndPoint localEP = new IPEndPoint(IPAddress.Any, port);
+            Socket listener = new Socket(localEP.Address.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+
+            try
+            {
+                listener.Bind(localEP);
+                listener.Listen(10);
+                Console.WriteLine(&quot;等待客户端连接....&quot;);
+                while (true) //该操作用于多个客户端连接
+                {
+                    Socket sc = listener.Accept();//接受一个连接
+                    Sockets.Add(sc); //将连接的客户端, 添加到内存当中
+                    Thread t = new Thread(new ThreadStart(() =&gt; ReceiveData(sc))); //开启当前Socket线程, 去执行获取数据的动作,与客户端通信
+                    t.IsBackground = true;
+                    t.Start();
+                }
+
+
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.ToString());
+            }
+            Console.ReadLine();
+        }
+
+        public static void ReceiveData(Socket sc)
+        {
+            byte[] buffer = new byte[1024];
+            Console.WriteLine(&quot;接受到了客户端：&quot; + sc.RemoteEndPoint.ToString() + &quot;连接....&quot;);
+            //握手
+            int length = sc.Receive(buffer);//接受客户端握手信息
+            sc.Send(PackHandShakeData(GetSecKeyAccetp(buffer, length)));while (true)
+            {
+                try
+                {
+                    //接受客户端数据
+                    Console.WriteLine(&quot;等待客户端数据....&quot;);
+                    length = sc.Receive(buffer);//接受客户端信息
+                    string clientMsg = AnalyticData(buffer, length);
+                    Console.WriteLine(&quot;接受到客户端数据：&quot; + clientMsg);
+                    //发送数据
+                    string sendMsg = &quot;服务端返回信息:&quot; + clientMsg;
+                    sc.Send(PackData(sendMsg));
+                }
+                catch (Exception ex)
+                {
+                    Sockets.Remove(sc);  //如果接收的过程中,断开, 那么内存中移除当前Socket对象, 并且退出当前线程
+                    Console.WriteLine(&quot;客户端已经断开连接!&quot;);
+                    return;
+                }
+            }
+        }</code></pre>
+<blockquote>
+<p>Socket 相关类</p>
+</blockquote>
+<pre><code><code>  /// &lt;summary&gt;
+        /// 打包握手信息
+        /// &lt;/summary&gt;
+        /// &lt;param name=&quot;secKeyAccept&quot;&gt;&lt;/param&gt;
+        /// &lt;returns&gt;&lt;/returns&gt;
+        private static byte[] PackHandShakeData(string secKeyAccept)
+        {
+            var responseBuilder = new StringBuilder();
+            responseBuilder.Append(&quot;HTTP/1.1 101 Switching Protocols&quot; + Environment.NewLine);
+            responseBuilder.Append(&quot;Upgrade: websocket&quot; + Environment.NewLine);
+            responseBuilder.Append(&quot;Connection: Upgrade&quot; + Environment.NewLine);
+            responseBuilder.Append(&quot;Sec-WebSocket-Accept: &quot; + secKeyAccept + Environment.NewLine + Environment.NewLine);
+            return Encoding.UTF8.GetBytes(responseBuilder.ToString());
+        }
+
+        /// &lt;summary&gt;
+        /// 生成Sec-WebSocket-Accept
+        /// &lt;/summary&gt;
+        /// &lt;param name=&quot;handShakeText&quot;&gt;客户端握手信息&lt;/param&gt;
+        /// &lt;returns&gt;Sec-WebSocket-Accept&lt;/returns&gt;
+        private static string GetSecKeyAccetp(byte[] handShakeBytes, int bytesLength)
+        {
+            string handShakeText = Encoding.UTF8.GetString(handShakeBytes, 0, bytesLength);
+            string key = string.Empty;
+            Regex r = new Regex(@&quot;Sec\-WebSocket\-Key:(.*?)\r\n&quot;);
+            Match m = r.Match(handShakeText);
+            if (m.Groups.Count != 0)
+            {
+                key = Regex.Replace(m.Value, @&quot;Sec\-WebSocket\-Key:(.*?)\r\n&quot;, &quot;$1&quot;).Trim();
+            }
+            byte[] encryptionString = SHA1.Create().ComputeHash(Encoding.ASCII.GetBytes(key + &quot;258EAFA5-E914-47DA-95CA-C5AB0DC85B11&quot;));
+            return Convert.ToBase64String(encryptionString);
+        }
+
+        /// &lt;summary&gt;
+        /// 解析客户端数据包
+        /// &lt;/summary&gt;
+        /// &lt;param name=&quot;recBytes&quot;&gt;服务器接收的数据包&lt;/param&gt;
+        /// &lt;param name=&quot;recByteLength&quot;&gt;有效数据长度&lt;/param&gt;
+        /// &lt;returns&gt;&lt;/returns&gt;
+        private static string AnalyticData(byte[] recBytes, int recByteLength)
+        {
+            if (recByteLength &lt; 2) { return string.Empty; }
+
+            bool fin = (recBytes[0] &amp; 0x80) == 0x80; // 1bit，1表示最后一帧  
+            if (!fin)
+            {
+                return string.Empty;// 超过一帧暂不处理 
+            }
+
+            bool mask_flag = (recBytes[1] &amp; 0x80) == 0x80; // 是否包含掩码  
+            if (!mask_flag)
+            {
+                return string.Empty;// 不包含掩码的暂不处理
+            }
+
+            int payload_len = recBytes[1] &amp; 0x7F; // 数据长度  
+
+            byte[] masks = new byte[4];
+            byte[] payload_data;
+
+            if (payload_len == 126)
+            {
+                Array.Copy(recBytes, 4, masks, 0, 4);
+                payload_len = (UInt16)(recBytes[2] &lt;&lt; 8 | recBytes[3]);
+                payload_data = new byte[payload_len];
+                Array.Copy(recBytes, 8, payload_data, 0, payload_len);
+
+            }
+            else if (payload_len == 127)
+            {
+                Array.Copy(recBytes, 10, masks, 0, 4);
+                byte[] uInt64Bytes = new byte[8];
+                for (int i = 0; i &lt; 8; i++)
+                {
+                    uInt64Bytes[i] = recBytes[9 - i];
+                }
+                UInt64 len = BitConverter.ToUInt64(uInt64Bytes, 0);
+
+                payload_data = new byte[len];
+                for (UInt64 i = 0; i &lt; len; i++)
+                {
+                    payload_data[i] = recBytes[i + 14];
+                }
+            }
+            else
+            {
+                Array.Copy(recBytes, 2, masks, 0, 4);
+                payload_data = new byte[payload_len];
+                Array.Copy(recBytes, 6, payload_data, 0, payload_len);
+
+            }
+
+            for (var i = 0; i &lt; payload_len; i++)
+            {
+                payload_data[i] = (byte)(payload_data[i] ^ masks[i % 4]);
+            }
+
+            return Encoding.UTF8.GetString(payload_data);
+        }
+        
+        /// &lt;summary&gt;
+        /// 打包服务器数据
+        /// &lt;/summary&gt;
+        /// &lt;param name=&quot;message&quot;&gt;数据&lt;/param&gt;
+        /// &lt;returns&gt;数据包&lt;/returns&gt;
+        private static byte[] PackData(string message)
+        {
+            byte[] contentBytes = null;
+            byte[] temp = Encoding.UTF8.GetBytes(message);
+
+            if (temp.Length &lt; 126)
+            {
+                contentBytes = new byte[temp.Length + 2];
+                contentBytes[0] = 0x81;
+                contentBytes[1] = (byte)temp.Length;
+                Array.Copy(temp, 0, contentBytes, 2, temp.Length);
+            }
+            else if (temp.Length &lt; 0xFFFF)
+            {
+                contentBytes = new byte[temp.Length + 4];
+                contentBytes[0] = 0x81;
+                contentBytes[1] = 126;
+                contentBytes[2] = (byte)(temp.Length &amp; 0xFF);
+                contentBytes[3] = (byte)(temp.Length &gt;&gt; 8 &amp; 0xFF);
+                Array.Copy(temp, 0, contentBytes, 4, temp.Length);
+            }
+            else
+            {
+                // 暂不处理超长内容  
+            }
+
+            return contentBytes;
+        }</code></pre>
+<blockquote>
+<p>客户端连接[网页测试]<br />
+&lt;!DOCTYPE html&gt;<br />
+<html><br />
+<head><br />
+<meta charset="utf-8" /><br />
+<title>WebSockets客户端示例</title><br />
+</head><br />
+<br />
+<body><br />
+<h1>WebSocket客户端示例</h1><br />
+<div id="message"></div><br />
+<p>请输入一些文字</p><br />
+<input id="text" type="text"><br />
+<button id="connect" onClick="connect();">建立连接</button><br />
+<button id="send" onClick="send();">发送数据</button><br />
+<button id="disconnect" onClick="disconnect();">断开连接</button><br />
+</body><br />
+</html></p>
+</blockquote>
+<pre><code><code>&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+&lt;head&gt;
+&lt;meta charset=&quot;utf-8&quot; /&gt;
+&lt;title&gt;WebSockets客户端示例&lt;/title&gt;
+&lt;/head&gt;
+&lt;script&gt;
+var webSocket;
+function connect()
+{
+    try
+    {
+        var readyState = new Array(&quot;正在连接&quot;,&quot;已建立连接&quot;,&quot;正在关闭连接&quot;,&quot;已关闭连接&quot;);
+        var host = &quot;ws://localhost:10&quot;;
+        webSocket = new WebSocket(host);
+        var message = document.getElementById(&quot;message&quot;);
+        message.innerHTML +=&quot;&lt;p&gt;Socket状态：&quot; + readyState[webSocket.readyState] + &quot;&lt;/p&gt;&quot;;
+        webSocket.onopen = function()
+        {
+            message.innerHTML += &quot;&lt;p&gt;Socket状态：&quot; + readyState[webSocket.readyState] + &quot;&lt;/p&gt;&quot;;
+        }
+        webSocket.onmessage = function(msg)
+        {
+            message.innerHTML +=&quot;&lt;p&gt;接收信息：&quot; + msg.data + &quot;&lt;/p&gt;&quot;;
+        }
+        webSocket.onclose=function()
+        {
+            message.innerHTML +=&quot;&lt;p&gt;Socket状态：&quot; + readyState[webSocket.readyState] + &quot;&lt;/p&gt;&quot;;
+        }
+    }
+    catch(exception)
+    {
+        message.innerHTML += &quot;&lt;p&gt;有错误发生&lt;/p&gt;&quot;;
+    }
+}
+function send()
+{
+    var text = document.getElementById(&quot;text&quot;).value;
+    var message = document.getElementById(&quot;message&quot;);
+    if(text == &quot;&quot;)
+    {
+        message.innerHTML += &quot;&lt;p&gt;请输入一些文字&lt;/p&gt;&quot;;
+        return ;
+    }
+    try
+    {
+        webSocket.send(text);
+        message.innerHTML += &quot;&lt;p&gt;发送数据：&quot; +text + &quot;&lt;/p&gt;&quot;;
+    }
+    catch(exception)
+    {
+        message.innerHTML += &quot;&lt;p&gt;发送数据出错&lt;/p&gt;&quot;;
+    }
+    document.getElementById(&quot;text&quot;).value=&quot;&quot;;
+}
+function disconnect()
+{
+    webSocket.close();
+}
+&lt;/script&gt;
+&lt;body&gt;
+&lt;h1&gt;WebSocket客户端示例&lt;/h1&gt;
+&lt;div id=&quot;message&quot;&gt;&lt;/div&gt;
+&lt;p&gt;请输入一些文字&lt;/p&gt;
+&lt;input id=&quot;text&quot; type=&quot;text&quot;&gt;
+&lt;button id=&quot;connect&quot; onClick=&quot;connect();&quot;&gt;建立连接&lt;/button&gt;
+&lt;button id=&quot;send&quot; onClick=&quot;send();&quot;&gt;发送数据&lt;/button&gt;
+&lt;button id=&quot;disconnect&quot; onClick=&quot;disconnect();&quot;&gt;断开连接&lt;/button&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

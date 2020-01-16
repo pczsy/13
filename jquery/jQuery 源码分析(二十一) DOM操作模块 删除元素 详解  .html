@@ -1,0 +1,203 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修jQuery 源码分析(二十一) DOM操作模块 删除元素 详解  ' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>jQuery 源码分析(二十一) DOM操作模块 删除元素 详解  </center></div><div class='banquan'>原文出处:本文由博客园博主大沙漠提供。<br/>
+原文连接:https://www.cnblogs.com/greatdesert/p/11813539.html</div><br>
+    <p>本节说一下DOM操作模块里的删除元素模块，该模块用于删除DOM里的某个节点，也可以理解为将该节点从DOM树中卸载掉，如果该节点有绑定事件，我们可以选择保留或删除这些事件，删除元素的接口有如下三个:</p>
+<ul>
+<li>empty()&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&nbsp; ;移除匹配元素的所有子元素。&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;;先移除所有后代元素关联的数据和事件，以避免内存泄漏。然后移除子元素。 &nbsp;</li>
+<li>remove(selector,keepData)&nbsp;&nbsp; &nbsp;;从匹配元素中移除selector元素。&nbsp;&nbsp; ;selector是可选的选择器表达式，如果未传入则全部移除，否则只移除对应的匹配元素。keepData可选，表示是否保留匹配元素以及它的后代元素所关联的数据和事件</li>
+<li>detach(selector)&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&nbsp; ;从文档中移除匹配元素集合&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp; &nbsp;&nbsp;&nbsp; ;但会保留后代元素和匹配元素关联的数据和事件，常用于移除的元素稍后再次插入文档的场景。</li>
+</ul>
+<p>说直接一点，</p>
+<ul>
+<li>empty()会直接移除当前匹配的元素</li>
+<li>remove()会将当前匹配的元素中在匹配参数1selector里的元素，如果参数2keepData为true则保存该DOM节点的事件，否则移除事件</li>
+<li>detach()是调用remove()实现的，用于移除当前匹配的元素，但是会保留数据 ，它是调用remove(selector,true)来实现的</li>
+</ul>
+<p class="hwi">&nbsp;writer by:大沙漠 QQ:22969969</p>
+<p>举个栗子:</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;!</span><span style="color: #ff00ff;">DOCTYPE html</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">html </span><span style="color: #ff0000;">lang</span><span style="color: #0000ff;">="en"</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">head</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">meta </span><span style="color: #ff0000;">charset</span><span style="color: #0000ff;">="UTF-8"</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">title</span><span style="color: #0000ff;">&gt;</span>Document<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">title</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script </span><span style="color: #ff0000;">src</span><span style="color: #0000ff;">="http://libs.baidu.com/jquery/1.7.1/jquery.min.js"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">head</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">body</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">h1</span><span style="color: #0000ff;">&gt;</span>你好<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">h1</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">p</span><span style="color: #0000ff;">&gt;</span>朋友<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">p</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">button </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="b1"</span><span style="color: #0000ff;">&gt;</span>测试1<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">button</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">button </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="b2"</span><span style="color: #0000ff;">&gt;</span>测试2<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">button</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">button </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="b3"</span><span style="color: #0000ff;">&gt;</span>测试3<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">button</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span><span style="background-color: #f5f5f5; color: #000000;">
+        $(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">h1</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">).click(</span><span style="background-color: #f5f5f5; color: #0000ff;">function</span><span style="background-color: #f5f5f5; color: #000000;">(){console.log(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">h1 click</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">)});             </span><span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;">给h1元素增加一个点击事件</span>
+<span style="background-color: #f5f5f5; color: #000000;">        $(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">p</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">).click(</span><span style="background-color: #f5f5f5; color: #0000ff;">function</span><span style="background-color: #f5f5f5; color: #000000;">(){console.log(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">p click</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">)});               </span><span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;">给P元素增加一个点击事件</span>
+
+        <span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #ff0000;">以下给三个按钮都会实现将h1、p元素从DOM树中移除，再插入body的子节点的前面，不同的地方是点击子节点时的输出信息不同</span>
+<span style="background-color: #f5f5f5; color: #000000;">        b1.onclick</span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #0000ff;">function</span><span style="background-color: #f5f5f5; color: #000000;">(){$(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">h1,p</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">).remove().prependTo(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">body</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">)}       </span><span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;">点击测试1按钮后 h1和p元素都移动到了body子节点的最前面，<span style="color: #ff0000;">但是再点击h1和p元素都没有反应</span></span>
+<span style="background-color: #f5f5f5; color: #000000;">        b2.onclick</span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #0000ff;">function</span><span style="background-color: #f5f5f5; color: #000000;">(){$(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">h1,p</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">).remove(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">p</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">).prependTo(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">body</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">)}    </span><span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;">点击测试1按钮后 h1和p元素都移动到了body子节点的最前面，<span style="color: #ff0000;">点击h1有输出，点击p没有输出</span></span>
+<span style="background-color: #f5f5f5; color: #000000;">        b3.onclick</span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #0000ff;">function</span><span style="background-color: #f5f5f5; color: #000000;">(){$(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">h1,p</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">).detach().prependTo(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">body</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">)}       </span><span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;">点击测试1按钮后 h1和p元素都移动到了body子节点的最前面，<span style="color: #ff0000;">点击h1和p都有输出</span></span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">body</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">html</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<p>渲染如下:</p>
+<p><img src="./images/jQuery 源码分析(二十一) DOM操作模块 删除元素 详解  0.png" alt="" /></p>
+<p>&nbsp;对应的DOM树如下:</p>
+<p><img src="./images/jQuery 源码分析(二十一) DOM操作模块 删除元素 详解  1.png" alt="" /></p>
+<p>我们给h1和p元素分别绑定了一个事件，点击分别输出:h1 click和p click，，点击输出如下:</p>
+<p><img src="./images/jQuery 源码分析(二十一) DOM操作模块 删除元素 详解  2.png" alt="" /></p>
+<p>另外不管点击测试1、测试2还是测试3，都会将h1和p元素从DOM树中卸载并插入到body子节点的最前面，如下:</p>
+<p><img src="./images/jQuery 源码分析(二十一) DOM操作模块 删除元素 详解  3.png" alt="" /></p>
+<p>此时再点击h1和p元素就会有不同的输出了:</p>
+<ul>
+<li>对于测试1按钮来说&nbsp;&nbsp; ;点击h1和p没有任何输出&nbsp;&nbsp;&nbsp; 　&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 　;由于调用了remove()方法且未传递参数，所以所有匹配的元素的事件都会被删除掉</li>
+<li>对于测试2按钮来说&nbsp;&nbsp; ;点击h1有输出，点击p没有输出&nbsp;&nbsp;&nbsp; 　　;由于调用remove()方法时传递了p，所以把p元素的事件都删除了，而h1元素的事件并没有被删除</li>
+<li>对于测试2按钮来说&nbsp;&nbsp; ;点击h1和p没有任何输出&nbsp;&nbsp;&nbsp; 　　&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ;由于调用了detach()方法，所以所有元素的数据都被保留了，detach()内部时调用remove( selector, true )来实现的，也就是remove的参数2为true</li>
+</ul>
+<p>&nbsp;</p>
+<p><strong><span style="font-size: 18pt;">源码分析</span></strong></p>
+<hr />
+<p>讲解empty()、remove()和detach()之前先介绍一个jQuery的API，就是$.cleanData(elems),参数是DOM节点的集合(可以是document.getElementsByTagName的返回值)，它用于移除一个DOM节点上绑定的jQuery事件的，我们举个栗子:</p>
+<div class="cnblogs_code">
+<pre><code>&lt;!DOCTYPE html&gt;
+&lt;html lang="en"&gt;
+&lt;head&gt;
+    &lt;meta charset="UTF-8"&gt;
+    &lt;title&gt;Document&lt;/title&gt;
+    &lt;script src="http://libs.baidu.com/jquery/1.7.1/jquery.min.js"&gt;&lt;/script&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;p&gt;Hello World&lt;/p&gt;
+    &lt;button&gt;测试&lt;/button&gt;
+    &lt;script&gt;<span style="color: #000000;">
+        $(</span>'p').click(<span style="color: #0000ff;">function</span>(){console.log('p click')});               <span style="color: #008000;">//</span><span style="color: #008000;">给P元素增加一个点击事件</span>
+        $('button').click(<span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+            $.cleanData(document.getElementsByTagName(</span>'p'))             <span style="color: #008000;">//</span><span style="color: #008000;">给button按钮添加一个button事件，内部调用$.cleanData去清楚p元素上绑定的事件</span>
+<span style="color: #000000;">        })
+    </span>&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;</pre>
+</div>
+<p>渲染如下:</p>
+<p><img src="./images/jQuery 源码分析(二十一) DOM操作模块 删除元素 详解  4.png" alt="" /></p>
+<p><span style="color: #ff0000;">初始化时我们点击Hello World控制台会输出信息，如果点击按钮后再点击Hello World就不会输出了，因为$.cleanData把该DOM元素的事件给卸载了</span>，$.<span style="color: #000000;">cleanData实现如下:</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">jQuery.extend({
+    cleanData: </span><span style="color: #0000ff;">function</span>( elems ) {            <span style="color: #008000;">//</span><span style="color: #008000;">移除多个DOM元素的全部数据和事件，    elems是待移除数据和事件的DOM元素数组。</span>
+        <span style="color: #0000ff;">var</span><span style="color: #000000;"> data, id,
+            cache </span>=<span style="color: #000000;"> jQuery.cache,
+            special </span>=<span style="color: #000000;"> jQuery.event.special,
+            deleteExpando </span>=<span style="color: #000000;"> jQuery.support.deleteExpando;
+
+        </span><span style="color: #0000ff;">for</span> ( <span style="color: #0000ff;">var</span> i = 0, elem; (elem = elems[i]) != <span style="color: #0000ff;">null</span>; i++ ) {            <span style="color: #008000;">//</span><span style="color: #008000;">遍历每个匹配元素</span>
+            <span style="color: #0000ff;">if</span> ( elem.nodeName &amp;&amp; jQuery.noData[elem.nodeName.toLowerCase()] ) {        <span style="color: #008000;">//</span><span style="color: #008000;">如果不支持设置属性，则跳过本次循环。    jQuery.noData是一个数组，保存了不支持扩展属性的节点名称。</span>
+                <span style="color: #0000ff;">continue</span><span style="color: #000000;">;
+            }
+
+            id </span>= elem[ jQuery.expando ];                                                <span style="color: #008000;">//</span><span style="color: #ff0000;">属性名,注1</span>
+
+            <span style="color: #0000ff;">if</span> ( id ) {                                                                    <span style="color: #008000;">//</span><span style="color: #008000;">如果该DOM对象有jQuery.expando属性，则表示设置过数据。</span>
+                data =<span style="color: #000000;"> cache[ id ];
+
+                </span><span style="color: #0000ff;">if</span> ( data &amp;&amp; data.events ) {                                            <span style="color: #008000;">//</span><span style="color: #008000;">如果DOM的关联数据缓存对象存在且含有events属性，说明在该DOM上绑定过事件，则移除</span>
+                    <span style="color: #0000ff;">for</span> ( <span style="color: #0000ff;">var</span> type <span style="color: #0000ff;">in</span> data.events ) {                                        <span style="color: #008000;">//</span><span style="color: #008000;">data.events是DOM元素的事件缓存对象，存储了DOM元素的所有事件</span>
+                        <span style="color: #0000ff;">if</span><span style="color: #000000;"> ( special[ type ] ) {                                                
+                            jQuery.event.remove( elem, type );
+
+                        </span><span style="color: #008000;">//</span><span style="color: #008000;"> This is a shortcut to avoid jQuery.event.remove's overhead</span>
+                        } <span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+                            jQuery.removeEvent( elem, type, data.handle );
+                        }
+                    }
+
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;"> Null the DOM reference to avoid IE6/7/8 leak (#7054)</span>
+                    <span style="color: #0000ff;">if</span><span style="color: #000000;"> ( data.handle ) {
+                        data.handle.elem </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+                    }
+                }
+
+                </span><span style="color: #0000ff;">if</span> ( deleteExpando ) {                                                    <span style="color: #008000;">//</span><span style="color: #008000;">如果jQuery.support.deleteExpando;返回ture，即浏览器支持删除DOM元素上的扩展属性</span>
+                    <span style="color: #0000ff;">delete</span> elem[ jQuery.expando ];                                             <span style="color: #008000;">//</span><span style="color: #008000;">删除DOM元素的jQuery.expando属性</span>
+<span style="color: #000000;">
+                } </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> ( elem.removeAttribute ) {                                     <span style="color: #008000;">//</span><span style="color: #008000;">如果浏览器不支持删除DOM元素上的扩展属性，则调用removeAttribute删除属性</span>
+<span style="color: #000000;">                    elem.removeAttribute( jQuery.expando );
+                }
+
+                </span><span style="color: #0000ff;">delete</span> cache[ id ];                                                     <span style="color: #008000;">//</span><span style="color: #008000;">删除DOM元素的数据缓存对象cache[id]</span>
+<span style="color: #000000;">            }
+        }
+    }
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">略</span><span style="color: #008000;">*/</span><span style="color: #000000;">
+})</span></pre>
+</div>
+<p><span style="color: #ff0000;">注1:jQuery绑定的事件对应的信息都存在$.cache里，键名是对应DOM对象的jQuery.expando,也就是这里的elem[ jQuery.expando ]，有疑问可以看看之前事件的讲解:https://www.cnblogs.com/greatdesert/p/11679334.html</span></p>
+<p>cleanData就是删除参数elems里所有DOM元素的事件，本节的empty()和remove()都是基于cleanData实现的，empty()实现如下:</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">jQuery.fn.extend({
+    empty: </span><span style="color: #0000ff;">function</span>() {                                     <span style="color: #008000;">//</span><span style="color: #008000;">从文档中移除匹配元素的所有子元素。</span>
+        <span style="color: #0000ff;">for</span> ( <span style="color: #0000ff;">var</span> i = 0, elem; (elem = <span style="color: #0000ff;">this</span>[i]) != <span style="color: #0000ff;">null</span>; i++ ) {            <span style="color: #008000;">//</span><span style="color: #008000;">遍历当前匹配的每个元素</span>
+            <span style="color: #008000;">//</span><span style="color: #008000;"> Remove element nodes and prevent memory leaks</span>
+            <span style="color: #0000ff;">if</span> ( elem.nodeType === 1<span style="color: #000000;"> ) {
+                jQuery.cleanData( elem.getElementsByTagName(</span>"*") );                <span style="color: #008000;">//</span><span style="color: #008000;">//先移除所有后代元素关联的数据和事件，以避免内存泄漏</span>
+<span style="color: #000000;">            }     
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> Remove any remaining nodes</span>
+            <span style="color: #0000ff;">while</span> ( elem.firstChild ) {                                     <span style="color: #008000;">//</span><span style="color: #008000;">然后移除子元素。</span>
+<span style="color: #000000;">                elem.removeChild( elem.firstChild );
+            }
+        }
+
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+    },
+})</span></pre>
+</div>
+<p>empty()内首先调用<span style="color: #000000;">cleanData</span>()移除所有子孙节点的数据和事件，然后通过一个while()循环卸载掉每个DOM节点，比较好理解哈，对于remove()来说，实现如下:</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">jQuery.fn.extend({
+    remove: </span><span style="color: #0000ff;">function</span>( selector, keepData ) {             <span style="color: #008000;">//</span><span style="color: #008000;">从匹配元素中移除selector元素，该方法会遍历匹配元素集合，先删除后代元素和匹配元素的数据和事件，以避免内存泄漏，然后移除匹配元素。</span>
+        <span style="color: #0000ff;">for</span> ( <span style="color: #0000ff;">var</span> i = 0, elem; (elem = <span style="color: #0000ff;">this</span>[i]) != <span style="color: #0000ff;">null</span>; i++ ) {                 <span style="color: #008000;">//</span><span style="color: #008000;">遍历当前匹配元素</span>
+            <span style="color: #0000ff;">if</span> ( !selector || jQuery.filter( selector, [ elem ] ).length ) {        <span style="color: #008000;">//</span><span style="color: #008000;">如果没有传入selector参数，或者传入了selector参数，并且当前元素与之匹配</span>
+                <span style="color: #0000ff;">if</span> ( !keepData &amp;&amp; elem.nodeType === 1 ) {                                <span style="color: #008000;">//</span><span style="color: #008000;">如果没有传入keepData参数且elem是元素节点</span>
+                    jQuery.cleanData( elem.getElementsByTagName("*") );                        <span style="color: #008000;">//</span><span style="color: #008000;">移除后代元素的全部数据和事件</span>
+                    jQuery.cleanData( [ elem ] );                                            <span style="color: #008000;">//</span><span style="color: #008000;">移除元素节点。</span>
+<span style="color: #000000;">                }
+
+                </span><span style="color: #0000ff;">if</span> ( elem.parentNode ) {                                                <span style="color: #008000;">//</span><span style="color: #008000;">调用原生方法removeChild()移除节点。</span>
+<span style="color: #000000;">                    elem.parentNode.removeChild( elem );
+                }
+            }
+        }
+
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+    },
+    detach: </span><span style="color: #0000ff;">function</span><span style="color: #000000;">( selector ) {
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span>.remove( selector, <span style="color: #0000ff;">true</span> );            <span style="color: #008000;">//</span><span style="color: #008000;">调用remove()来实现的，参数2传入了true</span>
+<span style="color: #000000;">    },
+})</span></pre>
+</div>
+<p>remove()方法会根据selector来选择匹配元素，并将该匹配元素从DOM树中卸载，如果有传入keepData则保存数据，否则将数据删除，对于detach来说，就是调用remove()来实现的</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,162 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C# 操作本地用户和组（基本全功能）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C# 操作本地用户和组（基本全功能）</center></div><div class='banquan'>原文出处:本文由博客园博主未闻&#183;Yokeqi提供。<br/>
+原文连接:https://www.cnblogs.com/yokeqi/p/11013844.html</div><br>
+    <p>今天学习了下怎么用.Net操作本地用户和组，因为目前网上还没看到一篇比较完整的文章，所以整理了下也分享出来，最后附带参考文档，方便深究的童鞋继续学习。<br /><strong>==========&nbsp;&nbsp;<a href="https://www.cnblogs.com/yokeqi/p/11013844.html" target="_blank"><strong>原创作品</strong><strong><strong>&nbsp; &nbsp;&nbsp;</strong></strong>作者：Yokeqi&nbsp; &nbsp; 出处：博客园</a>&nbsp; ==========</strong></p>
+<p><strong>这里两个思路，一个是利用WindowsApi进行操作，另一个则是用.net封装好的DirectoryEntry类。</strong></p>
+<p>这里只为快速实现，不求技术高深，所以采用DirectoryEntry是最好的，也容易理解和上手。最后附带相关的文章链接，方面要深究的童鞋慢慢研究。</p>
+<p><strong>一、知识点简单介绍</strong></p>
+<p>1. 初始化DirectoryEntry类，传入域节点，以本机为例：string PATH_LOCAL_MACHINE =&nbsp;"WinNT://" + Environment.MachineName;</p>
+<div class="cnblogs_code">
+<pre><code>DirectoryEntry dir = <span style="color: #0000ff;">new</span> DirectoryEntry(PATH_LOCAL_MACHINE)</pre>
+</div>
+<p>2.&nbsp;DirectoryEntry类拥有Children属性，可以通过Children属性获取本机所有用户、组、和服务等对象，并且这里类似于树形结构，父子节点的类型都是DirectoryEntry，理解这一点后面用起来就简单很多。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">using</span> (DirectoryEntry dir = <span style="color: #0000ff;">new</span><span style="color: #000000;"> DirectoryEntry(_machinePath))
+{
+    </span><span style="color: #0000ff;">foreach</span> (DirectoryEntry chd <span style="color: #0000ff;">in</span><span style="color: #000000;"> dir.Children)
+    {
+    }
+}</span></pre>
+</div>
+<p>3. 通过向DirectoryEntry类的Children属性Add或Remove对象，实现添加和删除功能。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">using</span> (DirectoryEntry dir = <span style="color: #0000ff;">new</span><span style="color: #000000;"> DirectoryEntry(_machinePath))
+{
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">增加用户</span>
+    <span style="color: #0000ff;">using</span> (DirectoryEntry user = dir.Children.Add(name, <span style="color: #800000;">"</span><span style="color: #800000;">User</span><span style="color: #800000;">"</span><span style="color: #000000;">))
+    {
+    }
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 删除用户</span>
+<span style="color: #000000;">    dir.Children.Remove(name);
+}</span></pre>
+</div>
+<p>4. 对DirectoryEntry类的每次修改最后要调用CommitChanges()方法才能提交生效，有点EF的感觉。</p>
+<p>5. 最难的一点是设置各类属性，使用到了Invoke方法和Properties属性，那Properties属性还好，通过调试可以知道都有哪些属性，但是可不是什么都可以通过Properties属性来进行设置，而Invoke可就头疼了，要自己传入方法名，但是有哪些方法可以供调用，找了下也没有个全面的参考手册，这里目前我也还一知半解，最后参考文档中列出一份，有想法的童鞋可以学习。</p>
+<p><strong>二、具体实例演示如何使用DirectoryEntry类来添加、修改、删除、查询用户和组。</strong></p>
+<p>1. 添加用户</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('a5eace09-26ab-4607-b2c1-945f58963b6e')"><img id="code_img_closed_a5eace09-26ab-4607-b2c1-945f58963b6e" class="code_img_closed" src="./images/C# 操作本地用户和组（基本全功能）0.png" alt="" /><img id="code_img_opened_a5eace09-26ab-4607-b2c1-945f58963b6e" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('a5eace09-26ab-4607-b2c1-945f58963b6e',event)" src="./images/C# 操作本地用户和组（基本全功能）1.png" alt="" />
+<div id="cnblogs_code_open_a5eace09-26ab-4607-b2c1-945f58963b6e" class="cnblogs_code_hide">
+<pre><code><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #808080;">///</span><span style="color: #008000;"> 新增用户
+</span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="name"&gt;</span><span style="color: #008000;">用户名</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="password"&gt;</span><span style="color: #008000;">密码</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="groupName"&gt;</span><span style="color: #008000;">组</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="description"&gt;</span><span style="color: #008000;">描述</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> AddUser(<span style="color: #0000ff;">string</span> name, <span style="color: #0000ff;">string</span> password, <span style="color: #0000ff;">string</span> groupName, <span style="color: #0000ff;">string</span><span style="color: #000000;"> description)
+{
+    </span><span style="color: #0000ff;">using</span> (DirectoryEntry dir = <span style="color: #0000ff;">new</span><span style="color: #000000;"> DirectoryEntry(_machinePath))
+    {
+        </span><span style="color: #0000ff;">using</span> (DirectoryEntry user = dir.Children.Add(name, <span style="color: #800000;">"</span><span style="color: #800000;">User</span><span style="color: #800000;">"</span>)) <span style="color: #008000;">//</span><span style="color: #008000;">增加用户名</span>
+<span style="color: #000000;">        {
+            user.Properties[</span><span style="color: #800000;">"</span><span style="color: #800000;">FullName</span><span style="color: #800000;">"</span>].Add(name); <span style="color: #008000;">//</span><span style="color: #008000;">用户全称</span>
+            user.Invoke(<span style="color: #800000;">"</span><span style="color: #800000;">SetPassword</span><span style="color: #800000;">"</span>, password); <span style="color: #008000;">//</span><span style="color: #008000;">用户密码</span>
+            user.Invoke(<span style="color: #800000;">"</span><span style="color: #800000;">Put</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">Description</span><span style="color: #800000;">"</span>, description);<span style="color: #008000;">//</span><span style="color: #008000;">用户详细描述
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">user.Invoke("Put","PasswordExpired",1); </span><span style="color: #008000;">//</span><span style="color: #008000;">用户下次登录需更改密码</span>
+            user.Invoke(<span style="color: #800000;">"</span><span style="color: #800000;">Put</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">UserFlags</span><span style="color: #800000;">"</span>, <span style="color: #800080;">66049</span>); <span style="color: #008000;">//</span><span style="color: #008000;">密码永不过期
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">user.Invoke("Put", "UserFlags", 0x0040);</span><span style="color: #008000;">//</span><span style="color: #008000;">用户不能更改密码s</span>
+            user.CommitChanges();<span style="color: #008000;">//</span><span style="color: #008000;">保存用户</span>
+            <span style="color: #0000ff;">using</span> (DirectoryEntry grp = dir.Children.Find(groupName, <span style="color: #800000;">"</span><span style="color: #800000;">group</span><span style="color: #800000;">"</span><span style="color: #000000;">))
+            {
+                </span><span style="color: #0000ff;">if</span> (grp.Name != <span style="color: #800000;">""</span><span style="color: #000000;">)
+                {
+                    grp.Invoke(</span><span style="color: #800000;">"</span><span style="color: #800000;">Add</span><span style="color: #800000;">"</span>, user.Path.ToString());<span style="color: #008000;">//</span><span style="color: #008000;">将用户添加到某组</span>
+<span style="color: #000000;">                }
+            }
+        }
+    }
+}
+
+</span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #808080;">///</span><span style="color: #008000;"> 添加windows用户组
+</span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="groupName"&gt;</span><span style="color: #008000;">组名称</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="description"&gt;</span><span style="color: #008000;">描述</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> AddGroup(<span style="color: #0000ff;">string</span> groupName, <span style="color: #0000ff;">string</span><span style="color: #000000;"> description)
+{
+    </span><span style="color: #0000ff;">using</span> (DirectoryEntry dir = <span style="color: #0000ff;">new</span><span style="color: #000000;"> DirectoryEntry(_machinePath))
+    {
+        </span><span style="color: #0000ff;">using</span> (DirectoryEntry group = dir.Children.Add(groupName, <span style="color: #800000;">"</span><span style="color: #800000;">group</span><span style="color: #800000;">"</span><span style="color: #000000;">))
+        {
+            group.Invoke(</span><span style="color: #800000;">"</span><span style="color: #800000;">Put</span><span style="color: #800000;">"</span>, <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">object</span>[] { <span style="color: #800000;">"</span><span style="color: #800000;">Description</span><span style="color: #800000;">"</span><span style="color: #000000;">, description });
+            group.CommitChanges();
+        }
+    }
+}</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>2. 查询并修改用户信息</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('c7e3ebbf-a0ec-4dac-a1a3-a48299ab2a86')"><img id="code_img_closed_c7e3ebbf-a0ec-4dac-a1a3-a48299ab2a86" class="code_img_closed" src="./images/C# 操作本地用户和组（基本全功能）0.png" alt="" /><img id="code_img_opened_c7e3ebbf-a0ec-4dac-a1a3-a48299ab2a86" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('c7e3ebbf-a0ec-4dac-a1a3-a48299ab2a86',event)" src="./images/C# 操作本地用户和组（基本全功能）1.png" alt="" />
+<div id="cnblogs_code_open_c7e3ebbf-a0ec-4dac-a1a3-a48299ab2a86" class="cnblogs_code_hide">
+<pre><code><span style="color: #0000ff;">using</span> (DirectoryEntry dir = <span style="color: #0000ff;">new</span><span style="color: #000000;"> DirectoryEntry(PATH_LOCAL_MACHINE))
+{
+    </span><span style="color: #0000ff;">var</span> user =<span style="color: #000000;"> dir.Children.Find(name);
+    user.Invoke(</span><span style="color: #800000;">"</span><span style="color: #800000;">FullName</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">全名</span><span style="color: #800000;">"</span>);<span style="color: #008000;">//</span><span style="color: #008000;"> 修改全名</span>
+    user.Invoke(<span style="color: #800000;">"</span><span style="color: #800000;">AccountDisabled</span><span style="color: #800000;">"</span>, <span style="color: #0000ff;">true</span>);<span style="color: #008000;">//</span><span style="color: #008000;"> 是否启用</span>
+    user.Invoke(<span style="color: #800000;">"</span><span style="color: #800000;">SetPassword</span><span style="color: #800000;">"</span>, <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">object</span>[] { <span style="color: #800000;">"</span><span style="color: #800000;">123456</span><span style="color: #800000;">"</span> });<span style="color: #008000;">//</span><span style="color: #008000;"> 修改密码</span>
+    user.Invoke(<span style="color: #800000;">"</span><span style="color: #800000;">Put</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">UserFlags</span><span style="color: #800000;">"</span>, <span style="color: #800080;">66049</span>); <span style="color: #008000;">//</span><span style="color: #008000;">密码永不过期
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">user.Invoke("Put","PasswordExpired",1); </span><span style="color: #008000;">//</span><span style="color: #008000;">用户下次登录需更改密码
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">user.Invoke("Put", "UserFlags", 0x0040);</span><span style="color: #008000;">//</span><span style="color: #008000;">用户不能更改密码</span>
+    user.Invoke(<span style="color: #800000;">"</span><span style="color: #800000;">Put</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">Description</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">这是描述</span><span style="color: #800000;">"</span>);<span style="color: #008000;">//</span><span style="color: #008000;">用户详细描述</span>
+    user.Rename(newName);<span style="color: #008000;">//</span><span style="color: #008000;"> 重命名</span>
+<span style="color: #000000;">
+    user.CommitChanges();</span><span style="color: #008000;">//</span><span style="color: #008000;"> 更改后提交才能生效</span>
+}</pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>3. 删除用户</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('885daa3f-51a0-4a0b-a648-1f5518fce7b1')"><img id="code_img_closed_885daa3f-51a0-4a0b-a648-1f5518fce7b1" class="code_img_closed" src="./images/C# 操作本地用户和组（基本全功能）0.png" alt="" /><img id="code_img_opened_885daa3f-51a0-4a0b-a648-1f5518fce7b1" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('885daa3f-51a0-4a0b-a648-1f5518fce7b1',event)" src="./images/C# 操作本地用户和组（基本全功能）1.png" alt="" />
+<div id="cnblogs_code_open_885daa3f-51a0-4a0b-a648-1f5518fce7b1" class="cnblogs_code_hide">
+<pre><code><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #808080;">///</span><span style="color: #008000;"> 用户重命名
+</span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="oldName"&gt;&lt;/param&gt;</span>
+<span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="newName"&gt;&lt;/param&gt;</span>
+<span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> RenameUser(<span style="color: #0000ff;">string</span> oldName, <span style="color: #0000ff;">string</span><span style="color: #000000;"> newName)
+{
+    </span><span style="color: #0000ff;">using</span> (<span style="color: #0000ff;">var</span> user =<span style="color: #000000;"> FindUserOrGroup(oldName))
+    {
+        user.Rename(newName);
+    }
+}</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p><strong>三、参考文档</strong></p>
+<ul>
+<li><strong><a title="IAds-User" href="https://docs.microsoft.com/zh-cn/windows/desktop/api/iads/nn-iads-iadsuser" target="_blank">IADs-User</a><br /></strong></li>
+<li><a title="IAds-Group" href="https://docs.microsoft.com/zh-cn/windows/desktop/api/Iads/nf-iads-iadsuser-groups" target="_blank"><strong>IADs-Group</strong></a></li>
+<li><a title="DirectoryEntry Class" href="https://docs.microsoft.com/zh-cn/dotnet/api/system.directoryservices.directoryentry?view=netframework-4.5" target="_blank"><strong>DirectoryEntry</strong></a></li>
+<li><a href="https://blog.csdn.net/gahetgidt/article/details/6151828" target="_blank"><strong>博客-添加、删除、修改windows用户和组</strong></a></li>
+<li><a href="https://max.book118.com/html/2018/0414/161577305.shtm" target="_blank"><strong>《Windows 2000活动目录开发人员参考库（第4卷）ADSI参考手册》</strong></a></li>
+
+
+
+
+
+
+
+
+</ul>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

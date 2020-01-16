@@ -1,0 +1,328 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C#线程学习笔记四：线程同步' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C#线程学习笔记四：线程同步</center></div><div class='banquan'>原文出处:本文由博客园博主缥缈的尘埃提供。<br/>
+原文连接:https://www.cnblogs.com/atomy/p/11989485.html</div><br>
+    <p>&nbsp; &nbsp; 本笔记摘抄自：<a href="https://www.cnblogs.com/zhili/archive/2012/07/21/ThreadsSynchronous.html">https://www.cnblogs.com/zhili/archive/2012/07/21/ThreadsSynchronous.html</a>，记录一下学习过程以备后续查用。</p>
+<p><strong>&nbsp; &nbsp; 一、线程同步概述</strong></p>
+<p>&nbsp; &nbsp; 创建多线程来实现让我们能够更好地响应应用程序，然而当我们创建了多个线程时，就存在多个线程同时访问一个共享资源的情况。此时，我们就需要用到线程同步。线程同</p>
+<p>步可以防止数据（共享资源）的损坏。</p>
+<p>&nbsp; &nbsp; 一般来说，设计应用程序应尽量避免使用线程同步， 因为线程同步会产生一些问题：</p>
+<p>&nbsp; &nbsp; 1.1、它的使用比较繁琐。我们需要用额外的代码，把多个线程同时访问的数据包围起来，并获取和释放一个线程同步锁。如果有一个代码块忘记获取锁，就有可能造成数据损坏。</p>
+<p>&nbsp; &nbsp; 1.2、使用线程同步会影响性能。</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; 1.2.1、获取和释放一个锁是需要时间的，我们在决定哪个线程先获取锁的时候，CPU要进行协调，这些额外的工作就会对性能造成影响。</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; 1.2.2、线程同步一次只允许一个线程访问资源，这样就会阻塞线程，而阻塞线程会造成更多的线程被创建。这样CPU就有可能要调度更多的线程，从而对性能造成影响。&nbsp;</p>
+<p><strong>&nbsp; &nbsp; 二、线程同步使用</strong></p>
+<p><strong>&nbsp; &nbsp; 2.1 使用锁对性能的影响</strong></p>
+<p>&nbsp; &nbsp; 1.2.1描述过使用锁会对性能产生影响，下面通过比较使用锁和不使用锁消耗的时间来说明这点：</p>
+<div class="cnblogs_code">
+<pre><code>    <span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            </span><span style="color: #0000ff;">#region</span> 线程同步：使用与不使用锁的耗时对比
+            <span style="color: #0000ff;">int</span> x = <span style="color: #800080;">0</span><span style="color: #000000;">;
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">迭代500万次</span>
+            <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">int</span> iterationNumber = <span style="color: #800080;">5000000</span><span style="color: #000000;">;
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">不使用锁</span>
+            Stopwatch sw =<span style="color: #000000;"> Stopwatch.StartNew();
+            </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; iterationNumber; i++<span style="color: #000000;">)
+            {
+                x</span>++<span style="color: #000000;">;
+            }
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Total time consuming is:{0}ms.</span><span style="color: #800000;">"</span><span style="color: #000000;">, sw.ElapsedMilliseconds);
+
+            sw.Restart();
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">使用锁</span>
+            <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; iterationNumber; i++<span style="color: #000000;">)
+            {
+                Interlocked.Increment(</span><span style="color: #0000ff;">ref</span><span style="color: #000000;"> x);
+            }
+
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Total time consuming is:{0}ms.</span><span style="color: #800000;">"</span><span style="color: #000000;">, sw.ElapsedMilliseconds);
+            Console.Read();
+            </span><span style="color: #0000ff;">#endregion</span><span style="color: #000000;">
+        }
+    }</span></pre>
+</div>
+<p>&nbsp; &nbsp; 运行结果如下：</p>
+<p><img src="./images/C#线程学习笔记四：线程同步0.png" alt="" /></p>
+<p><strong>&nbsp; &nbsp; 2.2 Interlocked实现线程同步</strong></p>
+<p>&nbsp; &nbsp; Interlocked<span class="sentence SentenceHover" data-source="Provides atomic operations for variables that are shared by multiple threads. " data-guid="26dfc4df688b224eab6c0f1c344b3ac4">为多个线程共享变量提供了原子操作，当我们在多线程中对一个整数进行递增操作时，就需要实现线程同步。</span></p>
+<p>&nbsp; &nbsp; 下面代码演示加锁与不加锁的区别：</p>
+<p>&nbsp; &nbsp; 不加锁：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">    class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">共享资源</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">int</span> number = <span style="color: #800080;">0</span><span style="color: #000000;">;
+
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            </span><span style="color: #0000ff;">#region</span> 线程同步：使用Interlocked实现线程同步
+            <span style="color: #008000;">//</span><span style="color: #008000;">不加锁</span>
+            <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; <span style="color: #800080;">10</span>; i++<span style="color: #000000;">)
+            {
+                Thread thread </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Thread(Add);
+                thread.Start();
+            }
+            Console.Read();
+            </span><span style="color: #0000ff;">#endregion</span><span style="color: #000000;">
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 递增不加锁
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> Add()
+        {
+            Thread.Sleep(</span><span style="color: #800080;">1000</span><span style="color: #000000;">);
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">The current value of number is:{0}</span><span style="color: #800000;">"</span>, ++<span style="color: #000000;">number);
+        }
+    }</span></pre>
+</div>
+<p>&nbsp; &nbsp; 运行结果如下：</p>
+<p><img src="./images/C#线程学习笔记四：线程同步1.png" alt="" /></p>
+<p>&nbsp; &nbsp; 结果与预期可能不太一样。为了解决这样的问题，我们可以通过使用&nbsp;<strong>Interlocked.Increment</strong>方法来实现自增操作。</p>
+<p>&nbsp; &nbsp; 实现原理：类似银行叫号，当有空号且号码是自己的，才能去办理相关的业务，否则继续等待。</p>
+<p>&nbsp; &nbsp; 加锁：</p>
+<div class="cnblogs_code">
+<pre><code>    <span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">共享资源</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">int</span> number = <span style="color: #800080;">0</span><span style="color: #000000;">;
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">long</span> signal = <span style="color: #800080;">0</span><span style="color: #000000;">;
+
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            </span><span style="color: #0000ff;">#region</span> 线程同步：使用Interlocked实现线程同步
+            <span style="color: #008000;">//</span><span style="color: #008000;">加锁</span>
+            <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; <span style="color: #800080;">10</span>; i++<span style="color: #000000;">)
+            {
+                Thread thread </span>= <span style="color: #0000ff;">new</span> Thread(<span style="color: #0000ff;">new</span><span style="color: #000000;"> ParameterizedThreadStart(AddWithInterlocked));
+                thread.Start(i);
+            }
+            Console.Read();
+            </span><span style="color: #0000ff;">#endregion</span><span style="color: #000000;">
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 递增加Interlocked锁
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> AddWithInterlocked(<span style="color: #0000ff;">object</span><span style="color: #000000;"> parameter)
+        {
+            </span><span style="color: #0000ff;">while</span> (Interlocked.Read(<span style="color: #0000ff;">ref</span> signal) != <span style="color: #800080;">0</span> || (<span style="color: #0000ff;">int</span>)parameter !=<span style="color: #000000;"> number)
+            {
+                Thread.Sleep(</span><span style="color: #800080;">100</span><span style="color: #000000;">);
+            }
+
+            Interlocked.Increment(</span><span style="color: #0000ff;">ref</span><span style="color: #000000;"> signal);
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">The current value of number is:{0}</span><span style="color: #800000;">"</span>, ++<span style="color: #000000;">number);
+            Interlocked.Decrement(</span><span style="color: #0000ff;">ref</span><span style="color: #000000;"> signal);
+        }
+    }</span></pre>
+</div>
+<p>&nbsp; &nbsp; 运行结果如下：</p>
+<p><img src="./images/C#线程学习笔记四：线程同步2.png" alt="" /></p>
+<p>&nbsp; &nbsp;&nbsp;<strong>2.3 Monitor实现线程同步</strong></p>
+<p>&nbsp; &nbsp; 对于上面那个情况，也可以通过Monitor.Enter和Monitor.Exit方法来实现线程同步。</p>
+<p>&nbsp; &nbsp; C#中通过lock关键字来提供简化的语法(lock可以理解为Monitor.Enter和Monitor.Exit方法的语法糖)。</p>
+<div class="cnblogs_code">
+<pre><code>    <span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">共享资源</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">int</span> number = <span style="color: #800080;">0</span><span style="color: #000000;">;
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">readonly</span> <span style="color: #0000ff;">object</span> addLock = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">object</span><span style="color: #000000;">();
+
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            </span><span style="color: #0000ff;">#region</span> 线程同步：使用Monitor实现线程同步
+            <span style="color: #008000;">//</span><span style="color: #008000;">非语法糖</span>
+            <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; <span style="color: #800080;">10</span>; i++<span style="color: #000000;">)
+            {
+                Thread thread </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Thread(AddWithMonitor);
+                thread.Start();
+            }
+            Console.Read();
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">语法糖
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">for (int i = 0; i &lt; 10; i++)
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">{
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">    Thread thread = new Thread(AddWithLock);
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">    thread.Start();
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">}
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">Console.Read();</span>
+            <span style="color: #0000ff;">#endregion</span><span style="color: #000000;">
+        }
+        
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 递增加Monitor锁
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> AddWithMonitor()
+        {
+            Thread.Sleep(</span><span style="color: #800080;">100</span><span style="color: #000000;">);
+            Monitor.Enter(addLock);
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">The current value of number is:{0}</span><span style="color: #800000;">"</span>, ++<span style="color: #000000;">number);
+            Monitor.Exit(addLock);
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 递增加Lock锁
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> AddWithLock()
+        {
+            Thread.Sleep(</span><span style="color: #800080;">100</span><span style="color: #000000;">);
+            </span><span style="color: #0000ff;">lock</span><span style="color: #000000;"> (addLock)
+            {
+                Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">The current value of number is:{0}</span><span style="color: #800000;">"</span>, ++<span style="color: #000000;">number);
+            }
+        }
+    }</span></pre>
+</div>
+<p>&nbsp; &nbsp; 运行结果如下：</p>
+<p><img src="./images/C#线程学习笔记四：线程同步3.png" alt="" /></p>
+<p>&nbsp; &nbsp; 接上面的addLock锁(以下描述为obj锁)，顺便学习一下Monitor类的原理：</p>
+<p>&nbsp; &nbsp; Monitor在锁对象obj上会维持<strong>两个线程队列R和W</strong>以及<strong>一个引用T ：</strong></p>
+<p>&nbsp; &nbsp; (1)T是对当前获得了obj锁的<strong>线程的引用</strong>。</p>
+<p>&nbsp; &nbsp; (2) R为<strong>就绪队列。</strong></p>
+<p>　R队列上的线程，是已经准备好了去竞争获取obj锁的线程。&nbsp; &nbsp;&nbsp;</p>
+<p>&nbsp; &nbsp; 线程可通过调用Monitor.Enter(obj)或Monitor.TryEnter(obj)而直接进入R队列，可通过调用Monitor.Exit(obj)或Monitor.Wait(obj)释放其所获得的obj锁。</p>
+<p>&nbsp; &nbsp; 当obj锁被某个线程释放后，这个队列上的线程就会去竞争obj锁，而获得obj锁的线程将被<strong>T</strong>引用。</p>
+<p>&nbsp; &nbsp; (3) W为<strong>等待队列。</strong></p>
+<p><strong>&nbsp; &nbsp;&nbsp;</strong>W队列上的线程，是不会被OS直接调度执行的线程。也就是说，等待队列上的线程不能去获得obj锁。</p>
+<p>&nbsp; &nbsp; 线程可通过调用Monitor.Wait(obj)而直接进入W队列，可通过调用Monitor.Pulse(obj)或Monitor.PulseAll(obj)将W队列中的第一个等待线程或所有等待线程<strong>移至</strong><strong>R队列</strong>，</p>
+<p>这时被移至R队列的这些线程就有机会被OS直接调度执行，也就是可以去竞争obj锁。</p>
+<p>&nbsp; &nbsp; (4)Monitor的成员方法。</p>
+<p><strong>&nbsp; &nbsp; Monitor.Enter(obj)/Monitor.TryEnter(obj) ：</strong>线程会进入R队列以等待获取obj锁</p>
+<p><strong>&nbsp; &nbsp; Monitor.Exit(obj) ：</strong>线程释放obj锁（只有获取了obj锁的线程才能执行Monitor.Exit(obj)）</p>
+<p><strong>&nbsp; &nbsp; Monitor.Wait(obj)：&nbsp;</strong>线程释放当前获得的obj锁，然后进入W队列并阻塞。</p>
+<p><strong>&nbsp; &nbsp; Monitor.Pulse(obj) ：</strong>将W队列中的第一个等待线程移至R队列中以使第一个线程有机会获取obj锁。</p>
+<p><strong>&nbsp; &nbsp; Monitor.PulseAll(obj)：</strong>将W队列中的所有等待线程移至R队列以使得这些线程有机会获得obj锁。</p>
+<p>&nbsp; &nbsp; 下面代码演示Monitor.Wait及Monitor.Pulse的使用：</p>
+<div class="cnblogs_code">
+<pre><code>    <span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">共享资源</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">readonly</span> <span style="color: #0000ff;">object</span> addLock = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">object</span><span style="color: #000000;">();
+
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            </span><span style="color: #0000ff;">#region</span> 线程同步：Monitor.Wait与Monitor.Pulse的使用
+            <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; <span style="color: #800080;">10</span>; i++<span style="color: #000000;">)
+            {
+                Thread thread </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Thread(MonitorWaitAndPulse);
+                thread.Start();
+            }
+            Console.Read();
+            </span><span style="color: #0000ff;">#endregion</span><span style="color: #000000;">
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> Monitor中的Wait与Pulse方法
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> MonitorWaitAndPulse()
+        {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">进入就绪队列等待获取锁资源</span>
+<span style="color: #000000;">            Monitor.Enter(addLock);
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">进来打声招呼</span>
+            Console.WriteLine(<span style="color: #800000;">"</span><span style="color: #800000;">{0}：我来了，临时要出去办一下事。</span><span style="color: #800000;">"</span><span style="color: #000000;">, Thread.CurrentThread.ManagedThreadId);
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">唤醒等待队列中的第一个线程进入就绪队列</span>
+<span style="color: #000000;">            Monitor.Pulse(addLock);
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">暂时释放锁资源进入等待队列</span>
+<span style="color: #000000;">            Monitor.Wait(addLock);
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">出去办事</span>
+            Thread.Sleep(<span style="color: #800080;">1000</span><span style="color: #000000;">);
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">回来打声招呼</span>
+            Console.WriteLine(<span style="color: #800000;">"</span><span style="color: #800000;">{0}：我回来了。</span><span style="color: #800000;">"</span><span style="color: #000000;">, Thread.CurrentThread.ManagedThreadId);
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">释放锁资源</span>
+<span style="color: #000000;">            Monitor.Exit(addLock);
+        }
+    }</span></pre>
+</div>
+<p>&nbsp; &nbsp; 运行结果如下：</p>
+<p><img src="./images/C#线程学习笔记四：线程同步4.png" alt="" /></p>
+<p><strong>&nbsp; &nbsp; 2.4 ReaderWriterLock实现线程同步</strong></p>
+<p>&nbsp; &nbsp; 如果我们需要对一个共享资源执行多次读取时，用前面所讲的类实现的同步锁都仅允许一个线程进行访问，而其它线程将被阻塞。由于只是进行读取操作，其实是没有必要</p>
+<p>堵塞其他的线程， 应该让它们并发的执行。</p>
+<p>&nbsp; &nbsp; 此时，可通过ReaderWriterLock类来实现并行读取。</p>
+<div class="cnblogs_code">
+<pre><code>    <span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">创建对象</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> List&lt;<span style="color: #0000ff;">int</span>&gt; lists = <span style="color: #0000ff;">new</span> List&lt;<span style="color: #0000ff;">int</span>&gt;<span style="color: #000000;">();
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> ReaderWriterLock readerWriteLock = <span style="color: #0000ff;">new</span><span style="color: #000000;"> ReaderWriterLock();
+
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            </span><span style="color: #0000ff;">#region</span> 线程同步：使用ReaderWriterLock实现线程同步
+            <span style="color: #008000;">//</span><span style="color: #008000;">创建一个线程读取数据</span>
+            Thread threadWrite = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Thread(Write);
+            threadWrite.Start();
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">创建10个线程读取数据</span>
+            <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; <span style="color: #800080;">10</span>; i++<span style="color: #000000;">)
+            {
+                Thread threadRead </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Thread(Read);
+                threadRead.Start();
+            }
+
+            Console.Read();
+            </span><span style="color: #0000ff;">#endregion</span><span style="color: #000000;">
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 写入方法
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> Write()
+        {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">获取写入锁，以10毫秒为超时。</span>
+            readerWriteLock.AcquireWriterLock(<span style="color: #800080;">10</span><span style="color: #000000;">);
+            Random ran </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Random();
+            </span><span style="color: #0000ff;">int</span> count = ran.Next(<span style="color: #800080;">1</span>, <span style="color: #800080;">10</span><span style="color: #000000;">);
+            lists.Add(count);
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Write the data is:</span><span style="color: #800000;">"</span> +<span style="color: #000000;"> count);
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">释放写入锁</span>
+<span style="color: #000000;">            readerWriteLock.ReleaseWriterLock();
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 读取方法
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> Read()
+        {
+            Thread.Sleep(</span><span style="color: #800080;">100</span><span style="color: #000000;">);
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">获取读取锁</span>
+            readerWriteLock.AcquireReaderLock(<span style="color: #800080;">10</span><span style="color: #000000;">);
+
+            </span><span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">int</span> list <span style="color: #0000ff;">in</span><span style="color: #000000;"> lists)
+            {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">输出读取的数据</span>
+<span style="color: #000000;">                Console.WriteLine(list);
+            }
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> 释放读取锁</span>
+<span style="color: #000000;">            readerWriteLock.ReleaseReaderLock();
+        }
+    }</span></pre>
+</div>
+<p>&nbsp; &nbsp; 运行结果如下：</p>
+<p><img src="./images/C#线程学习笔记四：线程同步5.png" alt="" /></p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

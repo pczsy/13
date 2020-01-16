@@ -1,0 +1,171 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C#项目 App.config 配置文件不同使用环境配置' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C#项目 App.config 配置文件不同使用环境配置</center></div><div class='banquan'>原文出处:本文由博客园博主Innershar提供。<br/>
+原文连接:https://www.cnblogs.com/innershare/p/10912665.html</div><br>
+    <h2 id="u95EE_u9898">问题</h2>
+<p>部署项目时，常常需要根据不同的环境使用不同的配置文件。例如，在部署网站时可能希望禁用调试选项，并更改连接字符串以使其指向不同的数据库。在创建 Web 项目时，Visual Studio 自动生成了&nbsp;<code>Web.config</code>、<code>Web.Debug.config</code>、<code>Web.release.config</code>这3个不同的配置文件，并提供了转换工具，用于在部署项目时自动转换配置文件内容。具体可以参考这2篇文章：<a title="如何：在部署 Web 应用程序项目时转换 Web.config" href="http://t.cn/RbripOQ" rel="external" target="_blank">如何：在部署 Web 应用程序项目时转换 Web.config</a>&nbsp;和&nbsp;<a title="用于 Web 应用程序项目部署的 Web.config 转换语法" href="http://t.cn/Rbri0Ym" rel="external" target="_blank">用于 Web 应用程序项目部署的 Web.config 转换语法</a>&nbsp;。</p>
+<p>然而在其他项目类型中（如控制台应用程序、Windows 服务），并没有现成的配置文件的转换功能。</p>
+<p>&nbsp;</p>
+<ol>
+<li>
+<p>我们在项目中添加&nbsp;<code>App.config</code>、<code>App.Debug.config</code>、<code>App.Release.config</code>&nbsp;这3个配置文件。</p>
+</li>
+<li>
+<p>打开项目所在目录，用记事本或其他文本编辑器打开&nbsp;<code>.csproj</code>&nbsp;文件。</p>
+</li>
+<li>
+<p>在&nbsp;<code>PropertyGroup</code>&nbsp;标签下添加如下内容：</p>
+<div class="cnblogs_code">
+<pre><code>&lt;PropertyGroup&gt;
+  &lt;ProjectConfigFileName&gt;App.config&lt;/ProjectConfigFileName&gt;
+&lt;/PropertyGroup&gt;</pre>
+</div>
+</li>
+</ol>
+<p>4.在&nbsp;<code>ItemGroup</code>&nbsp;标签中找到和&nbsp;<code>App.config</code>、<code>App.Debug.config</code>、<code>App.Release.config</code>&nbsp;相关的项目，替换为</p>
+<div class="cnblogs_code">
+<pre><code>&lt;None Include=<span style="color: #800000;">"</span><span style="color: #800000;">App.config</span><span style="color: #800000;">"</span> /&gt;
+&lt;None Include=<span style="color: #800000;">"</span><span style="color: #800000;">App.Debug.config</span><span style="color: #800000;">"</span>&gt;
+    &lt;DependentUpon&gt;App.config&lt;/DependentUpon&gt;
+&lt;/None&gt;
+&lt;None Include=<span style="color: #800000;">"</span><span style="color: #800000;">App.Release.config</span><span style="color: #800000;">"</span>&gt;
+    &lt;DependentUpon&gt;App.config&lt;/DependentUpon&gt;
+&lt;/None&gt;</pre>
+</div>
+<p>5.在最后一个&nbsp;<code>Import</code>&nbsp;标签后面添加：</p>
+<div class="cnblogs_code">
+<pre><code>&lt;Import Project=<span style="color: #800000;">"</span><span style="color: #800000;">$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v10.0\Web\Microsoft.Web.Publishing.targets</span><span style="color: #800000;">"</span> /&gt;</pre>
+</div>
+<p>6.在&nbsp;<code>Import</code>&nbsp;标签后面添加&nbsp;<code>Target</code>&nbsp;标签：</p>
+<div class="cnblogs_code">
+<pre><code>&lt;Target Name=<span style="color: #800000;">"</span><span style="color: #800000;">AfterBuild</span><span style="color: #800000;">"</span>&gt;
+  &lt;TransformXml Source=<span style="color: #800000;">"</span><span style="color: #800000;">@(AppConfigWithTargetPath)</span><span style="color: #800000;">"</span> Transform=<span style="color: #800000;">"</span><span style="color: #800000;">$(ProjectConfigTransformFileName)</span><span style="color: #800000;">"</span> Destination=<span style="color: #800000;">"</span><span style="color: #800000;">@(AppConfigWithTargetPath-&gt;'$(OutDir)%(TargetPath)')</span><span style="color: #800000;">"</span> /&gt;
+&lt;/Target&gt;</pre>
+</div>
+<p>7.切换到 Visual Studio ， 重新加载项目。</p>
+<p>8.这时查看 Visual Studio 可以看到&nbsp;<code>App.config</code>&nbsp;的组织方式和&nbsp;<code>Web.config</code>&nbsp;一样了。</p>
+<p><img src="./images/C#项目 App.config 配置文件不同使用环境配置0.png" alt="" /></p>
+<p>现在就可以使用&nbsp;<a title="用于 Web 应用程序项目部署的 Web.config 转换语法" href="http://t.cn/Rbri0Ym" rel="external" target="_blank">用于 Web 应用程序项目部署的 Web.config 转换语法</a>&nbsp;这篇文章中提到的转换语法了。</p>
+<p>例如需要替换&nbsp;<code>connectionStrings</code>&nbsp;，&nbsp;<code>App.config</code>&nbsp;有如下配置：</p>
+<div class="cnblogs_code">
+<pre><code>&lt;?xml version=<span style="color: #800000;">"</span><span style="color: #800000;">1.0</span><span style="color: #800000;">"</span> encoding=<span style="color: #800000;">"</span><span style="color: #800000;">utf-8</span><span style="color: #800000;">"</span> ?&gt;
+&lt;configuration&gt;
+    &lt;connectionStrings&gt;
+        &lt;add name=<span style="color: #800000;">"</span><span style="color: #800000;">connString</span><span style="color: #800000;">"</span> connectionString=<span style="color: #800000;">"</span><span style="color: #800000;">Server=debug;Database=test;Uid=root;Pwd=123456;CharSet=utf8;</span><span style="color: #800000;">"</span><span style="color: #000000;">
+             providerName</span>=<span style="color: #800000;">"</span><span style="color: #800000;">MySql.Data.MySqlClient</span><span style="color: #800000;">"</span> /&gt;
+    &lt;/connectionStrings&gt;
+&lt;/configuration&gt;</pre>
+</div>
+<p>只需要修改&nbsp;<code>App.Release.config</code>&nbsp;为如下内容即可：</p>
+<div class="cnblogs_code">
+<pre><code>&lt;?xml version=<span style="color: #800000;">"</span><span style="color: #800000;">1.0</span><span style="color: #800000;">"</span> encoding=<span style="color: #800000;">"</span><span style="color: #800000;">utf-8</span><span style="color: #800000;">"</span>?&gt;
+
+&lt;!-- 有关使用 web.config 转换的详细信息，请访问 http:<span style="color: #008000;">//</span><span style="color: #008000;">go.microsoft.com/fwlink/?LinkId=125889 --&gt;</span>
+
+&lt;configuration xmlns:xdt=<span style="color: #800000;">"</span><span style="color: #800000;">http://schemas.microsoft.com/XML-Document-Transform</span><span style="color: #800000;">"</span>&gt;
+    &lt;connectionStrings&gt;
+        &lt;add name=<span style="color: #800000;">"</span><span style="color: #800000;">connString</span><span style="color: #800000;">"</span><span style="color: #000000;">
+             connectionString</span>=<span style="color: #800000;">"</span><span style="color: #800000;">Server=release;Database=test;Uid=root;Pwd=654321;CharSet=utf8;</span><span style="color: #800000;">"</span><span style="color: #000000;">
+             xdt:Transform</span>=<span style="color: #800000;">"</span><span style="color: #800000;">SetAttributes</span><span style="color: #800000;">"</span> xdt:Locator=<span style="color: #800000;">"</span><span style="color: #800000;">Match(name)</span><span style="color: #800000;">"</span> /&gt;
+    &lt;/connectionStrings&gt;
+&lt;/configuration&gt;</pre>
+</div>
+<p>这样在选择&nbsp;<code>Release</code>&nbsp;配置时，<code>connectionStrings</code>&nbsp;会自动替换成&nbsp;<code>App.Release.config</code>&nbsp;中的值。查看&nbsp;<code>bin\Release</code>&nbsp;目录下的 config 文件可以进行验证。</p>
+<h2>完整代码</h2>
+<div class="cnblogs_code">
+<pre><code>&lt;?xml version=<span style="color: #800000;">"</span><span style="color: #800000;">1.0</span><span style="color: #800000;">"</span> encoding=<span style="color: #800000;">"</span><span style="color: #800000;">utf-8</span><span style="color: #800000;">"</span>?&gt;
+&lt;Project ToolsVersion=<span style="color: #800000;">"</span><span style="color: #800000;">12.0</span><span style="color: #800000;">"</span> DefaultTargets=<span style="color: #800000;">"</span><span style="color: #800000;">Build</span><span style="color: #800000;">"</span> xmlns=<span style="color: #800000;">"</span><span style="color: #800000;">http://schemas.microsoft.com/developer/msbuild/2003</span><span style="color: #800000;">"</span>&gt;
+  &lt;Import Project=<span style="color: #800000;">"</span><span style="color: #800000;">$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props</span><span style="color: #800000;">"</span> Condition=<span style="color: #800000;">"</span><span style="color: #800000;">Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')</span><span style="color: #800000;">"</span> /&gt;
+  &lt;PropertyGroup&gt;
+    &lt;Configuration Condition=<span style="color: #800000;">"</span><span style="color: #800000;"> '$(Configuration)' == '' </span><span style="color: #800000;">"</span>&gt;Debug&lt;/Configuration&gt;
+    &lt;Platform Condition=<span style="color: #800000;">"</span><span style="color: #800000;"> '$(Platform)' == '' </span><span style="color: #800000;">"</span>&gt;AnyCPU&lt;/Platform&gt;
+    &lt;ProjectGuid&gt;{8196CA4E-AD25-4F90-BB80-D27512BF4BD4}&lt;/ProjectGuid&gt;
+    &lt;OutputType&gt;Exe&lt;/OutputType&gt;
+    &lt;AppDesignerFolder&gt;Properties&lt;/AppDesignerFolder&gt;
+    &lt;RootNamespace&gt;App.Config转换&lt;/RootNamespace&gt;
+    &lt;AssemblyName&gt;App.Config转换&lt;/AssemblyName&gt;
+    &lt;TargetFrameworkVersion&gt;v4.<span style="color: #800080;">0</span>&lt;/TargetFrameworkVersion&gt;
+    &lt;FileAlignment&gt;<span style="color: #800080;">512</span>&lt;/FileAlignment&gt;
+  &lt;/PropertyGroup&gt;
+  &lt;PropertyGroup Condition=<span style="color: #800000;">"</span><span style="color: #800000;"> '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' </span><span style="color: #800000;">"</span>&gt;
+    &lt;PlatformTarget&gt;AnyCPU&lt;/PlatformTarget&gt;
+    &lt;DebugSymbols&gt;<span style="color: #0000ff;">true</span>&lt;/DebugSymbols&gt;
+    &lt;DebugType&gt;full&lt;/DebugType&gt;
+    &lt;Optimize&gt;<span style="color: #0000ff;">false</span>&lt;/Optimize&gt;
+    &lt;OutputPath&gt;bin\Debug\&lt;/OutputPath&gt;
+    &lt;DefineConstants&gt;DEBUG;TRACE&lt;/DefineConstants&gt;
+    &lt;ErrorReport&gt;prompt&lt;/ErrorReport&gt;
+    &lt;WarningLevel&gt;<span style="color: #800080;">4</span>&lt;/WarningLevel&gt;
+  &lt;/PropertyGroup&gt;
+  &lt;PropertyGroup Condition=<span style="color: #800000;">"</span><span style="color: #800000;"> '$(Configuration)|$(Platform)' == 'Release|AnyCPU' </span><span style="color: #800000;">"</span>&gt;
+    &lt;PlatformTarget&gt;AnyCPU&lt;/PlatformTarget&gt;
+    &lt;DebugType&gt;pdbonly&lt;/DebugType&gt;
+    &lt;Optimize&gt;<span style="color: #0000ff;">true</span>&lt;/Optimize&gt;
+    &lt;OutputPath&gt;bin\Release\&lt;/OutputPath&gt;
+    &lt;DefineConstants&gt;TRACE&lt;/DefineConstants&gt;
+    &lt;ErrorReport&gt;prompt&lt;/ErrorReport&gt;
+    &lt;WarningLevel&gt;<span style="color: #800080;">4</span>&lt;/WarningLevel&gt;
+  &lt;/PropertyGroup&gt;
+  &lt;PropertyGroup&gt;
+    &lt;ProjectConfigFileName&gt;App.config&lt;/ProjectConfigFileName&gt;
+  &lt;/PropertyGroup&gt;
+  &lt;ItemGroup&gt;
+    &lt;Reference Include=<span style="color: #800000;">"</span><span style="color: #800000;">System</span><span style="color: #800000;">"</span> /&gt;
+    &lt;Reference Include=<span style="color: #800000;">"</span><span style="color: #800000;">System.configuration</span><span style="color: #800000;">"</span> /&gt;
+    &lt;Reference Include=<span style="color: #800000;">"</span><span style="color: #800000;">System.Core</span><span style="color: #800000;">"</span> /&gt;
+    &lt;Reference Include=<span style="color: #800000;">"</span><span style="color: #800000;">System.Xml.Linq</span><span style="color: #800000;">"</span> /&gt;
+    &lt;Reference Include=<span style="color: #800000;">"</span><span style="color: #800000;">System.Data.DataSetExtensions</span><span style="color: #800000;">"</span> /&gt;
+    &lt;Reference Include=<span style="color: #800000;">"</span><span style="color: #800000;">Microsoft.CSharp</span><span style="color: #800000;">"</span> /&gt;
+    &lt;Reference Include=<span style="color: #800000;">"</span><span style="color: #800000;">System.Data</span><span style="color: #800000;">"</span> /&gt;
+    &lt;Reference Include=<span style="color: #800000;">"</span><span style="color: #800000;">System.Xml</span><span style="color: #800000;">"</span> /&gt;
+  &lt;/ItemGroup&gt;
+  &lt;ItemGroup&gt;
+    &lt;Compile Include=<span style="color: #800000;">"</span><span style="color: #800000;">Program.cs</span><span style="color: #800000;">"</span> /&gt;
+    &lt;Compile Include=<span style="color: #800000;">"</span><span style="color: #800000;">Properties\AssemblyInfo.cs</span><span style="color: #800000;">"</span> /&gt;
+  &lt;/ItemGroup&gt;
+  &lt;ItemGroup&gt;
+    &lt;None Include=<span style="color: #800000;">"</span><span style="color: #800000;">App.config</span><span style="color: #800000;">"</span> /&gt;
+    &lt;None Include=<span style="color: #800000;">"</span><span style="color: #800000;">App.Debug.config</span><span style="color: #800000;">"</span>&gt;
+      &lt;DependentUpon&gt;App.config&lt;/DependentUpon&gt;
+    &lt;/None&gt;
+    &lt;None Include=<span style="color: #800000;">"</span><span style="color: #800000;">App.Release.config</span><span style="color: #800000;">"</span>&gt;
+      &lt;DependentUpon&gt;App.config&lt;/DependentUpon&gt;
+      &lt;SubType&gt;Designer&lt;/SubType&gt;
+    &lt;/None&gt;
+  &lt;/ItemGroup&gt;
+  &lt;Import Project=<span style="color: #800000;">"</span><span style="color: #800000;">$(MSBuildToolsPath)\Microsoft.CSharp.targets</span><span style="color: #800000;">"</span> /&gt;
+  &lt;Import Project=<span style="color: #800000;">"</span><span style="color: #800000;">$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v10.0\Web\Microsoft.Web.Publishing.targets</span><span style="color: #800000;">"</span> /&gt;
+  &lt;!--<span style="color: #000000;"> To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  </span>&lt;Target Name=<span style="color: #800000;">"</span><span style="color: #800000;">BeforeBuild</span><span style="color: #800000;">"</span>&gt;
+  &lt;/Target&gt;
+  &lt;Target Name=<span style="color: #800000;">"</span><span style="color: #800000;">AfterBuild</span><span style="color: #800000;">"</span>&gt;
+  &lt;/Target&gt;
+  --&gt;
+  &lt;Target Name=<span style="color: #800000;">"</span><span style="color: #800000;">AfterBuild</span><span style="color: #800000;">"</span>&gt;
+    &lt;TransformXml Source=<span style="color: #800000;">"</span><span style="color: #800000;">@(AppConfigWithTargetPath)</span><span style="color: #800000;">"</span> Transform=<span style="color: #800000;">"</span><span style="color: #800000;">$(ProjectConfigTransformFileName)</span><span style="color: #800000;">"</span> Destination=<span style="color: #800000;">"</span><span style="color: #800000;">@(AppConfigWithTargetPath-&gt;'$(OutDir)%(TargetPath)')</span><span style="color: #800000;">"</span> /&gt;
+  &lt;/Target&gt;
+&lt;/Project&gt;</pre>
+</div>
+<p>转自:<a id="cb_post_title_url" href="https://www.cnblogs.com/tianciliangen/p/6015842.html" target="_blank">在部署 C#项目时转换 App.config 配置文件</a></p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

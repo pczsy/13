@@ -1,0 +1,249 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修持续集成之 Nuget 进阶' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>持续集成之 Nuget 进阶</center></div><div class='banquan'>原文出处:本文由博客园博主WeihanLi提供。<br/>
+原文连接:https://www.cnblogs.com/weihanli/p/advanced-nuget-ci.html</div><br>
+    <h1 id="持续集成之-nuget-进阶">持续集成之 Nuget 进阶</h1>
+<h2 id="intro">Intro</h2>
+<p>之前介绍了一篇基于 Azure pipeline 的 nuget 包的持续集成配置，但是比较粗糙，这里介绍一下结合 Cake 实现更优雅的 nuget 包发布流程。</p>
+<p>实现目标：</p>
+<ol>
+<li>分支(除master/preview)有代码 push 或者 pr 时 自动 build</li>
+<li>preview 分支有代码 push 的时候将 build 并将发布 preview 版的 nuget 包</li>
+<li>master 分支有代码 push 的时候将 build 并将发布稳定版的 nuget 包</li>
+</ol>
+<h2 id="什么是cake为什么要使用-cake">什么是Cake？为什么要使用 Cake?</h2>
+<p>Cake 是<a href="http://cakebuild.net/">C# Make</a>的缩写，是一个基于C# DSL的自动化构建系统。它可以用来编译代码，复制文件以及文件夹，运行单元测试，压缩文件以及构建Nuget包等等。</p>
+<p>熟悉大名鼎鼎的<a href="https://en.wikipedia.org/wiki/Make_%28software%29">Make</a>的小伙伴，应该已经知道Cake大致是个什么样的工具了，Cake具有以下几个特点：</p>
+<ol>
+<li>方便编写：使用基于C#的DSL，非常易于编写自动化的脚本。</li>
+<li>跨平台: 基于Roslyn和Mono来编译我们写的自动化脚本，使得它可以运行在windows，linux，mac上。</li>
+<li>可靠的：可以建立在自己的机器上，也可以建立在像AppVeyor，TeamCity，TFS，VSTS或Jenkins这样的CI系统上，都可以以相同的方式运行。</li>
+<li>丰富的工具集：支持MSBuild，MSTest，xUnit，NUnit，Nuget，ILMerge，Wix和SignTool等等，以及支持丰富的插件（<a href="http://cakebuild.net/addins/">Cake Addins</a>）。</li>
+<li>开源：基于MIT开放源代码（<a href="https://github.com/cake-build/cake">Cake on Github</a>），并且是.NET 基金会支持的一个项目（<a href="https://dotnetfoundation.org/cake">Cake on dotnet foundation</a>）。</li>
+</ol>
+<p>最初做自动化发布的时候自己尝试去写 powershell 和 bash shell 脚本，但是写的多了一点会发现，很多语法不太一致，往往写一个功能要写一个 powershell 脚本 再写一个 bash shell 脚本，徒然增加自己的工作量，而且有时候会发生一些奇怪的问题，在Windows上的路径和Linux的路径有时候会不同，使用了 Cake，我们就只需要专注于脚本要执行的过程，不需要关注 powershell 和 bashshell 的不同，不需要太多关注于 windows 和 linux 的差异。</p>
+<ul>
+<li><a href="%5Bhttps://www.cakebuild.net/docs/">Cake 文档</a></li>
+<li><a href="https://www.cakebuild.net/api/">Cake api</a></li>
+</ul>
+<h2 id="使用-cake">使用 Cake</h2>
+<p>Cake 有 <a href="https://marketplace.visualstudio.com/items?itemName=cake-build.cake-vscode">Visual Studio Code 插件</a>，可以基于 VSCode 来编辑 cake 脚本</p>
+<p>Cake 脚本示例</p>
+<p>cake 主要文件：</p>
+<ul>
+<li>build.ps1/build.sh 启动脚本，build.ps1 为 Windows 系统上要执行的 powershell 脚本，build.sh 为 *nix 上要执行的 shell 脚本</li>
+<li>build.cake 实际执行的脚本，定义各种 build 需要的 task</li>
+<li>tools/packages.config 启动脚本需要的 nuget 包</li>
+</ul>
+<p>添加 cake 支持之后，你可能需要修改 .gitignore，官方推荐的 gitignore 是这样的</p>
+<pre><code><code>tools/**
+!tools/package.config</code></pre>
+<p>实际使用下来，即使没有 package.config 也是可以正常工作的，可以简化为一条</p>
+<pre><code><code>tools/**</code></pre>
+<h2 id="示例项目">示例项目</h2>
+<p>这里以我的一个个人开源项目 <a href="https://github.com/WeihanLi/WeihanLi.Redis">WeihanLi.Redis</a> 为例</p>
+<p>cake 脚本</p>
+<pre class="cake"><code>///////////////////////////////////////////////////////////////////////////////
+// ARGUMENTS
+///////////////////////////////////////////////////////////////////////////////
+
+var target = Argument(&quot;target&quot;, &quot;Default&quot;);
+var configuration = Argument(&quot;configuration&quot;, &quot;Release&quot;);
+
+var solutionPath = &quot;./WeihanLi.Redis.sln&quot;;
+var srcProjects  = GetFiles(&quot;./src/**/*.csproj&quot;);
+var testProjects  = GetFiles(&quot;./test/**/*.csproj&quot;);
+
+var artifacts = &quot;./artifacts/packages&quot;;
+var isWindowsAgent = (EnvironmentVariable(&quot;Agent_OS&quot;) ?? &quot;Windows_NT&quot;) == &quot;Windows_NT&quot;;
+var branchName = EnvironmentVariable(&quot;BUILD_SOURCEBRANCHNAME&quot;) ?? &quot;local&quot;;
+
+///////////////////////////////////////////////////////////////////////////////
+// SETUP / TEARDOWN
+///////////////////////////////////////////////////////////////////////////////
+
+Setup(ctx =&gt;
+{
+   // Executed BEFORE the first task.
+   Information(&quot;Running tasks...&quot;);
+   PrintBuildInfo();
+});
+
+Teardown(ctx =&gt;
+{
+   // Executed AFTER the last task.
+   Information(&quot;Finished running tasks.&quot;);
+});
+
+///////////////////////////////////////////////////////////////////////////////
+// TASKS
+///////////////////////////////////////////////////////////////////////////////
+
+Task(&quot;clean&quot;)
+    .Description(&quot;Clean&quot;)
+    .Does(() =&gt;
+    {
+       var deleteSetting = new DeleteDirectorySettings()
+       {
+          Force = true,
+          Recursive = true
+       };
+      if (DirectoryExists(artifacts))
+      {
+         DeleteDirectory(artifacts, deleteSetting);
+      }
+    });
+
+Task(&quot;restore&quot;)
+    .Description(&quot;Restore&quot;)
+    .Does(() =&gt; 
+    {
+      foreach(var project in srcProjects)
+      {
+         DotNetCoreRestore(project.FullPath);
+      }
+    });
+
+Task(&quot;build&quot;)    
+    .Description(&quot;Build&quot;)
+    .IsDependentOn(&quot;clean&quot;)
+    .IsDependentOn(&quot;restore&quot;)
+    .Does(() =&gt;
+    {
+      var buildSetting = new DotNetCoreBuildSettings{
+         NoRestore = true,
+         Configuration = configuration
+      };
+      foreach(var project in srcProjects)
+      {
+         DotNetCoreBuild(project.FullPath, buildSetting);
+      }
+    });
+
+Task(&quot;test&quot;)    
+    .Description(&quot;Test&quot;)
+    .IsDependentOn(&quot;build&quot;)
+    .Does(() =&gt;
+    {
+      var testSettings = new DotNetCoreTestSettings{
+         NoRestore = true,
+         Configuration = configuration
+      };
+      foreach(var project in testProjects)
+      {
+         DotNetCoreTest(project.FullPath, testSettings);
+      }
+    });
+
+
+Task(&quot;pack&quot;)
+    .Description(&quot;Pack package&quot;)
+    .IsDependentOn(&quot;test&quot;)
+    .Does(() =&gt;
+    {
+      var settings = new DotNetCorePackSettings
+      {
+         Configuration = configuration,
+         OutputDirectory = artifacts,
+         VersionSuffix = &quot;&quot;,
+         NoRestore = true,
+         NoBuild = true
+      };
+      if(branchName != &quot;master&quot;){
+         settings.VersionSuffix = $&quot;preview-{DateTime.UtcNow:yyyyMMdd-HHmmss}&quot;;
+      }
+      foreach (var project in srcProjects)
+      {
+         DotNetCorePack(project.FullPath, settings);
+      }
+      PublishArtifacts();
+    });
+
+bool PublishArtifacts()
+{
+   if(!isWindowsAgent)
+   {
+      return false;
+   }
+   if(branchName == &quot;master&quot; || branchName == &quot;preview&quot;)
+   {
+      var pushSetting =new DotNetCoreNuGetPushSettings
+      {
+         Source = EnvironmentVariable(&quot;Nuget__SourceUrl&quot;) ?? &quot;https://api.nuget.org/v3/index.json&quot;,
+         ApiKey = EnvironmentVariable(&quot;Nuget__ApiKey&quot;)
+      };
+      var packages = GetFiles($&quot;{artifacts}/*.nupkg&quot;);
+      foreach(var package in packages)
+      {
+         DotNetCoreNuGetPush(package.FullPath, pushSetting);
+      }
+      return true;
+   }
+   return false;
+}
+
+void PrintBuildInfo(){
+   Information($@&quot;branch:{branchName}, agentOs={EnvironmentVariable(&quot;Agent_OS&quot;)}
+   BuildID:{EnvironmentVariable(&quot;BUILD_BUILDID&quot;)},BuildNumber:{EnvironmentVariable(&quot;BUILD_BUILDNUMBER&quot;)},BuildReason:{EnvironmentVariable(&quot;BUILD_REASON&quot;)}
+   &quot;);
+}
+
+Task(&quot;Default&quot;)
+    .IsDependentOn(&quot;pack&quot;);
+
+RunTarget(target);</code></pre>
+<p>我这里使用 Azure pipeline 来实现持续集成，上面的里面有一些Azure pipeline 的变量，实际执行 build.ps1 脚本</p>
+<p>Azure pipeline config</p>
+<pre><code><code>trigger:
+- &#39;*&#39;
+
+pool:
+  vmImage: &#39;vs2017-win2016&#39;
+
+steps:
+- script: dotnet --info
+  displayName: &#39;dotnet info&#39;
+
+- powershell: ./build.ps1
+  displayName: &#39;Powershell Script&#39;
+  env:
+    Nuget__ApiKey: $(nugetApiKey)
+    Nuget__SourceUrl: $(nugetSourceUrl)</code></pre>
+<p>nugetApiKey 是比较敏感的信息，在 Azure Pipeline 里的 Variables 的 Secret 变量，这里需要转换一下，不然，直接从环境变量读取是读取不到的，详细参考：<a href="https://docs.microsoft.com/en-us/azure/devops/pipelines/process/variables?view=azure-devops&amp;tabs=yaml%2Cbatch&amp;viewFallbackFrom=vsts#secret-variables">https://docs.microsoft.com/en-us/azure/devops/pipelines/process/variables?view=azure-devops&amp;tabs=yaml%2Cbatch&amp;viewFallbackFrom=vsts#secret-variables</a></p>
+<p>通过以上脚本可以本文开篇提到的目标：</p>
+<ol>
+<li>分支(除master/preview)有代码 push 或者 pr 时 自动 build</li>
+<li>preview 分支有代码 push 的时候将 build 并将发布 preview 版的 nuget 包</li>
+<li>master 分支有代码 push 的时候将 build 并将发布稳定版的 nuget 包</li>
+</ol>
+<p>preview 和 master 分支可以设置 branch policy，设置只能由 pull request 合并，不能直接 push 代码，如果必须要先发布 preview 再发布稳定版 nuget 包，可以添加自定以限制，限制 master 分支的代码只能从 preview 分支通过 pr 合并</p>
+<h2 id="reference">Reference</h2>
+<ul>
+<li><a href="https://www.cnblogs.com/linianhui/p/cake-overview.html" class="uri">https://www.cnblogs.com/linianhui/p/cake-overview.html</a></li>
+<li><a href="https://www.cakebuild.net/" class="uri">https://www.cakebuild.net/</a></li>
+<li><a href="https://github.com/cake-build/cake" class="uri">https://github.com/cake-build/cake</a></li>
+<li><a href="https://github.com/WeihanLi/WeihanLi.Redis" class="uri">https://github.com/WeihanLi/WeihanLi.Redis</a></li>
+<li><a href="https://docs.microsoft.com/en-us/azure/devops/pipelines/process/variables?view=azure-devops&amp;tabs=yaml%2Cbatch&amp;viewFallbackFrom=vsts#secret-variables">https://docs.microsoft.com/en-us/azure/devops/pipelines/process/variables?view=azure-devops&amp;tabs=yaml%2Cbatch&amp;viewFallbackFrom=vsts#secret-variables</a></li>
+</ul>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

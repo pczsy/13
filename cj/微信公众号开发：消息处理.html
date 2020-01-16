@@ -1,0 +1,252 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修微信公众号开发：消息处理' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>微信公众号开发：消息处理</center></div><div class='banquan'>原文出处:本文由博客园博主艾三元提供。<br/>
+原文连接:https://www.cnblogs.com/i3yuan/p/10850169.html</div><br>
+    <p><span style="color: #2d94de; font-size: 18pt;">前言</span>：</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp;回顾<a title="公众号服务器配置" href="https://www.cnblogs.com/i3yuan/p/10802410.html" target="_blank">上一节</a>服务器配置的内容，我们已经可以自己完成公众号服务器的配置。配置完成之后，我们就可以通过调用的方式，完成对消息管理的处理。当用户关注公众号或者发送消息的时候，我们应该启用默认回复，要不然用户得不到回应，</p>
+<p>从而导致丢失体验。所以这一章节，我们将通过消息管理的方式，对用户的信息进行处理，完成公众号消息回复功能，实现公众号与用户之间的完整对话。</p>
+<p><span style="font-size: 18pt; color: #2d94de;">了解</span>:</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp;微信公众平台对信息做了比较清晰的分类，最基本的包括请求（Request）和响应（Response）两大类信息，这两类信息有分为文字、语音、图片等格式。Senparc.Weixin.MP提供了MessageHandler消息处理类，这些类型在以枚举的方式区分，</p>
+<p>同时根据严格命名规则命名了所有类型的RequestMessage和ResponseMessage。在<a title="wiki" href="https://github.com/JeffreySu/WeiXinMPSDK/wiki/%E5%A6%82%E4%BD%95%E4%BD%BF%E7%94%A8MessageHandler%E7%AE%80%E5%8C%96%E6%B6%88%E6%81%AF%E5%A4%84%E7%90%86%E6%B5%81%E7%A8%8B" target="_blank">Senparc</a>里也详细说明了如何这个类的</p>
+<p><img src="./images/微信公众号开发：消息处理0.png" alt="" width="859" height="373" /></p>
+<p><span style="font-size: 18pt; color: #2d94de;">开始</span>：</p>
+<p><span style="font-size: 14pt; font-family: 楷体;">第一步</span>：</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp;新建一个UserMessageHandler.cs，需要继承Senparc.Weixin.MP.MessageHandlers&lt;TC&gt;这个抽象类,并重写所有方法：</p>
+<div class="cnblogs_code">
+<pre><code>    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> UserMessageHandler : MessageHandler&lt;UserMessageContext&gt;<span style="color: #000000;">
+    {
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 构造函数
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="inputStream"&gt;</span><span style="color: #008000;">构造函数的inputStream用于接收来自微信服务器的请求流（如果需要在外部处理，这里也可以传入XDocument）</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="postModel"&gt;</span><span style="color: #008000;">微信公众服务器Post过来的加密参数集合（不包括PostData）</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #0000ff;">public</span><span style="color: #000000;"> UserMessageHandler(Stream inputStream, PostModel postModel)
+            : </span><span style="color: #0000ff;">base</span><span style="color: #000000;">(inputStream, postModel)
+        {
+           
+        }
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">override</span><span style="color: #000000;"> IResponseMessageBase DefaultResponseMessage(IRequestMessageBase requestMessage)
+        {
+            </span><span style="color: #008000;">/*</span><span style="color: #008000;"> 所有没有被处理的消息会默认返回这里的结果
+            </span><span style="color: #008000;">*/</span>
+            <span style="color: #0000ff;">var</span> responseMessage = <span style="color: #0000ff;">this</span>.CreateResponseMessage&lt;ResponseMessageText&gt;();<span style="color: #008000;">//</span><span style="color: #008000;">ResponseMessageText也可以是News等其他类型</span>
+            responseMessage.Content = <span style="color: #800000;">"</span><span style="color: #800000;">这条消息来自DefaultResponseMessage。</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> responseMessage;
+        }
+    }</span></pre>
+</div>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">using</span><span style="color: #000000;"> Senparc.Weixin.Context;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> Senparc.Weixin.MP.Entities;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Collections.Generic;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Linq;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Web;
+
+</span><span style="color: #0000ff;">namespace</span><span style="color: #000000;"> WeiXinHandler
+{
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> UserMessageContext: MessageContext&lt;IRequestMessageBase, IResponseMessageBase&gt;<span style="color: #000000;">
+    {
+        </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> UserMessageContext()
+        {
+            </span><span style="color: #008000;">/*</span><span style="color: #008000;">
+            * 注意：即使使用其他类实现IMessageContext，
+            * 也务必在这里进行下面的初始化，尤其是设置当前时间，
+            * 这个时间关系到及时从缓存中移除过期的消息，节约内存使用
+            </span><span style="color: #008000;">*/</span>
+            <span style="color: #0000ff;">base</span>.MessageContextRemoved +=<span style="color: #000000;"> UserMessageContext_MessageContextRemoved;
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 当上下文过期，被移除时触发的时间
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="sender"&gt;&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="e"&gt;&lt;/param&gt;</span>
+        <span style="color: #0000ff;">void</span> UserMessageContext_MessageContextRemoved(<span style="color: #0000ff;">object</span> sender, Senparc.Weixin.Context.WeixinContextRemovedEventArgs&lt;IRequestMessageBase, IResponseMessageBase&gt;<span style="color: #000000;"> e)
+        {
+            </span><span style="color: #008000;">/*</span><span style="color: #008000;"> 注意，这个事件不是实时触发的（当然你也可以专门写一个线程监控）
+             * 为了提高效率，根据WeixinContext中的算法，这里的过期消息会在过期后下一条请求执行之前被清除
+             </span><span style="color: #008000;">*/</span>
+            <span style="color: #0000ff;">var</span> messageContext = e.MessageContext <span style="color: #0000ff;">as</span><span style="color: #000000;"> CustomMessageContext;
+            </span><span style="color: #0000ff;">if</span> (messageContext == <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+            {
+                </span><span style="color: #0000ff;">return</span>;<span style="color: #008000;">//</span><span style="color: #008000;">如果是正常的调用，messageContext不会为null</span>
+<span style="color: #000000;">            }
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">TODO:这里根据需要执行消息过期时候的逻辑，下面的代码仅供参考
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">Log.InfoFormat("{0}的消息上下文已过期",e.OpenId);
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">api.SendMessage(e.OpenId, "由于长时间未搭理客服，您的客服状态已退出！");</span>
+<span style="color: #000000;">        }
+    }
+}</span></pre>
+</div>
+<p>&nbsp; &nbsp; &nbsp; &nbsp;重写的方法对应了接收不同的Request类型，构造函数的inputStream用于接收来自微信服务器的请求流</p>
+<p><span style="font-family: 楷体; font-size: 14pt;">第二步</span>：</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp;基本用户不同类型的请求，比如用户向我们发送一条信息，那么会最终会调用OnTextRequest这个方法，所以在不同的重写方法内，实现自己的方法。</p>
+<p>比如：我们对于文字（Text）信息进行这样的处理，在UserMessageHandler中我们可以重写方法OnTextRequest:</p>
+<div class="cnblogs_code">
+<pre><code>        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">override</span><span style="color: #000000;"> IResponseMessageBase OnTextRequest(RequestMessageText requestMessage)
+        {
+            </span><span style="color: #0000ff;">var</span> responseMessage = <span style="color: #0000ff;">base</span>.CreateResponseMessage&lt;ResponseMessageText&gt;<span style="color: #000000;">();
+            responseMessage.Content </span>= <span style="color: #800000;">"</span><span style="color: #800000;">您刚刚发送了文字信息：</span><span style="color: #800000;">"</span> + requestMessage.Content;  <span style="color: #008000;">//</span><span style="color: #008000;">requestMessage.Content即用户发过来的文字内容</span>
+            <span style="color: #0000ff;">return</span><span style="color: #000000;"> responseMessage;
+        }</span></pre>
+</div>
+<p>&nbsp;对于图片信息进行这样的处理，在UserMessageHandler中我们可以重写方法OnImageRequest</p>
+<div class="cnblogs_code">
+<pre><code>        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 处理图片请求
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="requestMessage"&gt;&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">override</span><span style="color: #000000;"> IResponseMessageBase OnImageRequest(RequestMessageImage requestMessage)
+        {
+            </span><span style="color: #0000ff;">var</span> responseMessage = CreateResponseMessage&lt;ResponseMessageNews&gt;<span style="color: #000000;">();
+            responseMessage.Articles.Add(</span><span style="color: #0000ff;">new</span><span style="color: #000000;"> Article()
+            {
+                Title </span>= <span style="color: #800000;">"</span><span style="color: #800000;">您刚才发送了图片信息</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+                Description </span>= <span style="color: #800000;">"</span><span style="color: #800000;">您发送的图片将会显示在边上</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+                PicUrl </span>=<span style="color: #000000;"> requestMessage.PicUrl,
+                Url </span>= <span style="color: #800000;">"</span><span style="color: #800000;">https://www.cnblogs.com/i3yuan/</span><span style="color: #800000;">"</span><span style="color: #000000;">
+            });
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> responseMessage;
+        }</span></pre>
+</div>
+<p>&nbsp;对于语音信息进行这样的处理，在UserMessageHandler中我们可以重写方法OnVoiceRequest</p>
+<div class="cnblogs_code">
+<pre><code>        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 处理语音请求
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="requestMessage"&gt;&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">override</span><span style="color: #000000;"> IResponseMessageBase OnVoiceRequest(RequestMessageVoice requestMessage)
+        {
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">获取公众号</span>
+            AccessTokenResult account =<span style="color: #000000;"> Senparc.Weixin.MP.CommonAPIs.CommonApi.GetToken(AppId, AppSecret);
+
+            </span><span style="color: #0000ff;">var</span> responseMessage = CreateResponseMessage&lt;ResponseMessageMusic&gt;<span style="color: #000000;">();
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">上传缩略图</span>
+            <span style="color: #0000ff;">var</span> uploadResult =<span style="color: #000000;"> Senparc.Weixin.MP.AdvancedAPIs.MediaApi.UploadTemporaryMedia(account.access_token, UploadMediaFileType.image,
+                                                         Server.GetMapPath(</span><span style="color: #800000;">"</span><span style="color: #800000;">~/Images/Logo.jpg</span><span style="color: #800000;">"</span><span style="color: #000000;">));
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">设置音乐信息</span>
+            responseMessage.Music.Title = <span style="color: #800000;">"</span><span style="color: #800000;">天籁之音</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            responseMessage.Music.Description </span>= <span style="color: #800000;">"</span><span style="color: #800000;">播放您上传的语音</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            responseMessage.Music.MusicUrl </span>= <span style="color: #800000;">"</span><span style="color: #800000;">http://sdk.weixin.senparc.com/Media/GetVoice?mediaId=</span><span style="color: #800000;">"</span> +<span style="color: #000000;"> requestMessage.MediaId;
+            responseMessage.Music.HQMusicUrl </span>= <span style="color: #800000;">"</span><span style="color: #800000;">http://sdk.weixin.senparc.com/Media/GetVoice?mediaId=</span><span style="color: #800000;">"</span> +<span style="color: #000000;"> requestMessage.MediaId;
+            responseMessage.Music.ThumbMediaId </span>=<span style="color: #000000;"> uploadResult.media_id;
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> responseMessage;
+        }   </span></pre>
+</div>
+<p>对于视频信息进行这样的处理，在UserMessageHandler中我们可以重写方法OnVideoRequest</p>
+<div class="cnblogs_code">
+<pre><code>        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 处理视频请求
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="requestMessage"&gt;&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">override</span><span style="color: #000000;"> IResponseMessageBase OnVideoRequest(RequestMessageVideo requestMessage)
+        {
+            </span><span style="color: #0000ff;">var</span> responseMessage = CreateResponseMessage&lt;ResponseMessageText&gt;<span style="color: #000000;">();
+            responseMessage.Content </span>= <span style="color: #800000;">"</span><span style="color: #800000;">您发送了一条视频信息，ID：</span><span style="color: #800000;">"</span> +<span style="color: #000000;"> requestMessage.MediaId;
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> responseMessage;
+        }</span></pre>
+</div>
+<p>对于地理信息进行这样的处理，在UserMessageHandler中我们可以重写方法OnLocationRequest</p>
+<div class="cnblogs_code">
+<pre><code>        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 处理位置请求
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="requestMessage"&gt;&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">override</span><span style="color: #000000;"> IResponseMessageBase OnLocationRequest(RequestMessageLocation requestMessage)
+        {
+            </span><span style="color: #0000ff;">var</span> locationService = <span style="color: #0000ff;">new</span><span style="color: #000000;"> LocationService();
+            </span><span style="color: #0000ff;">var</span> responseMessage = locationService.GetResponseMessage(requestMessage <span style="color: #0000ff;">as</span><span style="color: #000000;"> RequestMessageLocation);
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> responseMessage;
+        }</span></pre>
+</div>
+<p>对于链接信息进行这样的处理，在UserMessageHandler中我们可以重写方法OnLinkRequest</p>
+<div class="cnblogs_code">
+<pre><code>        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 处理链接消息请求
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="requestMessage"&gt;&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">override</span><span style="color: #000000;"> IResponseMessageBase OnLinkRequest(RequestMessageLink requestMessage)
+        {
+            </span><span style="color: #0000ff;">var</span> responseMessage = ResponseMessageBase.CreateFromRequestMessage&lt;ResponseMessageText&gt;<span style="color: #000000;">(requestMessage);
+            responseMessage.Content </span>= <span style="color: #0000ff;">string</span>.Format(<span style="color: #800000;">@"</span><span style="color: #800000;">您发送了一条连接信息：
+            Title：{0}
+            Description:{1}
+            Url:{2}</span><span style="color: #800000;">"</span><span style="color: #000000;">, requestMessage.Title, requestMessage.Description, requestMessage.Url);
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> responseMessage;
+        }</span></pre>
+</div>
+<p><span style="font-family: 楷体; font-size: 14pt;">第三步</span>：</p>
+<p>&nbsp;&nbsp; &nbsp; &nbsp; &nbsp;在Action中使用MessageHandler，返回对用户的处理，在上一节中我们已经新建了WXController.cs,在其中通过Post的方式处理用户的请求</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">        [HttpPost]
+        [ActionName(</span><span style="color: #800000;">"</span><span style="color: #800000;">Index</span><span style="color: #800000;">"</span><span style="color: #000000;">)]
+        </span><span style="color: #0000ff;">public</span> Task&lt;ActionResult&gt;<span style="color: #000000;"> Post(PostModel postModel)
+        {
+            </span><span style="color: #0000ff;">return</span> Task.Factory.StartNew&lt;ActionResult&gt;(() =&gt;<span style="color: #000000;">
+            {
+                </span><span style="color: #0000ff;">if</span> (!<span style="color: #000000;">CheckSignature.Check(postModel.Signature, postModel.Timestamp, postModel.Nonce, Token))
+                {
+                    </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span> WeixinResult(<span style="color: #800000;">"</span><span style="color: #800000;">参数错误！</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                }
+                </span><span style="color: #0000ff;">var</span> messageHandler = <span style="color: #0000ff;">new</span><span style="color: #000000;"> UserMessageHandler(Request.InputStream);
+                messageHandler.Execute(); </span><span style="color: #008000;">//</span><span style="color: #008000;">执行微信处理过程</span>
+                <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> FixWeixinBugWeixinResult(messageHandler);
+            }).ContinueWith</span>&lt;ActionResult&gt;(task =&gt;<span style="color: #000000;"> task.Result);
+        }
+    }</span></pre>
+</div>
+<p>&nbsp; &nbsp; &nbsp; &nbsp;messageHandler.Execute();用于执行整个信息处理过程，其中会调用重写的OnxxRequest方法</p>
+<p><span style="font-size: 18pt; color: #2d94de;">效果</span>：</p>
+<p>&nbsp;测试发送文本</p>
+<p><img src="./images/微信公众号开发：消息处理1.png" alt="" width="247" height="314" /></p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp;通过测试公众号，我们可以发现，当我们发送文本的时候，系统会对用户的信息进行处理，完成公众号消息回复功能，实现公众号与用户之间的完整对话。</p>
+<p>测试发送图文消息</p>
+<p><img src="./images/微信公众号开发：消息处理2.png" alt="" width="245" height="325" /></p>
+<div class="cnblogs_code">
+<pre><code>        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">override</span><span style="color: #000000;"> IResponseMessageBase OnTextRequest(RequestMessageText requestMessage)
+        {
+            </span><span style="color: #0000ff;">var</span> responseMessage = CreateResponseMessage&lt;ResponseMessageNews&gt;<span style="color: #000000;">();
+            responseMessage.Articles.Add(</span><span style="color: #0000ff;">new</span><span style="color: #000000;"> Article()
+            {
+                Title </span>= <span style="color: #800000;">"</span><span style="color: #800000;">灌篮高手</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+                Description </span>= <span style="color: #800000;">"</span><span style="color: #800000;">灌篮高手</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+                PicUrl </span>= <span style="color: #800000;">"</span><span style="color: #800000;">http://images.cnblogs.com/cnblogs_com/i3yuan/1462639/o_timg%20(1).jpg</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+                Url </span>= <span style="color: #800000;">"</span><span style="color: #800000;">https://www.cnblogs.com/i3yuan/</span><span style="color: #800000;">"</span><span style="color: #000000;">
+            });
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> responseMessage;
+
+        }</span></pre>
+</div>
+<p><span style="color: #2d94de;"><span style="font-size: 24px;">总结</span></span>：</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp;1.通过MessageHandler的简单处理，我们就可以进行对用户文本消息的处理，完成公众号与用户的会话</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp;2.发送不同的消息，处理不同的回复，实现更多类型的消息回复</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp;3.参考了<a title="如何使用MessageHandler简化消息处理流程" href="https://github.com/JeffreySu/WeiXinMPSDK/wiki/%E5%A6%82%E4%BD%95%E4%BD%BF%E7%94%A8MessageHandler%E7%AE%80%E5%8C%96%E6%B6%88%E6%81%AF%E5%A4%84%E7%90%86%E6%B5%81%E7%A8%8B" target="_blank">如何使用MessageHandler简化消息处理流程</a></p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

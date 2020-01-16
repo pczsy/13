@@ -1,0 +1,273 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C#泛型详解' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C#泛型详解</center></div><div class='banquan'>原文出处:本文由博客园博主as.秋意浓提供。<br/>
+原文连接:https://www.cnblogs.com/FoR_Oscar/p/11189337.html</div><br>
+    <p>这篇文章主要讲解C#中的泛型，泛型在C#中有很重要的地位，尤其是在搭建项目框架的时候。</p>
+<p>一、什么是泛型</p>
+<p>泛型是C#2.0推出的新语法，不是语法糖，而是2.0由框架升级提供的功能。</p>
+<p>我们在编程程序时，经常会遇到功能非常相似的模块，只是它们处理的数据不一样。但我们没有办法，只能分别写多个方法来处理不同的数据类型。这个时候，那么问题来了，有没有一种办法，用同一个方法来处理传入不同种类型参数的办法呢？泛型的出现就是专门来解决这个问题的。</p>
+<p>二、为什么使用泛型</p>
+<p>先来看下面一个例子：</p>
+<p>using System;<br />using System.Collections.Generic;<br />using System.Linq;<br />using System.Text;<br />using System.Threading.Tasks;</p>
+<p>namespace MyGeneric<br />{<br />    public class CommonMethod<br />    {<br />        /// &lt;summary&gt;<br />        /// 打印个int值<br />        /// <br />        /// 因为方法声明的时候，写死了参数类型<br />        /// 已婚的男人 Eleven San<br />        /// &lt;/summary&gt;<br />        /// &lt;param name="iParameter"&gt;&lt;/param&gt;<br />        public static void ShowInt(int iParameter)<br />        {<br />            Console.WriteLine("This is {0},parameter={1},type={2}",<br />                typeof(CommonMethod).Name, iParameter.GetType().Name, iParameter);<br />        }</p>
+<p>        /// &lt;summary&gt;<br />        /// 打印个string值<br />        /// &lt;/summary&gt;<br />        /// &lt;param name="sParameter"&gt;&lt;/param&gt;<br />        public static void ShowString(string sParameter)<br />        {<br />            Console.WriteLine("This is {0},parameter={1},type={2}",<br />                typeof(CommonMethod).Name, sParameter.GetType().Name, sParameter);<br />        }</p>
+<p>        /// &lt;summary&gt;<br />        /// 打印个DateTime值<br />        /// &lt;/summary&gt;<br />        /// &lt;param name="oParameter"&gt;&lt;/param&gt;<br />        public static void ShowDateTime(DateTime dtParameter)<br />        {<br />            Console.WriteLine("This is {0},parameter={1},type={2}",<br />                typeof(CommonMethod).Name, dtParameter.GetType().Name, dtParameter);<br />        }<br />    }<br />}</p>
+<p>结果：</p>
+<p><img src="./images/C#泛型详解0.png" alt="" /></p>
+<p>从上面的结果中我们可以看出这三个方法，除了传入的参数不同外，其里面实现的功能都是一样的。在1.0版的时候，还没有泛型这个概念，那么怎么办呢。相信很多人会想到了OOP三大特性之一的继承，我们知道，C#语言中，object是所有类型的基类，将上面的代码进行以下优化：</p>
+<div class="cnblogs_code">
+<pre><code>public static void ShowObject(object oParameter)
+{
+      Console.WriteLine("This is {0},parameter={1},type={2}",
+         typeof(CommonMethod), oParameter.GetType().Name, oParameter);
+}</pre>
+</div>
+<p>&nbsp;结果：</p>
+<p><img src="./images/C#泛型详解1.png" alt="" /></p>
+<p>从上面的结果中我们可以看出，使用Object类型达到了我们的要求，解决了代码的可复用。可能有人会问定义的是object类型的，为什么可以传入int、string等类型呢？原因有二：</p>
+<p>1、object类型是一切类型的父类。</p>
+<p>2、通过继承，子类拥有父类的一切属性和行为，任何父类出现的地方，都可以用子类来代替。</p>
+<p>但是上面object类型的方法又会带来另外一个问题：装箱和拆箱，会损耗程序的性能。</p>
+<p>微软在C#2.0的时候推出了泛型，可以很好的解决上面的问题。</p>
+<p>三、泛型类型参数</p>
+<p>在泛型类型或方法定义中，类型参数是在其实例化泛型类型的一个变量时，客户端指定的特定类型的占位符。 泛型类(&nbsp;<code>GenericList&lt;T&gt;</code>)无法按原样使用，因为它不是真正的类型；它更像是类型的蓝图。 若要使用&nbsp;<code>GenericList&lt;T&gt;</code>，客户端代码必须通过指定尖括号内的类型参数来声明并实例化构造类型。 此特定类的类型参数可以是编译器可识别的任何类型。 可创建任意数量的构造类型实例，其中每个使用不同的类型参数。</p>
+<p>上面例子中的代码可以修改如下：</p>
+<p>using System;<br />using System.Collections.Generic;<br />using System.Linq;<br />using System.Text;<br />using System.Threading.Tasks;</p>
+<p>namespace MyGeneric<br />{<br />    public class GenericMethod<br />    {<br />        /// &lt;summary&gt;<br />        /// 泛型方法<br />        /// &lt;/summary&gt;<br />        /// &lt;typeparam name="T"&gt;&lt;/typeparam&gt;<br />        /// &lt;param name="tParameter"&gt;&lt;/param&gt;<br />        public static void Show&lt;T&gt;(T tParameter)<br />        {<br />            Console.WriteLine("This is {0},parameter={1},type={2}",<br />                typeof(GenericMethod), tParameter.GetType().Name, tParameter.ToString());<br />        }<br />    }<br />}</p>
+<p>调用：</p>
+<p>using System;<br />using System.Collections.Generic;<br />using System.Linq;<br />using System.Text;<br />using System.Threading.Tasks;</p>
+<p>namespace MyGeneric<br />{<br />    class Program<br />    {<br />        static void Main(string[] args)<br />        {</p>
+<p>            int iValue = 123;<br />            string sValue = "456";<br />            DateTime dtValue = DateTime.Now;</p>
+<p>            Console.WriteLine("***********CommonMethod***************");<br />            CommonMethod.ShowInt(iValue);<br />            CommonMethod.ShowString(sValue);<br />            CommonMethod.ShowDateTime(dtValue);<br />            Console.WriteLine("***********Object***************");<br />            CommonMethod.ShowObject(iValue);<br />            CommonMethod.ShowObject(sValue);<br />            CommonMethod.ShowObject(dtValue);<br />            Console.WriteLine("***********Generic***************");<br />            GenericMethod.Show&lt;int&gt;(iValue);<br />            GenericMethod.Show&lt;string&gt;(sValue);<br />            GenericMethod.Show&lt;DateTime&gt;(dtValue);<br />            Console.ReadKey();<br />        }<br />    }<br />}</p>
+<p>显示结果：</p>
+<p><img src="./images/C#泛型详解2.png" alt="" /></p>
+<p>为什么泛型可以解决上面的问题呢？</p>
+<p>泛型是延迟声明的：即定义的时候没有指定具体的参数类型，把参数类型的声明推迟到了调用的时候才指定参数类型。 延迟思想在程序架构设计的时候很受欢迎。例如：分布式缓存队列、EF的延迟加载等等。</p>
+<p>泛型究竟是如何工作的呢？</p>
+<p>控制台程序最终会编译成一个exe程序，exe被点击的时候，会经过JIT(即时编译器)的编译，最终生成二进制代码，才能被计算机执行。泛型加入到语法以后，VS自带的编译器又做了升级，升级之后编译时遇到泛型，会做特殊的处理：生成占位符。再次经过JIT编译的时候，会把上面编译生成的占位符替换成具体的数据类型。请看下面一个例子：</p>
+<div class="cnblogs_code">
+<pre><code>1 Console.WriteLine(typeof(List&lt;&gt;));
+2 Console.WriteLine(typeof(Dictionary&lt;,&gt;));</pre>
+</div>
+<p>&nbsp;结果：</p>
+<p><img src="./images/C#泛型详解3.png" alt="" /></p>
+<p>从上面的截图中可以看出：泛型在编译之后会生成占位符。</p>
+<p>注意：占位符需要在英文输入法状态下才能输入，只需要按一次波浪线(数字1左边的键位)的键位即可，不需要按Shift键。</p>
+<p>1、泛型性能问题</p>
+<p>请看一下的一个例子，比较普通方法、Object参数类型的方法、泛型方法的性能。</p>
+<p>添加一个Monitor类，让三种方法执行同样的操作，比较用时长短：</p>
+<p>using System;<br />using System.Collections.Generic;<br />using System.Linq;<br />using System.Text;<br />using System.Threading.Tasks;</p>
+<p>namespace MyGeneric<br />{<br />    public class Monitor<br />    {<br />        public static void Show()<br />        {<br />            Console.WriteLine("****************Monitor******************");<br />            {<br />                int iValue = 12345;<br />                long commonSecond = 0;<br />                long objectSecond = 0;<br />                long genericSecond = 0;</p>
+<p>                {<br />                    Stopwatch watch = new Stopwatch();<br />                    watch.Start();<br />                    for (int i = 0; i &lt; 100000000; i++)<br />                    {<br />                        ShowInt(iValue);<br />                    }<br />                    watch.Stop();<br />                    commonSecond = watch.ElapsedMilliseconds;<br />                }<br />                {<br />                    Stopwatch watch = new Stopwatch();<br />                    watch.Start();<br />                    for (int i = 0; i &lt; 100000000; i++)<br />                    {<br />                        ShowObject(iValue);<br />                    }<br />                    watch.Stop();<br />                    objectSecond = watch.ElapsedMilliseconds;<br />                }<br />                {<br />                    Stopwatch watch = new Stopwatch();<br />                    watch.Start();<br />                    for (int i = 0; i &lt; 100000000; i++)<br />                    {<br />                        Show&lt;int&gt;(iValue);<br />                    }<br />                    watch.Stop();<br />                    genericSecond = watch.ElapsedMilliseconds;<br />                }<br />                Console.WriteLine("commonSecond={0},objectSecond={1},genericSecond={2}"<br />                    , commonSecond, objectSecond, genericSecond);<br />            }<br />        }</p>
+<p>        #region PrivateMethod<br />        private static void ShowInt(int iParameter)<br />        {<br />            //do nothing<br />        }<br />        private static void ShowObject(object oParameter)<br />        {<br />            //do nothing<br />        }<br />        private static void Show&lt;T&gt;(T tParameter)<br />        {<br />            //do nothing<br />        }<br />        #endregion</p>
+<p>    }<br />}</p>
+<p>Main()方法调用：</p>
+<div class="cnblogs_code">
+<pre><code>1 Monitor.Show();</pre>
+</div>
+<p>&nbsp;结果：</p>
+<p><img src="./images/C#泛型详解4.png" alt="" /></p>
+<p>从结果中可以看出：泛型方法的性能最高，其次是普通方法，object方法的性能最低。</p>
+<p>四、泛型类</p>
+<p>除了方法可以是泛型以外，类也可以是泛型的，例如：</p>
+<p>using System;<br />using System.Collections.Generic;<br />using System.Linq;<br />using System.Text;<br />using System.Threading.Tasks;</p>
+<p>namespace MyGeneric<br />{<br />    /// &lt;summary&gt;<br />    /// 泛型类<br />    /// &lt;/summary&gt;<br />    /// &lt;typeparam name="T"&gt;&lt;/typeparam&gt;<br />    public class GenericClass&lt;T&gt;<br />    {<br />        public T _T;<br />    }<br />}</p>
+<p>Main()方法中调用：</p>
+<p>// T是int类型<br />GenericClass&lt;int&gt; genericInt = new GenericClass&lt;int&gt;();<br />genericInt._T = 123;<br />// T是string类型<br />GenericClass&lt;string&gt; genericString = new GenericClass&lt;string&gt;();<br />genericString._T = "123";</p>
+<p>除了可以有泛型类，也可以有泛型接口，例如：</p>
+<p>using System;<br />using System.Collections.Generic;<br />using System.Linq;<br />using System.Text;<br />using System.Threading.Tasks;</p>
+<p>namespace MyGeneric<br />{<br />    /// &lt;summary&gt;<br />    /// 泛型接口<br />    /// &lt;/summary&gt;<br />    public interface IGenericInterface&lt;T&gt;<br />    {<br />        //泛型类型的返回值<br />        T GetT(T t);<br />    }<br />}</p>
+<p>也可以有泛型委托：</p>
+<div class="cnblogs_code">
+<pre><code>1 public delegate void SayHi&lt;T&gt;(T t);//泛型委托</pre>
+</div>
+<p>&nbsp;注意：</p>
+<p>1、泛型在声明的时候可以不指定具体的类型，但是在使用的时候必须指定具体类型，例如：</p>
+<p>using System;<br />using System.Collections.Generic;<br />using System.Linq;<br />using System.Text;<br />using System.Threading.Tasks;</p>
+<p>namespace MyGeneric<br />{<br />    /// &lt;summary&gt;<br />    /// 使用泛型的时候必须指定具体类型，<br />    /// 这里的具体类型是int<br />    /// &lt;/summary&gt;<br />    public class CommonClass :GenericClass&lt;int&gt;<br />    {<br />    }<br />}</p>
+<p>如果子类也是泛型的，那么继承的时候可以不指定具体类型，例如：</p>
+<p>using System;<br />using System.Collections.Generic;<br />using System.Linq;<br />using System.Text;<br />using System.Threading.Tasks;</p>
+<p>namespace MyGeneric<br />{<br />    /// &lt;summary&gt;<br />    /// 使用泛型的时候必须指定具体类型，<br />    /// 这里的具体类型是int<br />    /// &lt;/summary&gt;<br />    public class CommonClass :GenericClass&lt;int&gt;<br />    {<br />    }</p>
+<p>    /// &lt;summary&gt;<br />    /// 子类也是泛型的，继承的时候可以不指定具体类型<br />    /// &lt;/summary&gt;<br />    /// &lt;typeparam name="T"&gt;&lt;/typeparam&gt;<br />    public class CommonClassChild&lt;T&gt;:GenericClass&lt;T&gt;<br />    {</p>
+<p>    }<br />}</p>
+<p>2、类实现泛型接口也是这种情况，例如：</p>
+<p>using System;<br />using System.Collections.Generic;<br />using System.Linq;<br />using System.Text;<br />using System.Threading.Tasks;</p>
+<p>namespace MyGeneric<br />{<br />    /// &lt;summary&gt;<br />    /// 必须指定具体类型<br />    /// &lt;/summary&gt;<br />    public class Common : IGenericInterface&lt;string&gt;<br />    {<br />        public string GetT(string t)<br />        {<br />            throw new NotImplementedException();<br />        }<br />    }</p>
+<p>    /// &lt;summary&gt;<br />    /// 可以不知道具体类型，但是子类也必须是泛型的<br />    /// &lt;/summary&gt;<br />    /// &lt;typeparam name="T"&gt;&lt;/typeparam&gt;<br />    public class CommonChild&lt;T&gt; : IGenericInterface&lt;T&gt;<br />    {<br />        public T GetT(T t)<br />        {<br />            throw new NotImplementedException();<br />        }<br />    }<br />}</p>
+<p>五、泛型约束</p>
+<p>先来看看下面的一个例子：</p>
+<p>定义一个People类，里面有属性和方法：</p>
+<p>using System;<br />using System.Collections.Generic;<br />using System.Linq;<br />using System.Text;<br />using System.Threading.Tasks;</p>
+<p>namespace MyGeneric<br />{<br />    public interface ISports<br />    {<br />        void Pingpang();<br />    }</p>
+<p>    public interface IWork<br />    {<br />        void Work();<br />    }</p>
+<p><br />    public class People<br />    {<br />        public int Id { get; set; }<br />        public string Name { get; set; }</p>
+<p>        public void Hi()<br />        {<br />            Console.WriteLine("Hi");<br />        }<br />    }</p>
+<p>    public class Chinese : People, ISports, IWork<br />    {<br />        public void Tradition()<br />        {<br />            Console.WriteLine("仁义礼智信，温良恭俭让");<br />        }<br />        public void SayHi()<br />        {<br />            Console.WriteLine("吃了么？");<br />        }</p>
+<p>        public void Pingpang()<br />        {<br />            Console.WriteLine("打乒乓球...");<br />        }</p>
+<p>        public void Work()<br />        {<br />            throw new NotImplementedException();<br />        }<br />    }</p>
+<p>    public class Hubei : Chinese<br />    {<br />        public Hubei(int version)<br />        { }</p>
+<p>        public string Changjiang { get; set; }<br />        public void Majiang()<br />        {<br />            Console.WriteLine("打麻将啦。。");<br />        }<br />    }</p>
+<p><br />    public class Japanese : ISports<br />    {<br />        public int Id { get; set; }<br />        public string Name { get; set; }<br />        public void Hi()<br />        {<br />            Console.WriteLine("Hi");<br />        }<br />        public void Pingpang()<br />        {<br />            Console.WriteLine("打乒乓球...");<br />        }<br />    }<br />}</p>
+<p>在Main()方法里面实例化：</p>
+<p>People people = new People()<br />{<br />        Id = 123,<br />        Name = "走自己的路"<br />};<br />Chinese chinese = new Chinese()<br />{<br />        Id = 234,<br />        Name = "晴天"<br />};<br />Hubei hubei = new Hubei(123)<br />{<br />        Id = 345,<br />        Name = "流年"<br />};<br />Japanese japanese = new Japanese()<br />{<br />        Id = 7654,<br />        Name = "werwer"<br />};</p>
+<p>这时有一个需求：需要打印出Id和Name属性的值，将ShowObject()方法修改如下：</p>
+<p><img src="./images/C#泛型详解5.png" alt="" /></p>
+<p>但是这样修改报错了：object类里面没有Id和Name属性，可能会有人说，强制类型转换一下就行了啊：</p>
+<p>public static void ShowObject(object oParameter)<br />{<br />         Console.WriteLine("This is {0},parameter={1},type={2}",<br />         typeof(CommonMethod), oParameter.GetType().Name, oParameter);</p>
+<p>         Console.WriteLine($"{((People)oParameter).Id}_{((People)oParameter).Name}");<br />}</p>
+<p>这样修改以后，代码不会报错了，这时我们在Main()方法里面调用：</p>
+<div class="cnblogs_code">
+<pre><code>1 CommonMethod.ShowObject(people);
+2 CommonMethod.ShowObject(chinese);
+3 CommonMethod.ShowObject(hubei);
+4 CommonMethod.ShowObject(japanese);</pre>
+</div>
+<p>&nbsp;结果：</p>
+<p><img src="./images/C#泛型详解6.png" alt="" /></p>
+<p>可以看出程序报错了，因为Japanese没有继承自People，这里类型转换的时候失败了。这样会造成类型不安全的问题。那么怎么解决类型不安全的问题呢？那就是使用泛型约束。</p>
+<p>所谓的泛型约束，实际上就是约束的类型T。使T必须遵循一定的规则。比如T必须继承自某个类，或者T必须实现某个接口等等。那么怎么给泛型指定约束？其实也很简单，只需要where关键字，加上约束的条件。</p>
+<p>泛型约束总共有五种。</p>
+<table border="0">
+<tbody>
+<tr>
+<td>约束</td>
+<td>s说明</td>
+</tr>
+<tr>
+<td>T：结构</td>
+<td>类型参数必须是值类型</td>
+</tr>
+<tr>
+<td>T：类</td>
+<td>类型参数必须是引用类型；这一点也适用于任何类、接口、委托或数组类型。</td>
+</tr>
+<tr>
+<td>T：new()</td>
+<td>类型参数必须具有无参数的公共构造函数。 当与其他约束一起使用时，new() 约束必须最后指定。</td>
+</tr>
+<tr>
+<td>T：&lt;基类名&gt;</td>
+<td>类型参数必须是指定的基类或派生自指定的基类。</td>
+</tr>
+<tr>
+<td>T：&lt;接口名称&gt;</td>
+<td>类型参数必须是指定的接口或实现指定的接口。 可以指定多个接口约束。 约束接口也可以是泛型的。</td>
+</tr>
+</tbody>
+</table>
+<p>1、基类约束</p>
+<p>上面打印的方法约束T类型必须是People类型。</p>
+<p>/// &lt;summary&gt;<br />/// 基类约束：约束T必须是People类型或者是People的子类<br />/// &lt;/summary&gt;<br />/// &lt;typeparam name="T"&gt;&lt;/typeparam&gt;<br />/// &lt;param name="tParameter"&gt;&lt;/param&gt;<br />public static void Show&lt;T&gt;(T tParameter) where T : People<br />{<br />      Console.WriteLine($"{tParameter.Id}_{tParameter.Name}");<br />      tParameter.Hi();<br />}</p>
+<p>注意：</p>
+<p>基类约束时，基类不能是密封类，即不能是sealed类。sealed类表示该类不能被继承，在这里用作约束就无任何意义，因为sealed类没有子类。</p>
+<p>2、接口约束</p>
+<p>/// &lt;summary&gt;<br />/// 接口约束<br />/// &lt;/summary&gt;<br />/// &lt;typeparam name="T"&gt;&lt;/typeparam&gt;<br />/// &lt;param name="t"&gt;&lt;/param&gt;<br />/// &lt;returns&gt;&lt;/returns&gt;<br />public static T Get&lt;T&gt;(T t) where T : ISports<br />{<br />      t.Pingpang();<br />      return t;<br />}</p>
+<p>3、引用类型约束 class</p>
+<p>引用类型约束保证T一定是引用类型的。</p>
+<p>/// &lt;summary&gt;<br />/// 引用类型约束<br />/// &lt;/summary&gt;<br />/// &lt;typeparam name="T"&gt;&lt;/typeparam&gt;<br />/// &lt;param name="t"&gt;&lt;/param&gt;<br />/// &lt;returns&gt;&lt;/returns&gt;<br />public static T Get&lt;T&gt;(T t) where T : class<br />{<br />      return t;<br />}</p>
+<p>4、值类型约束&nbsp; struct</p>
+<p>值类型约束保证T一定是值类型的。</p>
+<p>/// &lt;summary&gt;<br />/// 值类型类型约束<br />/// &lt;/summary&gt;<br />/// &lt;typeparam name="T"&gt;&lt;/typeparam&gt;<br />/// &lt;param name="t"&gt;&lt;/param&gt;<br />/// &lt;returns&gt;&lt;/returns&gt;<br />public static T Get&lt;T&gt;(T t) where T : struct<br />{<br />      return t;<br />}</p>
+<p>5、无参数构造函数约束&nbsp; new()</p>
+<p>/// &lt;summary&gt;<br />/// new()约束<br />/// &lt;/summary&gt;<br />/// &lt;typeparam name="T"&gt;&lt;/typeparam&gt;<br />/// &lt;param name="t"&gt;&lt;/param&gt;<br />/// &lt;returns&gt;&lt;/returns&gt;<br />public static T Get&lt;T&gt;(T t) where T : new()<br />{<br />     return t;<br />}</p>
+<p>泛型约束也可以同时约束多个，例如：</p>
+<p>public static void Show&lt;T&gt;(T tParameter)<br />            where T : People, ISports, IWork, new()<br />{<br />      Console.WriteLine($"{tParameter.Id}_{tParameter.Name}");<br />      tParameter.Hi();<br />      tParameter.Pingpang();<br />      tParameter.Work();<br />}</p>
+<p>注意：有多个泛型约束时，new()约束一定是在最后。</p>
+<p>六、泛型的协变和逆变</p>
+<p>协变和逆变是在.NET 4.0的时候出现的，只能放在接口或者委托的泛型参数前面，out 协变covariant，用来修饰返回值；in：逆变contravariant，用来修饰传入参数。</p>
+<p>先看下面的一个例子：</p>
+<p>定义一个Animal类：</p>
+<p>using System;<br />using System.Collections.Generic;<br />using System.Linq;<br />using System.Text;<br />using System.Threading.Tasks;</p>
+<p>namespace MyGeneric<br />{<br />    public class Animal<br />    {<br />        public int Id { get; set; }<br />    }<br />}</p>
+<p>然后在定义一个Cat类继承自Animal类：</p>
+<p>using System;<br />using System.Collections.Generic;<br />using System.Linq;<br />using System.Text;<br />using System.Threading.Tasks;</p>
+<p>namespace MyGeneric<br />{<br />    public class Cat :Animal<br />    {<br />        public string Name { get; set; }<br />    }<br />}</p>
+<p>在Main()方法可以这样调用：</p>
+<p>// 直接声明Animal类<br />Animal animal = new Animal();<br />// 直接声明Cat类<br />Cat cat = new Cat();<br />// 声明子类对象指向父类<br />Animal animal2 = new Cat();<br />// 声明Animal类的集合<br />List&lt;Animal&gt; listAnimal = new List&lt;Animal&gt;();<br />// 声明Cat类的集合<br />List&lt;Cat&gt; listCat = new List&lt;Cat&gt;();</p>
+<p>那么问题来了：下面的一句代码是不是正确的呢？</p>
+<div class="cnblogs_code">
+<pre><code>1 List&lt;Animal&gt; list = new List&lt;Cat&gt;();</pre>
+</div>
+<p>&nbsp;可能有人会认为是正确的：因为一只Cat属于Animal，那么一群Cat也应该属于Animal啊。但是实际上这样声明是错误的：因为List&lt;Cat&gt;和List&lt;Animal&gt;之间没有父子关系。</p>
+<p><img src="./images/C#泛型详解7.png" alt="" /></p>
+<p>这时就可以用到协变和逆变了。</p>
+<div class="cnblogs_code">
+<pre><code>1 // 协变
+2 IEnumerable&lt;Animal&gt; List1 = new List&lt;Animal&gt;();
+3 IEnumerable&lt;Animal&gt; List2 = new List&lt;Cat&gt;();</pre>
+</div>
+<p>&nbsp;F12查看定义：</p>
+<p><img src="./images/C#泛型详解8.png" alt="" /></p>
+<p>可以看到，在泛型接口的T前面有一个out关键字修饰，而且T只能是返回值类型，不能作为参数类型，这就是协变。使用了协变以后，左边声明的是基类，右边可以声明基类或者基类的子类。</p>
+<p>协变除了可以用在接口上面，也可以用在委托上面：</p>
+<div class="cnblogs_code">
+<pre><code>1 Func&lt;Animal&gt; func = new Func&lt;Cat&gt;(() =&gt; null);</pre>
+</div>
+<p>&nbsp;除了使用.NET框架定义好的以为，我们还可以自定义协变，例如：</p>
+<p>/// &lt;summary&gt;<br />/// out 协变 只能是返回结果<br />/// &lt;/summary&gt;<br />/// &lt;typeparam name="T"&gt;&lt;/typeparam&gt;<br />public interface ICustomerListOut&lt;out T&gt;<br />{<br />     T Get();<br />}</p>
+<p>public class CustomerListOut&lt;T&gt; : ICustomerListOut&lt;T&gt;<br />{<br />     public T Get()<br />     {<br />         return default(T);<br />     }<br />}</p>
+<p>使用自定义的协变：</p>
+<div class="cnblogs_code">
+<pre><code>1 // 使用自定义协变
+2 ICustomerListOut&lt;Animal&gt; customerList1 = new CustomerListOut&lt;Animal&gt;();
+3 ICustomerListOut&lt;Animal&gt; customerList2 = new CustomerListOut&lt;Cat&gt;();</pre>
+</div>
+<p>&nbsp;在来看看逆变。</p>
+<p>在泛型接口的T前面有一个In关键字修饰，而且T只能方法参数，不能作为返回值类型，这就是逆变。请看下面的自定义逆变：</p>
+<p>/// &lt;summary&gt;<br />/// 逆变 只能是方法参数<br />/// &lt;/summary&gt;<br />/// &lt;typeparam name="T"&gt;&lt;/typeparam&gt;<br />public interface ICustomerListIn&lt;in T&gt;<br />{<br />     void Show(T t);<br />}</p>
+<p>public class CustomerListIn&lt;T&gt; : ICustomerListIn&lt;T&gt;<br />{<br />     public void Show(T t)<br />     {<br />     }<br />}</p>
+<p>使用自定义逆变：</p>
+<div class="cnblogs_code">
+<pre><code>1 // 使用自定义逆变
+2 ICustomerListIn&lt;Cat&gt; customerListCat1 = new CustomerListIn&lt;Cat&gt;();
+3 ICustomerListIn&lt;Cat&gt; customerListCat2 = new CustomerListIn&lt;Animal&gt;();</pre>
+</div>
+<p>协变和逆变也可以同时使用，看看下面的例子：</p>
+<p>/// &lt;summary&gt;<br />/// inT 逆变<br />/// outT 协变<br />/// &lt;/summary&gt;<br />/// &lt;typeparam name="inT"&gt;&lt;/typeparam&gt;<br />/// &lt;typeparam name="outT"&gt;&lt;/typeparam&gt;<br />public interface IMyList&lt;in inT, out outT&gt;<br />{<br />     void Show(inT t);<br />     outT Get();<br />     outT Do(inT t);<br />}</p>
+<p>public class MyList&lt;T1, T2&gt; : IMyList&lt;T1, T2&gt;<br />{</p>
+<p>     public void Show(T1 t)<br />     {<br />          Console.WriteLine(t.GetType().Name);<br />     }</p>
+<p>     public T2 Get()<br />     {<br />          Console.WriteLine(typeof(T2).Name);<br />          return default(T2);<br />      }</p>
+<p>      public T2 Do(T1 t)<br />      {<br />           Console.WriteLine(t.GetType().Name);<br />           Console.WriteLine(typeof(T2).Name);<br />           return default(T2);<br />       }<br /> }</p>
+<p>使用：</p>
+<div class="cnblogs_code">
+<pre><code>1 IMyList&lt;Cat, Animal&gt; myList1 = new MyList&lt;Cat, Animal&gt;();
+2 IMyList&lt;Cat, Animal&gt; myList2 = new MyList&lt;Cat, Cat&gt;();//协变
+3 IMyList&lt;Cat, Animal&gt; myList3 = new MyList&lt;Animal, Animal&gt;();//逆变
+4 IMyList&lt;Cat, Animal&gt; myList4 = new MyList&lt;Animal, Cat&gt;();//逆变+协变</pre>
+</div>
+<p>&nbsp;七、泛型缓存</p>
+<p>在前面我们学习过，类中的静态类型无论实例化多少次，在内存中只会有一个。静态构造函数只会执行一次。在泛型类中，T类型不同，每个不同的T类型，都会产生一个不同的副本，所以会产生不同的静态属性、不同的静态构造函数，请看下面的例子：</p>
+<p>using System;<br />using System.Collections.Generic;<br />using System.Linq;<br />using System.Text;<br />using System.Threading.Tasks;</p>
+<p>namespace MyGeneric<br />{<br />    public class GenericCache&lt;T&gt;<br />    {<br />        static GenericCache()<br />        {<br />            Console.WriteLine("This is GenericCache 静态构造函数");<br />            _TypeTime = string.Format("{0}_{1}", typeof(T).FullName, DateTime.Now.ToString("yyyyMMddHHmmss.fff"));<br />        }</p>
+<p>        private static string _TypeTime = "";</p>
+<p>        public static string GetCache()<br />        {<br />            return _TypeTime;<br />        }<br />    }<br />}</p>
+<p>然后新建一个测试类，用来测试GenericCache类的执行顺序：</p>
+<p>using System;<br />using System.Collections.Generic;<br />using System.Linq;<br />using System.Text;<br />using System.Threading;<br />using System.Threading.Tasks;</p>
+<p>namespace MyGeneric<br />{<br />    public class GenericCacheTest<br />    {<br />        public static void Show()<br />        {<br />            for (int i = 0; i &lt; 5; i++)<br />            {<br />                Console.WriteLine(GenericCache&lt;int&gt;.GetCache());<br />                Thread.Sleep(10);<br />                Console.WriteLine(GenericCache&lt;long&gt;.GetCache());<br />                Thread.Sleep(10);<br />                Console.WriteLine(GenericCache&lt;DateTime&gt;.GetCache());<br />                Thread.Sleep(10);<br />                Console.WriteLine(GenericCache&lt;string&gt;.GetCache());<br />                Thread.Sleep(10);<br />                Console.WriteLine(GenericCache&lt;GenericCacheTest&gt;.GetCache());<br />                Thread.Sleep(10);<br />            }<br />        }<br />    }<br />}</p>
+<p>Main()方法里面调用：</p>
+<pre><code>1 GenericCacheTest.Show();<br /><br /></pre>
+<p>结果：</p>
+<p><img src="./images/C#泛型详解9.png" alt="" /></p>
+<p>从上面的截图中可以看出，泛型会为不同的类型都创建一个副本，所以静态构造函数会执行5次。 而且每次静态属性的值都是一样的。利用泛型的这一特性，可以实现缓存。</p>
+<p>注意：只能为不同的类型缓存一次。泛型缓存比字典缓存效率高。泛型缓存不能主动释放</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

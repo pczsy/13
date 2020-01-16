@@ -1,0 +1,115 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修c#之quartz任务调度的使用' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>c#之quartz任务调度的使用</center></div><div class='banquan'>原文出处:本文由博客园博主Vincent-yuan提供。<br/>
+原文连接:https://www.cnblogs.com/Vincent-yuan/p/10867277.html</div><br>
+    <p>&nbsp;</p>
+<p>这里讲下，quartz这种任务调度程序的简单使用</p>
+<p>这是使用的quartz的3.x 版本</p>
+<p>2.x 版本与此稍有区别，可以在网上查看2.x版本教程</p>
+<p>使用语言为c#</p>
+<p>&nbsp;</p>
+<p>quartz的使用分为几个步骤</p>
+<ol>
+<li>创建一个ISchedulerFactory，然后并且获取 Scheduler</li>
+<li>启动 Scheduler</li>
+<li>创建 job 任务</li>
+<li>创建 trigger 触发器</li>
+<li>使用触发器规划执行任务( Tell quartz to schedule the job using our trigger)</li>
+</ol>
+<p>其中2步骤也可以放到步骤5后面&nbsp;</p>
+<p>&nbsp;</p>
+<p>另外，别忘记在nuget管理器中引入quartz</p>
+<p>&nbsp;<img src="./images/c#之quartz任务调度的使用0.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>代码如下</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 入口程序
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="args"&gt;&lt;/param&gt;</span>
+        <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            Run();
+            Console.ReadKey();
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 任务调度的使用过程
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">async</span> <span style="color: #0000ff;">static</span><span style="color: #000000;"> Task Run()
+        {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> 1.创建scheduler的引用</span>
+            ISchedulerFactory schedFact = <span style="color: #0000ff;">new</span><span style="color: #000000;"> StdSchedulerFactory();
+            IScheduler sched </span>= <span style="color: #0000ff;">await</span><span style="color: #000000;"> schedFact.GetScheduler();
+
+            </span><span style="color: #008000;">//2.</span><span style="color: #008000;">启动 scheduler</span>
+            <span style="color: #0000ff;">await</span><span style="color: #000000;"> sched.Start();
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> 3.创建 job</span>
+            IJobDetail job = JobBuilder.Create&lt;SimpleJob&gt;<span style="color: #000000;">()
+                    .WithIdentity(</span><span style="color: #800000;">"</span><span style="color: #800000;">job1</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">group1</span><span style="color: #800000;">"</span><span style="color: #000000;">)
+                    .Build();
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> 4.创建 trigger</span>
+            ITrigger trigger =<span style="color: #000000;"> TriggerBuilder.Create()
+                .WithIdentity(</span><span style="color: #800000;">"</span><span style="color: #800000;">trigger1</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">group1</span><span style="color: #800000;">"</span><span style="color: #000000;">)
+                .WithSimpleSchedule(x </span>=&gt; x.WithIntervalInSeconds(<span style="color: #800080;">5</span><span style="color: #000000;">).RepeatForever())
+                .Build();
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> 5.使用trigger规划执行任务job</span>
+            <span style="color: #0000ff;">await</span><span style="color: #000000;"> sched.ScheduleJob(job, trigger);
+        }
+
+    }
+    
+
+
+    </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+    <span style="color: #808080;">///</span><span style="color: #008000;"> 任务
+    </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> SimpleJob : IJob
+    {
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">virtual</span><span style="color: #000000;"> Task Execute(IJobExecutionContext context)
+        {
+            </span><span style="color: #0000ff;">return</span> Console.Out.WriteLineAsync($<span style="color: #800000;">"</span><span style="color: #800000;">job工作了 在{DateTime.Now}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+        }
+        
+    }</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>运行程序，效果图如下：</p>
+<p>每5秒执行一次</p>
+<p><img src="./images/c#之quartz任务调度的使用1.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;另外，在实际项目使用中，可以进行把上面步骤拆开，封装进行使用</p>
+<p>例如，可以把步骤1，步骤2封装到一起，即用来产生 scheduler&nbsp;</p>
+<p>把 步骤3，步骤4，步骤5 封装到一起，用来给不同的任务 scheduler（相当于注册不同的 job ，trigger）</p>
+<p>&nbsp;</p>
+<p>另外，还有更多的quartz的用法</p>
+<p>这里附上继续学习网址：</p>
+<p><a title="quartz教程" href="https://www.quartz-scheduler.net/documentation/quartz-3.x/tutorial/index.html" target="_blank">quartz学习</a></p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

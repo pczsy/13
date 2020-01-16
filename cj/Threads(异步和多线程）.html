@@ -1,0 +1,467 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Threads(异步和多线程）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Threads(异步和多线程）</center></div><div class='banquan'>原文出处:本文由博客园博主冰乐提供。<br/>
+原文连接:https://www.cnblogs.com/taotaozhuanyong/p/11559834.html</div><br>
+    <p>Task是.NET Framework4.5出现的，线程是基于线程池的，然后提供丰富的api，Thread方法很多很强大，但是太过强大，没有限制。</p>
+<p>DoSomethingLong方法如下：</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('35cd2cd2-4e21-485d-8530-51331c63f7a5')"><img id="code_img_closed_35cd2cd2-4e21-485d-8530-51331c63f7a5" class="code_img_closed" src="./images/Threads(异步和多线程）0.png" alt="" /><img id="code_img_opened_35cd2cd2-4e21-485d-8530-51331c63f7a5" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('35cd2cd2-4e21-485d-8530-51331c63f7a5',event)" src="./images/Threads(异步和多线程）1.png" alt="" />
+<div id="cnblogs_code_open_35cd2cd2-4e21-485d-8530-51331c63f7a5" class="cnblogs_code_hide">
+<pre><code> <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+ <span style="color: #808080;">///</span><span style="color: #008000;"> 一个比较耗时耗资源的私有方法
+ </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+ <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="name"&gt;&lt;/param&gt;</span>
+ <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> DoSomethingLong(<span style="color: #0000ff;">string</span><span style="color: #000000;"> name)
+ {
+     Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">****************DoSomethingLong Start  {name}  {Thread.CurrentThread.ManagedThreadId.ToString(</span><span style="color: #800000;">"</span><span style="color: #800080;">00</span><span style="color: #800000;">"</span><span style="color: #800000;">)} {DateTime.Now.ToString(</span><span style="color: #800000;">"</span>yyyy-MM-dd HH:mm:ss.fff<span style="color: #800000;">"</span><span style="color: #800000;">)}***************</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+     </span><span style="color: #0000ff;">long</span> lResult = <span style="color: #800080;">0</span><span style="color: #000000;">;
+     </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; 1_000_000_000; i++<span style="color: #000000;">)
+     {
+         lResult </span>+=<span style="color: #000000;"> i;
+     }
+     Thread.Sleep(</span><span style="color: #800080;">2000</span><span style="color: #000000;">);
+
+     Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">****************DoSomethingLong   End  {name}  {Thread.CurrentThread.ManagedThreadId.ToString(</span><span style="color: #800000;">"</span><span style="color: #800080;">00</span><span style="color: #800000;">"</span><span style="color: #800000;">)} {DateTime.Now.ToString(</span><span style="color: #800000;">"</span>yyyy-MM-dd HH:mm:ss.fff<span style="color: #800000;">"</span><span style="color: #800000;">)} {lResult}***************</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+ }</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>Task的使用：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">{
+    Task task </span>= <span style="color: #0000ff;">new</span> Task(() =&gt; <span style="color: #0000ff;">this</span>.DoSomethingLong(<span style="color: #800000;">"</span><span style="color: #800000;">btnTask_Click_1</span><span style="color: #800000;">"</span><span style="color: #000000;">));
+    task.Start();
+}
+{
+    Task task </span>= Task.Run(() =&gt; <span style="color: #0000ff;">this</span>.DoSomethingLong(<span style="color: #800000;">"</span><span style="color: #800000;">btnTask_Click_2</span><span style="color: #800000;">"</span><span style="color: #000000;">));
+}
+{
+    TaskFactory taskFactory </span>=<span style="color: #000000;"> Task.Factory;
+    Task task </span>= taskFactory.StartNew(() =&gt; <span style="color: #0000ff;">this</span>.DoSomethingLong(<span style="color: #800000;">"</span><span style="color: #800000;">btnTask_Click_3</span><span style="color: #800000;">"</span><span style="color: #000000;">));
+}</span></pre>
+</div>
+<p><img src="./images/Threads(异步和多线程）2.png" alt="" /></p>
+<p>&nbsp;如果这样去调用：</p>
+<div class="cnblogs_code">
+<pre><code>ThreadPool.SetMaxThreads(<span style="color: #800080;">8</span>, <span style="color: #800080;">8</span><span style="color: #000000;">);
+</span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; <span style="color: #800080;">100</span>; i++<span style="color: #000000;">)
+{
+    </span><span style="color: #0000ff;">int</span> k =<span style="color: #000000;"> i;
+    Task.Run(() </span>=&gt;<span style="color: #000000;">
+    {
+        Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">This is {k} running ThreadId={Thread.CurrentThread.ManagedThreadId.ToString(</span><span style="color: #800000;">"</span><span style="color: #800080;">00</span><span style="color: #800000;">"</span><span style="color: #800000;">)}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+        Thread.Sleep(</span><span style="color: #800080;">2000</span><span style="color: #000000;">);
+    });
+}</span></pre>
+</div>
+<p>&nbsp;<img src="./images/Threads(异步和多线程）3.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>如果去掉设置最大线程的代码：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; <span style="color: #800080;">100</span>; i++<span style="color: #000000;">)
+{
+    </span><span style="color: #0000ff;">int</span> k =<span style="color: #000000;"> i;
+    Task.Run(() </span>=&gt;<span style="color: #000000;">
+    {
+        Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">This is {k} running ThreadId={Thread.CurrentThread.ManagedThreadId.ToString(</span><span style="color: #800000;">"</span><span style="color: #800080;">00</span><span style="color: #800000;">"</span><span style="color: #800000;">)}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+        Thread.Sleep(</span><span style="color: #800080;">2000</span><span style="color: #000000;">);
+    });
+}</span></pre>
+</div>
+<p>运行结果如下：</p>
+<p>&nbsp;<img src="./images/Threads(异步和多线程）4.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;ThreadPool.SetMaxThreads(8, 8);</p>
+<p>　　线程池是单例的，全局唯一的，设置后，同时并发的Task只有8个，而且是复用的，Task的线程是源于线程池的，全局的，请不要这样设置。</p>
+<p>假如我想控制下Task的并发数量，改怎么做？</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">{
+    Stopwatch stopwatch </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Stopwatch();
+    stopwatch.Start();
+    Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">在Sleep之前</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+    Thread.Sleep(</span><span style="color: #800080;">2000</span>);<span style="color: #008000;">//</span><span style="color: #008000;">同步等待--当前线程等待2s 然后继续</span>
+    Console.WriteLine(<span style="color: #800000;">"</span><span style="color: #800000;">在Sleep之后</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+    stopwatch.Stop();
+    Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">Sleep耗时{stopwatch.ElapsedMilliseconds}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+}
+{
+    Stopwatch stopwatch </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Stopwatch();
+    stopwatch.Start();
+    Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">在Delay之前</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+    Task task </span>= Task.Delay(<span style="color: #800080;">2000</span><span style="color: #000000;">)
+        .ContinueWith(t </span>=&gt;<span style="color: #000000;">
+        {
+            stopwatch.Stop();
+            Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">Delay耗时{stopwatch.ElapsedMilliseconds}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+
+            Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">This is ThreadId={Thread.CurrentThread.ManagedThreadId.ToString(</span><span style="color: #800000;">"</span><span style="color: #800080;">00</span><span style="color: #800000;">"</span><span style="color: #800000;">)}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+        });</span><span style="color: #008000;">//</span><span style="color: #008000;">异步等待--等待2s后启动新任务</span>
+    Console.WriteLine(<span style="color: #800000;">"</span><span style="color: #800000;">在Delay之后</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+    stopwatch.Stop();
+    Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">Delay耗时{stopwatch.ElapsedMilliseconds}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+}</span></pre>
+</div>
+<p>运行结果如下：</p>
+<p>　　<img src="./images/Threads(异步和多线程）5.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;如果将最后一个stopwatch注释掉：</p>
+<p>&nbsp;</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;"> {
+     Stopwatch stopwatch </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Stopwatch();
+     stopwatch.Start();
+     Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">在Sleep之前</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+     Thread.Sleep(</span><span style="color: #800080;">2000</span>);<span style="color: #008000;">//</span><span style="color: #008000;">同步等待--当前线程等待2s 然后继续</span>
+     Console.WriteLine(<span style="color: #800000;">"</span><span style="color: #800000;">在Sleep之后</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+     stopwatch.Stop();
+     Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">Sleep耗时{stopwatch.ElapsedMilliseconds}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+ }
+ {
+     Stopwatch stopwatch </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Stopwatch();
+     stopwatch.Start();
+     Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">在Delay之前</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+     Task task </span>= Task.Delay(<span style="color: #800080;">2000</span><span style="color: #000000;">)
+         .ContinueWith(t </span>=&gt;<span style="color: #000000;">
+         {
+             stopwatch.Stop();
+             Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">Delay耗时{stopwatch.ElapsedMilliseconds}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+
+             Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">This is ThreadId={Thread.CurrentThread.ManagedThreadId.ToString(</span><span style="color: #800000;">"</span><span style="color: #800080;">00</span><span style="color: #800000;">"</span><span style="color: #800000;">)}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+         });</span><span style="color: #008000;">//</span><span style="color: #008000;">异步等待--等待2s后启动新任务</span>
+     Console.WriteLine(<span style="color: #800000;">"</span><span style="color: #800000;">在Delay之后</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+     </span><span style="color: #008000;">//</span><span style="color: #008000;">stopwatch.Stop();
+     </span><span style="color: #008000;">//</span><span style="color: #008000;">Console.WriteLine($"Delay耗时{stopwatch.ElapsedMilliseconds}");</span>
+ }</pre>
+</div>
+<p><img src="./images/Threads(异步和多线程）6.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;<img src="./images/Threads(异步和多线程）7.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>什么时候用多线程？</p>
+<p>　　任务并发是时候</p>
+<p>多线程能干嘛？</p>
+<p>　　提升速度，优化用户体验。</p>
+<p>&nbsp;</p>
+<p>比如，现在有一个场景，在公司开会，领导在分配任务，不能并发，因为只能有一个领导在讲话分配任务，当任务分配下去，开发们确实可以同时开始撸代码，这个是可以并发的。</p>
+<div class="cnblogs_code">
+<pre><code> TaskFactory taskFactory = <span style="color: #0000ff;">new</span><span style="color: #000000;"> TaskFactory();
+ List</span>&lt;Task&gt; taskList = <span style="color: #0000ff;">new</span> List&lt;Task&gt;<span style="color: #000000;">();
+ taskList.Add(taskFactory.StartNew(() </span>=&gt; <span style="color: #0000ff;">this</span>.Coding(<span style="color: #800000;">"</span><span style="color: #800000;">bingle1</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">Portal</span><span style="color: #800000;">"</span><span style="color: #000000;">)));
+ taskList.Add(taskFactory.StartNew(() </span>=&gt; <span style="color: #0000ff;">this</span>.Coding(<span style="color: #800000;">"</span><span style="color: #800000;">bingle2</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">  DBA </span><span style="color: #800000;">"</span><span style="color: #000000;">)));
+ taskList.Add(taskFactory.StartNew(() </span>=&gt; <span style="color: #0000ff;">this</span>.Coding(<span style="color: #800000;">"</span><span style="color: #800000;">bingle3</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">Client</span><span style="color: #800000;">"</span><span style="color: #000000;">)));
+ taskList.Add(taskFactory.StartNew(() </span>=&gt; <span style="color: #0000ff;">this</span>.Coding(<span style="color: #800000;">"</span><span style="color: #800000;">bingle4</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">BackService</span><span style="color: #800000;">"</span><span style="color: #000000;">)));
+ taskList.Add(taskFactory.StartNew(() </span>=&gt; <span style="color: #0000ff;">this</span>.Coding(<span style="color: #800000;">"</span><span style="color: #800000;">bingle5</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">Wechat</span><span style="color: #800000;">"</span>)));</pre>
+</div>
+<p><img src="./images/Threads(异步和多线程）8.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;现在要求，谁第一个完成，获得红包奖励（ContinueWhenAny）；所有完成后，一起庆祝下（ContinueWhenAll），将其放入一个List&lt;Task&gt;里面去</p>
+<div class="cnblogs_code">
+<pre><code> TaskFactory taskFactory = <span style="color: #0000ff;">new</span><span style="color: #000000;"> TaskFactory();
+ List</span>&lt;Task&gt; taskList = <span style="color: #0000ff;">new</span> List&lt;Task&gt;<span style="color: #000000;">();
+ taskList.Add(taskFactory.StartNew(() </span>=&gt; <span style="color: #0000ff;">this</span>.Coding(<span style="color: #800000;">"</span><span style="color: #800000;">bingle1</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">Portal</span><span style="color: #800000;">"</span><span style="color: #000000;">)));
+ taskList.Add(taskFactory.StartNew(() </span>=&gt; <span style="color: #0000ff;">this</span>.Coding(<span style="color: #800000;">"</span><span style="color: #800000;">bingle2</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">  DBA </span><span style="color: #800000;">"</span><span style="color: #000000;">)));
+ taskList.Add(taskFactory.StartNew(() </span>=&gt; <span style="color: #0000ff;">this</span>.Coding(<span style="color: #800000;">"</span><span style="color: #800000;">bingle3</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">Client</span><span style="color: #800000;">"</span><span style="color: #000000;">)));
+ taskList.Add(taskFactory.StartNew(() </span>=&gt; <span style="color: #0000ff;">this</span>.Coding(<span style="color: #800000;">"</span><span style="color: #800000;">bingle4</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">BackService</span><span style="color: #800000;">"</span><span style="color: #000000;">)));
+ taskList.Add(taskFactory.StartNew(() </span>=&gt; <span style="color: #0000ff;">this</span>.Coding(<span style="color: #800000;">"</span><span style="color: #800000;">bingle5</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">Wechat</span><span style="color: #800000;">"</span><span style="color: #000000;">)));
+
+ </span><span style="color: #008000;">//</span><span style="color: #008000;">谁第一个完成，获取一个红包奖励</span>
+ taskFactory.ContinueWhenAny(taskList.ToArray(), t =&gt; Console.WriteLine($<span style="color: #800000;">"</span><span style="color: #800000;">XXX开发完成，获取个红包奖励{Thread.CurrentThread.ManagedThreadId.ToString(</span><span style="color: #800000;">"</span><span style="color: #800080;">00</span><span style="color: #800000;">"</span><span style="color: #800000;">)}</span><span style="color: #800000;">"</span><span style="color: #000000;">));
+ </span><span style="color: #008000;">//</span><span style="color: #008000;">项目完成后，一起庆祝一下</span>
+ taskList.Add(taskFactory.ContinueWhenAll(taskList.ToArray(), rArray =&gt; Console.WriteLine($<span style="color: #800000;">"</span><span style="color: #800000;">开发都完成，一起庆祝一下{Thread.CurrentThread.ManagedThreadId.ToString(</span><span style="color: #800000;">"</span><span style="color: #800080;">00</span><span style="color: #800000;">"</span><span style="color: #800000;">)}</span><span style="color: #800000;">"</span>)));</pre>
+</div>
+<p>ContinueWhenAny&nbsp; ContinueWhenAll 非阻塞式的回调；而且使用的线程可能是新线程，也可能是刚完成任务的线程，唯一不可能是主线程</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;">阻塞当前线程，等着任意一个任务完成</span>
+Task.WaitAny(taskList.ToArray());<span style="color: #008000;">//</span><span style="color: #008000;">也可以限时等待</span>
+Console.WriteLine(<span style="color: #800000;">"</span><span style="color: #800000;">准备环境开始部署</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008000;">//</span><span style="color: #008000;">需要能够等待全部线程完成任务再继续  阻塞当前线程，等着全部任务完成</span>
+<span style="color: #000000;">Task.WaitAll(taskList.ToArray());
+Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">5个模块全部完成后，集中点评</span><span style="color: #800000;">"</span>);</pre>
+</div>
+<p><img src="./images/Threads(异步和多线程）9.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;　　Task.WaitAny&nbsp; WaitAll都是阻塞当前线程，等任务完成后执行操作，阻塞卡界面，是为了并发以及顺序控制，网站首页：A数据库 B接口 C分布式服务 D搜索引擎，适合多线程并发，都完成后才能返回给用户，需要等待WaitAll，列表页：核心数据可能来自数据库/接口服务/分布式搜索引擎/缓存，多线程并发请求，哪个先完成就用哪个结果，其他的就不管了。</p>
+<p>　假如说我想控制下Task的并发数量，该怎么做？&nbsp; 20个</p>
+<div class="cnblogs_code">
+<pre><code> List&lt;Task&gt; taskList = <span style="color: #0000ff;">new</span> List&lt;Task&gt;<span style="color: #000000;">();
+ </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; <span style="color: #800080;">10000</span>; i++<span style="color: #000000;">)
+ {
+     </span><span style="color: #0000ff;">int</span> k =<span style="color: #000000;"> i;
+     </span><span style="color: #0000ff;">if</span> (taskList.Count(t =&gt; t.Status != TaskStatus.RanToCompletion) &gt;= <span style="color: #800080;">20</span><span style="color: #000000;">)
+     {
+         Task.WaitAny(taskList.ToArray());
+         taskList </span>= taskList.Where(t =&gt; t.Status !=<span style="color: #000000;"> TaskStatus.RanToCompletion).ToList();
+     }
+     taskList.Add(Task.Run(() </span>=&gt;<span style="color: #000000;">
+     {
+         Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">This is {k} running ThreadId={Thread.CurrentThread.ManagedThreadId.ToString(</span><span style="color: #800000;">"</span><span style="color: #800080;">00</span><span style="color: #800000;">"</span><span style="color: #800000;">)}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+         Thread.Sleep(</span><span style="color: #800080;">2000</span><span style="color: #000000;">);
+     }));
+ }</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>Parallel并发执行多个Action线程，主线程会参与计算---阻塞界面。等于TaskWaitAll+主线程计算</p>
+<div class="cnblogs_code">
+<pre><code> Parallel.Invoke(() =&gt; <span style="color: #0000ff;">this</span>.DoSomethingLong(<span style="color: #800000;">"</span><span style="color: #800000;">btnParallel_Click_1</span><span style="color: #800000;">"</span><span style="color: #000000;">),
+     () </span>=&gt; <span style="color: #0000ff;">this</span>.DoSomethingLong(<span style="color: #800000;">"</span><span style="color: #800000;">btnParallel_Click_2</span><span style="color: #800000;">"</span><span style="color: #000000;">),
+     () </span>=&gt; <span style="color: #0000ff;">this</span>.DoSomethingLong(<span style="color: #800000;">"</span><span style="color: #800000;">btnParallel_Click_3</span><span style="color: #800000;">"</span><span style="color: #000000;">),
+     () </span>=&gt; <span style="color: #0000ff;">this</span>.DoSomethingLong(<span style="color: #800000;">"</span><span style="color: #800000;">btnParallel_Click_4</span><span style="color: #800000;">"</span><span style="color: #000000;">),
+     () </span>=&gt; <span style="color: #0000ff;">this</span>.DoSomethingLong(<span style="color: #800000;">"</span><span style="color: #800000;">btnParallel_Click_5</span><span style="color: #800000;">"</span>));</pre>
+</div>
+<div class="cnblogs_code">
+<pre><code>Parallel.For(<span style="color: #800080;">0</span>, <span style="color: #800080;">5</span>, i =&gt; <span style="color: #0000ff;">this</span>.DoSomethingLong($<span style="color: #800000;">"</span><span style="color: #800000;">btnParallel_Click_{i}</span><span style="color: #800000;">"</span>));</pre>
+</div>
+<div class="cnblogs_code">
+<pre><code>Parallel.ForEach(<span style="color: #0000ff;">new</span> <span style="color: #0000ff;">int</span>[] { <span style="color: #800080;">0</span>, <span style="color: #800080;">1</span>, <span style="color: #800080;">2</span>, <span style="color: #800080;">3</span>, <span style="color: #800080;">4</span> }, i =&gt; <span style="color: #0000ff;">this</span>.DoSomethingLong($<span style="color: #800000;">"</span><span style="color: #800000;">btnParallel_Click_{i}</span><span style="color: #800000;">"</span><span style="color: #000000;">));
+
+ParallelOptions options </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> ParallelOptions();
+options.MaxDegreeOfParallelism </span>= <span style="color: #800080;">3</span><span style="color: #000000;">;
+Parallel.For(</span><span style="color: #800080;">0</span>, <span style="color: #800080;">10</span>, options, i =&gt; <span style="color: #0000ff;">this</span>.DoSomethingLong($<span style="color: #800000;">"</span><span style="color: #800000;">btnParallel_Click_{i}</span><span style="color: #800000;">"</span>));</pre>
+</div>
+<p>有没有办法不阻塞？</p>
+<div class="cnblogs_code">
+<pre><code>Task.Run(() =&gt;<span style="color: #000000;">
+{
+    ParallelOptions options </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> ParallelOptions();
+    options.MaxDegreeOfParallelism </span>= <span style="color: #800080;">3</span><span style="color: #000000;">;
+    Parallel.For(</span><span style="color: #800080;">0</span>, <span style="color: #800080;">10</span>, options, i =&gt; <span style="color: #0000ff;">this</span>.DoSomethingLong($<span style="color: #800000;">"</span><span style="color: #800000;">btnParallel_Click_{i}</span><span style="color: #800000;">"</span><span style="color: #000000;">));
+});</span></pre>
+</div>
+<p>　　几乎90%以上的多线程场景，以及顺序控制，以上的Task的方法就可以完成，如果你的多线程场景太复杂搞不定，那么请梳理一下你的流程，简化一下。建议最好不要线程嵌套线程，两三次勉强能懂，三层就hold不住了，更多的只能求神。</p>
+<p>&nbsp;</p>
+<p>多线程异常：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">try</span><span style="color: #000000;">
+{
+
+    List</span>&lt;Task&gt; taskList = <span style="color: #0000ff;">new</span> List&lt;Task&gt;<span style="color: #000000;">();
+    </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; <span style="color: #800080;">100</span>; i++<span style="color: #000000;">)
+    {
+        </span><span style="color: #0000ff;">string</span> name = $<span style="color: #800000;">"</span><span style="color: #800000;">btnThreadCore_Click_{i}</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+        taskList.Add(Task.Run(() </span>=&gt;<span style="color: #000000;">
+        {
+            </span><span style="color: #0000ff;">if</span> (name.Equals(<span style="color: #800000;">"</span><span style="color: #800000;">btnThreadCore_Click_11</span><span style="color: #800000;">"</span><span style="color: #000000;">))
+            {
+                </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> Exception(<span style="color: #800000;">"</span><span style="color: #800000;">btnThreadCore_Click_11异常</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            }
+            </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (name.Equals(<span style="color: #800000;">"</span><span style="color: #800000;">btnThreadCore_Click_12</span><span style="color: #800000;">"</span><span style="color: #000000;">))
+            {
+                </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> Exception(<span style="color: #800000;">"</span><span style="color: #800000;">btnThreadCore_Click_12异常</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            }
+            </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (name.Equals(<span style="color: #800000;">"</span><span style="color: #800000;">btnThreadCore_Click_38</span><span style="color: #800000;">"</span><span style="color: #000000;">))
+            {
+                </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> Exception(<span style="color: #800000;">"</span><span style="color: #800000;">btnThreadCore_Click_38异常</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            }
+            Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">This is {name}成功 ThreadId={Thread.CurrentThread.ManagedThreadId.ToString(</span><span style="color: #800000;">"</span><span style="color: #800080;">00</span><span style="color: #800000;">"</span><span style="color: #800000;">)}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+        }));
+    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">多线程里面抛出的异常，会终结当前线程；但是不会影响别的线程；
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">那线程异常哪里去了？ 被吞了，
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">假如我想获取异常信息，还需要通知别的线程</span>
+    Task.WaitAll(taskList.ToArray());<span style="color: #008000;">//</span><span style="color: #008000;">1 可以捕获到线程的异常</span>
+<span style="color: #000000;">}
+</span><span style="color: #0000ff;">catch</span> (AggregateException aex)<span style="color: #008000;">//</span><span style="color: #008000;">2 需要try-catch-AggregateException</span>
+<span style="color: #000000;">{
+    </span><span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">var</span> exception <span style="color: #0000ff;">in</span><span style="color: #000000;"> aex.InnerExceptions)
+    {
+        Console.WriteLine(exception.Message);
+    }
+}
+</span><span style="color: #0000ff;">catch</span> (Exception ex)<span style="color: #008000;">//</span><span style="color: #008000;">可以多catch  先具体再全部</span>
+<span style="color: #000000;">{
+    Console.WriteLine(ex);
+}
+</span><span style="color: #008000;">//</span><span style="color: #008000;">线程异常后经常是需要通知别的线程，而不是等到WaitAll，问题就是要线程取消
+</span><span style="color: #008000;">//</span><span style="color: #008000;">工作中常规建议：多线程的委托里面不允许异常，包一层try-catch,然后记录下来异常信息，完成需要的操作</span></pre>
+</div>
+<p><strong><span style="font-size: 18px;">线程取消：</span></strong></p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('c8dfa690-50c0-4a06-8b9a-7db27cffd2ba')"><img id="code_img_closed_c8dfa690-50c0-4a06-8b9a-7db27cffd2ba" class="code_img_closed" src="./images/Threads(异步和多线程）0.png" alt="" /><img id="code_img_opened_c8dfa690-50c0-4a06-8b9a-7db27cffd2ba" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('c8dfa690-50c0-4a06-8b9a-7db27cffd2ba',event)" src="./images/Threads(异步和多线程）1.png" alt="" />
+<div id="cnblogs_code_open_c8dfa690-50c0-4a06-8b9a-7db27cffd2ba" class="cnblogs_code_hide">
+<pre><code>                <span style="color: #008000;">//</span><span style="color: #008000;">多线程并发任务，某个失败后，希望通知别的线程，都停下来，how？
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">Thread.Abort--终止线程；向当前线程抛一个异常然后终结任务；线程属于OS资源，可能不会立即停下来
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">Task不能外部终止任务，只能自己终止自己(上帝才能打败自己)
+
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">cts有个bool属性IsCancellationRequested 初始化是false
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">调用Cancel方法后变成true(不能再变回去),可以重复cancel</span>
+                <span style="color: #0000ff;">try</span><span style="color: #000000;">
+                {
+                    CancellationTokenSource cts </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> CancellationTokenSource();
+                    List</span>&lt;Task&gt; taskList = <span style="color: #0000ff;">new</span> List&lt;Task&gt;<span style="color: #000000;">();
+                    </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; <span style="color: #800080;">50</span>; i++<span style="color: #000000;">)
+                    {
+                        </span><span style="color: #0000ff;">string</span> name = $<span style="color: #800000;">"</span><span style="color: #800000;">btnThreadCore_Click_{i}</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+                        taskList.Add(Task.Run(() </span>=&gt;<span style="color: #000000;">
+                        {
+                            </span><span style="color: #0000ff;">try</span><span style="color: #000000;">
+                            {
+                                </span><span style="color: #0000ff;">if</span> (!<span style="color: #000000;">cts.IsCancellationRequested)
+                                    Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">This is {name} 开始 ThreadId={Thread.CurrentThread.ManagedThreadId.ToString(</span><span style="color: #800000;">"</span><span style="color: #800080;">00</span><span style="color: #800000;">"</span><span style="color: #800000;">)}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+
+                                Thread.Sleep(</span><span style="color: #0000ff;">new</span> Random().Next(<span style="color: #800080;">50</span>, <span style="color: #800080;">100</span><span style="color: #000000;">));
+
+                                </span><span style="color: #0000ff;">if</span> (name.Equals(<span style="color: #800000;">"</span><span style="color: #800000;">btnThreadCore_Click_11</span><span style="color: #800000;">"</span><span style="color: #000000;">))
+                                {
+                                    </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> Exception(<span style="color: #800000;">"</span><span style="color: #800000;">btnThreadCore_Click_11异常</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                                }
+                                </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (name.Equals(<span style="color: #800000;">"</span><span style="color: #800000;">btnThreadCore_Click_12</span><span style="color: #800000;">"</span><span style="color: #000000;">))
+                                {
+                                    </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> Exception(<span style="color: #800000;">"</span><span style="color: #800000;">btnThreadCore_Click_12异常</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                                }
+                                </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (name.Equals(<span style="color: #800000;">"</span><span style="color: #800000;">btnThreadCore_Click_13</span><span style="color: #800000;">"</span><span style="color: #000000;">))
+                                {
+                                    cts.Cancel();
+                                }
+                                </span><span style="color: #0000ff;">if</span> (!<span style="color: #000000;">cts.IsCancellationRequested)
+                                {
+                                    Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">This is {name}成功结束 ThreadId={Thread.CurrentThread.ManagedThreadId.ToString(</span><span style="color: #800000;">"</span><span style="color: #800080;">00</span><span style="color: #800000;">"</span><span style="color: #800000;">)}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                                }
+                                </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+                                {
+                                    Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">This is {name}中途停止 ThreadId={Thread.CurrentThread.ManagedThreadId.ToString(</span><span style="color: #800000;">"</span><span style="color: #800080;">00</span><span style="color: #800000;">"</span><span style="color: #800000;">)}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                                    </span><span style="color: #0000ff;">return</span><span style="color: #000000;">;
+                                }
+                            }
+                            </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception ex)
+                            {
+                                Console.WriteLine(ex.Message);
+                                cts.Cancel();
+                            }
+                        }, cts.Token));
+                    }
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">1 准备cts  2 try-catch-cancel  3 Action要随时判断IsCancellationRequested
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">尽快停止，肯定有延迟，在判断环节才会结束</span>
+<span style="color: #000000;">
+                    Task.WaitAll(taskList.ToArray());
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">如果线程还没启动，能不能就别启动了？
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">1 启动线程传递Token  2 异常抓取  
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">在Cancel时还没有启动的任务，就不启动了；也是抛异常，cts.Token.ThrowIfCancellationRequested</span>
+<span style="color: #000000;">                }
+                </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (AggregateException aex)
+                {
+                    </span><span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">var</span> exception <span style="color: #0000ff;">in</span><span style="color: #000000;"> aex.InnerExceptions)
+                    {
+                        Console.WriteLine(exception.Message);
+                    }
+                }
+                </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception ex)
+                {
+                    Console.WriteLine(ex.Message);
+                }</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p><strong><span style="font-size: 18px;">临时变量：</span></strong></p>
+<div class="cnblogs_code">
+<pre><code> <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; <span style="color: #800080;">5</span>; i++<span style="color: #000000;">)
+ {
+     Task.Run(() </span>=&gt;<span style="color: #000000;">
+     {
+         Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">This is btnThreadCore_Click_{i} ThreadId={Thread.CurrentThread.ManagedThreadId.ToString(</span><span style="color: #800000;">"</span><span style="color: #800080;">00</span><span style="color: #800000;">"</span><span style="color: #800000;">)}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+     });
+ }</span></pre>
+</div>
+<p><img src="./images/Threads(异步和多线程）12.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;为什么运行结果后，都是5呢？</p>
+<p>　　临时变量问题，线程是非阻塞的，延迟启动的；线程执行的时候，i已经是5了</p>
+<p>那么该如何解决呢？</p>
+<p>　　每次都声明一个变量k去接收，k是闭包里面的变量，每次循环都有一个独立的k，5个k变量&nbsp; 1个i变量</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; <span style="color: #800080;">5</span>; i++<span style="color: #000000;">)
+{
+    </span><span style="color: #0000ff;">int</span> k =<span style="color: #000000;"> i;
+    Task.Run(() </span>=&gt;<span style="color: #000000;">
+    {
+        Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">This is btnThreadCore_Click_{i}_{k} ThreadId={Thread.CurrentThread.ManagedThreadId.ToString(</span><span style="color: #800000;">"</span><span style="color: #800080;">00</span><span style="color: #800000;">"</span><span style="color: #800000;">)}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+    });
+}</span></pre>
+</div>
+<p>这样再运行，结果就正常了。</p>
+<p><img src="./images/Threads(异步和多线程）13.png" alt="" /></p>
+<p>&nbsp;</p>
+<p><strong><span style="font-size: 18px;">&nbsp;线程安全&amp;lock：</span></strong></p>
+<p>线程安全：如果你的代码在进程中有多个线程同时运行这一段，如果每次运行的结果都跟单线程运行时的结果一致，那么就是线程安全的</p>
+<p>线程安全问题一般都是有全局变量/共享变量/静态变量/硬盘文件/数据库的值，只要多线程都能访问和修改</p>
+<p>发生是因为多个线程相同操作，出现了覆盖，怎么解决？</p>
+<p>1 Lock解决多线程冲突</p>
+<p>Lock是语法糖，Monitor.Enter,占据一个引用，别的线程就只能等着</p>
+<p>推荐锁是private static readonly object，</p>
+<p>&nbsp;A不能是Null，可以编译不能运行;</p>
+<p>B 不推荐lock(this),外面如果也要用实例，就冲突了</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;">Test test = new Test();
+</span><span style="color: #008000;">//</span><span style="color: #008000;">Task.Delay(1000).ContinueWith(t =&gt;
+</span><span style="color: #008000;">//</span><span style="color: #008000;">{
+</span><span style="color: #008000;">//</span><span style="color: #008000;">    lock (test)
+</span><span style="color: #008000;">//</span><span style="color: #008000;">    {
+</span><span style="color: #008000;">//</span><span style="color: #008000;">        Console.WriteLine("*********Start**********");
+</span><span style="color: #008000;">//</span><span style="color: #008000;">        Thread.Sleep(5000);
+</span><span style="color: #008000;">//</span><span style="color: #008000;">        Console.WriteLine("*********End**********");
+</span><span style="color: #008000;">//</span><span style="color: #008000;">    }
+</span><span style="color: #008000;">//</span><span style="color: #008000;">});
+</span><span style="color: #008000;">//</span><span style="color: #008000;">test.DoTest();
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">C 不应该是string； string在内存分配上是重用的，会冲突
+</span><span style="color: #008000;">//</span><span style="color: #008000;">D Lock里面的代码不要太多，这里是单线程的</span>
+Test test = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Test();
+</span><span style="color: #0000ff;">string</span> student = <span style="color: #800000;">"</span><span style="color: #800000;">水煮鱼</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+Task.Delay(</span><span style="color: #800080;">1000</span>).ContinueWith(t =&gt;<span style="color: #000000;">
+{
+    </span><span style="color: #0000ff;">lock</span><span style="color: #000000;"> (student)
+    {
+        Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">*********Start**********</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+        Thread.Sleep(</span><span style="color: #800080;">5000</span><span style="color: #000000;">);
+        Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">*********End**********</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+    }
+});
+test.DoTestString();
+</span><span style="color: #008000;">//</span><span style="color: #008000;">2 线程安全集合
+</span><span style="color: #008000;">//</span><span style="color: #008000;">System.Collections.Concurrent.ConcurrentQueue&lt;int&gt;
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">3 数据分拆，避免多线程操作同一个数据；又安全又高效</span>
+
+<span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; <span style="color: #800080;">10000</span>; i++<span style="color: #000000;">)
+{
+    </span><span style="color: #0000ff;">this</span>.iNumSync++<span style="color: #000000;">;
+}
+</span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; <span style="color: #800080;">10000</span>; i++<span style="color: #000000;">)
+{
+    Task.Run(() </span>=&gt;<span style="color: #000000;">
+    {
+        </span><span style="color: #0000ff;">lock</span> (Form_Lock)<span style="color: #008000;">//</span><span style="color: #008000;">任意时刻只有一个线程能进入方法块儿，这不就变成了单线程</span>
+<span style="color: #000000;">        {
+            </span><span style="color: #0000ff;">this</span>.iNumAsync++<span style="color: #000000;">;
+        }
+    });
+}
+</span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; <span style="color: #800080;">10000</span>; i++<span style="color: #000000;">)
+{
+    </span><span style="color: #0000ff;">int</span> k =<span style="color: #000000;"> i;
+    Task.Run(() </span>=&gt; <span style="color: #0000ff;">this</span><span style="color: #000000;">.iListAsync.Add(k));
+}
+
+Thread.Sleep(</span><span style="color: #800080;">5</span> * <span style="color: #800080;">1000</span><span style="color: #000000;">);
+Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">iNumSync={this.iNumSync} iNumAsync={this.iNumAsync} listNum={this.iListAsync.Count}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008000;">//</span><span style="color: #008000;">iNumSync 和  iNumAsync分别是多少   9981/9988  1到10000以内</span></pre>
+</div>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

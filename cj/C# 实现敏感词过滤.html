@@ -1,0 +1,431 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C# 实现敏感词过滤' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C# 实现敏感词过滤</center></div><div class='banquan'>原文出处:本文由博客园博主伟宇凌风提供。<br/>
+原文连接:https://www.cnblogs.com/sgwy/p/11821126.html</div><br>
+    <p>　　实现&nbsp;该&nbsp;敏感词过滤&nbsp;采用的是 DFA算法，参考文章：<a href="https://blog.csdn.net/chenssy/article/details/26961957" target="_blank">https://blog.csdn.net/chenssy/article/details/26961957</a></p>
+<p>　　具体&nbsp;实现&nbsp;步骤&nbsp;如下：</p>
+<p>　　第一步，构建&nbsp;敏感词库（<span style="background-color: #ffffff; color: #33cccc;">WordsLibrary</span>）&nbsp; 类：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Collections.Generic;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Linq;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System;
+
+</span><span style="color: #0000ff;">namespace</span><span style="color: #000000;"> ContentSafe.SensitiveWord
+{
+    </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+    <span style="color: #808080;">///</span><span style="color: #008000;"> 敏感词库
+    </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> WordsLibrary
+    {
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 词库树结构类
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> ItemTree
+        {
+            </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">char</span> Item { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+            </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">bool</span> IsEnd { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+            </span><span style="color: #0000ff;">public</span> List&lt;ItemTree&gt; Child { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 词库树
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> ItemTree Library { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 敏感词组
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span>[] Words { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 敏感词库
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span><span style="color: #000000;"> WordsLibrary()
+        {
+            LoadWords();
+            Init();
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 敏感词库
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="words"&gt;</span><span style="color: #008000;">敏感词组</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #0000ff;">public</span> WordsLibrary(<span style="color: #0000ff;">string</span>[] words) : <span style="color: #0000ff;">this</span><span style="color: #000000;">()
+        {
+            Words </span>=<span style="color: #000000;"> words;
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 加载 敏感词组，可被重写以自定义 如何加载 敏感词组
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">virtual</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> LoadWords()
+        {
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 词库初始化
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> Init()
+        {
+            </span><span style="color: #0000ff;">if</span> (Words == <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+                Words </span>= <span style="color: #0000ff;">new</span>[] { <span style="color: #800000;">""</span><span style="color: #000000;"> };
+
+            Library </span>= <span style="color: #0000ff;">new</span> ItemTree() { Item = <span style="color: #800000;">'</span><span style="color: #800000;">R</span><span style="color: #800000;">'</span>, IsEnd = <span style="color: #0000ff;">false</span>, Child =<span style="color: #000000;"> CreateTree(Words) };
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 创建词库树
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="words"&gt;</span><span style="color: #008000;">敏感词组</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">private</span> List&lt;ItemTree&gt; CreateTree(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] words)
+        {
+            List</span>&lt;ItemTree&gt; tree = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+
+            </span><span style="color: #0000ff;">if</span> (words != <span style="color: #0000ff;">null</span> &amp;&amp; words.Length &gt; <span style="color: #800080;">0</span><span style="color: #000000;">)
+            {
+                tree </span>= <span style="color: #0000ff;">new</span> List&lt;ItemTree&gt;<span style="color: #000000;">();
+
+                </span><span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">var</span> item <span style="color: #0000ff;">in</span><span style="color: #000000;"> words)
+                    </span><span style="color: #0000ff;">if</span> (!<span style="color: #0000ff;">string</span><span style="color: #000000;">.IsNullOrEmpty(item))
+                    {
+                        </span><span style="color: #0000ff;">char</span> cha = item[<span style="color: #800080;">0</span><span style="color: #000000;">];
+
+                        ItemTree node </span>= tree.Find(e =&gt; e.Item ==<span style="color: #000000;"> cha);
+                        </span><span style="color: #0000ff;">if</span> (node != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+                            AddChildTree(node, item);
+                        </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+                            tree.Add(CreateSingleTree(item));
+                    }
+            }
+
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> tree;
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 创建单个完整树
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="word"&gt;</span><span style="color: #008000;">单个敏感词</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">private</span> ItemTree CreateSingleTree(<span style="color: #0000ff;">string</span><span style="color: #000000;"> word)
+        {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">根节点，此节点 值为空</span>
+            ItemTree root = <span style="color: #0000ff;">new</span><span style="color: #000000;"> ItemTree();
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">移动 游标</span>
+            ItemTree p =<span style="color: #000000;"> root;
+
+            </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; word.Length; i++<span style="color: #000000;">)
+            {
+                ItemTree child </span>= <span style="color: #0000ff;">new</span> ItemTree() { Item = word[i], IsEnd = <span style="color: #0000ff;">false</span>, Child = <span style="color: #0000ff;">null</span><span style="color: #000000;"> };
+                p.Child </span>= <span style="color: #0000ff;">new</span> List&lt;ItemTree&gt;<span style="color: #000000;">() { child };
+                p </span>=<span style="color: #000000;"> child;
+            }
+            p.IsEnd </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> root.Child.First();
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 附加分支子树
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="childTree"&gt;</span><span style="color: #008000;">子树</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="word"&gt;</span><span style="color: #008000;">单个敏感词</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> AddChildTree(ItemTree childTree, <span style="color: #0000ff;">string</span><span style="color: #000000;"> word)
+        {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">移动 游标</span>
+            ItemTree p =<span style="color: #000000;"> childTree;
+
+            </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">1</span>; i &lt; word.Length; i++<span style="color: #000000;">)
+            {
+                </span><span style="color: #0000ff;">char</span> cha =<span style="color: #000000;"> word[i];
+                List</span>&lt;ItemTree&gt; child =<span style="color: #000000;"> p.Child;
+
+                </span><span style="color: #0000ff;">if</span> (child == <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+                {
+                    ItemTree node </span>= <span style="color: #0000ff;">new</span> ItemTree() { Item = cha, IsEnd = <span style="color: #0000ff;">false</span>, Child = <span style="color: #0000ff;">null</span><span style="color: #000000;"> };
+                    p.Child </span>= <span style="color: #0000ff;">new</span> List&lt;ItemTree&gt;<span style="color: #000000;">() { node };
+                    p </span>=<span style="color: #000000;"> node;
+                }
+                </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+                {
+                    ItemTree node </span>= child.Find(e =&gt; e.Item ==<span style="color: #000000;"> cha);
+                    </span><span style="color: #0000ff;">if</span> (node == <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+                    {
+                        node </span>= <span style="color: #0000ff;">new</span> ItemTree() { Item = cha, IsEnd = <span style="color: #0000ff;">false</span>, Child = <span style="color: #0000ff;">null</span><span style="color: #000000;"> };
+                        child.Add(node);
+                        p </span>=<span style="color: #000000;"> node;
+                    }
+                    </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+                        p </span>=<span style="color: #000000;"> node;
+                }
+            }
+            p.IsEnd </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+        }
+    }
+}</span></pre>
+</div>
+<p>　　第二步，构建&nbsp;敏感词检测（<span style="color: #33cccc;">ContentCheck</span>） 类：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Collections.Generic;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Linq;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System;
+
+</span><span style="color: #0000ff;">namespace</span><span style="color: #000000;"> ContentSafe.SensitiveWord
+{
+    </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+    <span style="color: #808080;">///</span><span style="color: #008000;"> 敏感词检测
+    </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> ContentCheck
+    {
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 检测文本
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> Text { <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 敏感词库 词树
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> WordsLibrary.ItemTree Library { <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 敏感词检测
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span><span style="color: #000000;"> ContentCheck() { }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 敏感词检测
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="library"&gt;</span><span style="color: #008000;">敏感词库</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #0000ff;">public</span><span style="color: #000000;"> ContentCheck(WordsLibrary library)
+        {
+            </span><span style="color: #0000ff;">if</span> (library.Library == <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+                </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> Exception(<span style="color: #800000;">"</span><span style="color: #800000;">敏感词库未初始化</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+
+            Library </span>=<span style="color: #000000;"> library.Library;
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 敏感词检测
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="library"&gt;</span><span style="color: #008000;">敏感词库</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="text"&gt;</span><span style="color: #008000;">检测文本</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #0000ff;">public</span> ContentCheck(WordsLibrary library, <span style="color: #0000ff;">string</span> text) : <span style="color: #0000ff;">this</span><span style="color: #000000;">(library)
+        {
+            </span><span style="color: #0000ff;">if</span> (text == <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+                </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> Exception(<span style="color: #800000;">"</span><span style="color: #800000;">检测文本不能为null</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+
+            Text </span>=<span style="color: #000000;"> text;
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 检测敏感词
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="text"&gt;</span><span style="color: #008000;">检测文本</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">private</span> Dictionary&lt;<span style="color: #0000ff;">int</span>, <span style="color: #0000ff;">char</span>&gt; WordsCheck(<span style="color: #0000ff;">string</span><span style="color: #000000;"> text)
+        {
+            </span><span style="color: #0000ff;">if</span> (Library == <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+                </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> Exception(<span style="color: #800000;">"</span><span style="color: #800000;">未设置敏感词库 词树</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+
+            Dictionary</span>&lt;<span style="color: #0000ff;">int</span>, <span style="color: #0000ff;">char</span>&gt; dic = <span style="color: #0000ff;">new</span> Dictionary&lt;<span style="color: #0000ff;">int</span>, <span style="color: #0000ff;">char</span>&gt;<span style="color: #000000;">();
+            WordsLibrary.ItemTree p </span>=<span style="color: #000000;"> Library;
+            List</span>&lt;<span style="color: #0000ff;">int</span>&gt; indexs = <span style="color: #0000ff;">new</span> List&lt;<span style="color: #0000ff;">int</span>&gt;<span style="color: #000000;">();
+
+            </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>, j = <span style="color: #800080;">0</span>; j &lt; text.Length; j++<span style="color: #000000;">)
+            {
+                </span><span style="color: #0000ff;">char</span> cha =<span style="color: #000000;"> text[j];
+                </span><span style="color: #0000ff;">var</span> child =<span style="color: #000000;"> p.Child;
+
+                </span><span style="color: #0000ff;">var</span> node = child.Find(e =&gt; e.Item ==<span style="color: #000000;"> cha);
+                </span><span style="color: #0000ff;">if</span> (node != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+                {
+                    indexs.Add(j);
+                    </span><span style="color: #0000ff;">if</span> (node.IsEnd || node.Child == <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+                    {
+                        </span><span style="color: #0000ff;">if</span> (node.Child != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+                        {
+                            </span><span style="color: #0000ff;">int</span> k = j + <span style="color: #800080;">1</span><span style="color: #000000;">;
+                            </span><span style="color: #0000ff;">if</span> (k &lt; text.Length &amp;&amp; node.Child.Exists(e =&gt; e.Item ==<span style="color: #000000;"> text[k]))
+                            {
+                                p </span>=<span style="color: #000000;"> node;
+                                </span><span style="color: #0000ff;">continue</span><span style="color: #000000;">;
+                            }
+                        }
+
+                        </span><span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">var</span> item <span style="color: #0000ff;">in</span><span style="color: #000000;"> indexs)
+                            dic.Add(item, text[item]);
+
+                        indexs.Clear();
+                        p </span>=<span style="color: #000000;"> Library;
+                        i </span>=<span style="color: #000000;"> j;
+                        </span>++<span style="color: #000000;">i;
+                    }
+                    </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+                        p </span>=<span style="color: #000000;"> node;
+                }
+                </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+                {
+                    indexs.Clear();
+                    </span><span style="color: #0000ff;">if</span> (p.GetHashCode() !=<span style="color: #000000;"> Library.GetHashCode())
+                    {
+                        </span>++<span style="color: #000000;">i;
+                        j </span>=<span style="color: #000000;"> i;
+                        p </span>=<span style="color: #000000;"> Library;
+                    }
+                    </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+                        i </span>=<span style="color: #000000;"> j;
+                }
+            }
+
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> dic;
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 替换敏感词
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="library"&gt;</span><span style="color: #008000;">敏感词库</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="text"&gt;</span><span style="color: #008000;">检测文本</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="newChar"&gt;</span><span style="color: #008000;">替换字符</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">string</span> SensitiveWordsReplace(WordsLibrary library, <span style="color: #0000ff;">string</span> text, <span style="color: #0000ff;">char</span> newChar = <span style="color: #800000;">'</span><span style="color: #800000;">*</span><span style="color: #800000;">'</span><span style="color: #000000;">)
+        {
+            Dictionary</span>&lt;<span style="color: #0000ff;">int</span>, <span style="color: #0000ff;">char</span>&gt; dic = <span style="color: #0000ff;">new</span><span style="color: #000000;"> ContentCheck(library).WordsCheck(text);
+            </span><span style="color: #0000ff;">if</span> (dic != <span style="color: #0000ff;">null</span> &amp;&amp; dic.Keys.Count &gt; <span style="color: #800080;">0</span><span style="color: #000000;">)
+            {
+                </span><span style="color: #0000ff;">char</span>[] chars =<span style="color: #000000;"> text.ToCharArray();
+                </span><span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">var</span> item <span style="color: #0000ff;">in</span><span style="color: #000000;"> dic)
+                    chars[item.Key] </span>=<span style="color: #000000;"> newChar;
+
+                text </span>= <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">string</span><span style="color: #000000;">(chars);
+            }
+
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> text;
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 替换敏感词
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="text"&gt;</span><span style="color: #008000;">检测文本</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="newChar"&gt;</span><span style="color: #008000;">替换字符</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> SensitiveWordsReplace(<span style="color: #0000ff;">string</span> text, <span style="color: #0000ff;">char</span> newChar = <span style="color: #800000;">'</span><span style="color: #800000;">*</span><span style="color: #800000;">'</span><span style="color: #000000;">)
+        {
+            Dictionary</span>&lt;<span style="color: #0000ff;">int</span>, <span style="color: #0000ff;">char</span>&gt; dic =<span style="color: #000000;"> WordsCheck(text);
+            </span><span style="color: #0000ff;">if</span> (dic != <span style="color: #0000ff;">null</span> &amp;&amp; dic.Keys.Count &gt; <span style="color: #800080;">0</span><span style="color: #000000;">)
+            {
+                </span><span style="color: #0000ff;">char</span>[] chars =<span style="color: #000000;"> text.ToCharArray();
+                </span><span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">var</span> item <span style="color: #0000ff;">in</span><span style="color: #000000;"> dic)
+                    chars[item.Key] </span>=<span style="color: #000000;"> newChar;
+
+                text </span>= <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">string</span><span style="color: #000000;">(chars);
+            }
+
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> text;
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 替换敏感词
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="newChar"&gt;</span><span style="color: #008000;">替换字符</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> SensitiveWordsReplace(<span style="color: #0000ff;">char</span> newChar = <span style="color: #800000;">'</span><span style="color: #800000;">*</span><span style="color: #800000;">'</span><span style="color: #000000;">)
+        {
+            </span><span style="color: #0000ff;">if</span> (Text == <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+                </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> Exception(<span style="color: #800000;">"</span><span style="color: #800000;">未设置检测文本</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> SensitiveWordsReplace(Text, newChar);
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 查找敏感词
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="library"&gt;</span><span style="color: #008000;">敏感词库</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="text"&gt;</span><span style="color: #008000;">检测文本</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> List&lt;<span style="color: #0000ff;">string</span>&gt; FindSensitiveWords(WordsLibrary library, <span style="color: #0000ff;">string</span><span style="color: #000000;"> text)
+        {
+            ContentCheck check </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> ContentCheck(library, text);
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> check.FindSensitiveWords();
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 查找敏感词
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="text"&gt;</span><span style="color: #008000;">检测文本</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">public</span> List&lt;<span style="color: #0000ff;">string</span>&gt; FindSensitiveWords(<span style="color: #0000ff;">string</span><span style="color: #000000;"> text)
+        {
+            Dictionary</span>&lt;<span style="color: #0000ff;">int</span>, <span style="color: #0000ff;">char</span>&gt; dic =<span style="color: #000000;"> WordsCheck(text);
+            </span><span style="color: #0000ff;">if</span> (dic != <span style="color: #0000ff;">null</span> &amp;&amp; dic.Keys.Count &gt; <span style="color: #800080;">0</span><span style="color: #000000;">)
+            {
+                </span><span style="color: #0000ff;">int</span> i = -<span style="color: #800080;">1</span><span style="color: #000000;">;
+                </span><span style="color: #0000ff;">string</span> str = <span style="color: #800000;">""</span><span style="color: #000000;">;
+                List</span>&lt;<span style="color: #0000ff;">string</span>&gt; list = <span style="color: #0000ff;">new</span> List&lt;<span style="color: #0000ff;">string</span>&gt;<span style="color: #000000;">();
+                </span><span style="color: #0000ff;">foreach</span>(<span style="color: #0000ff;">var</span> item <span style="color: #0000ff;">in</span><span style="color: #000000;"> dic)
+                {
+                    </span><span style="color: #0000ff;">if</span> (i == -<span style="color: #800080;">1</span> || i + <span style="color: #800080;">1</span> ==<span style="color: #000000;"> item.Key)
+                        str </span>+=<span style="color: #000000;"> item.Value;
+                    </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+                    {
+                        list.Add(str);
+                        str </span>= <span style="color: #800000;">""</span> +<span style="color: #000000;"> item.Value;
+                    }
+
+                    i </span>=<span style="color: #000000;"> item.Key;
+                }
+                list.Add(str);
+
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> list.Distinct().ToList();
+            }
+            </span><span style="color: #0000ff;">else</span>
+                <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 查找敏感词
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">public</span> List&lt;<span style="color: #0000ff;">string</span>&gt;<span style="color: #000000;"> FindSensitiveWords()
+        {
+            </span><span style="color: #0000ff;">if</span> (Text == <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+                </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> Exception(<span style="color: #800000;">"</span><span style="color: #800000;">未设置检测文本</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> FindSensitiveWords(Text);
+        }
+    }
+}</span></pre>
+</div>
+<p>　　第三步，测试与使用方法：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">string</span>[] words = <span style="color: #0000ff;">new</span>[] { <span style="color: #800000;">"</span><span style="color: #800000;">敏感词1</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">敏感词2</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">含有</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">垃圾</span><span style="color: #800000;">"</span> }; <span style="color: #008000;">//</span><span style="color: #008000;">敏感词组 可自行在网上 搜索下载
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">敏感词库 类可被继承，如果想实现自定义 敏感词导入方法 可以 对 LoadWords 方法进行 重写</span>
+<span style="color: #0000ff;">var</span> library = <span style="color: #0000ff;">new</span> WordsLibrary(words); <span style="color: #008000;">//</span><span style="color: #008000;">实例化 敏感词库</span>
+
+<span style="color: #0000ff;">string</span> text = <span style="color: #800000;">"</span><span style="color: #800000;">在任意一个文本中都可能包含敏感词1、2、3等等，只要含有敏感词都会被找出来，比如：垃圾</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+ContentCheck check </span>= <span style="color: #0000ff;">new</span> ContentCheck(library, text);  <span style="color: #008000;">//</span><span style="color: #008000;">实例化 内容检测类</span>
+<span style="color: #0000ff;">var</span> list = check.FindSensitiveWords();    <span style="color: #008000;">//</span><span style="color: #008000;">调用 查找敏感词方法 返回敏感词列表</span>
+<span style="color: #0000ff;">var</span> str = check.SensitiveWordsReplace();  <span style="color: #008000;">//</span><span style="color: #008000;">调用 敏感词替换方法 返回处理过的字符串</span></pre>
+</div>
+<p>　　该&nbsp;实现方案 不止&nbsp;这个&nbsp;使用方法，更多使用方法&nbsp;可自行&nbsp;研究</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

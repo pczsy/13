@@ -1,0 +1,141 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修简单理解ORM，实体类生成查询SQL语句' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>简单理解ORM，实体类生成查询SQL语句</center></div><div class='banquan'>原文出处:本文由博客园博主lxsh_wyan提供。<br/>
+原文连接:https://www.cnblogs.com/lxshwyan/p/10955323.html</div><br>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp;目前有很多开源的ORM项目，大多情况下也不需要我们重复去造轮子，我们只需要了解轮子怎么造的，怎么用就可以，下面简单说一下怎么通过实体生成一个SQL语句；</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; 先建立2个Attribute类，TableAttribute、ColumnAttribute&nbsp; &nbsp;，&nbsp;且希望TableAttribute只想标记在实体类上，所以限制&nbsp;[AttributeUsage(AttributeTargets.Class)]，而希望ColumnAttribute只标记在属性上&nbsp;[AttributeUsage(AttributeTargets.Property)]</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">    [AttributeUsage(AttributeTargets.Class)]
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> TableAttribute : Attribute
+    {
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">string</span> _TableName = <span style="color: #800000;">""</span><span style="color: #000000;">;
+        </span><span style="color: #0000ff;">public</span> TableAttribute(<span style="color: #0000ff;">string</span><span style="color: #000000;"> TableName)
+        {
+            </span><span style="color: #0000ff;">this</span>._TableName =<span style="color: #000000;"> TableName;
+        }
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span><span style="color: #000000;"> GetTableName()
+        {
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">._TableName;
+        }
+    }</span></pre>
+</div>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">   [AttributeUsage(AttributeTargets.Property)]
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> ColumnAttribute:Attribute
+    {
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">string</span> _ColumnName = <span style="color: #800000;">""</span><span style="color: #000000;">;  
+        </span><span style="color: #0000ff;">public</span> ColumnAttribute(<span style="color: #0000ff;">string</span><span style="color: #000000;"> ColumnName)
+        {
+            </span><span style="color: #0000ff;">this</span>._ColumnName =<span style="color: #000000;"> ColumnName;
+        }
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span><span style="color: #000000;"> GetColumnName()
+        {
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">._ColumnName;
+        }
+    }</span></pre>
+</div>
+<p>&nbsp; &nbsp; &nbsp;再做一个静态扩展类，增加2个扩展方法 一个针对类型的、一个针对属性的扩展方法</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> AttributeExtend
+    {
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">string</span> GetMappingName&lt;T&gt;(<span style="color: #0000ff;">this</span> T t) <span style="color: #0000ff;">where</span><span style="color: #000000;"> T : BaseModel
+        {
+            </span><span style="color: #0000ff;">if</span> (t.GetType().IsDefined(<span style="color: #0000ff;">typeof</span>(TableAttribute), <span style="color: #0000ff;">true</span><span style="color: #000000;">))
+            {
+                TableAttribute attribute </span>= (TableAttribute)t.GetType().GetCustomAttributes(<span style="color: #0000ff;">typeof</span>(TableAttribute), <span style="color: #0000ff;">true</span>)[<span style="color: #800080;">0</span><span style="color: #000000;">];
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> attribute.GetTableName();
+            }
+            </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+            {
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> t.GetType().Name;
+            }
+        }
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">string</span> GetMappingName(<span style="color: #0000ff;">this</span><span style="color: #000000;"> PropertyInfo prop)
+        {
+            </span><span style="color: #0000ff;">if</span> (prop.IsDefined(<span style="color: #0000ff;">typeof</span>(ColumnAttribute), <span style="color: #0000ff;">true</span><span style="color: #000000;">))
+            {
+                ColumnAttribute attribute </span>= (ColumnAttribute)prop.GetCustomAttribute(<span style="color: #0000ff;">typeof</span>(ColumnAttribute), <span style="color: #0000ff;">true</span><span style="color: #000000;">);
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> attribute.GetColumnName();
+            }
+            </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+            {
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> prop.Name;
+            }
+        } 
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">string</span> GetMappingName(<span style="color: #0000ff;">this</span><span style="color: #000000;"> Type type)
+        {
+            </span><span style="color: #0000ff;">if</span> (type.IsDefined(<span style="color: #0000ff;">typeof</span>(TableAttribute), <span style="color: #0000ff;">true</span><span style="color: #000000;">))
+            {
+                TableAttribute attribute </span>= (TableAttribute)type.GetCustomAttribute(<span style="color: #0000ff;">typeof</span>(TableAttribute), <span style="color: #0000ff;">true</span><span style="color: #000000;">);
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> attribute.GetTableName();
+            }
+            </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+            {
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> type.Name;
+            }
+        }
+    }</span></pre>
+</div>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;获取sql语句方法，目前只简单写了查询所有的，及根据ID查询，如果想丰富查询操作需要用到表达式目录树</p>
+<div class="cnblogs_code">
+<pre><code>  <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> OrmSql
+    {    
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> GetAllSelectSQL&lt;T&gt;() <span style="color: #0000ff;">where</span><span style="color: #000000;"> T :BaseModel
+        {
+           Type type </span>= <span style="color: #0000ff;">typeof</span><span style="color: #000000;">(T);
+           </span><span style="color: #0000ff;">var</span> props =<span style="color: #000000;"> type.GetProperties();   
+           </span><span style="color: #0000ff;">string</span> columnString = <span style="color: #0000ff;">string</span>.Join(<span style="color: #800000;">"</span><span style="color: #800000;">,</span><span style="color: #800000;">"</span>, props.Select(m =&gt; $<span style="color: #800000;">"</span><span style="color: #800000;">[{m.GetMappingName()}]</span><span style="color: #800000;">"</span><span style="color: #000000;">));
+           </span><span style="color: #0000ff;">string</span> SelectSQL = $<span style="color: #800000;">"</span><span style="color: #800000;">select  {columnString} from {type.GetMappingName()}</span><span style="color: #800000;">"</span><span style="color: #000000;">; 
+           </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> SelectSQL;
+        }
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> GetSelectSQLByID&lt;T&gt;(T t)  <span style="color: #0000ff;">where</span><span style="color: #000000;"> T :BaseModel
+        {
+            Type type </span>= <span style="color: #0000ff;">typeof</span><span style="color: #000000;">(T);
+            </span><span style="color: #0000ff;">var</span> props =<span style="color: #000000;"> type.GetProperties();
+            </span><span style="color: #0000ff;">string</span> columnString = <span style="color: #0000ff;">string</span>.Join(<span style="color: #800000;">"</span><span style="color: #800000;">,</span><span style="color: #800000;">"</span>, props.Select(m =&gt; $<span style="color: #800000;">"</span><span style="color: #800000;">[{m.GetMappingName()}]</span><span style="color: #800000;">"</span><span style="color: #000000;">));
+            </span><span style="color: #0000ff;">string</span> SelectSQL = $<span style="color: #800000;">"</span><span style="color: #800000;">select  {columnString}  from {type.GetMappingName()} where id= '{t.Id}'</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> SelectSQL;
+        }
+
+    }</span></pre>
+</div>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;调用方法</p>
+<div class="cnblogs_code">
+<pre><code> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            OrmSql orm </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> OrmSql();
+            Console.WriteLine(orm.GetAllSelectSQL</span>&lt;Donator&gt;<span style="color: #000000;">() );
+            Console.WriteLine(orm.GetSelectSQLByID</span>&lt;Donator&gt;(<span style="color: #0000ff;">new</span> Donator() {  Id=<span style="color: #800080;">1</span><span style="color: #000000;">}) );
+        }
+    }</span></pre>
+</div>
+<p>&nbsp; &nbsp; &nbsp;运行截图：</p>
+<p>&nbsp; &nbsp; &nbsp;<img src="./images/简单理解ORM，实体类生成查询SQL语句0.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;&nbsp;</p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

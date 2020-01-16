@@ -1,0 +1,54 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C#自动内存分配' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C#自动内存分配</center></div><div class='banquan'>原文出处:本文由博客园博主Minotauros提供。<br/>
+原文连接:https://www.cnblogs.com/minotauros/p/10937322.html</div><br>
+    <p>　　一、在程序运行时由CLR管理内存分配（Memory Allocation），程序启动时，操作系统会为每一个线程申请一个独立的栈内存，用于存储方法的局部变量、参数和返回值等；CLR会为进程申请一个连续的内存空间作为托管堆内存，用于存储引用类型对象和类型对象等；</p>
+<p>　　1.托管堆主要包含两部分：存储引用类型对象的GC堆（GC Heap）和存储类型对象的加载堆（Loader Heap），其中GC堆分为小对象堆（Small Object Heap，SOH，&lt;85000byte的对象）和大对象堆（Larage Object Heap，LOG，&gt;=85000byte的对象）；加载堆不受GC控制，生命周期从创建到应用程序域被卸载；<br />　　2.CLR在申请托管堆内存时，会维护一个指向下一个对象内存地址的指针，当在托管堆中分配新对象时，会通过该指针添加值来为对象分配所需的内存，因此在托管堆中分配内存和在栈内存中分配内存的速度基本一样快；</p>
+<p>　　二、在栈上分配值类型的变量时，如果值类型所占的空间不足当前系统的位数时，会分配当前系统位数的内存空间，例如在64位系统上分配的int类型的变量占用64位，即8个字节；对于引用类型地址也是这样，即32位系统上引用类型地址占用4个字节，64位系统上则占用8个字节；</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;">在64位系统上测试：</span>
+<span style="color: #0000ff;">unsafe</span><span style="color: #000000;">
+{
+    </span><span style="color: #0000ff;">int</span> num1 = <span style="color: #800080;">10</span><span style="color: #000000;">;
+    </span><span style="color: #0000ff;">int</span> num2 = <span style="color: #800080;">20</span><span style="color: #000000;">;
+    MyClass myClass </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> MyClass();
+    </span><span style="color: #0000ff;">int</span> num3 = <span style="color: #800080;">30</span><span style="color: #000000;">;
+    Console.WriteLine((</span><span style="color: #0000ff;">int</span>)&amp;<span style="color: #000000;">num1);
+    Console.WriteLine((</span><span style="color: #0000ff;">int</span>)&amp;num2); <span style="color: #008000;">//</span><span style="color: #008000;">与num1地址相差8个字节</span>
+    Console.WriteLine((<span style="color: #0000ff;">int</span>)&amp;num3); <span style="color: #008000;">//</span><span style="color: #008000;">与num2地址相差16个字节</span>
+}</pre>
+</div>
+<p>　　</p>
+<p>　　三、在使用运算符new创建引用类型对象或装箱操作等在托管堆上创建对象时，CLR所做的主要操作有：</p>
+<p>　　1.计算类及所有基类中声明的所有实例字段所需要的字节数，还有两个开销成员（Overhead Member）的字节数：同步块索引（Sync Block Index)和类型对象指针（Type Object Pointer）；<br />※同步块索引为线程同步提供支持，也被称为对象头字节（Object Header Word）；<br />※类型对象指针存储该对象的类型对象所在的内存地址，也被称为方法表指针（Method Table Pointer）；<br />　　2.从托管堆中分配计算所得到的字节数，所有字节初始化为0；<br />　　3.初始化对象的类型对象指针和同步块索引；<br />　　4.调用对应的实例构造函数，初始化实例字段，执行自定义构造函数中的其它操作；<br />※优先调用直接基类中的实例构造函数，直接基类中的实例构造函数又会调用其直接基类中的实例构造函数，最终最先调用的是基类System.Object中的实例构造函数；<br />　　5.返回新建对象的引用；</p>
+<p>　　注：32位系统中，同步块索引和类型对象指针分别占4个字节，占用的总空间大小会进行4字节倍数的对齐，同时即使类型定义中没有实例字段，也会至少占用4个字节，即最小占用内存空间12字节；<br />　　注：64位系统中，同步块索引和类型对象指针分别占8个字节，占用的总空间大小会进行8字节倍数的对齐，同时即使类型定义中没有实例字段，也会至少占用8个字节，即最小占用内存空间24字节；</p>
+<p>　　注：CLR在托管堆中连续分配多个对象时，这些对象在内存中也是连续存储的；</p>
+<p>　　注：可以使用WinDbg查看具体的内存分配情况；</p>
+<p>　　注：CLR高度优化了托管堆上内存的分配和释放，大多数情况下，在堆内存上分配类实例与在栈内存上分配结构实例的性能并无显著差异；</p>
+<p>&nbsp;</p>
+<hr />
+<p>&nbsp;</p>
+<p>如果您觉得阅读本文对您有帮助，请点一下&ldquo;推荐&rdquo;按钮，您的认可是我写作的最大动力！</p>
+<p>作者：<a title="Minotauros" href="https://www.cnblogs.com/minotauros/" target="_blank">Minotauros</a><br />出处：<a title="https://www.cnblogs.com/minotauros/" href="https://www.cnblogs.com/minotauros/" target="_blank">https://www.cnblogs.com/minotauros/</a></p>
+<p>本文版权归作者和博客园共有，欢迎转载，但未经作者同意必须保留此段声明，且在文章页面明显位置给出原文连接，否则保留追究法律责任的权利。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

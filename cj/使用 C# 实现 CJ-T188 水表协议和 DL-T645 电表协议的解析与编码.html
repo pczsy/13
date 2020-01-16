@@ -1,0 +1,866 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修使用 C# 实现 CJ-T188 水表协议和 DL-T645 电表协议的解析与编码' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>使用 C# 实现 CJ-T188 水表协议和 DL-T645 电表协议的解析与编码</center></div><div class='banquan'>原文出处:本文由博客园博主myzony提供。<br/>
+原文连接:https://www.cnblogs.com/myzony/p/10897895.html</div><br>
+    <h2 id="一协议的定义">一、协议的定义</h2>
+<p>要对某种协议进行编解码操作，就必须知道协议的基本定义，首先我们来看一下 CJ/T188 的数据帧定义(协议定义)，了解请求数据与响应数据的基本结构。</p>
+<h3 id="cjt188-水表通讯协议">1.1 CJ/T188 水表通讯协议</h3>
+<p><strong>请求帧：</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>字节</th>
+<th>值</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>0</td>
+<td>0x68</td>
+<td>数据帧开始标识。</td>
+</tr>
+<tr class="even">
+<td>1</td>
+<td>T</td>
+<td>表计类型代码，详细信息请参考 <em>表计类型表</em> 。</td>
+</tr>
+<tr class="odd">
+<td>2-8</td>
+<td>A0-A6</td>
+<td>表计地址，水表设备的具体地址，这里是 <strong>BCD</strong> 形式。</td>
+</tr>
+<tr class="even">
+<td>9</td>
+<td>CTR_01</td>
+<td>协议控制码，例如 0x1 就是读表数据。</td>
+</tr>
+<tr class="odd">
+<td>10</td>
+<td>0x3</td>
+<td>数据域长度。</td>
+</tr>
+<tr class="even">
+<td>11-12</td>
+<td>0x1F,0x90</td>
+<td>数据标识 DI0-DI1。</td>
+</tr>
+<tr class="odd">
+<td>13</td>
+<td>0x00</td>
+<td>序列号，一般为 0x00，序列号也被作为整个数据域的长度。</td>
+</tr>
+<tr class="even">
+<td>14</td>
+<td>CS</td>
+<td>表示校验和数据，即 0-13 位置的所有字节的累加和。</td>
+</tr>
+<tr class="odd">
+<td>15</td>
+<td>0x16</td>
+<td>数据帧的结束标识。</td>
+</tr>
+</tbody>
+</table>
+<p>例如有以下请求帧数据(读取水表数据)：</p>
+<pre><code><code>68 10 01 00 00 05 08 00 00 01 03 1F 90 00 39 16</code></pre>
+<p>对应的解释如下。</p>
+<table>
+<thead>
+<tr class="header">
+<th>顺序</th>
+<th>0</th>
+<th>1</th>
+<th>2-8</th>
+<th>9</th>
+<th>10</th>
+<th>11-12</th>
+<th>13</th>
+<th>14</th>
+<th>15</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>说明</td>
+<td>帧头</td>
+<td>类型</td>
+<td>地址</td>
+<td>CTR_0</td>
+<td>长度</td>
+<td>数据标识</td>
+<td>序列号</td>
+<td>校验和</td>
+<td>帧尾</td>
+</tr>
+<tr class="even">
+<td>实例</td>
+<td>68</td>
+<td>10</td>
+<td>01 00 00 05 08 00 00</td>
+<td>01</td>
+<td>03</td>
+<td>1F 90</td>
+<td>00</td>
+<td>39</td>
+<td>16</td>
+</tr>
+</tbody>
+</table>
+<p><em>表计类型表：</em></p>
+<table>
+<thead>
+<tr class="header">
+<th>值</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>10</td>
+<td>冷水水表</td>
+</tr>
+<tr class="even">
+<td>11</td>
+<td>生活热水水表</td>
+</tr>
+<tr class="odd">
+<td>12</td>
+<td>直饮水水表</td>
+</tr>
+<tr class="even">
+<td>13</td>
+<td>中水水表</td>
+</tr>
+<tr class="odd">
+<td>20</td>
+<td>热量表 (记热量)</td>
+</tr>
+<tr class="even">
+<td>21</td>
+<td>热量表 (记冷量)</td>
+</tr>
+<tr class="odd">
+<td>30</td>
+<td>燃气表</td>
+</tr>
+<tr class="even">
+<td>40</td>
+<td>电度表</td>
+</tr>
+</tbody>
+</table>
+<p><strong>响应帧(读表操作)：</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>字节</th>
+<th>值</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>0</td>
+<td>0x68</td>
+<td>数据帧开始标识。</td>
+</tr>
+<tr class="even">
+<td>1</td>
+<td>T</td>
+<td>表计类型代码，详细信息请参考 <em>表计类型表</em> 。</td>
+</tr>
+<tr class="odd">
+<td>2-8</td>
+<td>A0-A6</td>
+<td>表计地址，水表设备的具体地址，这里是 <strong>BCD</strong> 形式。</td>
+</tr>
+<tr class="even">
+<td>9</td>
+<td>CTR_1</td>
+<td>协议控制码，在返回帧含义即是请求帧的控制码加上 0x80。</td>
+</tr>
+<tr class="odd">
+<td>10</td>
+<td>L</td>
+<td>数据域长度。</td>
+</tr>
+<tr class="even">
+<td>11-12</td>
+<td>0x1F,0x90</td>
+<td>数据标识 DI0-DI1。</td>
+</tr>
+<tr class="odd">
+<td>13</td>
+<td>0x00</td>
+<td>序列号，一般为 0x00。</td>
+</tr>
+<tr class="even">
+<td>14-17</td>
+<td>ALL DATA</td>
+<td>累计用量，以 <strong>BCD</strong> 形式进行存储。</td>
+</tr>
+<tr class="odd">
+<td>18</td>
+<td>单位</td>
+<td>计量单位，具体含义可以参考 <em>计量单位表</em> 。</td>
+</tr>
+<tr class="even">
+<td>19-22</td>
+<td>MONTH DATA</td>
+<td>本月用量，以 <strong>BCD</strong> 形式进行存储。</td>
+</tr>
+<tr class="odd">
+<td>23</td>
+<td>单位</td>
+<td>计量单位，具体含义可以参考 <em>计量单位表</em> 。</td>
+</tr>
+<tr class="even">
+<td>24-30</td>
+<td>时间</td>
+<td>表示实际时间，以 <strong>BCD</strong> 形式存储，格式为 ss mm HH dd MM yy yy。</td>
+</tr>
+<tr class="odd">
+<td>31</td>
+<td>状态 1</td>
+<td>状态字段。</td>
+</tr>
+<tr class="even">
+<td>32</td>
+<td>状态 2</td>
+<td>保留字节，一般置为 0xFF。</td>
+</tr>
+<tr class="odd">
+<td>33</td>
+<td>CS</td>
+<td>表示校验和数据，即 0-32 位置的所有字节的累加和。</td>
+</tr>
+<tr class="even">
+<td>34</td>
+<td>0x16</td>
+<td>数据帧的结束标识。</td>
+</tr>
+</tbody>
+</table>
+<p>例如有以下响应帧数据：</p>
+<pre><code><code>68 10 44 33 22 11 00 33 78 81 16 1F 90 00 00 77 66 55 2C 00 77 66 55 2C 31 01 22 11 05 15 20 21 84 6D 16</code></pre>
+<p>对应的解释如下：</p>
+<table>
+<thead>
+<tr class="header">
+<th>顺序</th>
+<th>0</th>
+<th>1</th>
+<th>2-8</th>
+<th>9</th>
+<th>10</th>
+<th>11-12</th>
+<th>13</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>说明</td>
+<td>帧头</td>
+<td>类型</td>
+<td>地址</td>
+<td>控制码</td>
+<td>长度</td>
+<td>标识</td>
+<td>序列号</td>
+</tr>
+<tr class="even">
+<td>实例</td>
+<td>68</td>
+<td>10</td>
+<td>44 33 22 11 00 33 78</td>
+<td>81</td>
+<td>16</td>
+<td>1F 90</td>
+<td>00</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr class="header">
+<th>顺序</th>
+<th>14-17</th>
+<th>18</th>
+<th>19-22</th>
+<th>23</th>
+<th>24-30</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>说明</td>
+<td>累计用量</td>
+<td>单位</td>
+<td>本月用量</td>
+<td>单位</td>
+<td>时间</td>
+</tr>
+<tr class="even">
+<td>实例</td>
+<td>00 77 66 55</td>
+<td>2C</td>
+<td>00 77 66 55</td>
+<td>2C</td>
+<td>31 01 22 11 05 15 20</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr class="header">
+<th>顺序</th>
+<th>31</th>
+<th>32</th>
+<th>33</th>
+<th>34</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>说明</td>
+<td>状态 1</td>
+<td>状态 2</td>
+<td>校验和</td>
+<td>帧尾</td>
+</tr>
+<tr class="even">
+<td>实例</td>
+<td>00</td>
+<td>FF</td>
+<td>6D</td>
+<td>16</td>
+</tr>
+</tbody>
+</table>
+<p><em>计量单位表：</em></p>
+<table>
+<thead>
+<tr class="header">
+<th>单位</th>
+<th>值</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Wh</td>
+<td>0x2</td>
+</tr>
+<tr class="even">
+<td>KWh</td>
+<td>0x5</td>
+</tr>
+<tr class="odd">
+<td>MWh</td>
+<td>0x8</td>
+</tr>
+<tr class="even">
+<td>MWh * 100</td>
+<td>0xA</td>
+</tr>
+<tr class="odd">
+<td>J</td>
+<td>0x1</td>
+</tr>
+<tr class="even">
+<td>KJ</td>
+<td>0xB</td>
+</tr>
+<tr class="odd">
+<td>MJ</td>
+<td>0xE</td>
+</tr>
+<tr class="even">
+<td>GJ</td>
+<td>0x11</td>
+</tr>
+<tr class="odd">
+<td>GJ * 100</td>
+<td>0x13</td>
+</tr>
+<tr class="even">
+<td>W</td>
+<td>0x14</td>
+</tr>
+<tr class="odd">
+<td>KW</td>
+<td>0x17</td>
+</tr>
+<tr class="even">
+<td>MW</td>
+<td>0x1A</td>
+</tr>
+<tr class="odd">
+<td>L</td>
+<td>0x29</td>
+</tr>
+<tr class="even">
+<td><span class="math display">\[m^3\]</span></td>
+<td>0x2C</td>
+</tr>
+<tr class="odd">
+<td><span class="math display">\[ L/h \]</span></td>
+<td>0x32</td>
+</tr>
+<tr class="even">
+<td><span class="math display">\[m^3/h\]</span></td>
+<td>0x35</td>
+</tr>
+</tbody>
+</table>
+<h3 id="dlt645-多功能电能表通信协议">2.2 DL/T645 多功能电能表通信协议</h3>
+<p><strong>请求帧：</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>字节</th>
+<th>值</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>0</td>
+<td>0x68</td>
+<td>数据帧开始标识。</td>
+</tr>
+<tr class="even">
+<td>1-6</td>
+<td>A0-A5</td>
+<td>电表设备地址，以 <strong>BCD</strong> 码形式存储。</td>
+</tr>
+<tr class="odd">
+<td>7</td>
+<td>0x68</td>
+<td>帧起始符。</td>
+</tr>
+<tr class="even">
+<td>8</td>
+<td>C</td>
+<td>控制码。</td>
+</tr>
+<tr class="odd">
+<td>9</td>
+<td>L</td>
+<td>数据域长度。</td>
+</tr>
+<tr class="even">
+<td>10</td>
+<td>DATA</td>
+<td>数据域。</td>
+</tr>
+<tr class="odd">
+<td>11</td>
+<td>CS</td>
+<td>校验码，从 0-10 字节的累加和。</td>
+</tr>
+<tr class="even">
+<td>12</td>
+<td>0x16</td>
+<td>数据帧结束标识。</td>
+</tr>
+</tbody>
+</table>
+<p>读取电表的当前正向有功总电量，表号为 12345678。</p>
+<pre><code><code>68 78 56 34 12 00 00 68 11 04 33 33 34 33 C6 16</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th>顺序</th>
+<th>0</th>
+<th>1-6</th>
+<th>7</th>
+<th>8</th>
+<th>9</th>
+<th>10-13</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>说明</td>
+<td>帧头</td>
+<td>地址</td>
+<td>帧头</td>
+<td>控制码</td>
+<td>长度</td>
+<td>数据域</td>
+</tr>
+<tr class="even">
+<td>实例</td>
+<td>68</td>
+<td>78 56 34 12 00 00</td>
+<td>68</td>
+<td>11</td>
+<td>04</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr class="header">
+<th>顺序</th>
+<th>14</th>
+<th>15</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>说明</td>
+<td>累加和</td>
+<td>帧尾</td>
+</tr>
+<tr class="even">
+<td>实例</td>
+<td>C6</td>
+<td>16</td>
+</tr>
+</tbody>
+</table>
+<p>这里需要注意的是，33 33 34 33 是 00 01 00 00 加上 0x33 之后的值，因为传输的时候是低位在前，高位在后，所以就是 00 00 01 00 每字节加上 0x33，00 01 00 00 即代表要读取当前正向有功总电能，也有其他的标识，这里不再叙述。</p>
+<p><strong>响应帧(读表操作)：</strong></p>
+<pre><code><code>68 78 56 34 12 00 00 68 91 08 33 33 34 33 A4 56 79 38 F5 16</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th>顺序</th>
+<th>0</th>
+<th>1-6</th>
+<th>7</th>
+<th>8</th>
+<th>9</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>说明</td>
+<td>帧头</td>
+<td>地址</td>
+<td>帧头</td>
+<td>控制码，这里即 0x11 + 0x80</td>
+<td>长度</td>
+</tr>
+<tr class="even">
+<td>实例</td>
+<td>68</td>
+<td>78 56 34 12 00 00</td>
+<td>68</td>
+<td>91</td>
+<td>08</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr class="header">
+<th>顺序</th>
+<th>10-17</th>
+<th>18</th>
+<th>19</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>说明</td>
+<td>数据域</td>
+<td>累加和</td>
+<td>帧尾</td>
+</tr>
+<tr class="even">
+<td>实例</td>
+<td>33 33 34 33 A4 56 79 38</td>
+<td>F5</td>
+<td>16</td>
+</tr>
+</tbody>
+</table>
+<p>这里只说明一下数据域，在这里 33 33 34 33 可以理解成寄存器地址，而 A4 56 79 38 则是具体的电量数据，在这里就是分别减去 0x33，即 71 23 46 5，因为其精度是两位，且是 BCD 码的形式，最后的结果就是 54623.71 度。</p>
+<h3 id="前导字节">2.3 前导字节</h3>
+<p>前导字节并非水/电表协议强制规定的协议组，所谓前导字节是在数据帧的头部增加 1-4 组 0xFE，例如以下数据帧就是增加了前导字节。</p>
+<pre><code><code>FE FE FE FE 68 10 44 33 22 11 00 33 78 01 03 1F 90 00 80 16</code></pre>
+<p>所以在处理的协议的时候，某些厂家可能会加入前导字节，在处理的时候一定要注意。</p>
+<h3 id="小结">2.4 小结</h3>
+<p>水/电表协议的请求帧与响应帧其实结构一致，区别仅在于不同的响应，其具体的数据域值也不同，所以在处理的时候可以用一个字典/列表来存储数据域。</p>
+<h2 id="二代码的实现">二、代码的实现</h2>
+<h3 id="工具类的编码">2.1 工具类的编码</h3>
+<p>为了方便我们对协议的解析与组装，我们需要编写一个工具类实现对字节组的某些特殊操作，例如校验和、BCD 转换、十六进制数据的校验等。</p>
+<h4 id="累加和计算功能">2.1.1 累加和计算功能</h4>
+<p>首先我们来实现累加和的计算，累加和就是一堆字节相加的结果，不过这个结果可能超过一个字节的大小，我们需要对 256 取模，使其结果刚好能被 1 个字节存储。</p>
+<pre class="csharp"><code>/// &lt;summary&gt;
+/// 计算一组二进制数据的累加和。
+/// &lt;/summary&gt;
+/// &lt;param name=&quot;waitCalcBytes&quot;&gt;等待计算的二进制数据。&lt;/param&gt;
+public static byte CalculateAccumulateSum(byte[] waitCalcBytes)
+{
+    int ck = 0;
+    foreach (var @byte in waitCalcBytes) ck = (ck + @byte);
+    // 对 256 取余，获得 1 个字节的数据。
+    return (byte)(ck % 0x100);
+}</code></pre>
+<h4 id="十六进制字符串转字节数组">2.1.2 十六进制字符串转字节数组</h4>
+<p>首先我们需要校验一个字符串是否是一个规范合法的十六进制字符串。</p>
+<pre class="csharp"><code>/// &lt;summary&gt;
+/// 判断输入的字符串是否是有效的十六进制数据。
+/// &lt;/summary&gt;
+/// &lt;param name=&quot;hexStr&quot;&gt;等待判断的十六进制数据。&lt;/param&gt;
+/// &lt;returns&gt;符合规范则返回 True，不符合则返回 False。&lt;/returns&gt;
+public static bool IsIllegalHexadecimal(string hexStr)
+{
+    var validStr = hexStr.Replace(&quot;-&quot;, string.Empty).Replace(&quot; &quot;, string.Empty);
+    if (validStr.Length % 2 != 0) return false;
+    if (string.IsNullOrEmpty(hexStr) || string.IsNullOrWhiteSpace(hexStr)) return false;
+
+    return new Regex(@&quot;[A-Fa-f0-9]+$&quot;).IsMatch(hexStr);
+}</code></pre>
+<p>校验之后我们才能够将这个字符串用于转换。</p>
+<pre class="csharp"><code>/// &lt;summary&gt;
+/// 将 16 进制的字符串转换为字节数组。
+/// &lt;/summary&gt;
+/// &lt;param name=&quot;hexStr&quot;&gt;等待转换的 16 进制字符串。&lt;/param&gt;
+/// &lt;returns&gt;转换成功的字节数组。&lt;/returns&gt;
+public static byte[] HexStringToBytes(string hexStr)
+{
+    // 处理干扰，例如空格和 &#39;-&#39; 符号。
+    var str = hexStr.Replace(&quot;-&quot;, string.Empty).Replace(&quot; &quot;, string.Empty);
+
+    return Enumerable.Range(0, str.Length)
+        .Where(x =&gt; x % 2 == 0)
+        .Select(x =&gt; Convert.ToByte(str.Substring(x, 2), 16))
+        .ToArray();
+}</code></pre>
+<h4 id="bcd-数据的转换">2.1.3 BCD 数据的转换</h4>
+<p>关于 BCD 码的介绍，网上有诸多解释，这里不再赘述，这里只讲一下编码实现。</p>
+<pre class="csharp"><code>/// &lt;summary&gt;
+/// BCD 码转换成 &lt;see cref=&quot;double&quot;/&gt; 类型。
+/// &lt;/summary&gt;
+/// &lt;param name=&quot;sourceBytes&quot;&gt;等待转换的 BCD 码数据。&lt;/param&gt;
+/// &lt;param name=&quot;precisionIndex&quot;&gt;精度位置，用于指示小数点所在的索引。&lt;/param&gt;
+/// &lt;returns&gt;转换成功的值。&lt;/returns&gt;
+public static double BCDToDouble(byte[] sourceBytes, int precisionIndex)
+{
+    var sb = new StringBuilder();
+
+    var reverseBytes = sourceBytes.Reverse().ToArray();
+    for (int index = 0; index &lt; reverseBytes.Length; index++)
+    {
+        sb.Append(reverseBytes[index] &gt;&gt; 4 &amp; 0xF);
+        sb.Append(reverseBytes[index] &amp; 0xF);
+        if (index == precisionIndex - 1) sb.Append(&#39;.&#39;);
+    }
+
+    return Convert.ToDouble(sb.ToString());
+}
+
+/// &lt;summary&gt;
+/// BCD 码转换成 &lt;see cref=&quot;string&quot;/&gt; 类型。
+/// &lt;/summary&gt;
+/// &lt;param name=&quot;sourceBytes&quot;&gt;等待转换的 BCD 码数据。&lt;/param&gt;
+/// &lt;returns&gt;转换成功的值。&lt;/returns&gt;
+public static string BCDToString(byte[] sourceBytes)
+{
+    var sb = new StringBuilder();
+    var reverseBytes = sourceBytes.Reverse().ToArray();
+
+    for (int index = 0; index &lt; reverseBytes.Length; index++)
+    {
+        sb.Append(reverseBytes[index] &gt;&gt; 4 &amp; 0xF);
+        sb.Append(reverseBytes[index] &amp; 0xF);
+    }
+
+    return sb.ToString();
+}</code></pre>
+<h3 id="协议的实现">2.2 协议的实现</h3>
+<p>协议分为发送帧与响应帧，发送帧是通过传入一系列参数构建一个 <code>byte</code> 数组，而响应帧则需要我们从一个 <code>byte</code> 数组转换为方便读写的对象。</p>
+<p>根据以上特点，我们编写一个 <code>IProtocol</code> 接口，该接口拥有两个方法，即编码 (Encode) 和解码 (Decode) 方法。</p>
+<pre class="csharp"><code>public interface IProtocol
+{
+    byte[] Encode();
+
+    IProtocol Decode(byte[] sourceBytes);
+
+    List&lt;DataDefine&gt; DataDefines { get;}
+}</code></pre>
+<p>接着我们可以使用一个类型来表示每个数据域的数据，这里我定义了一个 <code>DataDefine</code> 类型。</p>
+<pre class="csharp"><code>public class DataDefine
+{
+    public string Name { get; set; }
+
+    public byte[] Data { get; set; }
+
+    public int Length { get; set; }
+}</code></pre>
+<p>这里我以水表的读表操作为例，定义了一个抽象基类，在抽象基类里面定义了数据帧的基本接口，并且实现了编码/解码方法。在这里 <code>DataDefines</code> 的作用就体现了，他主要是用于</p>
+<pre class="csharp"><code>public abstract class CJT188Protocol : IProtocol
+{
+    protected const byte FrameHead = 0x68;
+    
+    public byte DeviceType { get; protected set; }
+
+    public byte[] Address { get; protected set; }
+
+    public byte ControlCode { get; protected set; }
+
+    public int DataLength { get; protected set; }
+
+    public byte[] DataArea { get; private set; }
+
+    public List&lt;DataDefine&gt; DataDefines { get;}
+    
+    public byte AccumulateSum { get; protected set; }
+
+    protected const byte FrameEnd = 0x16;
+    
+    public CJT188Protocol()
+    {
+        DataDefines = new List&lt;DataDefine&gt;();
+    }
+
+    public DataDefine this[string key]
+    {
+        get
+        {
+            return DataDefines.FirstOrDefault(x =&gt; x.Name == key);
+        }
+    }
+
+    public virtual byte[] Encode()
+    {
+        // 校验协议数据。
+        if(Address.Length != 7) throw new ArgumentException($&quot;水表地址 {BitConverter.ToString(Address)} 的长度不正确，长度不等于 7 个字节。&quot;);
+
+        BuildDataArea();
+        
+        using (var mem = new MemoryStream())
+        {
+            mem.WriteByte(FrameHead);
+            mem.WriteByte(DeviceType);
+            mem.Write(Address);
+            mem.WriteByte(ControlCode);
+            mem.WriteByte((byte)DataLength);
+            mem.Write(DataArea);
+            AccumulateSum = ByteUtils.CalculateAccumulateSum(mem.ToArray());
+            mem.WriteByte(AccumulateSum);
+            mem.WriteByte(FrameEnd);
+
+            return mem.ToArray();
+        }
+    }
+
+    public virtual IProtocol Decode(byte[] sourceBytes)
+    {
+        using (var mem = new MemoryStream(sourceBytes))
+        {
+            using (var reader = new BinaryReader(mem))
+            {
+                reader.ReadByte();
+                
+                DeviceType = reader.ReadByte();
+                Address = reader.ReadBytes(7);
+                ControlCode = reader.ReadByte();
+                DataLength = reader.ReadByte();
+                foreach (var dataDefine in DataDefines)
+                {
+                    dataDefine.Data = reader.ReadBytes(dataDefine.Length);
+                }
+
+                AccumulateSum = reader.ReadByte();
+            }
+        }
+
+        return this;
+    }
+    
+    protected virtual void BuildDataArea()
+    {
+        // 构建数据域。
+        using (var dataMemory = new MemoryStream())
+        {
+            foreach (var data in DataDefines)
+            {
+                if(data==null) continue;
+                dataMemory.Write(data.Data);
+            }
+
+            DataArea = dataMemory.ToArray();
+            DataLength = DataArea.Length;
+        }
+    }
+}</code></pre>
+<p>最后我们定义了两个具体的协议类，分别是读表的请求帧和读表的响应帧，在其构造方法分别定义了具体的数据域。</p>
+<pre class="csharp"><code>public class CJT188_Read_Request : CJT188Protocol
+{
+    public CJT188_Read_Request(string address,byte type)
+    {
+        Address = ByteUtils.HexStringToBytes(address).Reverse().ToArray();
+        ControlCode = 0x1;
+        DeviceType = type;
+        
+        DataDefines.Add(new DataDefine{Name = &quot;Default&quot;,Length = 2});
+        DataDefines.Add(new DataDefine{Name = &quot;Seq&quot;,Length = 1});
+    }
+}
+
+public class CJT188_Read_Response : CJT188Protocol
+{
+    public CJT188_Read_Response()
+    {
+        DataDefines.Add(new DataDefine{Name = &quot;Default&quot;,Length = 2});
+        DataDefines.Add(new DataDefine{Name = &quot;Seq&quot;,Length = 1});
+        DataDefines.Add(new DataDefine{Name = &quot;AllData&quot;,Length = 4});
+        DataDefines.Add(new DataDefine{Name = &quot;AllDataUnit&quot;,Length = 1});
+        DataDefines.Add(new DataDefine{Name = &quot;MonthData&quot;,Length = 4});
+        DataDefines.Add(new DataDefine{Name = &quot;MonthDataUnit&quot;,Length = 1});
+        DataDefines.Add(new DataDefine{Name = &quot;DateTime&quot;,Length = 7});
+        DataDefines.Add(new DataDefine{Name = &quot;Status1&quot;,Length = 1});
+        DataDefines.Add(new DataDefine{Name = &quot;Status2&quot;,Length = 1});
+    }
+}</code></pre>
+<p>测试代码：</p>
+<pre class="csharp"><code>class Program
+{
+    static void Main(string[] args)
+    {
+        // 发送水表读表数据。
+        var sendProtocol = new CJT188_Read_Request(&quot;00000805000001&quot;,0x10);
+        sendProtocol[&quot;Default&quot;].Data = new byte[] {0x1F, 0x90};
+        sendProtocol[&quot;Seq&quot;].Data = new byte[] {0x00};
+
+        Console.WriteLine(BitConverter.ToString(sendProtocol.Encode()));
+        
+        // 解析水表响应数据。
+        var receiveProtocol = new CJT188_Read_Response().Decode(ByteUtils.HexStringToBytes(&quot;68 10 78 06 12 18 20 00 00 81 16 90 1F 00 00 01 00 00 2C 00 01 00 00 2C 00 00 00 00 00 00 00 01 FF E0 16&quot;));
+        
+        Console.ReadLine();
+    }
+}</code></pre>
+<p><img src="./images/使用 C# 实现 CJ-T188 水表协议和 DL-T645 电表协议的解析与编码0.png" /></p>
+<p><img src="./images/使用 C# 实现 CJ-T188 水表协议和 DL-T645 电表协议的解析与编码1.png" /></p>
+<h3 id="代码打包下载">2.3 代码打包下载</h3>
+<p>上述代码实现均已打包为压缩文件，<strong><a href="https://files.cnblogs.com/files/myzony/ConsoleTestApp.zip">点击我</a></strong> 即可直接下载。</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

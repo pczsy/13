@@ -1,0 +1,239 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修回复关键词的无限扩展机制' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>回复关键词的无限扩展机制</center></div><div class='banquan'>原文出处:本文由博客园博主三人行工作室提供。<br/>
+原文连接:https://www.cnblogs.com/timeddd/p/11312670.html</div><br>
+    <h3 id="引言">引言</h3>
+<p>在微信公众号的开发中，自动回复关键词主要可回复的内容为文本消息、图文消息（目前仅支持一个链接）。为了让关键词支持“<strong>带参数</strong>” 和 <strong>无限扩展</strong>，本文引入一个对接关键词的接口规范，使得关键词可以携参数一起交由第三方处理，并返回用户文本消息或图文消息。</p>
+<p>基本原理：为关键词配置回调地址，关键词与参数使用空格分隔，第一个空格后边的均为参数，公众号在接收到用户文本消息后，解析关键词与参数，并根据配置将其发送请求给回调地址，获取返回的处理结果。</p>
+<p>本文主要介绍接口的定义，并提供一个具体的接口实现。</p>
+<h3 id="接口约定">1 接口约定</h3>
+<h4 id="传入参数">1.1 传入参数</h4>
+<p>作为 Request.Body 请求体 POST 给回调地址。</p>
+<pre><code><code>{
+    &quot;keyword&quot; : &quot;Keyword&quot;,
+    &quot;parameter&quot; : &quot;Parameters string&quot;,
+    &quot;user&quot; : &quot;useropenid&quot;
+}</code></pre>
+<h4 id="返回格式">1.2 返回格式</h4>
+<p>返回结果为 JSON 形式，要求必须有 err_code 与 err_msg 属性，其中 err_code 为状态码，状态码为 200 时，表示成功，其它表示失败。err_msg 表示消息描述。如：</p>
+<pre><code><code>{
+    &quot;err_code&quot; : 101,
+    &quot;err_msg&quot; : &quot;操作失败！&quot;
+}</code></pre>
+<p>当成功时，支持返回“文字”与“链接”两种类型的消息。<br />
+使用 key_type 属性表示，可取值“文字”或&quot;链接&quot;。<br />
+当 key_type 为“文字”的时候，data 为相应的文本内容。<br />
+当 key_type 为“链接”的时候，data 为链接信息的数组，只是目前只支持一个链接。<br />
+链接的属性包括：<br />
+title : 标题<br />
+icon : 图标<br />
+note_desc : 描述<br />
+url : 链接地址</p>
+<h4 id="文字类型示例">1.3 文字类型示例</h4>
+<pre><code><code>{
+    &quot;err_code&quot; : 101,
+    &quot;err_msg&quot; : &quot;操作失败！&quot;,
+    &quot;key_type&quot; : &quot;文字&quot;,
+    &quot;data&quot; : &quot;回复的内容&quot;
+}</code></pre>
+<h4 id="链接类型示例">1.4 链接类型示例</h4>
+<pre><code><code>{
+    &quot;err_code&quot; : 101,
+    &quot;err_msg&quot; : &quot;操作失败！&quot;,
+    &quot;key_type&quot; : &quot;链接&quot;,
+    &quot;data&quot; : [
+        {
+            &quot;title&quot; : &quot;一个数学公式&quot;,
+            &quot;icon&quot; : &quot;http://****/formula.png&quot;,
+            &quot;note_desc&quot; : &quot;一个神寄的数学公式&quot;,
+            &quot;url&quot; : &quot;http://****&quot;
+        }
+    ]
+}</code></pre>
+<h3 id="关键词接口示例">2 关键词接口示例</h3>
+<p>以下为一个完整的接口实现示例。</p>
+<h4 id="功能需求描述">2.1 功能需求描述</h4>
+<p>关键词：<strong>提取</strong><br />
+参数：一段文本或仅是一个 url<br />
+功能描述：从文本中提取出邮箱、手机号、身份证号、IPv4 地址（可进一步补充与完善）。如果参数仅是一个 url，则进行提取的文本为请求该 url 所得的内容。</p>
+<h4 id="实现过程">2.2 实现过程</h4>
+<p>流程：是否仅为url -&gt; 是则请求url 得到内容 -&gt; 根据正则表达式提取匹配数据 -&gt; 根据长度返回文本消息 或是 返回一个可操作界面的链接。<br />
+<img src="./images/回复关键词的无限扩展机制0.png" /></p>
+<h5 id="准备好匹配的正则表达式">2.2.1 准备好匹配的正则表达式</h5>
+<pre><code><code>private static Dictionary&lt;string, string&gt; _RegexDict;
+public static Dictionary&lt;string, string&gt; RegexDict
+{
+    get
+    {
+        if (_RegexDict == null)
+        {
+            _RegexDict = new Dictionary&lt;string, string&gt;();
+            // _RegexDict.Add(&quot;链接&quot;, @&quot;((ht)tps?):\/\/[\w\-]+(\.[\w\-]+)+([\w\-.,@?^=%&amp;:\/~+#]*[\w\-@?^=%&amp;\/~+#])?&quot;); 
+            _RegexDict.Add(&quot;邮箱&quot;, @&quot;[a-zA-Z0-9_-]+@[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)+&quot;);
+            _RegexDict.Add(&quot;手机号&quot;, @&quot;(((13[0-9]{1})|(14[0-9]{1})|(15[0-9]{1})|(17[0-9]{1})|(18[0-9]{1})|(19[0-9]{1}))+\d{8})&quot;);
+            _RegexDict.Add(&quot;身份证号&quot;, @&quot;[1-9]\d{5}(18|19|20)\d{2}((0[1-9])|(1[0-2]))(([0-2][1-9])|10|20|30|31)\d{3}[0-9Xx]&quot;);
+            _RegexDict.Add(&quot;IPv4地址&quot;, @&quot;(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])\.(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])&quot;);
+        }
+        return _RegexDict;
+    }
+}</code></pre>
+<h5 id="处理过程">2.2.2 处理过程</h5>
+<p>一个工具方法，请求 url 获取内容。</p>
+<pre><code><code>public static string GetUrlContent(string url)
+{
+    System.Net.WebClient webClientObj = new System.Net.WebClient();
+    webClientObj.Encoding = Encoding.UTF8;
+    string respInfo = webClientObj.DownloadString(url);
+    return respInfo;
+}</code></pre>
+<p>处理流程实现，建立一个 WebApi，代码如是说。</p>
+<pre><code><code>public JObject Index([FromBody] JObject body)
+{
+    string keyword = body.Value&lt;string&gt;(&quot;keyword&quot;);
+    string parameter = body.Value&lt;string&gt;(&quot;parameter&quot;);
+    string user = body.Value&lt;string&gt;(&quot;user&quot;);
+    JObject result = new JObject();
+    if (!&quot;提取&quot;.Equals(keyword))
+    {
+        result[&quot;err_code&quot;] = 101;
+        result[&quot;err_msg&quot;] = &quot;关键词未找到&quot;;
+        return result;
+    }
+
+    //// 处理过程 
+    var content = parameter;
+    var regUrl = @&quot;^((ht)tps?):\/\/[\w\-]+(\.[\w\-]+)+([\w\-.,@?^=%&amp;:\/~+#]*[\w\-@?^=%&amp;\/~+#])?$&quot;;
+  
+    // (1) 为网址吗
+    if (Regex.IsMatch(content, regUrl))
+    {
+        try
+        {
+            content = GetUrlContent(content);
+        }
+        catch (Exception ue)
+        {
+            result[&quot;err_code&quot;] = 101;
+            result[&quot;err_msg&quot;] = &quot;站点无法连接！&quot;;
+            return result;
+        }
+    }
+             
+    //（2）根据正则表达式提取
+    Dictionary&lt;string, List&lt;string&gt;&gt; typeMatches = new Dictionary&lt;string, List&lt;string&gt;&gt;();
+    foreach (var kv in RegexDict)
+    {
+        List&lt;string&gt; list = new List&lt;string&gt;();
+        var mc = Regex.Matches(content, kv.Value, RegexOptions.IgnoreCase);
+        foreach (Match c in mc)
+        {
+            list.Add(c.Value);
+        }
+
+        if (list.Count &gt; 0)
+        {
+            typeMatches.Add(kv.Key, list);
+        }
+    }
+
+
+    //（3）拼成字符串
+    StringBuilder sb = new StringBuilder(1024);
+    foreach (var kv in typeMatches)
+    {
+        sb.Append(kv.Key + &quot;\n&quot; + String.Join(&quot;\n&quot;, kv.Value) + &quot;\n&quot;); 
+    }
+
+    //（4）长度&lt;1020 文本消息
+    if (sb.Length &lt; 1020)
+    {
+        result[&quot;err_code&quot;] = 200;
+        result[&quot;err_msg&quot;] = &quot;success&quot;;
+        result[&quot;key_type&quot;] = &quot;文字&quot;;
+        result[&quot;data&quot;] = sb.Length == 0 ? &quot;无匹配内容！&quot; : sb.ToString();
+        return result;
+    }
+
+    //（5）长度较大，返回工具链接
+    JObject link = new JObject();
+    link[&quot;title&quot;] = &quot;提取内容中的格式化数据信息&quot;;
+    link[&quot;icon&quot;] = &quot;http://www.timeddd.com/Content/images/logo_bar.png&quot;;
+    link[&quot;note_desc&quot;] = &quot;指定链接地址或文本内容，从中提取一些常格式数据，如邮箱、手机号、链接、身份证号等信息！&quot;;
+    link[&quot;url&quot;] = &quot;http://www.timeddd.com/Tool/Fetch&quot;;
+
+    JArray links = new JArray();
+    links.Add(link);
+
+    result[&quot;err_code&quot;] = 200;
+    result[&quot;err_msg&quot;] = &quot;success&quot;;
+    result[&quot;key_type&quot;] = &quot;链接&quot;;
+    result[&quot;data&quot;] = links;
+    return result;              
+}</code></pre>
+<h3 id="效果">3 效果</h3>
+<p>在公众号“时间维度”中，回复关键词提取，空格带上内容，如下：</p>
+<blockquote>
+<p>提取 各种格式的邮箱入下所示：kevintian126@126.com ，1136667341@qq.com 3. meiya@cn-meiya.com 4. wq901200@hotmail.com 5. meiyahr@163.com 6. meiyuan@0757info.com 7. chingpeplo@sina.com 8. tony@erene.com.com 9. melodylu@buynow.com</p>
+</blockquote>
+<p>会得到以下结果：</p>
+<blockquote>
+<p>邮箱<br />
+kevintian126@126.com<br />
+1136667341@qq.com<br />
+meiya@cn-meiya.com<br />
+wq901200@hotmail.com<br />
+meiyahr@163.com<br />
+meiyuan@0757info.com<br />
+chingpeplo@sina.com<br />
+tony@erene.com.com<br />
+melodylu@buynow.com</p>
+</blockquote>
+<p>回复：</p>
+<blockquote>
+<p>提取 https://www.nhxz.com/doc/181017fc325d4b598aaede18.html</p>
+</blockquote>
+<p>会得到：</p>
+<blockquote>
+<p>邮箱<br />
+kevintian126@126.com<br />
+1136667341@qq.com<br />
+meiya@cn-meiya.com<br />
+wq901200@hotmail.com<br />
+meiyahr@163.com<br />
+meiyuan@0757info.com<br />
+chingpeplo@sina.com<br />
+tony@erene.com.com<br />
+melodylu@buynow.com<br />
+xxxxxx@163.com<br />
+123321@126.com<br />
+手机号<br />
+15758523729<br />
+18101710555<br />
+18300405945<br />
+身份证号<br />
+560087183004059455</p>
+</blockquote>
+<h3 id="招募关键词">3 招募关键词</h3>
+<p>给定一个<strong>关键词</strong>，一个<strong>接收关键词及参数的 URL 地址</strong>，按约定的格式返回 JSON，就有可能成为“时间维度”公众号里的实用工具供大家使用。如有兴趣欢迎在“时间维度”留言。</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

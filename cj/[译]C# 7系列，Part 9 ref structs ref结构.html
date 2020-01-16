@@ -1,0 +1,227 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修[译]C# 7系列，Part 9 ref structs ref结构' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>[译]C# 7系列，Part 9 ref structs ref结构</center></div><div class='banquan'>原文出处:本文由博客园博主wenhx提供。<br/>
+原文连接:https://www.cnblogs.com/wenhx/p/csharp-7-series-part-9-ref-structs.html</div><br>
+    <p>原文：<a href="https://blogs.msdn.microsoft.com/mazhou/2018/03/02/c-7-series-part-9-ref-structs/">https://blogs.msdn.microsoft.com/mazhou/2018/03/02/c-7-series-part-9-ref-structs/</a></p>
+<p><span style="font-size: 18pt;">背景</span></p>
+<p><span class="tgt" data-section="0" data-sentence="0" data-group="0-0">在之前的文章中，我解释了许多新的C#特性，每一个特性都是为了增强语言或者解决问题而引入的。<span class="tgt" data-section="0" data-sentence="1" data-group="0-1">具体来说，我解释了值类型和引用类型、按值传递参数、按引用传递参数、ref局部变量和ref返回结果以及in参数。这<span class="tgt" data-section="0" data-sentence="2" data-group="0-2">其中许多功能是为高性能场景设计的。</span></span></span></p>
+<p><span class="tgt" data-section="0" data-sentence="0" data-group="0-0"><span class="tgt" data-section="0" data-sentence="1" data-group="0-1"><span class="tgt" data-section="0" data-sentence="2" data-group="0-2"><span class="tgt" data-section="0" data-sentence="0" data-group="0-0">ref和in参数可以帮助避免复制值，从而减少内存分配。<span class="tgt" data-section="0" data-sentence="1" data-group="0-1">当你有分配在堆栈的局部变量作为方法的实际参数传递时，这么做是有效率的的，在这种情况下，所有的分配都在堆栈上；<span class="tgt" data-section="0" data-sentence="2" data-group="0-2">不需要堆分配。</span></span></span></span></span></span></p>
+<p><span class="tgt" data-section="0" data-sentence="0" data-group="0-0"><span class="tgt" data-section="0" data-sentence="1" data-group="0-1"><span class="tgt" data-section="0" data-sentence="2" data-group="0-2"><span class="tgt" data-section="0" data-sentence="0" data-group="0-0"><span class="tgt" data-section="0" data-sentence="1" data-group="0-1"><span class="tgt" data-section="0" data-sentence="2" data-group="0-2">对于高性能和原生开发场景，你可能希望&ldquo;仅限堆栈&rdquo;类型始终停留在执行堆栈上，因此对这种类型的对象的操作只能发生在堆栈上，在作用域中公开给托管堆的任何对这种类型的外部引用都应该被禁止。</span></span></span></span></span></span></p>
+<p><span class="tgt" style="font-size: 18pt;" data-section="0" data-sentence="0" data-group="0-0"><span class="tgt" data-section="0" data-sentence="1" data-group="0-1"><span class="tgt" data-section="0" data-sentence="2" data-group="0-2"><span class="tgt" data-section="0" data-sentence="0" data-group="0-0"><span class="tgt" data-section="0" data-sentence="1" data-group="0-1"><span class="tgt" data-section="0" data-sentence="2" data-group="0-2">ref结构</span></span></span></span></span></span></p>
+<p><span class="tgt" data-section="0" data-sentence="0" data-group="0-0"><span class="tgt" data-section="0" data-sentence="1" data-group="0-1"><span class="tgt" data-section="0" data-sentence="2" data-group="0-2"><span class="tgt" data-section="0" data-sentence="0" data-group="0-0"><span class="tgt" data-section="0" data-sentence="1" data-group="0-1"><span class="tgt" data-section="0" data-sentence="2" data-group="0-2"><span style="background-color: #d8bfd8;">ref struct</span>是仅在堆栈上的值类型：</span></span></span></span></span></span></p>
+<ul>
+<li><span class="tgt" data-section="0" data-sentence="0" data-group="0-0"><span class="tgt" data-section="0" data-sentence="1" data-group="0-1"><span class="tgt" data-section="0" data-sentence="2" data-group="0-2"><span class="tgt" data-section="0" data-sentence="0" data-group="0-0"><span class="tgt" data-section="0" data-sentence="1" data-group="0-1"><span class="tgt" data-section="0" data-sentence="2" data-group="0-2">表现一个顺序结构的布局；（译注：可以理解为连续内存）</span></span></span></span></span></span></li>
+<li><span class="tgt" data-section="0" data-sentence="0" data-group="0-0"><span class="tgt" data-section="0" data-sentence="1" data-group="0-1"><span class="tgt" data-section="0" data-sentence="2" data-group="0-2"><span class="tgt" data-section="0" data-sentence="0" data-group="0-0"><span class="tgt" data-section="0" data-sentence="1" data-group="0-1"><span class="tgt" data-section="0" data-sentence="2" data-group="0-2"><span class="tgt" data-section="0" data-sentence="0" data-group="0-0">只能在堆栈上使用。<span class="tgt" data-section="0" data-sentence="1" data-group="0-1">即用作方法参数和局部变量；</span></span></span></span></span></span></span></span></li>
+<li><span class="tgt" data-section="0" data-sentence="0" data-group="0-0"><span class="tgt" data-section="0" data-sentence="1" data-group="0-1"><span class="tgt" data-section="0" data-sentence="2" data-group="0-2"><span class="tgt" data-section="0" data-sentence="0" data-group="0-0"><span class="tgt" data-section="0" data-sentence="1" data-group="0-1"><span class="tgt" data-section="0" data-sentence="2" data-group="0-2"><span class="tgt" data-section="0" data-sentence="0" data-group="0-0"><span class="tgt" data-section="0" data-sentence="1" data-group="0-1">不能是类或正常结构的静态或实例成员；</span></span></span></span></span></span></span></span></li>
+<li><span class="tgt" data-section="0" data-sentence="0" data-group="0-0"><span class="tgt" data-section="0" data-sentence="1" data-group="0-1"><span class="tgt" data-section="0" data-sentence="2" data-group="0-2"><span class="tgt" data-section="0" data-sentence="0" data-group="0-0"><span class="tgt" data-section="0" data-sentence="1" data-group="0-1"><span class="tgt" data-section="0" data-sentence="2" data-group="0-2"><span class="tgt" data-section="0" data-sentence="0" data-group="0-0"><span class="tgt" data-section="0" data-sentence="1" data-group="0-1">不能是异步方法或lambda表达式的方法参数；</span></span></span></span></span></span></span></span></li>
+<li><span class="tgt" data-section="0" data-sentence="0" data-group="0-0"><span class="tgt" data-section="0" data-sentence="1" data-group="0-1"><span class="tgt" data-section="0" data-sentence="2" data-group="0-2"><span class="tgt" data-section="0" data-sentence="0" data-group="0-0"><span class="tgt" data-section="0" data-sentence="1" data-group="0-1"><span class="tgt" data-section="0" data-sentence="2" data-group="0-2"><span class="tgt" data-section="0" data-sentence="0" data-group="0-0"><span class="tgt" data-section="0" data-sentence="1" data-group="0-1">不能动态绑定、装箱、拆箱、包装或转换。</span></span></span></span></span></span></span></span></li>
+</ul>
+<p><span class="tgt" data-section="0" data-sentence="0" data-group="0-0"><span class="tgt" data-section="0" data-sentence="1" data-group="0-1"><span class="tgt" data-section="0" data-sentence="2" data-group="0-2"><span class="tgt" data-section="0" data-sentence="0" data-group="0-0"><span class="tgt" data-section="0" data-sentence="1" data-group="0-1"><span class="tgt" data-section="0" data-sentence="2" data-group="0-2"><span class="tgt" data-section="0" data-sentence="0" data-group="0-0"><span class="tgt" data-section="0" data-sentence="1" data-group="0-1"><span style="background-color: #d8bfd8;">ref struct</span>也被称为嵌入式引用。</span></span></span></span></span></span></span></span></p>
+<p><span class="tgt" style="font-size: 18pt;" data-section="0" data-sentence="0" data-group="0-0"><span class="tgt" data-section="0" data-sentence="1" data-group="0-1"><span class="tgt" data-section="0" data-sentence="2" data-group="0-2"><span class="tgt" data-section="0" data-sentence="0" data-group="0-0"><span class="tgt" data-section="0" data-sentence="1" data-group="0-1"><span class="tgt" data-section="0" data-sentence="2" data-group="0-2"><span class="tgt" data-section="0" data-sentence="0" data-group="0-0"><span class="tgt" data-section="0" data-sentence="1" data-group="0-1">示例</span></span></span></span></span></span></span></span></p>
+<p><span class="tgt" data-section="0" data-sentence="0" data-group="0-0"><span class="tgt" data-section="0" data-sentence="1" data-group="0-1"><span class="tgt" data-section="0" data-sentence="2" data-group="0-2"><span class="tgt" data-section="0" data-sentence="0" data-group="0-0"><span class="tgt" data-section="0" data-sentence="1" data-group="0-1"><span class="tgt" data-section="0" data-sentence="2" data-group="0-2"><span class="tgt" data-section="0" data-sentence="0" data-group="0-0"><span class="tgt" data-section="0" data-sentence="1" data-group="0-1">下面的代码定义了一个ref结构。</span></span></span></span></span></span></span></span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">ref</span> <span style="color: #0000ff;">struct</span><span style="color: #000000;"> MyRefStruct
+{
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> MyIntValue1;
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> MyIntValue2;
+
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">override</span> <span style="color: #0000ff;">bool</span> Equals(<span style="color: #0000ff;">object</span> obj) =&gt; <span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> NotSupportedException();
+
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">override</span> <span style="color: #0000ff;">int</span> GetHashCode() =&gt; <span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> NotSupportedException();
+
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">override</span> <span style="color: #0000ff;">string</span> ToString() =&gt; <span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> NotSupportedException();
+}</span></pre>
+</div>
+<p><span class="tgt" data-section="0" data-sentence="0" data-group="0-0">请注意，我已经覆盖了从System.Object继承的Equals、GetHashCode和ToString方法。<span class="tgt" data-section="0" data-sentence="1" data-group="0-1">因为ref结构不允许装箱，所以你将无法调用这两个（译注：原文两个，应该是三个）基方法。</span></span></p>
+<p><span class="tgt" data-section="0" data-sentence="0" data-group="0-0"><span class="tgt" data-section="0" data-sentence="1" data-group="0-1">你可以在方法参数或局部变量中使用MyRefStruct作为常规值类型，但不能在其他地方使用它。</span></span></p>
+<p><span class="tgt" data-section="0" data-sentence="0" data-group="0-0"><span class="tgt" data-section="0" data-sentence="1" data-group="0-1"><img src="./images/[译]C# 7系列，Part 9 ref structs ref结构0.png" alt="" /></span></span></p>
+<p><img src="./images/[译]C# 7系列，Part 9 ref structs ref结构1.png" alt="" /></p>
+<p>&nbsp;你也可以创建只读ref结构，只需将readonly指令添加到ref结构声明中即可。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">readonly</span> <span style="color: #0000ff;">ref</span> <span style="color: #0000ff;">struct</span><span style="color: #000000;"> MyRefStruct
+{
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">readonly</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> MyIntValue1;
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">readonly</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> MyIntValue2;
+
+    </span><span style="color: #0000ff;">public</span> MyRefStruct(<span style="color: #0000ff;">int</span> value1, <span style="color: #0000ff;">int</span><span style="color: #000000;"> value2)
+    {
+        </span><span style="color: #0000ff;">this</span>.MyIntValue1 =<span style="color: #000000;"> value1;
+        </span><span style="color: #0000ff;">this</span>.MyIntValue2 =<span style="color: #000000;"> value2;
+    }
+
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">override</span> <span style="color: #0000ff;">bool</span> Equals(<span style="color: #0000ff;">object</span> obj) =&gt; <span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> NotSupportedException();
+
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">override</span> <span style="color: #0000ff;">int</span> GetHashCode() =&gt; <span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> NotSupportedException();
+
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">override</span> <span style="color: #0000ff;">string</span> ToString() =&gt; <span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> NotSupportedException();
+}</span></pre>
+</div>
+<p>与常规只读结构一样，需要将所有实例字段/属性设置为只读。</p>
+<p><span style="font-size: 18pt;">元数据</span></p>
+<p><span class="tgt" data-section="0" data-sentence="0" data-group="0-0">ref结构在C# 7.2中可用。<span class="tgt" data-section="0" data-sentence="1" data-group="0-1">此功能需要编译器级别更改才能工作，以便与以前编译器生成的程序集向后兼容。<span class="tgt" data-section="0" data-sentence="2" data-group="0-2">编译器会为ref结构声明发出[Obsolete]和[IsByRefLike]特性。</span></span></span></p>
+<p><span class="tgt" data-section="0" data-sentence="0" data-group="0-0"><span class="tgt" data-section="0" data-sentence="1" data-group="0-1"><span class="tgt" data-section="0" data-sentence="2" data-group="0-2">如果任何旧的程序集引用了包含ref结构类型的库，[Obsolete]属性将影响并阻止代码编译。</span></span></span></p>
+<p><span class="tgt" data-section="0" data-sentence="0" data-group="0-0"><span class="tgt" data-section="0" data-sentence="1" data-group="0-1"><span class="tgt" data-section="0" data-sentence="2" data-group="0-2">下面是为上面的ref结构声明生成的IL。</span></span></span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">.class</span> <span style="color: #0000ff;">public</span> sequential <span style="color: #0000ff;">ansi</span> sealed <span style="color: #0000ff;">beforefieldinit</span><span style="color: #000000;"> Demo.MyRefStruct
+</span><span style="color: #0000ff;">extends</span><span style="color: #000000;"> [System.Runtime]System.ValueType
+{
+</span><span style="color: #0000ff;">.custom</span> <span style="color: #0000ff;">instance</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> [System.Runtime]System.Runtime.CompilerServices.IsByRefLikeAttribute::.ctor() = (
+        </span><span style="color: #800080;">01</span> <span style="color: #800080;">00</span> <span style="color: #800080;">00</span> <span style="color: #800080;">00</span><span style="color: #000000;">
+    )
+</span><span style="color: #0000ff;">.custom</span> <span style="color: #0000ff;">instance</span> <span style="color: #0000ff;">void</span> [System.Runtime]System.ObsoleteAttribute::.ctor(<span style="color: #0000ff;">string</span>, <span style="color: #0000ff;">bool</span><span style="color: #000000;">) = (
+        </span><span style="color: #800080;">01</span> <span style="color: #800080;">00</span> <span style="color: #800080;">52</span> <span style="color: #800080;">54</span> <span style="color: #800080;">79</span> <span style="color: #800080;">70</span> <span style="color: #800080;">65</span> <span style="color: #800080;">73</span> <span style="color: #800080;">20</span> <span style="color: #800080;">77</span> <span style="color: #800080;">69</span> <span style="color: #800080;">74</span> <span style="color: #800080;">68</span> <span style="color: #800080;">20</span> <span style="color: #800080;">65</span><span style="color: #000000;"> 6d
+        </span><span style="color: #800080;">62</span> <span style="color: #800080;">65</span> <span style="color: #800080;">64</span> <span style="color: #800080;">64</span> <span style="color: #800080;">65</span> <span style="color: #800080;">64</span> <span style="color: #800080;">20</span> <span style="color: #800080;">72</span> <span style="color: #800080;">65</span> <span style="color: #800080;">66</span> <span style="color: #800080;">65</span> <span style="color: #800080;">72</span> <span style="color: #800080;">65</span> 6e <span style="color: #800080;">63</span> <span style="color: #800080;">65</span>
+        <span style="color: #800080;">73</span> <span style="color: #800080;">20</span> <span style="color: #800080;">61</span> <span style="color: #800080;">72</span> <span style="color: #800080;">65</span> <span style="color: #800080;">20</span> 6e 6f <span style="color: #800080;">74</span> <span style="color: #800080;">20</span> <span style="color: #800080;">73</span> <span style="color: #800080;">75</span> <span style="color: #800080;">70</span> <span style="color: #800080;">70</span> 6f <span style="color: #800080;">72</span>
+        <span style="color: #800080;">74</span> <span style="color: #800080;">65</span> <span style="color: #800080;">64</span> <span style="color: #800080;">20</span> <span style="color: #800080;">69</span> 6e <span style="color: #800080;">20</span> <span style="color: #800080;">74</span> <span style="color: #800080;">68</span> <span style="color: #800080;">69</span> <span style="color: #800080;">73</span> <span style="color: #800080;">20</span> <span style="color: #800080;">76</span> <span style="color: #800080;">65</span> <span style="color: #800080;">72</span> <span style="color: #800080;">73</span>
+        <span style="color: #800080;">69</span> 6f 6e <span style="color: #800080;">20</span> 6f <span style="color: #800080;">66</span> <span style="color: #800080;">20</span> <span style="color: #800080;">79</span> 6f <span style="color: #800080;">75</span> <span style="color: #800080;">72</span> <span style="color: #800080;">20</span> <span style="color: #800080;">63</span> 6f 6d <span style="color: #800080;">70</span>
+        <span style="color: #800080;">69</span> 6c <span style="color: #800080;">65</span> <span style="color: #800080;">72</span> 2e <span style="color: #800080;">01</span> <span style="color: #800080;">00</span> <span style="color: #800080;">00</span><span style="color: #000000;">
+    )
+</span><span style="color: #0000ff;">.custom</span> <span style="color: #0000ff;">instance</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> [System.Runtime]System.Runtime.CompilerServices.IsReadOnlyAttribute::.ctor() = (
+        </span><span style="color: #800080;">01</span> <span style="color: #800080;">00</span> <span style="color: #800080;">00</span> <span style="color: #800080;">00</span><span style="color: #000000;">
+    )
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> Fields</span>
+<span style="color: #0000ff;">.field</span> <span style="color: #0000ff;">public</span> initonly <span style="color: #0000ff;">int32</span><span style="color: #000000;"> MyIntValue1
+</span><span style="color: #0000ff;">.field</span> <span style="color: #0000ff;">public</span> initonly <span style="color: #0000ff;">int32</span><span style="color: #000000;"> MyIntValue2
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> Methods</span>
+<span style="color: #0000ff;">.method</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">hidebysig</span> <span style="color: #0000ff;">specialname</span> <span style="color: #0000ff;">rtspecialname</span>
+<span style="color: #0000ff;">instance</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> .ctor (
+</span><span style="color: #0000ff;">int32</span><span style="color: #000000;"> value1,
+</span><span style="color: #0000ff;">int32</span><span style="color: #000000;"> value2
+        ) </span><span style="color: #0000ff;">cil</span> <span style="color: #0000ff;">managed</span><span style="color: #000000;">
+    {
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> Method begins at RVA 0x2090</span><span style="color: #008000;">
+//</span><span style="color: #008000;"> Code size 16 (0x10)</span>
+<span style="color: #0000ff;">.maxstack</span> <span style="color: #800080;">8</span>
+<span style="color: #008000;">//</span><span style="color: #008000;"> (no C# code)</span>
+        <span style="color: #ff00ff;">IL_0000:</span> <span style="color: #0000ff;">nop</span>
+<span style="color: #008000;">//</span><span style="color: #008000;"> this.MyIntValue1 = value1;</span>
+        <span style="color: #ff00ff;">IL_0001:</span> <span style="color: #0000ff;">ldarg.0</span>
+        <span style="color: #ff00ff;">IL_0002:</span> <span style="color: #0000ff;">ldarg.1</span>
+        <span style="color: #ff00ff;">IL_0003:</span> <span style="color: #0000ff;">stfld</span> <span style="color: #0000ff;">int32</span><span style="color: #000000;"> Demo.MyRefStruct::MyIntValue1
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> this.MyIntValue2 = value2;</span>
+        <span style="color: #ff00ff;">IL_0008:</span> <span style="color: #0000ff;">ldarg.0</span>
+        <span style="color: #ff00ff;">IL_0009:</span> <span style="color: #0000ff;">ldarg.2</span>
+        <span style="color: #ff00ff;">IL_000a:</span> <span style="color: #0000ff;">stfld</span> <span style="color: #0000ff;">int32</span><span style="color: #000000;"> Demo.MyRefStruct::MyIntValue2
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> (no C# code)</span>
+        <span style="color: #ff00ff;">IL_000f:</span> <span style="color: #0000ff;">ret</span><span style="color: #000000;">
+    } </span><span style="color: #008000;">//</span><span style="color: #008000;"> end of method MyRefStruct::.ctor</span>
+<span style="color: #0000ff;">.method</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">hidebysig</span> <span style="color: #0000ff;">virtual</span>
+<span style="color: #0000ff;">instance</span> <span style="color: #0000ff;">bool</span><span style="color: #000000;"> Equals (
+</span><span style="color: #0000ff;">object</span><span style="color: #000000;"> obj
+        ) </span><span style="color: #0000ff;">cil</span> <span style="color: #0000ff;">managed</span><span style="color: #000000;">
+    {
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> Method begins at RVA 0x20a1</span><span style="color: #008000;">
+//</span><span style="color: #008000;"> Code size 6 (0x6)</span>
+<span style="color: #0000ff;">.maxstack</span> <span style="color: #800080;">8</span>
+<span style="color: #008000;">//</span><span style="color: #008000;"> throw new NotSupportedException();</span>
+        <span style="color: #ff00ff;">IL_0000:</span> <span style="color: #0000ff;">newobj</span> <span style="color: #0000ff;">instance</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> [System.Runtime]System.NotSupportedException::.ctor()
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> (no C# code)</span>
+        <span style="color: #ff00ff;">IL_0005:</span> <span style="color: #0000ff;">throw</span><span style="color: #000000;">
+    } </span><span style="color: #008000;">//</span><span style="color: #008000;"> end of method MyRefStruct::Equals</span>
+<span style="color: #0000ff;">.method</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">hidebysig</span> <span style="color: #0000ff;">virtual</span>
+<span style="color: #0000ff;">instance</span> <span style="color: #0000ff;">int32</span> GetHashCode () <span style="color: #0000ff;">cil</span> <span style="color: #0000ff;">managed</span><span style="color: #000000;">
+    {
+</span><span style="color: #0000ff;">.custom</span> <span style="color: #0000ff;">instance</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> [System.Runtime]System.ComponentModel.EditorBrowsableAttribute::.ctor(valuetype [System.Runtime]System.ComponentModel.EditorBrowsableState) = (
+            </span><span style="color: #800080;">01</span> <span style="color: #800080;">00</span> <span style="color: #800080;">01</span> <span style="color: #800080;">00</span> <span style="color: #800080;">00</span> <span style="color: #800080;">00</span> <span style="color: #800080;">00</span> <span style="color: #800080;">00</span><span style="color: #000000;">
+        )
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> Method begins at RVA 0x20a8</span><span style="color: #008000;">
+//</span><span style="color: #008000;"> Code size 6 (0x6)</span>
+<span style="color: #0000ff;">.maxstack</span> <span style="color: #800080;">8</span>
+<span style="color: #008000;">//</span><span style="color: #008000;"> throw new NotSupportedException();</span>
+        <span style="color: #ff00ff;">IL_0000:</span> <span style="color: #0000ff;">newobj</span> <span style="color: #0000ff;">instance</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> [System.Runtime]System.NotSupportedException::.ctor()
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> (no C# code)</span>
+        <span style="color: #ff00ff;">IL_0005:</span> <span style="color: #0000ff;">throw</span><span style="color: #000000;">
+    } </span><span style="color: #008000;">//</span><span style="color: #008000;"> end of method MyRefStruct::GetHashCode</span>
+<span style="color: #0000ff;">.method</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">hidebysig</span> <span style="color: #0000ff;">virtual</span>
+<span style="color: #0000ff;">instance</span> <span style="color: #0000ff;">string</span> ToString () <span style="color: #0000ff;">cil</span> <span style="color: #0000ff;">managed</span><span style="color: #000000;">
+    {
+</span><span style="color: #0000ff;">.custom</span> <span style="color: #0000ff;">instance</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> [System.Runtime]System.ComponentModel.EditorBrowsableAttribute::.ctor(valuetype [System.Runtime]System.ComponentModel.EditorBrowsableState) = (
+            </span><span style="color: #800080;">01</span> <span style="color: #800080;">00</span> <span style="color: #800080;">01</span> <span style="color: #800080;">00</span> <span style="color: #800080;">00</span> <span style="color: #800080;">00</span> <span style="color: #800080;">00</span> <span style="color: #800080;">00</span><span style="color: #000000;">
+        )
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> Method begins at RVA 0x20af</span><span style="color: #008000;">
+//</span><span style="color: #008000;"> Code size 6 (0x6)</span>
+<span style="color: #0000ff;">.maxstack</span> <span style="color: #800080;">8</span>
+<span style="color: #008000;">//</span><span style="color: #008000;"> throw new NotSupportedException();</span>
+        <span style="color: #ff00ff;">IL_0000:</span> <span style="color: #0000ff;">newobj</span> <span style="color: #0000ff;">instance</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> [System.Runtime]System.NotSupportedException::.ctor()
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> (no C# code)</span>
+        <span style="color: #ff00ff;">IL_0005:</span> <span style="color: #0000ff;">throw</span><span style="color: #000000;">
+    } </span><span style="color: #008000;">//</span><span style="color: #008000;"> end of method MyRefStruct::ToString</span>
+} <span style="color: #008000;">//</span><span style="color: #008000;"> end of class Demo.MyRefStruct</span></pre>
+</div>
+<p><span style="font-size: 18pt;">Span&lt;T&gt;和Memory&lt;T&gt;</span></p>
+<p><span class="tgt" data-section="0" data-sentence="0" data-group="0-0">有了类ref类型的支持，现在就可以为所有连续内存访问提供统一的类型。<span class="tgt" data-section="0" data-sentence="1" data-group="0-1">System.<span class="tgt" data-section="0" data-sentence="2" data-group="0-2">Span&lt;T&gt;表示内存的连续空间，可用于执行堆栈、托管堆和非托管堆的通用内存操作。</span></span></span></p>
+<p><span class="tgt" data-section="0" data-sentence="0" data-group="0-0"><span class="tgt" data-section="0" data-sentence="1" data-group="0-1"><span class="tgt" data-section="0" data-sentence="2" data-group="0-2">下面是ReadOnlySpan&lt;T&gt;的一个简单用法，用于去掉字符串的开始的空格。</span></span></span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">internal</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+{
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+    {
+        </span><span style="color: #0000ff;">string</span> text = <span style="color: #800000;">"</span><span style="color: #800000;">  I am using C# 7.2 Span&lt;T&gt;!</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+        Console.WriteLine(TrimStart(text).ToArray());
+    }
+
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> ReadOnlySpan&lt;<span style="color: #0000ff;">char</span>&gt; TrimStart(ReadOnlySpan&lt;<span style="color: #0000ff;">char</span>&gt;<span style="color: #000000;"> text)
+    {
+        </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (text.IsEmpty)
+        {
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> text;
+        }
+
+        </span><span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span><span style="color: #000000;">;
+        </span><span style="color: #0000ff;">char</span><span style="color: #000000;"> c;
+
+        </span><span style="color: #0000ff;">while</span> ((c = text[i]) == <span style="color: #800000;">'</span> <span style="color: #800000;">'</span><span style="color: #000000;">)
+        {
+             i</span>++<span style="color: #000000;">;
+        }
+
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> text.Slice(i);
+    }
+}</span></pre>
+</div>
+<p><span style="font-size: 18pt;">结论</span></p>
+<p><span class="tgt" data-section="0" data-sentence="0" data-group="0-0">C# 7.2为高性能场景添加了语言特性，并为低级别的原生开发和互操作性场景提供了效率。r<span class="tgt" data-section="0" data-sentence="1" data-group="0-1">ef结构还可以与stackalloc、Span&lt;T&gt;、fixed buffers和Ranges(C# 7.3)一起用于生产力。</span></span></p>
+<p><span class="tgt" data-section="0" data-sentence="0" data-group="0-0"><span class="tgt" data-section="0" data-sentence="1" data-group="0-1">注意：要使用这个特性，需要Visual Studio 2017 15.5或更高版本。</span></span></p>
+<p>&nbsp;</p>
+<p class="tgt" data-section="4"><span style="font-size: 14pt;">系列文章：</span></p>
+<ul>
+<ul>
+<li class="tgt" data-section="4"><a href="https://www.cnblogs.com/wenhx/p/csharp-7-series-part-1-value-tuples.html" target="_blank">[译]C# 7系列，Part 1: Value Tuples 值元组</a></li>
+<li class="tgt" data-section="4"><a href="https://www.cnblogs.com/wenhx/p/csharp-7-series-part-2-async-main.html" target="_blank">[译]C# 7系列，Part 2: Async Main 异步Main方法</a></li>
+<li class="tgt" data-section="4"><a href="https://www.cnblogs.com/wenhx/p/csharp-7-series-part-3-default-literals.html" target="_blank">[译]C# 7系列，Part 3: Default Literals 默认文本表达式</a></li>
+<li><a href="https://www.cnblogs.com/wenhx/p/csharp-7-series-part-4-discards.html" target="_blank">[译]C# 7系列，Part 4: Discards 弃元</a></li>
+<li><a href="https://www.cnblogs.com/wenhx/p/csharp-7-series-part-5-private-protected.html" target="_blank">[译]C# 7系列，Part 5: private protected 访问修饰符</a></li>
+<li><a href="https://www.cnblogs.com/wenhx/p/csharp-7-series-part-6-read-only-structs.html" target="_blank">[译]C# 7系列，Part 6: Read-only structs 只读结构</a></li>
+<li><a href="https://www.cnblogs.com/wenhx/p/csharp-7-series-part-7-ref-returns.html" target="_blank">[译]C# 7系列，Part 7: ref Returns ref返回结果</a></li>
+<li><a href="https://www.cnblogs.com/wenhx/p/csharp-7-series-part-8-in-parameters.html" target="_blank">[译]C# 7系列，Part 8: in Parameters in参数</a></li>
+<li>&nbsp;[译]C# 7系列，Part 9: ref structs ref结构 （本文）</li>
+<li><a href="https://www.cnblogs.com/wenhx/p/csharp-7-series-part-10-spant-and-universal-memory-management.html" target="_blank">[译]C# 7系列，Part 10: Span&lt;T&gt; and universal memory management Span&lt;T&gt;和统一内存管理</a>&nbsp;（完）</li>
+</ul>
+</ul>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

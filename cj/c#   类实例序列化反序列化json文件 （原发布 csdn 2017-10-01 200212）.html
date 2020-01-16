@@ -1,0 +1,111 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修c#   类实例序列化反序列化json文件 （原发布 csdn 2017-10-01 200212）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>c#   类实例序列化反序列化json文件 （原发布 csdn 2017-10-01 200212）</center></div><div class='banquan'>原文出处:本文由博客园博主njit_77提供。<br/>
+原文连接:https://www.cnblogs.com/njit-77/p/11468948.html</div><br>
+    <h3 id="前言">前言</h3>
+<p>前段时间使用了net.json保存对象数据。添加完成后，测试发现300多实例数据保存加载json文件，速度比原方式(BinaryFormatter)慢。但是功能加上后也懒再删掉代码了，索性就采用两种方式。怎么说两种方式也比一种多不是？^_^</p>
+<h3 id="net.json详细介绍">net.json<a href="https://www.newtonsoft.com/json">详细介绍</a></h3>
+<h4 id="测试之前需要引用newtonsoft.json.dll可在官网下载最新安装包本文写作时最新version-10.0.3">1 测试之前需要引用Newtonsoft.Json.dll，可在官网下载最新安装包。本文写作时最新Version 10.0.3</h4>
+<p>测试类Student</p>
+<pre><code><code>[JsonObject(MemberSerialization.Fields)]
+class Student
+{
+    const int count = 1024;
+    public Student(int ID, string Name, int Age, string Sex)
+    {
+        this.ID = ID;
+        this.Name = Name;
+        this.Age = Age;
+        this.Sex = Sex;
+
+        buffer = new byte[count];
+        for (int i = 0; i &lt; count; i++)
+        {
+            buffer[i] = (byte)i;
+        }
+    }
+    
+    byte[] buffer;
+
+    int ID { get; set; }
+
+    string Name { get; set; }
+
+    int Age { get; set; }
+
+    string Sex { get; set; }
+    
+    [JsonIgnore]
+    IntPtr hwnd;
+
+    [OnDeserialized]
+    private void SetValuesOnDeserialized(StreamingContext context)
+    {
+        string stringA = &quot;I seem to be turned around!&quot;;
+        hwnd = System.Runtime.InteropServices.Marshal.StringToHGlobalAnsi(stringA);
+    }
+}</code></pre>
+<h4 id="序列化对象默认情况下只有公共成员此类没有公共成员故设置特性jsonobjectmemberserialization.fields可序列化所有成员详细可见memberserialization">2 序列化对象默认情况下只有公共成员，此类没有公共成员。故设置特性[JsonObject(MemberSerialization.Fields)]可序列化所有成员。详细可见<a href="https://www.newtonsoft.com/json/help/html/T_Newtonsoft_Json_MemberSerialization.htm">MemberSerialization</a></h4>
+<h4 id="对于intprt-hwnd标记为jsonignore表示不进行序列化当进行反序列化后使用ondeserialized可根据需要重新对其进行赋值-ondeserializedattribute-类对于自定义序列化可参考msdn自定义序列化">3 对于Intprt hwnd，标记为[JsonIgnore]表示不进行序列化；当进行反序列化后使用[OnDeserialized]可根据需要重新对其进行赋值 <a href="https://msdn.microsoft.com/zh-cn/library/system.runtime.serialization.ondeserializedattribute.aspx#%E7%A4%BA%E4%BE%8B">OnDeserializedAttribute 类</a>，对于自定义序列化可参考msdn<a href="https://msdn.microsoft.com/zh-cn/library/ty01x675">自定义序列化</a></h4>
+<p>测试用例</p>
+<pre><code><code>ArrayList StuModel = new ArrayList()
+{
+    new Student(1,&quot;王小二&quot;,18,&quot;男&quot;),
+    new Student(2,&quot;丽丽&quot;,16,&quot;女&quot;)
+};
+
+using (StreamWriter file = File.CreateText(@&quot;test.json&quot;))
+{
+    JsonSerializer serializer = new JsonSerializer();
+    serializer.Serialize(file, StuModel);
+}
+
+using (StreamReader file = File.OpenText(@&quot;test.json&quot;))
+{
+    JsonSerializer serializer = new JsonSerializer();
+    var movie2 = (ArrayList)serializer.Deserialize(file, typeof(ArrayList));
+    for (int i = 0; i &lt; movie2.Count; i++)
+    {
+        movie2[i] = JsonConvert.DeserializeObject&lt;Student&gt;(movie2[i].ToString());
+    }
+}</code></pre>
+<h4 id="测试代码中集合用arraylist故反序列化后需要再次进行转换把集合里面的每个jobject转换成student如果使用list就不需要如下">4 测试代码中集合用ArrayList，故反序列化后需要再次进行转换，把集合里面的每个JObject转换成Student，如果使用List<Student>就不需要，如下：</h4>
+<pre><code><code>List&lt;Student&gt; StuModel = new List&lt;Student&gt;()
+{
+    new Student(1,&quot;王小二&quot;,18,&quot;男&quot;),
+    new Student(2,&quot;丽丽&quot;,16,&quot;女&quot;)
+};
+
+using (StreamWriter file = File.CreateText(@&quot;test.json&quot;))
+{
+    JsonSerializer serializer = new JsonSerializer();
+    serializer.Serialize(file, StuModel);
+}
+
+using (StreamReader file = File.OpenText(@&quot;test.json&quot;))
+{
+    JsonSerializer serializer = new JsonSerializer();
+    var movie2 = (List&lt;Student&gt;)serializer.Deserialize(file, typeof(List&lt;Student&gt;));
+}</code></pre>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

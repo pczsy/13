@@ -1,0 +1,162 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C# 使用Emit实现动态AOP框架 (二)' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C# 使用Emit实现动态AOP框架 (二)</center></div><div class='banquan'>原文出处:本文由博客园博主Asccode提供。<br/>
+原文连接:https://www.cnblogs.com/accode/p/10901128.html</div><br>
+    <h1>&nbsp; &nbsp;&nbsp;&nbsp;目 &nbsp;录</h1>
+<p><a id="homepage1_HomePageDays_DaysList_ctl01_DayList_TitleUrl_2" class="postTitle2" href="https://www.cnblogs.com/accode/p/10900711.html">C# 使用Emit实现动态AOP框架 (一)</a></p>
+<p><a id="homepage1_HomePageDays_DaysList_ctl01_DayList_TitleUrl_1" class="postTitle2" href="https://www.cnblogs.com/accode/p/10901128.html">C# 使用Emit实现动态AOP框架 (二)</a></p>
+<p><a id="homepage1_HomePageDays_DaysList_ctl01_DayList_TitleUrl_0" class="postTitle2" href="https://www.cnblogs.com/accode/p/10903042.html">C# 使用Emit实现动态AOP框架 (三)</a></p>
+<p><a id="homepage1_HomePageDays_DaysList_ctl00_DayList_TitleUrl_1" class="postTitle2" href="https://www.cnblogs.com/accode/p/10906431.html">C# 使用Emit实现动态AOP框架 进阶篇之异常处理</a></p>
+<p><a id="homepage1_HomePageDays_DaysList_ctl00_DayList_TitleUrl_0" class="postTitle2" href="https://www.cnblogs.com/accode/p/10907202.html">C# 使用Emit实现动态AOP框架 进阶篇之优化</a></p>
+<p>&nbsp;</p>
+<p style="margin-left: 30px;">&nbsp;实现DynamicProxy前，先介绍几个必要的辅助类：</p>
+<h2><span style="color: #3366ff; font-family: 'Microsoft YaHei'; font-size: 15px;">&nbsp;一、切面上下文类AspectContext</span></h2>
+<p style="margin-left: 30px;">&nbsp; 该类是作为切面特性类的OnEntry和OnEixt方法的参数用的，该类包含了被代理对象Sender、当前切入的方法名称（Name）、调用方法的参数列表（Args）以及返回值（Result）</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span>  <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> AspectContext
+</span><span style="color: #008080;"> 2</span> <span style="color: #000000;"> {
+</span><span style="color: #008080;"> 3</span> 
+<span style="color: #008080;"> 4</span>         <span style="color: #0000ff;">#region</span> 构造函数
+<span style="color: #008080;"> 5</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;"> 6</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 构造函数
+</span><span style="color: #008080;"> 7</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;"> 8</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="sender"&gt;</span><span style="color: #008000;">被切入的对象</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;"> 9</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="name"&gt;</span><span style="color: #008000;">切入方法名称</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;">10</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="args"&gt;</span><span style="color: #008000;">调用参数</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;">11</span>         <span style="color: #0000ff;">public</span> AspectContext(<span style="color: #0000ff;">object</span> sender, <span style="color: #0000ff;">string</span> name, <span style="color: #0000ff;">object</span><span style="color: #000000;">[] args)
+</span><span style="color: #008080;">12</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">13</span>             Sender = sender; Name = name; Args = args; Result = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+</span><span style="color: #008080;">14</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">15</span>         <span style="color: #0000ff;">#endregion</span>
+<span style="color: #008080;">16</span> 
+<span style="color: #008080;">17</span>         <span style="color: #0000ff;">#region</span> 属性
+<span style="color: #008080;">18</span> 
+<span style="color: #008080;">19</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">20</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 被切入的对象
+</span><span style="color: #008080;">21</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">22</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">object</span> Sender { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+</span><span style="color: #008080;">23</span> 
+<span style="color: #008080;">24</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">25</span>         <span style="color: #808080;">///</span><span style="color: #008000;">切入方法名称
+</span><span style="color: #008080;">26</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">27</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> Name { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+</span><span style="color: #008080;">28</span> 
+<span style="color: #008080;">29</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">30</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 方法调用参数
+</span><span style="color: #008080;">31</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">32</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">object</span>[] Args { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+</span><span style="color: #008080;">33</span> 
+<span style="color: #008080;">34</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">35</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 返回值
+</span><span style="color: #008080;">36</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">37</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">object</span> Result { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+</span><span style="color: #008080;">38</span> 
+<span style="color: #008080;">39</span>         <span style="color: #0000ff;">#endregion</span>
+<span style="color: #008080;">40</span>     }</pre>
+</div>
+<h2><span style="font-family: 'Microsoft YaHei'; font-size: 15px; color: #3366ff;">二、切面特性基类&nbsp;AspectAttribute</span></h2>
+<div class="cnblogs_code">
+<pre><code>  <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+  <span style="color: #808080;">///</span><span style="color: #008000;"> 切面特性基类
+  </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+  [AttributeUsage(AttributeTargets.Class | AttributeTargets.Constructor | AttributeTargets.Method |<span style="color: #000000;"> AttributeTargets.Property)]
+  </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">abstract</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> AspectAttribute : Attribute
+  {
+        </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> AspectAttribute()
+        {
+            IntercepType </span>=<span style="color: #000000;"> XAOP.IntercepType.All;
+        }
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">abstract</span> InterceptType InterceptType { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">abstract</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> OnEntry(AspectContext context);
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">abstract</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> OnExit(AspectContext context);
+   }<br /></span></pre>
+</div>
+<p>&nbsp; 该类作为所有切面特性的基类，包含拦截的类型、方法调用入口和方法调用出口。</p>
+<h2><span style="font-family: 'Microsoft YaHei'; font-size: 15px; color: #3366ff;">三、拦截类型&nbsp;InterceptType&nbsp;</span></h2>
+<div class="cnblogs_code">
+<pre><code>  <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+  <span style="color: #808080;">///</span><span style="color: #008000;"> 拦截类型
+  </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+   <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">enum</span><span style="color: #000000;"> InterceptType
+   {
+        </span><span style="color: #0000ff;">#region</span> 枚举值
+
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 入口
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        OnEntry = <span style="color: #800080;">1</span><span style="color: #000000;">,
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 出口
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        OnExit = <span style="color: #800080;">2</span><span style="color: #000000;">,
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 所有
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        All = <span style="color: #800080;">3</span>
+
+        <span style="color: #0000ff;">#endregion</span><span style="color: #000000;">
+    }</span></pre>
+</div>
+<h1><span style="font-family: 'Microsoft YaHei'; font-size: 15px; color: #3366ff;">四、日志特性类</span></h1>
+<p>&nbsp; &nbsp;该类简单实现了方法调用前后的日志记录功能。</p>
+<div class="cnblogs_code">
+<pre><code>    <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+    <span style="color: #808080;">///</span><span style="color: #008000;"> 日志特性
+    </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> LogAttribute : AspectAttribute
+    {
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">override</span> InterceptType InterceptType { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+
+        </span><span style="color: #0000ff;">#region</span> 开始调用
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 开始调用
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="context"&gt;&lt;/param&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">override</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> OnEntry(AspectContext context)
+        {
+            Console.Write(</span><span style="color: #800000;">"</span><span style="color: #800000;">Log OnEntry:</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+
+            </span><span style="color: #0000ff;">if</span> (context != <span style="color: #0000ff;">null</span> &amp;&amp; context.Args != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+                Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">{0}({1})</span><span style="color: #800000;">"</span>, context.Name, <span style="color: #0000ff;">string</span>.Join(<span style="color: #800000;">"</span><span style="color: #800000;">,</span><span style="color: #800000;">"</span><span style="color: #000000;">, context.Args));
+        }
+        </span><span style="color: #0000ff;">#endregion</span>
+
+        <span style="color: #0000ff;">#region</span> 调用结束
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span> 
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="context"&gt;&lt;/param&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">override</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> OnExit(AspectContext context)
+        {
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Log OnExit: </span><span style="color: #800000;">"</span> + context.Name + (context.Result != <span style="color: #0000ff;">null</span> ? <span style="color: #800000;">"</span><span style="color: #800000;"> Result: </span><span style="color: #800000;">"</span> + context.Result.ToString() : <span style="color: #800000;">""</span>) + <span style="color: #800000;">"</span><span style="color: #800000;">\r\n</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+        }
+        </span><span style="color: #0000ff;">#endregion</span><span style="color: #000000;">
+    }</span></pre>
+</div>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

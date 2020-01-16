@@ -1,0 +1,203 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C#实现地图坐标系的转换(WGS-84、GCJ-02、BD-09)' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C#实现地图坐标系的转换(WGS-84、GCJ-02、BD-09)</center></div><div class='banquan'>原文出处:本文由博客园博主Gmmm提供。<br/>
+原文连接:https://www.cnblogs.com/mingguang/p/11980649.html</div><br>
+    <p>　　&nbsp;WGS-84坐标系：全球定位系统使用，GPS、北斗等</p>
+<p>　　 GCJ-02坐标系：中国地区使用，由WGS-84偏移而来</p>
+<p>　　 BD-09坐标系：百度专用，由GCJ-02偏移而来</p>
+<p>　　(PS:源于项目需求，本来是想读图片的经纬度显示在百度离线地图上的。后来发现定位偏差太大，仔细一想，原来是图片和百度使用的坐标系不一样。</p>
+<p>&nbsp;</p>
+<h3>　　计算转换部分&nbsp;</h3>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">    public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> GPSChange
+    {
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">double</span> pi = <span style="color: #800080;">3.14159265358979324</span><span style="color: #000000;">;
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">double</span> x_pi = <span style="color: #800080;">3.14159265358979324</span> * <span style="color: #800080;">3000.0</span> / <span style="color: #800080;">180.0</span><span style="color: #000000;">;
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">克拉索天斯基椭球体参数值</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">double</span> a = <span style="color: #800080;">6378245.0</span><span style="color: #000000;">;
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">第一偏心率</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">double</span> ee = <span style="color: #800080;">0.00669342162296594323</span><span style="color: #000000;">;
+
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> GCJ-02转换BD-09
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="gg_lat"&gt;</span><span style="color: #008000;">纬度</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="gg_lon"&gt;</span><span style="color: #008000;">经度</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> GPSPoint GCJ02_to_BD09(<span style="color: #0000ff;">double</span> gg_lat, <span style="color: #0000ff;">double</span><span style="color: #000000;"> gg_lon)
+        {
+            GPSPoint point </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> GPSPoint();
+            </span><span style="color: #0000ff;">double</span> x = gg_lon, y =<span style="color: #000000;"> gg_lat;
+            </span><span style="color: #0000ff;">double</span> z = Math.Sqrt(x * x + y * y) + <span style="color: #800080;">0.00002</span> * Math.Sin(y *<span style="color: #000000;"> x_pi);
+            </span><span style="color: #0000ff;">double</span> theta = Math.Atan2(y, x) + <span style="color: #800080;">0.000003</span> * Math.Cos(x *<span style="color: #000000;"> x_pi);
+            </span><span style="color: #0000ff;">double</span> bd_lon = z * Math.Cos(theta) + <span style="color: #800080;">0.0065</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">double</span> bd_lat = z * Math.Sin(theta) + <span style="color: #800080;">0.006</span><span style="color: #000000;">;
+            point.SetLat(bd_lat);
+            point.SetLng(bd_lon);
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> point;
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> BD-09转换GCJ-02
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="bd_lat"&gt;</span><span style="color: #008000;">纬度</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="bd_lon"&gt;</span><span style="color: #008000;">经度</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> GPSPoint BD09_to_GCJ02(<span style="color: #0000ff;">double</span> bd_lat, <span style="color: #0000ff;">double</span><span style="color: #000000;"> bd_lon)
+        {
+            GPSPoint point </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> GPSPoint();
+            </span><span style="color: #0000ff;">double</span> x = bd_lon - <span style="color: #800080;">0.0065</span>, y = bd_lat - <span style="color: #800080;">0.006</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">double</span> z = Math.Sqrt(x * x + y * y) - <span style="color: #800080;">0.00002</span> * Math.Sin(y *<span style="color: #000000;"> x_pi);
+            </span><span style="color: #0000ff;">double</span> theta = Math.Atan2(y, x) - <span style="color: #800080;">0.000003</span> * Math.Cos(x *<span style="color: #000000;"> x_pi);
+            </span><span style="color: #0000ff;">double</span> gg_lon = z *<span style="color: #000000;"> Math.Cos(theta);
+            </span><span style="color: #0000ff;">double</span> gg_lat = z *<span style="color: #000000;"> Math.Sin(theta);
+            point.SetLat(gg_lat);
+            point.SetLng(gg_lon);
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> point;
+        }
+
+
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> WGS-84转换GCJ-02
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="wgLat"&gt;</span><span style="color: #008000;">纬度</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="wgLon"&gt;</span><span style="color: #008000;">经度</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> GPSPoint WGS84_to_GCJ02(<span style="color: #0000ff;">double</span> wgLat, <span style="color: #0000ff;">double</span><span style="color: #000000;"> wgLon)
+        {
+            GPSPoint point </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> GPSPoint();
+            </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (OutOfChina(wgLat, wgLon))
+            {
+                point.SetLat(wgLat);
+                point.SetLng(wgLon);
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> point;
+            }
+            </span><span style="color: #0000ff;">double</span> dLat = TransformLat(wgLon - <span style="color: #800080;">105.0</span>, wgLat - <span style="color: #800080;">35.0</span><span style="color: #000000;">);
+            </span><span style="color: #0000ff;">double</span> dLon = TransformLon(wgLon - <span style="color: #800080;">105.0</span>, wgLat - <span style="color: #800080;">35.0</span><span style="color: #000000;">);
+            </span><span style="color: #0000ff;">double</span> radLat = wgLat / <span style="color: #800080;">180.0</span> *<span style="color: #000000;"> pi;
+            </span><span style="color: #0000ff;">double</span> magic =<span style="color: #000000;"> Math.Sin(radLat);
+            magic </span>= <span style="color: #800080;">1</span> - ee * magic *<span style="color: #000000;"> magic;
+            </span><span style="color: #0000ff;">double</span> sqrtMagic =<span style="color: #000000;"> Math.Sqrt(magic);
+            dLat </span>= (dLat * <span style="color: #800080;">180.0</span>) / ((a * (<span style="color: #800080;">1</span> - ee)) / (magic * sqrtMagic) *<span style="color: #000000;"> pi);
+            dLon </span>= (dLon * <span style="color: #800080;">180.0</span>) / (a / sqrtMagic * Math.Cos(radLat) *<span style="color: #000000;"> pi);
+            </span><span style="color: #0000ff;">double</span> lat = wgLat +<span style="color: #000000;"> dLat;
+            </span><span style="color: #0000ff;">double</span> lon = wgLon +<span style="color: #000000;"> dLon;
+            point.SetLat(lat);
+            point.SetLng(lon);
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> point;
+        }
+
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Transform(<span style="color: #0000ff;">double</span> wgLat, <span style="color: #0000ff;">double</span> wgLon, <span style="color: #0000ff;">double</span><span style="color: #000000;">[] latlng)
+        {
+            </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (OutOfChina(wgLat, wgLon))
+            {
+                latlng[</span><span style="color: #800080;">0</span>] =<span style="color: #000000;"> wgLat;
+                latlng[</span><span style="color: #800080;">1</span>] =<span style="color: #000000;"> wgLon;
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;">;
+            }
+            </span><span style="color: #0000ff;">double</span> dLat = TransformLat(wgLon - <span style="color: #800080;">105.0</span>, wgLat - <span style="color: #800080;">35.0</span><span style="color: #000000;">);
+            </span><span style="color: #0000ff;">double</span> dLon = TransformLon(wgLon - <span style="color: #800080;">105.0</span>, wgLat - <span style="color: #800080;">35.0</span><span style="color: #000000;">);
+            </span><span style="color: #0000ff;">double</span> radLat = wgLat / <span style="color: #800080;">180.0</span> *<span style="color: #000000;"> pi;
+            </span><span style="color: #0000ff;">double</span> magic =<span style="color: #000000;"> Math.Sin(radLat);
+            magic </span>= <span style="color: #800080;">1</span> - ee * magic *<span style="color: #000000;"> magic;
+            </span><span style="color: #0000ff;">double</span> sqrtMagic =<span style="color: #000000;"> Math.Sqrt(magic);
+            dLat </span>= (dLat * <span style="color: #800080;">180.0</span>) / ((a * (<span style="color: #800080;">1</span> - ee)) / (magic * sqrtMagic) *<span style="color: #000000;"> pi);
+            dLon </span>= (dLon * <span style="color: #800080;">180.0</span>) / (a / sqrtMagic * Math.Cos(radLat) *<span style="color: #000000;"> pi);
+            latlng[</span><span style="color: #800080;">0</span>] = wgLat +<span style="color: #000000;"> dLat;
+            latlng[</span><span style="color: #800080;">1</span>] = wgLon +<span style="color: #000000;"> dLon;
+        }
+
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">bool</span> OutOfChina(<span style="color: #0000ff;">double</span> lat, <span style="color: #0000ff;">double</span><span style="color: #000000;"> lon)
+        {
+            </span><span style="color: #0000ff;">if</span> (lon &lt; <span style="color: #800080;">72.004</span> || lon &gt; <span style="color: #800080;">137.8347</span><span style="color: #000000;">)
+                </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">if</span> (lat &lt; <span style="color: #800080;">0.8293</span> || lat &gt; <span style="color: #800080;">55.8271</span><span style="color: #000000;">)
+                </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+        }
+
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">double</span> TransformLat(<span style="color: #0000ff;">double</span> x, <span style="color: #0000ff;">double</span><span style="color: #000000;"> y)
+        {
+            </span><span style="color: #0000ff;">double</span> ret = -<span style="color: #800080;">100.0</span> + <span style="color: #800080;">2.0</span> * x + <span style="color: #800080;">3.0</span> * y + <span style="color: #800080;">0.2</span> * y * y + <span style="color: #800080;">0.1</span> * x * y + <span style="color: #800080;">0.2</span> *<span style="color: #000000;"> Math.Sqrt(Math.Abs(x));
+            ret </span>+= (<span style="color: #800080;">20.0</span> * Math.Sin(<span style="color: #800080;">6.0</span> * x * pi) + <span style="color: #800080;">20.0</span> * Math.Sin(<span style="color: #800080;">2.0</span> * x * pi)) * <span style="color: #800080;">2.0</span> / <span style="color: #800080;">3.0</span><span style="color: #000000;">;
+            ret </span>+= (<span style="color: #800080;">20.0</span> * Math.Sin(y * pi) + <span style="color: #800080;">40.0</span> * Math.Sin(y / <span style="color: #800080;">3.0</span> * pi)) * <span style="color: #800080;">2.0</span> / <span style="color: #800080;">3.0</span><span style="color: #000000;">;
+            ret </span>+= (<span style="color: #800080;">160.0</span> * Math.Sin(y / <span style="color: #800080;">12.0</span> * pi) + <span style="color: #800080;">320</span> * Math.Sin(y * pi / <span style="color: #800080;">30.0</span>)) * <span style="color: #800080;">2.0</span> / <span style="color: #800080;">3.0</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> ret;
+        }
+
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">double</span> TransformLon(<span style="color: #0000ff;">double</span> x, <span style="color: #0000ff;">double</span><span style="color: #000000;"> y)
+        {
+            </span><span style="color: #0000ff;">double</span> ret = <span style="color: #800080;">300.0</span> + x + <span style="color: #800080;">2.0</span> * y + <span style="color: #800080;">0.1</span> * x * x + <span style="color: #800080;">0.1</span> * x * y + <span style="color: #800080;">0.1</span> *<span style="color: #000000;"> Math.Sqrt(Math.Abs(x));
+            ret </span>+= (<span style="color: #800080;">20.0</span> * Math.Sin(<span style="color: #800080;">6.0</span> * x * pi) + <span style="color: #800080;">20.0</span> * Math.Sin(<span style="color: #800080;">2.0</span> * x * pi)) * <span style="color: #800080;">2.0</span> / <span style="color: #800080;">3.0</span><span style="color: #000000;">;
+            ret </span>+= (<span style="color: #800080;">20.0</span> * Math.Sin(x * pi) + <span style="color: #800080;">40.0</span> * Math.Sin(x / <span style="color: #800080;">3.0</span> * pi)) * <span style="color: #800080;">2.0</span> / <span style="color: #800080;">3.0</span><span style="color: #000000;">;
+            ret </span>+= (<span style="color: #800080;">150.0</span> * Math.Sin(x / <span style="color: #800080;">12.0</span> * pi) + <span style="color: #800080;">300.0</span> * Math.Sin(x / <span style="color: #800080;">30.0</span> * pi)) * <span style="color: #800080;">2.0</span> / <span style="color: #800080;">3.0</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> ret;
+        }
+
+    }</span></pre>
+</div>
+<h3>&nbsp;　　基础类</h3>
+<div class="cnblogs_code">
+<pre><code>    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> GPSPoint
+    {
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">double</span> lat;<span style="color: #008000;">//</span><span style="color: #008000;"> 纬度</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">double</span> lng;<span style="color: #008000;">//</span><span style="color: #008000;"> 经度</span>
+
+        <span style="color: #0000ff;">public</span><span style="color: #000000;"> GPSPoint()
+        {
+        }
+
+        </span><span style="color: #0000ff;">public</span> GPSPoint(<span style="color: #0000ff;">double</span> lng, <span style="color: #0000ff;">double</span><span style="color: #000000;"> lat)
+        {
+            </span><span style="color: #0000ff;">this</span>.lng =<span style="color: #000000;"> lng;
+            </span><span style="color: #0000ff;">this</span>.lat =<span style="color: #000000;"> lat;
+        }
+
+        
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">double</span><span style="color: #000000;"> GetLat()
+        {
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> lat;
+        }
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> SetLat(<span style="color: #0000ff;">double</span><span style="color: #000000;"> lat)
+        {
+            </span><span style="color: #0000ff;">this</span>.lat =<span style="color: #000000;"> lat;
+        }
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">double</span><span style="color: #000000;"> GetLng()
+        {
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> lng;
+        }
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> SetLng(<span style="color: #0000ff;">double</span><span style="color: #000000;"> lng)
+        {
+            </span><span style="color: #0000ff;">this</span>.lng =<span style="color: #000000;"> lng;
+        }
+        
+
+    }</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,415 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C# Aforge设置摄像头视频属性和控制属性' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C# Aforge设置摄像头视频属性和控制属性</center></div><div class='banquan'>原文出处:本文由博客园博主maoruishan提供。<br/>
+原文连接:https://www.cnblogs.com/maoruishan/p/11309139.html</div><br>
+    <p><span style="font-size: 18px;"><strong>修改后的代码：<a href="https://github.com/maoruishan/AForge.NET" target="_blank">github</a></strong></span></p>
+<p>&nbsp;</p>
+<p><span style="font-size: 18px;"><strong>一、调用windows自身摄像头属性设置窗口</strong></span></p>
+<p>使用VideoCaptureDevice对象的DisplayPropertyPage(IntPtr parentWindow)方法即可，以下是从Aforge源码里找到的调用api方式：</p>
+<div class="cnblogs_Highlighter">
+<pre><code>        /// &lt;summary&gt;
+        /// Invokes a new property frame, that is, a property sheet dialog box.
+        /// &lt;/summary&gt;
+        /// 
+        /// &lt;param name="hwndOwner"&gt;Parent window of property sheet dialog box.&lt;/param&gt;
+        /// &lt;param name="x"&gt;Horizontal position for dialog box.&lt;/param&gt;
+        /// &lt;param name="y"&gt;Vertical position for dialog box.&lt;/param&gt;
+        /// &lt;param name="caption"&gt;Dialog box caption.&lt;/param&gt;
+        /// &lt;param name="cObjects"&gt;Number of object pointers in &lt;b&gt;ppUnk&lt;/b&gt;.&lt;/param&gt;
+        /// &lt;param name="ppUnk"&gt;Pointer to the objects for property sheet.&lt;/param&gt;
+        /// &lt;param name="cPages"&gt;Number of property pages in &lt;b&gt;lpPageClsID&lt;/b&gt;.&lt;/param&gt;
+        /// &lt;param name="lpPageClsID"&gt;Array of CLSIDs for each property page.&lt;/param&gt;
+        /// &lt;param name="lcid"&gt;Locale identifier for property sheet locale.&lt;/param&gt;
+        /// &lt;param name="dwReserved"&gt;Reserved.&lt;/param&gt;
+        /// &lt;param name="lpvReserved"&gt;Reserved.&lt;/param&gt;
+        /// 
+        /// &lt;returns&gt;Returns &lt;b&gt;S_OK&lt;/b&gt; on success.&lt;/returns&gt;
+        /// 
+        [DllImport( "oleaut32.dll" )]
+        public static extern int OleCreatePropertyFrame(
+            IntPtr hwndOwner,
+            int x,
+            int y,
+            [MarshalAs( UnmanagedType.LPWStr )] string caption,
+            int cObjects,
+            [MarshalAs( UnmanagedType.Interface, ArraySubType = UnmanagedType.IUnknown )] 
+            ref object ppUnk,
+            int cPages,
+            IntPtr lpPageClsID,
+            int lcid,
+            int dwReserved,
+            IntPtr lpvReserved );
+</pre>
+</div>
+<p>　　<span style="font-size: 14pt;"><strong>二、通过代码自定义设置摄像头属性</strong></span></p>
+<p>aforge发布版只封装了对摄像头控制属性（缩放、焦点、曝光等）的设置方法，要想设置亮度、对比度这些属性，需要在源码上添加功能。</p>
+<p>扩展代码原地址：<a href="https://code.google.com/archive/p/aforge/issues/357">https://code.google.com/archive/p/aforge/issues/357</a></p>
+<p><a href="https://files.cnblogs.com/files/maoruishan/AForge.Video.DirectShow%E6%89%A9%E5%B1%95%E4%BB%A3%E7%A0%81.zip" target="_blank">https://files.cnblogs.com/files/maoruishan/AForge.Video.DirectShow%E6%89%A9%E5%B1%95%E4%BB%A3%E7%A0%81.zip</a></p>
+<p>有三个文件，都是Video.DirectShow项目下的：IAMVideoProcAmp.cs，VideoCaptureDevice.cs，VideoProcAmpProperty.cs</p>
+<p>IAMVideoProcAmp.cs声明了几个调用com对象的方法，放在Internals文件夹下</p>
+<div class="cnblogs_Highlighter">
+<pre><code>// AForge Direct Show Library
+// AForge.NET framework
+// http://www.aforgenet.com/framework/
+//
+// Copyright &copy; AForge.NET, 2009-2013
+// contacts@aforgenet.com
+//
+
+namespace AForge.Video.DirectShow.Internals
+{
+    using System;
+    using System.Runtime.InteropServices;
+
+    /// &lt;summary&gt;
+    /// The IAMVideoProcAmp interface controls camera settings such as brightness, contrast, hue,
+    /// or saturation. To obtain this interface, query the filter that controls the camera.
+    /// &lt;/summary&gt;
+    [ComImport,
+    Guid("C6E13360-30AC-11D0-A18C-00A0C9118956"),
+    InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    internal interface IAMVideoProcAmp
+    {
+        /// &lt;summary&gt;
+        /// Gets the range and default value of a specified camera property.
+        /// &lt;/summary&gt;
+        ///
+        /// &lt;param name="Property"&gt;Specifies the property to query.&lt;/param&gt;
+        /// &lt;param name="pMin"&gt;Receives the minimum value of the property.&lt;/param&gt;
+        /// &lt;param name="pMax"&gt;Receives the maximum value of the property.&lt;/param&gt;
+        /// &lt;param name="pSteppingDelta"&gt;Receives the step size for the property.&lt;/param&gt;
+        /// &lt;param name="pDefault"&gt;Receives the default value of the property. &lt;/param&gt;
+        /// &lt;param name="pCapsFlags"&gt;Receives a member of the VideoProcAmpFlags enumeration, indicating whether the property is controlled automatically or manually.&lt;/param&gt;
+        ///
+        /// &lt;returns&gt;Return's &lt;b&gt;HRESULT&lt;/b&gt; error code.&lt;/returns&gt;
+        ///
+        [PreserveSig]
+        int GetRange(
+            [In] VideoProcAmpProperty Property,
+            [Out] out int pMin,
+            [Out] out int pMax,
+            [Out] out int pSteppingDelta,
+            [Out] out int pDefault,
+            [Out] out VideoProcAmpFlags pCapsFlags
+            );
+
+        /// &lt;summary&gt;
+        /// Sets a specified property on the camera.
+        /// &lt;/summary&gt;
+        ///
+        /// &lt;param name="Property"&gt;Specifies the property to set.&lt;/param&gt;
+        /// &lt;param name="lValue"&gt;Specifies the new value of the property.&lt;/param&gt;
+        /// &lt;param name="Flags"&gt;Specifies the desired control setting, as a member of the VideoProcAmpFlags enumeration.&lt;/param&gt;
+        ///
+        /// &lt;returns&gt;Return's &lt;b&gt;HRESULT&lt;/b&gt; error code.&lt;/returns&gt;
+        ///
+        [PreserveSig]
+        int Set(
+            [In] VideoProcAmpProperty Property,
+            [In] int lValue,
+            [In] VideoProcAmpFlags Flags
+            );
+
+        /// &lt;summary&gt;
+        /// Gets the current setting of a camera property.
+        /// &lt;/summary&gt;
+        ///
+        /// &lt;param name="Property"&gt;Specifies the property to retrieve.&lt;/param&gt;
+        /// &lt;param name="lValue"&gt;Receives the value of the property.&lt;/param&gt;
+        /// &lt;param name="Flags"&gt;Receives a member of the VideoProcAmpFlags enumeration.
+        /// The returned value indicates whether the setting is controlled manually or automatically.&lt;/param&gt;
+        ///
+        /// &lt;returns&gt;Return's &lt;b&gt;HRESULT&lt;/b&gt; error code.&lt;/returns&gt;
+        ///
+        [PreserveSig]
+        int Get(
+            [In] VideoProcAmpProperty Property,
+            [Out] out int lValue,
+            [Out] out VideoProcAmpFlags Flags
+            );
+    }
+}
+</pre>
+</div>
+<p>VideoCaptureDevice.cs添加了几个方法用来获取和设置参数，替换掉源文件即可，也可以在原文件加上这几个方法的代码</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">  1</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">  2</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> Sets a specified property on the camera.
+</span><span style="color: #008080;">  3</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">  4</span>         <span style="color: #808080;">///</span>
+<span style="color: #008080;">  5</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="property"&gt;</span><span style="color: #008000;">Specifies the property to set.</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;">  6</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="value"&gt;</span><span style="color: #008000;">Specifies the new value of the property.</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;">  7</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="controlFlags"&gt;</span><span style="color: #008000;">Specifies the desired control setting.</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;">  8</span>         <span style="color: #808080;">///</span>
+<span style="color: #008080;">  9</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;</span><span style="color: #008000;">Returns true on success or false otherwise.</span><span style="color: #808080;">&lt;/returns&gt;</span>
+<span style="color: #008080;"> 10</span>         <span style="color: #808080;">///</span>
+<span style="color: #008080;"> 11</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;exception cref="ArgumentException"&gt;</span><span style="color: #008000;">Video source is not specified - device moniker is not set.</span><span style="color: #808080;">&lt;/exception&gt;</span>
+<span style="color: #008080;"> 12</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;exception cref="ApplicationException"&gt;</span><span style="color: #008000;">Failed creating device object for moniker.</span><span style="color: #808080;">&lt;/exception&gt;</span>
+<span style="color: #008080;"> 13</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;exception cref="NotSupportedException"&gt;</span><span style="color: #008000;">The video source does not support camera control.</span><span style="color: #808080;">&lt;/exception&gt;</span>
+<span style="color: #008080;"> 14</span>         <span style="color: #808080;">///
+</span><span style="color: #008080;"> 15</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">bool</span> SetVideoProperty(VideoProcAmpProperty property, <span style="color: #0000ff;">int</span><span style="color: #000000;"> value, VideoProcAmpFlags controlFlags)
+</span><span style="color: #008080;"> 16</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 17</span>             <span style="color: #0000ff;">bool</span> ret = <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 18</span> 
+<span style="color: #008080;"> 19</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> check if source was set</span>
+<span style="color: #008080;"> 20</span>             <span style="color: #0000ff;">if</span> ((deviceMoniker == <span style="color: #0000ff;">null</span>) || (<span style="color: #0000ff;">string</span><span style="color: #000000;">.IsNullOrEmpty(deviceMoniker)))
+</span><span style="color: #008080;"> 21</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 22</span>                 <span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> ArgumentException(<span style="color: #800000;">"</span><span style="color: #800000;">Video source is not specified.</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 23</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 24</span> 
+<span style="color: #008080;"> 25</span>             <span style="color: #0000ff;">lock</span><span style="color: #000000;"> (sync)
+</span><span style="color: #008080;"> 26</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 27</span>                 <span style="color: #0000ff;">object</span> tempSourceObject = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 28</span> 
+<span style="color: #008080;"> 29</span>                 <span style="color: #008000;">//</span><span style="color: #008000;"> create source device's object</span>
+<span style="color: #008080;"> 30</span>                 <span style="color: #0000ff;">try</span>
+<span style="color: #008080;"> 31</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;"> 32</span>                     tempSourceObject =<span style="color: #000000;"> FilterInfo.CreateFilter(deviceMoniker);
+</span><span style="color: #008080;"> 33</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;"> 34</span>                 <span style="color: #0000ff;">catch</span>
+<span style="color: #008080;"> 35</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;"> 36</span>                     <span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> ApplicationException(<span style="color: #800000;">"</span><span style="color: #800000;">Failed creating device object for moniker.</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 37</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;"> 38</span> 
+<span style="color: #008080;"> 39</span>                 <span style="color: #0000ff;">if</span> (!(tempSourceObject <span style="color: #0000ff;">is</span><span style="color: #000000;"> IAMVideoProcAmp))
+</span><span style="color: #008080;"> 40</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;"> 41</span>                     <span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> NotSupportedException(<span style="color: #800000;">"</span><span style="color: #800000;">The video source does not support camera control.</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 42</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;"> 43</span> 
+<span style="color: #008080;"> 44</span>                 IAMVideoProcAmp pCamControl =<span style="color: #000000;"> (IAMVideoProcAmp)tempSourceObject;
+</span><span style="color: #008080;"> 45</span>                 <span style="color: #0000ff;">int</span> hr =<span style="color: #000000;"> pCamControl.Set(property, value, controlFlags);
+</span><span style="color: #008080;"> 46</span> 
+<span style="color: #008080;"> 47</span>                 ret = (hr &gt;= <span style="color: #800080;">0</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 48</span> 
+<span style="color: #008080;"> 49</span> <span style="color: #000000;">                Marshal.ReleaseComObject(tempSourceObject);
+</span><span style="color: #008080;"> 50</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 51</span> 
+<span style="color: #008080;"> 52</span>             <span style="color: #0000ff;">return</span><span style="color: #000000;"> ret;
+</span><span style="color: #008080;"> 53</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 54</span> 
+<span style="color: #008080;"> 55</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;"> 56</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> Gets the current setting of a camera property.
+</span><span style="color: #008080;"> 57</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;"> 58</span>         <span style="color: #808080;">///</span>
+<span style="color: #008080;"> 59</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="property"&gt;</span><span style="color: #008000;">Specifies the property to retrieve.</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;"> 60</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="value"&gt;</span><span style="color: #008000;">Receives the value of the property.</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;"> 61</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="controlFlags"&gt;</span><span style="color: #008000;">Receives the value indicating whether the setting is controlled manually or automatically</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;"> 62</span>         <span style="color: #808080;">///</span>
+<span style="color: #008080;"> 63</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;</span><span style="color: #008000;">Returns true on success or false otherwise.</span><span style="color: #808080;">&lt;/returns&gt;</span>
+<span style="color: #008080;"> 64</span>         <span style="color: #808080;">///</span>
+<span style="color: #008080;"> 65</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;exception cref="ArgumentException"&gt;</span><span style="color: #008000;">Video source is not specified - device moniker is not set.</span><span style="color: #808080;">&lt;/exception&gt;</span>
+<span style="color: #008080;"> 66</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;exception cref="ApplicationException"&gt;</span><span style="color: #008000;">Failed creating device object for moniker.</span><span style="color: #808080;">&lt;/exception&gt;</span>
+<span style="color: #008080;"> 67</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;exception cref="NotSupportedException"&gt;</span><span style="color: #008000;">The video source does not support camera control.</span><span style="color: #808080;">&lt;/exception&gt;</span>
+<span style="color: #008080;"> 68</span>         <span style="color: #808080;">///
+</span><span style="color: #008080;"> 69</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">bool</span> GetVideoProperty(VideoProcAmpProperty property, <span style="color: #0000ff;">out</span> <span style="color: #0000ff;">int</span> value, <span style="color: #0000ff;">out</span><span style="color: #000000;"> VideoProcAmpFlags controlFlags)
+</span><span style="color: #008080;"> 70</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 71</span>             <span style="color: #0000ff;">bool</span> ret = <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 72</span> 
+<span style="color: #008080;"> 73</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> check if source was set</span>
+<span style="color: #008080;"> 74</span>             <span style="color: #0000ff;">if</span> ((deviceMoniker == <span style="color: #0000ff;">null</span>) || (<span style="color: #0000ff;">string</span><span style="color: #000000;">.IsNullOrEmpty(deviceMoniker)))
+</span><span style="color: #008080;"> 75</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 76</span>                 <span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> ArgumentException(<span style="color: #800000;">"</span><span style="color: #800000;">Video source is not specified.</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 77</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 78</span> 
+<span style="color: #008080;"> 79</span>             <span style="color: #0000ff;">lock</span><span style="color: #000000;"> (sync)
+</span><span style="color: #008080;"> 80</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 81</span>                 <span style="color: #0000ff;">object</span> tempSourceObject = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 82</span> 
+<span style="color: #008080;"> 83</span>                 <span style="color: #008000;">//</span><span style="color: #008000;"> create source device's object</span>
+<span style="color: #008080;"> 84</span>                 <span style="color: #0000ff;">try</span>
+<span style="color: #008080;"> 85</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;"> 86</span>                     tempSourceObject =<span style="color: #000000;"> FilterInfo.CreateFilter(deviceMoniker);
+</span><span style="color: #008080;"> 87</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;"> 88</span>                 <span style="color: #0000ff;">catch</span>
+<span style="color: #008080;"> 89</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;"> 90</span>                     <span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> ApplicationException(<span style="color: #800000;">"</span><span style="color: #800000;">Failed creating device object for moniker.</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 91</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;"> 92</span> 
+<span style="color: #008080;"> 93</span>                 <span style="color: #0000ff;">if</span> (!(tempSourceObject <span style="color: #0000ff;">is</span><span style="color: #000000;"> IAMVideoProcAmp))
+</span><span style="color: #008080;"> 94</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;"> 95</span>                     <span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> NotSupportedException(<span style="color: #800000;">"</span><span style="color: #800000;">The video source does not support camera control.</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 96</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;"> 97</span> 
+<span style="color: #008080;"> 98</span>                 IAMVideoProcAmp pCamControl =<span style="color: #000000;"> (IAMVideoProcAmp)tempSourceObject;
+</span><span style="color: #008080;"> 99</span>                 <span style="color: #0000ff;">int</span> hr = pCamControl.Get(property, <span style="color: #0000ff;">out</span> value, <span style="color: #0000ff;">out</span><span style="color: #000000;"> controlFlags);
+</span><span style="color: #008080;">100</span> 
+<span style="color: #008080;">101</span>                 ret = (hr &gt;= <span style="color: #800080;">0</span><span style="color: #000000;">);
+</span><span style="color: #008080;">102</span> 
+<span style="color: #008080;">103</span> <span style="color: #000000;">                Marshal.ReleaseComObject(tempSourceObject);
+</span><span style="color: #008080;">104</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">105</span> 
+<span style="color: #008080;">106</span>             <span style="color: #0000ff;">return</span><span style="color: #000000;"> ret;
+</span><span style="color: #008080;">107</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">108</span> 
+<span style="color: #008080;">109</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">110</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> Gets the range and default value of a specified camera property.
+</span><span style="color: #008080;">111</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">112</span>         <span style="color: #808080;">///</span>
+<span style="color: #008080;">113</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="property"&gt;</span><span style="color: #008000;">Specifies the property to query.</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;">114</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="minValue"&gt;</span><span style="color: #008000;">Receives the minimum value of the property.</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;">115</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="maxValue"&gt;</span><span style="color: #008000;">Receives the maximum value of the property.</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;">116</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="stepSize"&gt;</span><span style="color: #008000;">Receives the step size for the property.</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;">117</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="defaultValue"&gt;</span><span style="color: #008000;">Receives the default value of the property.</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;">118</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="controlFlags"&gt;</span><span style="color: #008000;">Receives a member of the </span><span style="color: #808080;">&lt;see cref="CameraControlFlags"/&gt;</span><span style="color: #008000;"> enumeration, indicating whether the property is controlled automatically or manually.</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;">119</span>         <span style="color: #808080;">///</span>
+<span style="color: #008080;">120</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;</span><span style="color: #008000;">Returns true on success or false otherwise.</span><span style="color: #808080;">&lt;/returns&gt;</span>
+<span style="color: #008080;">121</span>         <span style="color: #808080;">///</span>
+<span style="color: #008080;">122</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;exception cref="ArgumentException"&gt;</span><span style="color: #008000;">Video source is not specified - device moniker is not set.</span><span style="color: #808080;">&lt;/exception&gt;</span>
+<span style="color: #008080;">123</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;exception cref="ApplicationException"&gt;</span><span style="color: #008000;">Failed creating device object for moniker.</span><span style="color: #808080;">&lt;/exception&gt;</span>
+<span style="color: #008080;">124</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;exception cref="NotSupportedException"&gt;</span><span style="color: #008000;">The video source does not support camera control.</span><span style="color: #808080;">&lt;/exception&gt;</span>
+<span style="color: #008080;">125</span>         <span style="color: #808080;">///
+</span><span style="color: #008080;">126</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">bool</span> GetVideoPropertyRange(VideoProcAmpProperty property, <span style="color: #0000ff;">out</span> <span style="color: #0000ff;">int</span> minValue, <span style="color: #0000ff;">out</span> <span style="color: #0000ff;">int</span> maxValue, <span style="color: #0000ff;">out</span> <span style="color: #0000ff;">int</span> stepSize, <span style="color: #0000ff;">out</span> <span style="color: #0000ff;">int</span> defaultValue, <span style="color: #0000ff;">out</span><span style="color: #000000;"> VideoProcAmpFlags controlFlags)
+</span><span style="color: #008080;">127</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">128</span>             <span style="color: #0000ff;">bool</span> ret = <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+</span><span style="color: #008080;">129</span> 
+<span style="color: #008080;">130</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> check if source was set</span>
+<span style="color: #008080;">131</span>             <span style="color: #0000ff;">if</span> ((deviceMoniker == <span style="color: #0000ff;">null</span>) || (<span style="color: #0000ff;">string</span><span style="color: #000000;">.IsNullOrEmpty(deviceMoniker)))
+</span><span style="color: #008080;">132</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">133</span>                 <span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> ArgumentException(<span style="color: #800000;">"</span><span style="color: #800000;">Video source is not specified.</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">134</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">135</span> 
+<span style="color: #008080;">136</span>             <span style="color: #0000ff;">lock</span><span style="color: #000000;"> (sync)
+</span><span style="color: #008080;">137</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">138</span>                 <span style="color: #0000ff;">object</span> tempSourceObject = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+</span><span style="color: #008080;">139</span> 
+<span style="color: #008080;">140</span>                 <span style="color: #008000;">//</span><span style="color: #008000;"> create source device's object</span>
+<span style="color: #008080;">141</span>                 <span style="color: #0000ff;">try</span>
+<span style="color: #008080;">142</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">143</span>                     tempSourceObject =<span style="color: #000000;"> FilterInfo.CreateFilter(deviceMoniker);
+</span><span style="color: #008080;">144</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">145</span>                 <span style="color: #0000ff;">catch</span>
+<span style="color: #008080;">146</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">147</span>                     <span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> ApplicationException(<span style="color: #800000;">"</span><span style="color: #800000;">Failed creating device object for moniker.</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">148</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">149</span> 
+<span style="color: #008080;">150</span>                 <span style="color: #0000ff;">if</span> (!(tempSourceObject <span style="color: #0000ff;">is</span><span style="color: #000000;"> IAMVideoProcAmp))
+</span><span style="color: #008080;">151</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">152</span>                     <span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> NotSupportedException(<span style="color: #800000;">"</span><span style="color: #800000;">The video source does not support camera control.</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">153</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">154</span> 
+<span style="color: #008080;">155</span>                 IAMVideoProcAmp pCamControl =<span style="color: #000000;"> (IAMVideoProcAmp)tempSourceObject;
+</span><span style="color: #008080;">156</span>                 <span style="color: #0000ff;">int</span> hr = pCamControl.GetRange(property, <span style="color: #0000ff;">out</span> minValue, <span style="color: #0000ff;">out</span> maxValue, <span style="color: #0000ff;">out</span> stepSize, <span style="color: #0000ff;">out</span> defaultValue, <span style="color: #0000ff;">out</span><span style="color: #000000;"> controlFlags);
+</span><span style="color: #008080;">157</span> 
+<span style="color: #008080;">158</span>                 ret = (hr &gt;= <span style="color: #800080;">0</span><span style="color: #000000;">);
+</span><span style="color: #008080;">159</span> 
+<span style="color: #008080;">160</span> <span style="color: #000000;">                Marshal.ReleaseComObject(tempSourceObject);
+</span><span style="color: #008080;">161</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">162</span> 
+<span style="color: #008080;">163</span>             <span style="color: #0000ff;">return</span><span style="color: #000000;"> ret;
+</span><span style="color: #008080;">164</span>         }</pre>
+</div>
+<p>VideoProcAmpProperty.cs枚举对象，放在VideoCaptureDevice.cs同目录下</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #008000;">//</span><span style="color: #008000;"> AForge Direct Show Library
+</span><span style="color: #008080;"> 2</span> <span style="color: #008000;">//</span><span style="color: #008000;"> AForge.NET framework
+</span><span style="color: #008080;"> 3</span> <span style="color: #008000;">//</span> <span style="color: #008000; text-decoration: underline;">http://www.aforgenet.com/framework/</span>
+<span style="color: #008080;"> 4</span> <span style="color: #008000;">//</span>
+<span style="color: #008080;"> 5</span> <span style="color: #008000;">//</span><span style="color: #008000;"> Copyright &copy; AForge.NET, 2009-2013
+</span><span style="color: #008080;"> 6</span> <span style="color: #008000;">//</span><span style="color: #008000;"> contacts@aforgenet.com
+</span><span style="color: #008080;"> 7</span> <span style="color: #008000;">//
+</span><span style="color: #008080;"> 8</span> 
+<span style="color: #008080;"> 9</span> <span style="color: #0000ff;">namespace</span><span style="color: #000000;"> AForge.Video.DirectShow
+</span><span style="color: #008080;">10</span> <span style="color: #000000;">{
+</span><span style="color: #008080;">11</span>     <span style="color: #0000ff;">using</span><span style="color: #000000;"> System;
+</span><span style="color: #008080;">12</span> 
+<span style="color: #008080;">13</span>     <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">14</span>     <span style="color: #808080;">///</span><span style="color: #008000;"> The enumeration specifies a setting on a camera.
+</span><span style="color: #008080;">15</span>     <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">16</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">enum</span><span style="color: #000000;"> VideoProcAmpProperty
+</span><span style="color: #008080;">17</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;">18</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">19</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> Brightness control.
+</span><span style="color: #008080;">20</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">21</span>         Brightness = <span style="color: #800080;">0</span><span style="color: #000000;">,
+</span><span style="color: #008080;">22</span> 
+<span style="color: #008080;">23</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">24</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> Contrast control.
+</span><span style="color: #008080;">25</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">26</span> <span style="color: #000000;">        Contrast,
+</span><span style="color: #008080;">27</span> 
+<span style="color: #008080;">28</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">29</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> Hue control.
+</span><span style="color: #008080;">30</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">31</span> <span style="color: #000000;">        Hue,
+</span><span style="color: #008080;">32</span> 
+<span style="color: #008080;">33</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">34</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> Saturation control.
+</span><span style="color: #008080;">35</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">36</span> <span style="color: #000000;">        Saturation,
+</span><span style="color: #008080;">37</span> 
+<span style="color: #008080;">38</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">39</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> Sharpness control.
+</span><span style="color: #008080;">40</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">41</span> <span style="color: #000000;">        Sharpness,
+</span><span style="color: #008080;">42</span> 
+<span style="color: #008080;">43</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">44</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> Gamma control.
+</span><span style="color: #008080;">45</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">46</span> <span style="color: #000000;">        Gamma,
+</span><span style="color: #008080;">47</span> 
+<span style="color: #008080;">48</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">49</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> ColorEnable control.
+</span><span style="color: #008080;">50</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">51</span> <span style="color: #000000;">        ColorEnable,
+</span><span style="color: #008080;">52</span> 
+<span style="color: #008080;">53</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">54</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> WhiteBalance control.
+</span><span style="color: #008080;">55</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">56</span> <span style="color: #000000;">        WhiteBalance,
+</span><span style="color: #008080;">57</span> 
+<span style="color: #008080;">58</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">59</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> BacklightCompensation control.
+</span><span style="color: #008080;">60</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">61</span> <span style="color: #000000;">        BacklightCompensation,
+</span><span style="color: #008080;">62</span> 
+<span style="color: #008080;">63</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">64</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> Gain control.
+</span><span style="color: #008080;">65</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">66</span> <span style="color: #000000;">        Gain
+</span><span style="color: #008080;">67</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">68</span> 
+<span style="color: #008080;">69</span>     <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">70</span>     <span style="color: #808080;">///</span><span style="color: #008000;"> The enumeration defines whether a camera setting is controlled manually or automatically.
+</span><span style="color: #008080;">71</span>     <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">72</span> <span style="color: #000000;">    [Flags]
+</span><span style="color: #008080;">73</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">enum</span><span style="color: #000000;"> VideoProcAmpFlags
+</span><span style="color: #008080;">74</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;">75</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">76</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> No control flag.
+</span><span style="color: #008080;">77</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">78</span>         None = <span style="color: #800080;">0x0</span><span style="color: #000000;">,
+</span><span style="color: #008080;">79</span> 
+<span style="color: #008080;">80</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">81</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> Auto control Flag.
+</span><span style="color: #008080;">82</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">83</span>         Auto = <span style="color: #800080;">0x0001</span><span style="color: #000000;">,
+</span><span style="color: #008080;">84</span> 
+<span style="color: #008080;">85</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">86</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> Manual control Flag.
+</span><span style="color: #008080;">87</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">88</span>         Manual = <span style="color: #800080;">0x0002</span>
+<span style="color: #008080;">89</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">90</span> }</pre>
+</div>
+<p>生成dll添加引用就可以了</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

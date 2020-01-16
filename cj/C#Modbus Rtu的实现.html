@@ -1,0 +1,348 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C#Modbus Rtu的实现' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C#Modbus Rtu的实现</center></div><div class='banquan'>原文出处:本文由博客园博主Pater.Pan提供。<br/>
+原文连接:https://www.cnblogs.com/pandefu/p/10849823.html</div><br>
+    <p>Modbus Rtu的实现与Modbus Tcp的实现类似 <a id="cb_post_title_url" class="postTitle2" href="https://www.cnblogs.com/pandefu/p/10824331.html">C#ModBus Tcp的学习及Master的实现</a></p>
+<p>我们还是需要借用一个开源库<span style="color: #ff0000;">NModbus4,<span style="color: #000000;">在vs中.打开NuGet管理器.安装NModbus4</span></span></p>
+<p><span style="color: #ff0000;"><span style="color: #000000;"><img src="./images/C#Modbus Rtu的实现0.png" alt="" /></span></span></p>
+<p>&nbsp;</p>
+<p>具体实现,具体实现与之前的Modbus Tcp的实现类似 ,只是在实例化master时将TCPClient换为串行端口资源SerialPort,并在实例化是设置好端口所需参数(端口名,波特率,校验位,停止位,数据位)</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('dcf340f6-c462-4ca6-9e46-67854b1344a7')"><img id="code_img_closed_dcf340f6-c462-4ca6-9e46-67854b1344a7" class="code_img_closed" src="./images/C#Modbus Rtu的实现1.png" alt="" /><img id="code_img_opened_dcf340f6-c462-4ca6-9e46-67854b1344a7" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('dcf340f6-c462-4ca6-9e46-67854b1344a7',event)" src="./images/C#Modbus Rtu的实现2.png" alt="" />
+<div id="cnblogs_code_open_dcf340f6-c462-4ca6-9e46-67854b1344a7" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;">  1</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System;
+</span><span style="color: #008080;">  2</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Collections.Generic;
+</span><span style="color: #008080;">  3</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.ComponentModel;
+</span><span style="color: #008080;">  4</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Data;
+</span><span style="color: #008080;">  5</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Drawing;
+</span><span style="color: #008080;">  6</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Linq;
+</span><span style="color: #008080;">  7</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Text;
+</span><span style="color: #008080;">  8</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Threading.Tasks;
+</span><span style="color: #008080;">  9</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Windows.Forms;
+</span><span style="color: #008080;"> 10</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> Modbus.Device;
+</span><span style="color: #008080;"> 11</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Net.Sockets;
+</span><span style="color: #008080;"> 12</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Threading;
+</span><span style="color: #008080;"> 13</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.IO.Ports;
+</span><span style="color: #008080;"> 14</span> 
+<span style="color: #008080;"> 15</span> <span style="color: #0000ff;">namespace</span><span style="color: #000000;"> ModbusRtu
+</span><span style="color: #008080;"> 16</span> <span style="color: #000000;">{
+</span><span style="color: #008080;"> 17</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">partial</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Form1 : Form
+</span><span style="color: #008080;"> 18</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;"> 19</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span><span style="color: #000000;"> IModbusMaster master;
+</span><span style="color: #008080;"> 20</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span><span style="color: #000000;"> SerialPort port;
+</span><span style="color: #008080;"> 21</span>         <span style="color: #008000;">//</span><span style="color: #008000;">写线圈或写寄存器数组</span>
+<span style="color: #008080;"> 22</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">bool</span><span style="color: #000000;">[] coilsBuffer;
+</span><span style="color: #008080;"> 23</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">ushort</span><span style="color: #000000;">[] registerBuffer;
+</span><span style="color: #008080;"> 24</span>         <span style="color: #008000;">//</span><span style="color: #008000;">功能码</span>
+<span style="color: #008080;"> 25</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">string</span><span style="color: #000000;"> functionCode;
+</span><span style="color: #008080;"> 26</span>         <span style="color: #008000;">//</span><span style="color: #008000;">参数(分别为站号,起始地址,长度)</span>
+<span style="color: #008080;"> 27</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">byte</span><span style="color: #000000;"> slaveAddress;
+</span><span style="color: #008080;"> 28</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">ushort</span><span style="color: #000000;"> startAddress;
+</span><span style="color: #008080;"> 29</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">ushort</span><span style="color: #000000;"> numberOfPoints;
+</span><span style="color: #008080;"> 30</span>         <span style="color: #008000;">//</span><span style="color: #008000;">串口参数</span>
+<span style="color: #008080;"> 31</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">string</span><span style="color: #000000;"> portName;
+</span><span style="color: #008080;"> 32</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> baudRate;
+</span><span style="color: #008080;"> 33</span>         <span style="color: #0000ff;">private</span><span style="color: #000000;"> Parity parity;
+</span><span style="color: #008080;"> 34</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> dataBits;
+</span><span style="color: #008080;"> 35</span>         <span style="color: #0000ff;">private</span><span style="color: #000000;"> StopBits stopBits;
+</span><span style="color: #008080;"> 36</span> 
+<span style="color: #008080;"> 37</span>         <span style="color: #0000ff;">public</span><span style="color: #000000;"> Form1()
+</span><span style="color: #008080;"> 38</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 39</span> <span style="color: #000000;">            InitializeComponent();
+</span><span style="color: #008080;"> 40</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 41</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> Form1_Load(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)
+</span><span style="color: #008080;"> 42</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 43</span>             cmb_portname.SelectedIndex = <span style="color: #800080;">0</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 44</span>             cmb_baud.SelectedIndex = <span style="color: #800080;">5</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 45</span>             cmb_parity.SelectedIndex = <span style="color: #800080;">2</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 46</span>             cmb_databBits.SelectedIndex = <span style="color: #800080;">1</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 47</span>             cmb_stopBits.SelectedIndex = <span style="color: #800080;">0</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 48</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 49</span>         <span style="color: #0000ff;">private</span><span style="color: #000000;"> SerialPort InitSerialPortParameter()
+</span><span style="color: #008080;"> 50</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 51</span>             <span style="color: #0000ff;">if</span> (cmb_portname.SelectedIndex &lt; <span style="color: #800080;">0</span> || cmb_baud.SelectedIndex &lt; <span style="color: #800080;">0</span> || cmb_parity.SelectedIndex &lt; <span style="color: #800080;">0</span> || cmb_databBits.SelectedIndex &lt; <span style="color: #800080;">0</span> || cmb_stopBits.SelectedIndex &lt; <span style="color: #800080;">0</span><span style="color: #000000;">)
+</span><span style="color: #008080;"> 52</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 53</span>                 MessageBox.Show(<span style="color: #800000;">"</span><span style="color: #800000;">请选择串口参数</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 54</span>                 <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 55</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 56</span>             <span style="color: #0000ff;">else</span>
+<span style="color: #008080;"> 57</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 58</span> 
+<span style="color: #008080;"> 59</span>                 portName =<span style="color: #000000;"> cmb_portname.SelectedItem.ToString();
+</span><span style="color: #008080;"> 60</span>                 baudRate = <span style="color: #0000ff;">int</span><span style="color: #000000;">.Parse(cmb_baud.SelectedItem.ToString());
+</span><span style="color: #008080;"> 61</span>                 <span style="color: #0000ff;">switch</span><span style="color: #000000;"> (cmb_parity.SelectedItem.ToString())
+</span><span style="color: #008080;"> 62</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;"> 63</span>                     <span style="color: #0000ff;">case</span> <span style="color: #800000;">"</span><span style="color: #800000;">奇</span><span style="color: #800000;">"</span><span style="color: #000000;">:
+</span><span style="color: #008080;"> 64</span>                         parity =<span style="color: #000000;"> Parity.Odd;
+</span><span style="color: #008080;"> 65</span>                         <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 66</span>                     <span style="color: #0000ff;">case</span> <span style="color: #800000;">"</span><span style="color: #800000;">偶</span><span style="color: #800000;">"</span><span style="color: #000000;">:
+</span><span style="color: #008080;"> 67</span>                         parity =<span style="color: #000000;"> Parity.Even;
+</span><span style="color: #008080;"> 68</span>                         <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 69</span>                     <span style="color: #0000ff;">case</span> <span style="color: #800000;">"</span><span style="color: #800000;">无</span><span style="color: #800000;">"</span><span style="color: #000000;">:
+</span><span style="color: #008080;"> 70</span>                         parity =<span style="color: #000000;"> Parity.None;
+</span><span style="color: #008080;"> 71</span>                         <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 72</span>                     <span style="color: #0000ff;">default</span><span style="color: #000000;">:
+</span><span style="color: #008080;"> 73</span>                         <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 74</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;"> 75</span>                 dataBits = <span style="color: #0000ff;">int</span><span style="color: #000000;">.Parse(cmb_databBits.SelectedItem.ToString());
+</span><span style="color: #008080;"> 76</span>                 <span style="color: #0000ff;">switch</span><span style="color: #000000;"> (cmb_stopBits.SelectedItem.ToString())
+</span><span style="color: #008080;"> 77</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;"> 78</span>                     <span style="color: #0000ff;">case</span> <span style="color: #800000;">"</span><span style="color: #800000;">1</span><span style="color: #800000;">"</span><span style="color: #000000;">:
+</span><span style="color: #008080;"> 79</span>                         stopBits =<span style="color: #000000;"> StopBits.One;
+</span><span style="color: #008080;"> 80</span>                         <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 81</span>                     <span style="color: #0000ff;">case</span> <span style="color: #800000;">"</span><span style="color: #800000;">2</span><span style="color: #800000;">"</span><span style="color: #000000;">:
+</span><span style="color: #008080;"> 82</span>                         stopBits =<span style="color: #000000;"> StopBits.Two;
+</span><span style="color: #008080;"> 83</span>                         <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 84</span>                     <span style="color: #0000ff;">default</span><span style="color: #000000;">:
+</span><span style="color: #008080;"> 85</span>                         <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 86</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;"> 87</span>                 port = <span style="color: #0000ff;">new</span><span style="color: #000000;"> SerialPort(portName, baudRate, parity, dataBits, stopBits);
+</span><span style="color: #008080;"> 88</span>                 <span style="color: #0000ff;">return</span><span style="color: #000000;"> port;
+</span><span style="color: #008080;"> 89</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 90</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 91</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;"> 92</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 读/写
+</span><span style="color: #008080;"> 93</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;"> 94</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="sender"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;"> 95</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="e"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;"> 96</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> button1_Click(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)
+</span><span style="color: #008080;"> 97</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 98</span>             <span style="color: #0000ff;">try</span>
+<span style="color: #008080;"> 99</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">100</span>                 <span style="color: #008000;">//</span><span style="color: #008000;">初始化串口参数</span>
+<span style="color: #008080;">101</span> <span style="color: #000000;">                InitSerialPortParameter();
+</span><span style="color: #008080;">102</span> 
+<span style="color: #008080;">103</span>                 master =<span style="color: #000000;"> ModbusSerialMaster.CreateRtu(port);
+</span><span style="color: #008080;">104</span> 
+<span style="color: #008080;">105</span> <span style="color: #000000;">                ExecuteFunction();
+</span><span style="color: #008080;">106</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">107</span>             <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception)
+</span><span style="color: #008080;">108</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">109</span>                 MessageBox.Show(<span style="color: #800000;">"</span><span style="color: #800000;">初始化异常</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">110</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">111</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">112</span> 
+<span style="color: #008080;">113</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">async</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> ExecuteFunction()
+</span><span style="color: #008080;">114</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">115</span>             <span style="color: #0000ff;">try</span>
+<span style="color: #008080;">116</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">117</span>                 <span style="color: #008000;">//</span><span style="color: #008000;">每次操作是要开启串口 操作完成后需要关闭串口
+</span><span style="color: #008080;">118</span>                 <span style="color: #008000;">//</span><span style="color: #008000;">目的是为了slave更换连接是不报错</span>
+<span style="color: #008080;">119</span>                 <span style="color: #0000ff;">if</span> (port.IsOpen == <span style="color: #0000ff;">false</span><span style="color: #000000;">)
+</span><span style="color: #008080;">120</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">121</span> <span style="color: #000000;">                    port.Open();
+</span><span style="color: #008080;">122</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">123</span>                 <span style="color: #0000ff;">if</span> (functionCode != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+</span><span style="color: #008080;">124</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">125</span>                     <span style="color: #0000ff;">switch</span><span style="color: #000000;"> (functionCode)
+</span><span style="color: #008080;">126</span> <span style="color: #000000;">                    {
+</span><span style="color: #008080;">127</span>                         <span style="color: #0000ff;">case</span> <span style="color: #800000;">"</span><span style="color: #800000;">01 Read Coils</span><span style="color: #800000;">"</span>:<span style="color: #008000;">//</span><span style="color: #008000;">读取单个线圈</span>
+<span style="color: #008080;">128</span> <span style="color: #000000;">                            SetReadParameters();
+</span><span style="color: #008080;">129</span>                             coilsBuffer =<span style="color: #000000;"> master.ReadCoils(slaveAddress, startAddress, numberOfPoints);
+</span><span style="color: #008080;">130</span> 
+<span style="color: #008080;">131</span>                             <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; coilsBuffer.Length; i++<span style="color: #000000;">)
+</span><span style="color: #008080;">132</span> <span style="color: #000000;">                            {
+</span><span style="color: #008080;">133</span>                                 SetMsg(coilsBuffer[i] + <span style="color: #800000;">"</span> <span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">134</span> <span style="color: #000000;">                            }
+</span><span style="color: #008080;">135</span>                             SetMsg(<span style="color: #800000;">"</span><span style="color: #800000;">\r\n</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">136</span>                             <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+</span><span style="color: #008080;">137</span>                         <span style="color: #0000ff;">case</span> <span style="color: #800000;">"</span><span style="color: #800000;">02 Read DisCrete Inputs</span><span style="color: #800000;">"</span>:<span style="color: #008000;">//</span><span style="color: #008000;">读取输入线圈/离散量线圈</span>
+<span style="color: #008080;">138</span> <span style="color: #000000;">                            SetReadParameters();
+</span><span style="color: #008080;">139</span> 
+<span style="color: #008080;">140</span>                             coilsBuffer =<span style="color: #000000;"> master.ReadInputs(slaveAddress, startAddress, numberOfPoints);
+</span><span style="color: #008080;">141</span>                             <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; coilsBuffer.Length; i++<span style="color: #000000;">)
+</span><span style="color: #008080;">142</span> <span style="color: #000000;">                            {
+</span><span style="color: #008080;">143</span>                                 SetMsg(coilsBuffer[i] + <span style="color: #800000;">"</span> <span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">144</span> <span style="color: #000000;">                            }
+</span><span style="color: #008080;">145</span>                             SetMsg(<span style="color: #800000;">"</span><span style="color: #800000;">\r\n</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">146</span>                             <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+</span><span style="color: #008080;">147</span>                         <span style="color: #0000ff;">case</span> <span style="color: #800000;">"</span><span style="color: #800000;">03 Read Holding Registers</span><span style="color: #800000;">"</span>:<span style="color: #008000;">//</span><span style="color: #008000;">读取保持寄存器</span>
+<span style="color: #008080;">148</span> <span style="color: #000000;">                            SetReadParameters();
+</span><span style="color: #008080;">149</span>                             registerBuffer =<span style="color: #000000;"> master.ReadHoldingRegisters(slaveAddress, startAddress, numberOfPoints);
+</span><span style="color: #008080;">150</span>                             <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; registerBuffer.Length; i++<span style="color: #000000;">)
+</span><span style="color: #008080;">151</span> <span style="color: #000000;">                            {
+</span><span style="color: #008080;">152</span>                                 SetMsg(registerBuffer[i] + <span style="color: #800000;">"</span> <span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">153</span> <span style="color: #000000;">                            }
+</span><span style="color: #008080;">154</span>                             SetMsg(<span style="color: #800000;">"</span><span style="color: #800000;">\r\n</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">155</span>                             <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+</span><span style="color: #008080;">156</span>                         <span style="color: #0000ff;">case</span> <span style="color: #800000;">"</span><span style="color: #800000;">04 Read Input Registers</span><span style="color: #800000;">"</span>:<span style="color: #008000;">//</span><span style="color: #008000;">读取输入寄存器</span>
+<span style="color: #008080;">157</span> <span style="color: #000000;">                            SetReadParameters();
+</span><span style="color: #008080;">158</span>                             registerBuffer =<span style="color: #000000;"> master.ReadInputRegisters(slaveAddress, startAddress, numberOfPoints);
+</span><span style="color: #008080;">159</span>                             <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; registerBuffer.Length; i++<span style="color: #000000;">)
+</span><span style="color: #008080;">160</span> <span style="color: #000000;">                            {
+</span><span style="color: #008080;">161</span>                                 SetMsg(registerBuffer[i] + <span style="color: #800000;">"</span> <span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">162</span> <span style="color: #000000;">                            }
+</span><span style="color: #008080;">163</span>                             SetMsg(<span style="color: #800000;">"</span><span style="color: #800000;">\r\n</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">164</span>                             <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+</span><span style="color: #008080;">165</span>                         <span style="color: #0000ff;">case</span> <span style="color: #800000;">"</span><span style="color: #800000;">05 Write Single Coil</span><span style="color: #800000;">"</span>:<span style="color: #008000;">//</span><span style="color: #008000;">写单个线圈</span>
+<span style="color: #008080;">166</span> <span style="color: #000000;">                            SetWriteParametes();
+</span><span style="color: #008080;">167</span>                             <span style="color: #0000ff;">await</span> master.WriteSingleCoilAsync(slaveAddress, startAddress, coilsBuffer[<span style="color: #800080;">0</span><span style="color: #000000;">]);
+</span><span style="color: #008080;">168</span>                             <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+</span><span style="color: #008080;">169</span>                         <span style="color: #0000ff;">case</span> <span style="color: #800000;">"</span><span style="color: #800000;">06 Write Single Registers</span><span style="color: #800000;">"</span>:<span style="color: #008000;">//</span><span style="color: #008000;">写单个输入线圈/离散量线圈</span>
+<span style="color: #008080;">170</span> <span style="color: #000000;">                            SetWriteParametes();
+</span><span style="color: #008080;">171</span>                             <span style="color: #0000ff;">await</span> master.WriteSingleRegisterAsync(slaveAddress, startAddress, registerBuffer[<span style="color: #800080;">0</span><span style="color: #000000;">]);
+</span><span style="color: #008080;">172</span>                             <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+</span><span style="color: #008080;">173</span>                         <span style="color: #0000ff;">case</span> <span style="color: #800000;">"</span><span style="color: #800000;">0F Write Multiple Coils</span><span style="color: #800000;">"</span>:<span style="color: #008000;">//</span><span style="color: #008000;">写一组线圈</span>
+<span style="color: #008080;">174</span> <span style="color: #000000;">                            SetWriteParametes();
+</span><span style="color: #008080;">175</span>                             <span style="color: #0000ff;">await</span><span style="color: #000000;"> master.WriteMultipleCoilsAsync(slaveAddress, startAddress, coilsBuffer);
+</span><span style="color: #008080;">176</span>                             <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+</span><span style="color: #008080;">177</span>                         <span style="color: #0000ff;">case</span> <span style="color: #800000;">"</span><span style="color: #800000;">10 Write Multiple Registers</span><span style="color: #800000;">"</span>:<span style="color: #008000;">//</span><span style="color: #008000;">写一组保持寄存器</span>
+<span style="color: #008080;">178</span> <span style="color: #000000;">                            SetWriteParametes();
+</span><span style="color: #008080;">179</span>                             <span style="color: #0000ff;">await</span><span style="color: #000000;"> master.WriteMultipleRegistersAsync(slaveAddress, startAddress, registerBuffer);
+</span><span style="color: #008080;">180</span>                             <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+</span><span style="color: #008080;">181</span>                         <span style="color: #0000ff;">default</span><span style="color: #000000;">:
+</span><span style="color: #008080;">182</span>                             <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+</span><span style="color: #008080;">183</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">184</span> 
+<span style="color: #008080;">185</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">186</span>                 <span style="color: #0000ff;">else</span>
+<span style="color: #008080;">187</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">188</span>                     MessageBox.Show(<span style="color: #800000;">"</span><span style="color: #800000;">请选择功能码!</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">189</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">190</span> <span style="color: #000000;">                port.Close();
+</span><span style="color: #008080;">191</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">192</span>             <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception ex)
+</span><span style="color: #008080;">193</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">194</span> 
+<span style="color: #008080;">195</span> <span style="color: #000000;">                MessageBox.Show(ex.Message);
+</span><span style="color: #008080;">196</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">197</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">198</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> comboBox1_SelectedIndexChanged(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)
+</span><span style="color: #008080;">199</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">200</span>             <span style="color: #0000ff;">if</span> (comboBox1.SelectedIndex &gt;= <span style="color: #800080;">4</span><span style="color: #000000;">)
+</span><span style="color: #008080;">201</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">202</span>                 groupBox2.Enabled = <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+</span><span style="color: #008080;">203</span>                 groupBox1.Enabled = <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+</span><span style="color: #008080;">204</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">205</span>             <span style="color: #0000ff;">else</span>
+<span style="color: #008080;">206</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">207</span>                 groupBox1.Enabled = <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+</span><span style="color: #008080;">208</span>                 groupBox2.Enabled = <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+</span><span style="color: #008080;">209</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">210</span>             comboBox1.Invoke(<span style="color: #0000ff;">new</span> Action(() =&gt; { functionCode =<span style="color: #000000;"> comboBox1.SelectedItem.ToString(); }));
+</span><span style="color: #008080;">211</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">212</span> 
+<span style="color: #008080;">213</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">214</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 初始化读参数
+</span><span style="color: #008080;">215</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">216</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> SetReadParameters()
+</span><span style="color: #008080;">217</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">218</span>             <span style="color: #0000ff;">if</span> (txt_startAddr1.Text == <span style="color: #800000;">""</span> || txt_slave1.Text == <span style="color: #800000;">""</span> || txt_length.Text == <span style="color: #800000;">""</span><span style="color: #000000;">)
+</span><span style="color: #008080;">219</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">220</span>                 MessageBox.Show(<span style="color: #800000;">"</span><span style="color: #800000;">请填写读参数!</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">221</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">222</span>             <span style="color: #0000ff;">else</span>
+<span style="color: #008080;">223</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">224</span>                 slaveAddress = <span style="color: #0000ff;">byte</span><span style="color: #000000;">.Parse(txt_slave1.Text);
+</span><span style="color: #008080;">225</span>                 startAddress = <span style="color: #0000ff;">ushort</span><span style="color: #000000;">.Parse(txt_startAddr1.Text);
+</span><span style="color: #008080;">226</span>                 numberOfPoints = <span style="color: #0000ff;">ushort</span><span style="color: #000000;">.Parse(txt_length.Text);
+</span><span style="color: #008080;">227</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">228</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">229</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">230</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 初始化写参数
+</span><span style="color: #008080;">231</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">232</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> SetWriteParametes()
+</span><span style="color: #008080;">233</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">234</span>             <span style="color: #0000ff;">if</span> (txt_startAddr2.Text == <span style="color: #800000;">""</span> || txt_slave2.Text == <span style="color: #800000;">""</span> || txt_data.Text == <span style="color: #800000;">""</span><span style="color: #000000;">)
+</span><span style="color: #008080;">235</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">236</span>                 MessageBox.Show(<span style="color: #800000;">"</span><span style="color: #800000;">请填写写参数!</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">237</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">238</span>             <span style="color: #0000ff;">else</span>
+<span style="color: #008080;">239</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">240</span>                 slaveAddress = <span style="color: #0000ff;">byte</span><span style="color: #000000;">.Parse(txt_slave2.Text);
+</span><span style="color: #008080;">241</span>                 startAddress = <span style="color: #0000ff;">ushort</span><span style="color: #000000;">.Parse(txt_startAddr2.Text);
+</span><span style="color: #008080;">242</span>                 <span style="color: #008000;">//</span><span style="color: #008000;">判断是否写线圈</span>
+<span style="color: #008080;">243</span>                 <span style="color: #0000ff;">if</span> (comboBox1.SelectedIndex == <span style="color: #800080;">4</span> || comboBox1.SelectedIndex == <span style="color: #800080;">6</span><span style="color: #000000;">)
+</span><span style="color: #008080;">244</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">245</span>                     <span style="color: #0000ff;">string</span>[] strarr = txt_data.Text.Split(<span style="color: #800000;">'</span> <span style="color: #800000;">'</span><span style="color: #000000;">);
+</span><span style="color: #008080;">246</span>                     coilsBuffer = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">bool</span><span style="color: #000000;">[strarr.Length];
+</span><span style="color: #008080;">247</span>                     <span style="color: #008000;">//</span><span style="color: #008000;">转化为bool数组</span>
+<span style="color: #008080;">248</span>                     <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; strarr.Length; i++<span style="color: #000000;">)
+</span><span style="color: #008080;">249</span> <span style="color: #000000;">                    {
+</span><span style="color: #008080;">250</span>                         <span style="color: #008000;">//</span><span style="color: #008000;"> strarr[i] == "0" ? coilsBuffer[i] = true : coilsBuffer[i] = false;</span>
+<span style="color: #008080;">251</span>                         <span style="color: #0000ff;">if</span> (strarr[i] == <span style="color: #800000;">"</span><span style="color: #800000;">0</span><span style="color: #800000;">"</span><span style="color: #000000;">)
+</span><span style="color: #008080;">252</span> <span style="color: #000000;">                        {
+</span><span style="color: #008080;">253</span>                             coilsBuffer[i] = <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+</span><span style="color: #008080;">254</span> <span style="color: #000000;">                        }
+</span><span style="color: #008080;">255</span>                         <span style="color: #0000ff;">else</span>
+<span style="color: #008080;">256</span> <span style="color: #000000;">                        {
+</span><span style="color: #008080;">257</span>                             coilsBuffer[i] = <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+</span><span style="color: #008080;">258</span> <span style="color: #000000;">                        }
+</span><span style="color: #008080;">259</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">260</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">261</span>                 <span style="color: #0000ff;">else</span>
+<span style="color: #008080;">262</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">263</span>                     <span style="color: #008000;">//</span><span style="color: #008000;">转化ushort数组</span>
+<span style="color: #008080;">264</span>                     <span style="color: #0000ff;">string</span>[] strarr = txt_data.Text.Split(<span style="color: #800000;">'</span> <span style="color: #800000;">'</span><span style="color: #000000;">);
+</span><span style="color: #008080;">265</span>                     registerBuffer = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">ushort</span><span style="color: #000000;">[strarr.Length];
+</span><span style="color: #008080;">266</span>                     <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; strarr.Length; i++<span style="color: #000000;">)
+</span><span style="color: #008080;">267</span> <span style="color: #000000;">                    {
+</span><span style="color: #008080;">268</span>                         registerBuffer[i] = <span style="color: #0000ff;">ushort</span><span style="color: #000000;">.Parse(strarr[i]);
+</span><span style="color: #008080;">269</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">270</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">271</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">272</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">273</span> 
+<span style="color: #008080;">274</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">275</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 清除文本
+</span><span style="color: #008080;">276</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">277</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="sender"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;">278</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="e"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;">279</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> button2_Click(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)
+</span><span style="color: #008080;">280</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">281</span> <span style="color: #000000;">            richTextBox1.Clear();
+</span><span style="color: #008080;">282</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">283</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">284</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> SetMessage
+</span><span style="color: #008080;">285</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">286</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="msg"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;">287</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> SetMsg(<span style="color: #0000ff;">string</span><span style="color: #000000;"> msg)
+</span><span style="color: #008080;">288</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">289</span>             richTextBox1.Invoke(<span style="color: #0000ff;">new</span> Action(() =&gt;<span style="color: #000000;"> { richTextBox1.AppendText(msg); }));
+</span><span style="color: #008080;">290</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">291</span> 
+<span style="color: #008080;">292</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">293</span> }</pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>接下来开始测试</p>
+<p>在这里 因为要用到串口,而我的笔记本没有串口,所以需要借助一个工具</p>
+<p><span style="color: #ff0000;"><strong>Virtual Serial Port Dirver 虚拟串口工具</strong> </span></p>
+<p><span style="color: #000000;">链接：<a title="Virtual Serial Port Dirver 下载" href="https://pan.baidu.com/s/1opGre3GS-HWFoA_dP9qYYg" target="_blank">https://pan.baidu.com/s/1opGre3GS-HWFoA_dP9qYYg </a></span></p>
+<p><span style="color: #000000;">提取码：2afu&nbsp;</span></p>
+<p><span style="color: #000000;">借用这个工具我们添加两个虚拟串口 COM1和COM2 点击Add Virtual Pair 添加</span></p>
+<p><span style="color: #000000;"><img src="./images/C#Modbus Rtu的实现3.png" alt="" /></span></p>
+<p>设置Modbus Slave,选择连接方式为串口,选择对应端口,模式选择RTU,建立连接</p>
+<p><img src="./images/C#Modbus Rtu的实现4.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>接下来运行我们自己的Modbus RTU Master</p>
+<p>设置串口参数(波特率,数据位,奇偶校验,停止位)要与Slave的串口参数一致</p>
+<p>我们测试 功能码 0x01 读一组线圈</p>
+<p><img src="./images/C#Modbus Rtu的实现5.png" alt="" /></p>
+<p>测试完成,数据正常,其他的功能码经测试数据正常,有兴趣的可以自行测试</p>
+<p>到此为止,Modbus的学习到此告一段落</p>
+<p>以上都为我自行学习并实现,如有错误之处,望大家不吝赐教,感谢(抱拳~)</p>
+<p>&nbsp;</p>
+<p>程序源代码:</p>
+<p>链接：<a title="modbusDemo源代码" href="https://pan.baidu.com/s/1mPAhRixLbsDb7h2ePENTRA" target="_blank">https://pan.baidu.com/s/1mPAhRixLbsDb7h2ePENTRA</a> <br />提取码：b5w6</p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

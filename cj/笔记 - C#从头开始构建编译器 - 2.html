@@ -1,0 +1,208 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修笔记 - C#从头开始构建编译器 - 2' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>笔记 - C#从头开始构建编译器 - 2</center></div><div class='banquan'>原文出处:本文由博客园博主WQY自由呼吸提供。<br/>
+原文连接:https://www.cnblogs.com/wqyu/p/10815398.html</div><br>
+    <p>视频与PR：https://github.com/terrajobst/minsk/blob/master/docs/episode-02.md</p>
+<p>作者是 Immo Landwerth（https://twitter.com/terrajobst），微软 .NET 团队的项目经理。</p>
+<p>&nbsp;</p>
+<p>这一集的主要内容：</p>
+<p>1.添加 Binder，充当语义分析作用。</p>
+<p>Binder 基于 SyntaxTree，大体上 SyntaxKind.XXX_Expression =&gt; Bind_XXX_Expression。</p>
+<p>在 SyntaxTree 中，运算符只是个枚举值（即也就只是个符号），而在 Binder 中必须赋予更加具体的语义。</p>
+<p>比如：</p>
+<p>&gt; SyntaxKind.PlusToken =&gt;&nbsp;BoundBinaryOperatorKind.Addition （&ldquo;+&rdquo;代表累加）</p>
+<p>&gt; SyntaxKind.AmpersandAmpersandToken =&gt; BoundBinaryOperatorKind.LogicalAnd（&ldquo;&amp;&amp;&rdquo;代表逻辑与）</p>
+<p>在 Binder 中，运算符有更加宽泛的含义，如果是二元运算符，必须可以获取其符号的 SyntaxKind、BoundBinaryOperatorKind、LeftType、RightType、ResultType。计算结果的类型代表了该二元表达式的类型。</p>
+<p>以 BoundBinaryOperator 作为具体实现：</p>
+<div class="cnblogs_Highlighter">
+<pre><code>using System;
+
+using Minsk.CodeAnalysis.Syntax;
+
+namespace Minsk.CodeAnalysis.Binding
+{
+    internal sealed class BoundBinaryOperator
+    {
+        private BoundBinaryOperator(SyntaxKind syntaxKind, BoundBinaryOperatorKind kind, Type type)
+            : this(syntaxKind, kind, type, type, type)
+        {
+
+        }
+
+        private BoundBinaryOperator(SyntaxKind syntaxKind, BoundBinaryOperatorKind kind, Type operandType, Type resultType)
+            : this(syntaxKind, kind, operandType, operandType, resultType)
+        {
+
+        }
+
+        private BoundBinaryOperator(SyntaxKind syntaxKind, BoundBinaryOperatorKind kind, Type leftType, Type rightType, Type resultType)
+        {
+            SyntaxKind = syntaxKind;
+            Kind = kind;
+            LeftType = leftType;
+            RightType = rightType;
+            Type = resultType;
+        }
+
+        public SyntaxKind SyntaxKind { get; }
+        public BoundBinaryOperatorKind Kind { get; }
+        public Type LeftType { get; }
+        public Type RightType { get; }
+        public Type Type { get; }
+
+        private static BoundBinaryOperator[] _operators =
+        {
+            new BoundBinaryOperator(SyntaxKind.PlusToken, BoundBinaryOperatorKind.Addition, typeof(int)),
+            new BoundBinaryOperator(SyntaxKind.MinusToekn, BoundBinaryOperatorKind.Subtraction, typeof(int)),
+            new BoundBinaryOperator(SyntaxKind.StarToken, BoundBinaryOperatorKind.Multiplication, typeof(int)),
+            new BoundBinaryOperator(SyntaxKind.SlashToken, BoundBinaryOperatorKind.Division, typeof(int)),
+            new BoundBinaryOperator(SyntaxKind.EqualsEqualsToken, BoundBinaryOperatorKind.Equals, typeof(int), typeof(bool)),
+            new BoundBinaryOperator(SyntaxKind.BangEqualsToken, BoundBinaryOperatorKind.NotEquals, typeof(int), typeof(bool)),
+
+            new BoundBinaryOperator(SyntaxKind.AmpersandAmpersandToken, BoundBinaryOperatorKind.LogicalAnd, typeof(bool)),
+            new BoundBinaryOperator(SyntaxKind.PipePipeToken, BoundBinaryOperatorKind.LogicalOr, typeof(bool)),
+            new BoundBinaryOperator(SyntaxKind.EqualsEqualsToken, BoundBinaryOperatorKind.Equals, typeof(bool)),
+            new BoundBinaryOperator(SyntaxKind.BangEqualsToken, BoundBinaryOperatorKind.NotEquals, typeof(bool)),
+        };
+
+
+        public static BoundBinaryOperator Bind(SyntaxKind syntaxKind, Type leftType, Type rightType)
+        {
+            foreach (var op in _operators)
+            {
+                if (op.SyntaxKind == syntaxKind &amp;&amp; op.LeftType == leftType &amp;&amp; op.RightType == rightType)
+                    return op;
+            }
+
+            return null;
+        }
+    }
+}
+</pre>
+</div>
+<p>以及 BoundBinaryExpression 的实现：</p>
+<div class="cnblogs_Highlighter">
+<pre><code>using System;
+
+namespace Minsk.CodeAnalysis.Binding
+{
+    internal sealed class BoundBinaryExpression : BoundExpression
+    {
+        public BoundBinaryExpression(BoundExpression left, BoundBinaryOperator op, BoundExpression right)
+        {
+            Left = left;
+            Op = op;
+            Right = right;
+        }
+
+        public override Type Type =&gt; Op.Type;
+        public override BoundNodeKind Kind =&gt; BoundNodeKind.BinaryExpression;
+        public BoundExpression Left { get; }
+        public BoundBinaryOperator Op { get; }
+        public BoundExpression Right { get; }
+    }
+}
+</pre>
+</div>
+<p>2.Evaluator 不再基于 SyntaxTree 求值，而是基于 Binder 求值。</p>
+<p>3.优先级更加通用的做法。</p>
+<div class="cnblogs_Highlighter">
+<pre><code>namespace Minsk.CodeAnalysis.Syntax
+{
+    internal static class SyntaxFacts
+    {
+        public static int GetUnaryOperatorPrecedence(this SyntaxKind kind)
+        {
+            switch (kind)
+            {
+                case SyntaxKind.PlusToken:
+                case SyntaxKind.MinusToekn:
+                case SyntaxKind.BangToken:
+                    return 6;
+
+                default:
+                    return 0;
+            }
+        }
+
+        public static int GetBinaryOperatorPrecedence(this SyntaxKind kind)
+        {
+            switch (kind)
+            {
+                case SyntaxKind.StarToken:
+                case SyntaxKind.SlashToken:
+                    return 5;
+
+                case SyntaxKind.PlusToken:
+                case SyntaxKind.MinusToekn:
+                    return 4;
+
+                case SyntaxKind.EqualsEqualsToken:
+                case SyntaxKind.BangEqualsToken:
+                    return 3;
+
+                case SyntaxKind.AmpersandAmpersandToken:
+                    return 2;
+
+                case SyntaxKind.PipePipeToken:
+                    return 1;
+
+                default:
+                    return 0;
+            }
+        }
+
+        internal static SyntaxKind GetKeyWordKind(string text)
+        {
+            switch (text)
+            {
+                case "true":
+                    return SyntaxKind.TrueKeyword;
+                case "false":
+                    return SyntaxKind.FalseKeyword;
+                default:
+                    return SyntaxKind.IdentifierToken;
+            }
+        }
+    }
+}
+</pre>
+</div>
+<p>结合优先级可以更加深刻理解递归下降分析的思路。</p>
+<p>4.实现了 Boolean 类型，以及其他的运算符。</p>
+<p>&nbsp;</p>
+<p>C#语言点：</p>
+<p>1.扩展方法。将 this XXX 作为 static 函数的第一个成员，然后该函数成为 XXX 的成员函数。这也是一般意义上实现类成员函数的方法。</p>
+<p>2.库函数</p>
+<div class="cnblogs_Highlighter">
+<pre><code>public static class Enumerable
+{
+    public static IEnumerable&lt;TSource&gt; Concat&lt;TSource&gt;(this IEnumerable&lt;TSource&gt; first, IEnumerable&lt;TSource&gt; second);
+}
+</pre>
+</div>
+<p>在System.Linq中，库为&nbsp;Enumerable 扩展了很多方法，见第一点。</p>
+<p>&nbsp;</p>
+<p>工具：</p>
+<p>VS的代码转换技巧，比如快速对逻辑表达式取反、快速将 if 转为 switch。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

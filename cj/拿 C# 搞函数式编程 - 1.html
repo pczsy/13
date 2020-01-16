@@ -1,0 +1,194 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修拿 C# 搞函数式编程 - 1' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>拿 C# 搞函数式编程 - 1</center></div><div class='banquan'>原文出处:本文由博客园博主hez2010提供。<br/>
+原文连接:https://www.cnblogs.com/hez2010/p/11487006.html</div><br>
+    <p>最近闲下来了，准备出一个 C# 搞 FP 的合集。本合集所有代码均以 C# 8 为示例。</p>
+<p>可能你说，为什么要这么做呢？回答：为了好玩。另外，意义党们请 gun cu ke！</p>
+<p class="ztext-empty-paragraph">&nbsp;</p>
+<p>C# 有委托，而且有 Func&lt;&gt; 和 Action&lt;&gt;，可以说函数被视为一等功名，跟 int、bool 等类型并没有什么区别。那么很多事情就简单了。</p>
+<h2>纯函数</h2>
+<p>什么是纯函数呢？纯函数就是 f(x)，它们接收参数，得到结果，并且相同的参数得到的结果一定是相同的，用映射来说，它是满射的。另外这个函数不会改变任何的状态值，它是无副作用的。</p>
+<h2>柯里化</h2>
+<p>首先，有一个东西让我觉得不爽，那就是一般来说 C# 里的函数调用不是柯里化的，这也就意味着我没法一个一个传参数进去，也没法把传了一部分参数的调用作为一个新函数拿去给别的地方用，那要怎么办呢？</p>
+<p>自己动手，丰衣足食！</p>
+<p>一个标准的加法函数可以这么写：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> function = <span style="color: #0000ff;">new</span> Func&lt;<span style="color: #0000ff;">int</span>, <span style="color: #0000ff;">int</span>, <span style="color: #0000ff;">int</span>&gt;<span style="color: #000000;">
+    ((x, y) </span>=&gt; x +<span style="color: #000000;"> y);
+function(</span><span style="color: #800080;">1</span>, <span style="color: #800080;">2</span>); <span style="color: #008000;">//</span><span style="color: #008000;"> returns 3</span></pre>
+</div>
+<p>如果我们想以柯里化形式调用的话，理想状态是这么个样子的：</p>
+<div class="highlight">
+<div class="cnblogs_code">
+<pre><code>function <span style="color: #800080;">1</span> <span style="color: #800080;">2</span></pre>
+</div>
+<p>但是这个括号我们是省不了的，所以这样也是可以接受的：</p>
+</div>
+<div class="highlight">
+<div class="cnblogs_code">
+<pre><code>function(<span style="color: #800080;">1</span>)(<span style="color: #800080;">2</span>);</pre>
+</div>
+<p>我们看一下这个调用形式，不就是 Func&lt;int, Func&lt;int, int&gt;&gt; 嘛！so easy~</p>
+</div>
+<p>我们只需要把 Func&lt;int, int, int&gt; 转化为 Func&lt;int, Func&lt;int, int&gt;&gt;：</p>
+<div class="cnblogs_code">
+<pre><code>Func&lt;<span style="color: #0000ff;">int</span>, Func&lt;<span style="color: #0000ff;">int</span>, <span style="color: #0000ff;">int</span>&gt;&gt; Currying(Func&lt;<span style="color: #0000ff;">int</span>, <span style="color: #0000ff;">int</span>, <span style="color: #0000ff;">int</span>&gt;<span style="color: #000000;"> f) 
+    </span>=&gt; x =&gt; y =&gt; f(x, y);</pre>
+</div>
+<p>这样写就 ok 啦。进一步改造成扩展方法：</p>
+<div class="highlight">
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> CurryingExtensions
+{
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> Func&lt;<span style="color: #0000ff;">int</span>, Func&lt;<span style="color: #0000ff;">int</span>, <span style="color: #0000ff;">int</span>&gt;&gt;<span style="color: #000000;"> 
+        Currying(</span><span style="color: #0000ff;">this</span> Func&lt;<span style="color: #0000ff;">int</span>, <span style="color: #0000ff;">int</span>, <span style="color: #0000ff;">int</span>&gt;<span style="color: #000000;"> f) 
+            </span>=&gt; x =&gt; y =&gt;<span style="color: #000000;"> f(x, y);
+}</span></pre>
+</div>
+<p>于是我们只需要：</p>
+</div>
+<div class="highlight">
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> function = <span style="color: #0000ff;">new</span> Func&lt;<span style="color: #0000ff;">int</span>, <span style="color: #0000ff;">int</span>, <span style="color: #0000ff;">int</span>&gt;<span style="color: #000000;">
+    ((x, y) </span>=&gt; x +<span style="color: #000000;"> y)
+    .Currying();
+function(</span><span style="color: #800080;">1</span>)(<span style="color: #800080;">2</span>); <span style="color: #008000;">//</span><span style="color: #008000;"> returns 3</span></pre>
+</div>
+<p>就可以采用柯里化形式调用该函数啦。</p>
+</div>
+<p>进一步我们用泛型改造，让柯里化适用于任何类型：</p>
+<div class="highlight">
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> CurryingExtensions
+{
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> Func&lt;T1, Func&lt;T2, TOutput&gt;&gt;<span style="color: #000000;"> 
+        Currying</span>&lt;T1, T2, TOutput&gt;(<span style="color: #0000ff;">this</span> Func&lt;T1, T2, TOuput&gt;<span style="color: #000000;"> f)
+            </span>=&gt; x =&gt; y =&gt;<span style="color: #000000;"> f(x, y);
+}</span></pre>
+</div>
+<p>如果遇到更多参数，我们只需要给这个静态类里面再加一个扩展方法即可。</p>
+</div>
+<p>那 Action&lt;&gt; 呢？这个东西在我看来完全就是副作用，具体下方有讲，我们不用他（逃</p>
+<h2>Unit</h2>
+<p>什么是 Unit 呢？Unit 就是任何函数调用后如果没有结果，就会返回的一个东西。</p>
+<p>可能你说，void 不就可以了？</p>
+<p>但是如果一个纯函数，它没有返回值（即 Action&lt;&gt;），意味着这个函数它有输入没输出，那这个函数除了能用来产生副作用之外，就什么都干不了了。这不清真！</p>
+<p>因此我们需要一个 Unit 来代替 void，偷个懒，这个 Unit 就用 ulong 来代替吧。</p>
+<h2>高阶函数</h2>
+<p>什么叫做高阶函数，把函数当作参数传给另一个函数，接收这个函数参数的函数就叫做高阶函数。</p>
+<p>举个例子：f(g(x))，f 即高阶函数。</p>
+<p>假设我们现在要开一个超市，超市有很多的产品，每种产品价格不同，不同产品可能还有各自的折扣。我们有很多种快乐水，每种快乐水价格不一样，可口快乐水 3.5 块，百事快乐水 3 块，麦当劳快乐水 9 块，快乐水价格计算函数：</p>
+<div class="highlight">
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> happyWater = <span style="color: #0000ff;">new</span> Func&lt;<span style="color: #0000ff;">float</span>, <span style="color: #0000ff;">int</span>, <span style="color: #0000ff;">float</span>&gt;<span style="color: #000000;">
+    ((</span><span style="color: #0000ff;">float</span> price, <span style="color: #0000ff;">int</span> number) =&gt; number *<span style="color: #000000;"> price)
+    .Currying();
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 调用：happyWater(快乐水单价)(快乐水件数);</span>
+
+<span style="color: #0000ff;">var</span> cocaHappyWater = happyWater(<span style="color: #800080;">3.5f</span><span style="color: #000000;">);
+</span><span style="color: #0000ff;">var</span> pepsiHappyWater = happyWater(<span style="color: #800080;">3</span><span style="color: #000000;">);
+</span><span style="color: #0000ff;">var</span> mcdHappyWater = happyWater(<span style="color: #800080;">9</span>);</pre>
+</div>
+<p>超市可能有折扣，A 超市不打折，B 超市打八折，计算价格函数：</p>
+</div>
+<div class="highlight">
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> calcPrice = <span style="color: #0000ff;">new</span> Func&lt;Func&lt;<span style="color: #0000ff;">int</span>, <span style="color: #0000ff;">float</span>&gt;, <span style="color: #0000ff;">float</span>, <span style="color: #0000ff;">int</span>, <span style="color: #0000ff;">float</span>&gt;<span style="color: #000000;">
+    ((calc, discount, number) </span>=&gt; discount *<span style="color: #000000;"> calc(number))
+    .Currying();
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 调用：calcPrice(快乐水价格计算函数)(超市折扣)(快乐水件数);</span></pre>
+</div>
+<p>现在我们分别在 A 超市买百事快乐水、B 超市买可口快乐水，麦当劳的太贵了我们不买，价格计算函数为：</p>
+</div>
+<div class="highlight">
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> pepsiPriceCalc =<span style="color: #000000;"> calcPrice(pepsiHappyWater);
+</span><span style="color: #0000ff;">var</span> cocaPriceCalc =<span style="color: #000000;"> calcPrice(cocaHappyWater);
+
+</span><span style="color: #0000ff;">var</span> priceCalcA = pepsiPriceCalc(<span style="color: #800080;">1</span>); <span style="color: #008000;">//</span><span style="color: #008000;"> A 超市</span>
+<span style="color: #0000ff;">var</span> priceCalcB = cocaPriceCalc(<span style="color: #800080;">0.8f</span>); <span style="color: #008000;">//</span><span style="color: #008000;"> B 超市</span></pre>
+</div>
+<p>最后我们在 A 超市买了 3 瓶百事快乐水，B 超市买了 5 瓶可口快乐水，计算总价：</p>
+</div>
+<div class="highlight">
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> priceA = priceCalcA(<span style="color: #800080;">3</span><span style="color: #000000;">);
+</span><span style="color: #0000ff;">var</span> priceB = priceCalcB(<span style="color: #800080;">5</span><span style="color: #000000;">);
+</span><span style="color: #0000ff;">var</span> total = priceA + priceB;</pre>
+</div>
+<p>最后得到 total = 23 元。</p>
+</div>
+<p>可以看到这些函数都是可拆卸并且可以随意组合的，而且满足 f(g(x)) = g(f(x))。</p>
+<p>贴上完整代码示例：</p>
+<div class="highlight">
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">using</span><span style="color: #000000;"> System;
+
+</span><span style="color: #0000ff;">namespace</span><span style="color: #000000;"> ColaMarket
+{
+    </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> CurryingExtensions
+    {
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> Func&lt;T1, Func&lt;T2, TOutput&gt;&gt;<span style="color: #000000;">
+            Currying</span>&lt;T1, T2, TOutput&gt;(<span style="color: #0000ff;">this</span> Func&lt;T1, T2, TOutput&gt;<span style="color: #000000;"> f)
+                </span>=&gt; x =&gt; y =&gt;<span style="color: #000000;"> f(x, y);
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> Func&lt;T1, Func&lt;T2, Func&lt;T3, TOutput&gt;&gt;&gt;<span style="color: #000000;">
+            Currying</span>&lt;T1, T2, T3, TOutput&gt;(<span style="color: #0000ff;">this</span> Func&lt;T1, T2, T3, TOutput&gt;<span style="color: #000000;"> f)
+                </span>=&gt; x =&gt; y =&gt; z =&gt;<span style="color: #000000;"> f(x, y, z);
+    }
+
+    </span><span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            </span><span style="color: #0000ff;">var</span> happyWater = <span style="color: #0000ff;">new</span> Func&lt;<span style="color: #0000ff;">float</span>, <span style="color: #0000ff;">int</span>, <span style="color: #0000ff;">float</span>&gt;<span style="color: #000000;">
+                ((</span><span style="color: #0000ff;">float</span> price, <span style="color: #0000ff;">int</span> number) =&gt; number *<span style="color: #000000;"> price)
+                .Currying();
+
+            </span><span style="color: #0000ff;">var</span> cocaHappyWater = happyWater(<span style="color: #800080;">3.5f</span><span style="color: #000000;">);
+            </span><span style="color: #0000ff;">var</span> pepsiHappyWater = happyWater(<span style="color: #800080;">3</span><span style="color: #000000;">);
+            </span><span style="color: #0000ff;">var</span> mcdHappyWater = happyWater(<span style="color: #800080;">9</span><span style="color: #000000;">);
+
+            </span><span style="color: #0000ff;">var</span> calcPrice = <span style="color: #0000ff;">new</span> Func&lt;Func&lt;<span style="color: #0000ff;">int</span>, <span style="color: #0000ff;">float</span>&gt;, <span style="color: #0000ff;">float</span>, <span style="color: #0000ff;">int</span>, <span style="color: #0000ff;">float</span>&gt;<span style="color: #000000;">
+                ((calc, discount, number) </span>=&gt; discount *<span style="color: #000000;"> calc(number))
+                .Currying();
+
+            </span><span style="color: #0000ff;">var</span> pepsiPriceCalc =<span style="color: #000000;"> calcPrice(pepsiHappyWater);
+            </span><span style="color: #0000ff;">var</span> cocaPriceCalc =<span style="color: #000000;"> calcPrice(cocaHappyWater);
+
+            </span><span style="color: #0000ff;">var</span> priceCalcA = pepsiPriceCalc(<span style="color: #800080;">1</span><span style="color: #000000;">);
+            </span><span style="color: #0000ff;">var</span> priceCalcB = cocaPriceCalc(<span style="color: #800080;">0.8f</span><span style="color: #000000;">);
+
+            </span><span style="color: #0000ff;">var</span> priceA = priceCalcA(<span style="color: #800080;">3</span><span style="color: #000000;">);
+            </span><span style="color: #0000ff;">var</span> priceB = priceCalcB(<span style="color: #800080;">5</span><span style="color: #000000;">);
+            </span><span style="color: #0000ff;">var</span> total = priceA +<span style="color: #000000;"> priceB;
+
+            Console.WriteLine(total);
+        }
+    }
+}</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>下一篇将会讲更多的东西，如 Functor、Applicative 和 Monad 等等。</p>
+</div>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

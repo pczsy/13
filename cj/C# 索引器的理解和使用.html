@@ -1,0 +1,516 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C# 索引器的理解和使用' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C# 索引器的理解和使用</center></div><div class='banquan'>原文出处:本文由博客园博主Hope-forever提供。<br/>
+原文连接:https://www.cnblogs.com/Hope-forever/p/12113842.html</div><br>
+    <h2 id="概述">概述</h2>
+<blockquote>
+<p>此部分内容引用自<a href="https://docs.microsoft.com/zh-cn/dotnet/csharp/programming-guide/indexers/">MSDN文档</a></p>
+</blockquote>
+<ul>
+<li><p>使用索引器可以用类似于数组的方式为对象建立索引。</p></li>
+<li><p><code>get</code> 取值函数返回值。 <code>set</code> 取值函数分配值。</p></li>
+<li><p><code>this</code> 关键字用于定义索引器。</p></li>
+<li><p><code>value</code> 关键字用于定义 <code>set</code> 索引器所赋的值。</p></li>
+<li><p>索引器不必根据整数值进行索引；由你决定如何定义特定的查找机制。</p></li>
+<li><p>索引器可被重载。</p></li>
+<li><p>索引器可以有多个形参，例如当访问二维数组时。</p></li>
+</ul>
+<blockquote>
+<p>我对索引器的理解就是，他是一个读写自定义类中的数据集合的接口，连接自定义类中的数据集合，并可对其进行读写操作</p>
+<p>通过该接口简化或者丰富对自定义类中数据集合的操作方式</p>
+<p>索引器实际上相当于一个方法，支持多个及多种类型的参数，不同的是，其返回值不可为<code>void</code>，并且索引器除可传入参数外，还可对其进行赋值，即<code>it[0] = &quot;测试数据0&quot;</code></p>
+<p>创建索引器时，其返回值类型亦为其<code>value</code>关键字所使用的类型，即定义了返回值类型的同时，也定义了其可接受的值类型</p>
+</blockquote>
+<h2 id="索引器使用要素">索引器使用要素</h2>
+<p>    创建索引器时有几部分内容是必须的：</p>
+<ol>
+<li><p>必须先创建索引器所需要的<strong>容器</strong>（我把它称为容器，暂时还没看到有对它的具体定义）</p></li>
+<li><p>创建索引器需要使用<code>this</code>关键字</p></li>
+<li><p>索引器中必须要包含<code>get</code>和<code>set</code>访问器，在<em>C#7.0</em>可以使用表达式主体（<code>=&gt;</code>）简化</p></li>
+<li><p>在使用表达式主体成员实现索引器时，必须额外提供容器的修改接口，因为通过表达式主体实现的索引器是不包含<code>set</code>关键字的</p></li>
+</ol>
+<h2 id="单参数索引器">单参数索引器</h2>
+<p>    此索引器使用简单的<code>string</code>数组作为容器，此索引器使用<code>int</code>类型的<code>i</code>进行索引，返回值为<code>string</code>类型。</p>
+<pre><code><code>class SampleIndxer
+{
+    //可供索引器使用的容器，暂用数组
+    private string[] sampleStrArr = new string[10];
+    //创建索引器
+    public string this[int i]
+    {
+        get { return sampleStrArr[i]; }
+        set { sampleStrArr[i] = value; }
+    }
+}
+class Test
+{
+    public static void test()
+    {
+        //简单索引器测试
+        SampleIndxer it = new SampleIndxer();
+        it[0] = &quot;测试数据0&quot;;
+        it[1] = &quot;测试数据1&quot;;
+        Console.WriteLine(&quot;it[0]:&quot; + it[0]);
+        Console.WriteLine(&quot;it[1]:&quot; + it[1]);
+        Console.ReadLine();
+    }
+
+}</code></pre>
+<p>    索引器中同时也可以使用泛型作为参数</p>
+<pre><code><code>class SampleGenericIndexer&lt;T&gt;
+{
+    //可供索引器使用的主体变量，暂用泛型数组代替
+    private T[] sampleGenericStrArr = new T[10];
+    public T this[int i]
+    {
+        get { return sampleGenericStrArr[i]; }
+        set { sampleGenericStrArr[i] = value; }
+    }
+}
+
+
+class Test
+{
+    public static void test()
+    {
+        //泛型索引器测试
+        SampleGenericIndexer&lt;string&gt; it = new SampleGenericIndexer&lt;string&gt;();
+        it[0] = &quot;测试数据0&quot;;
+        it[1] = &quot;测试数据1&quot;;
+        Console.WriteLine(&quot;it[0]:&quot; + it[0]);
+        Console.WriteLine(&quot;it[1]:&quot; + it[1]);
+        Console.ReadLine();
+    }
+}</code></pre>
+<p>    在<em>C#7.0</em>之后可以通过<em>表达式主体</em>实现索引器，需要注意的是，通过<em>表达式主体</em>实现索引器时，必须提供数据修改的接口，因为通过<em>表达式主体</em>实现索引时仅提供了<code>get</code>访问器，并未提供<code>set</code>访问器。或者将容器的可访问性设置为使用该类的地方可以访问，直接对容器进行数据操作，仅使用索引器进行数据的读取。</p>
+<pre><code><code>class ExpressionBodyIndexer&lt;T&gt;
+{
+    //可供索引器使用的主体变量，暂用泛型数组代替
+    private T[] expressionBodyStrArr = new T[10];
+
+    //标记当前索引器的中已初始化数据的索引位置
+    int nextIndex = 0;
+    // 使用表达式主体(ExpressionBody)定义简化定义索引器
+    public T this[int i] =&gt; expressionBodyStrArr[i];
+
+    /// &lt;summary&gt;
+    /// 表达式主体方式定义的索引器无法通过索引值设置其中的值
+    /// 因为此状态下，索引器的数据为只读状态
+    /// 必须向外提供赋值的方法
+    /// &lt;/summary&gt;
+    /// &lt;param name=&quot;value&quot;&gt;&lt;/param&gt;
+    public void Add(T value)
+    {
+        if(nextIndex &gt;= expressionBodyStrArr.Length)
+        {
+            throw new IndexOutOfRangeException($&quot;当前集合数据已满，共{expressionBodyStrArr.Length}组数据&quot;);
+        }
+        expressionBodyStrArr[nextIndex++] = value;
+    }
+}
+class Test
+{
+    public static void test()
+    {
+        //泛型索引器测试
+        ExpressionBodyIndexer&lt;string&gt; it = new ExpressionBodyIndexer&lt;string&gt;();
+        //此条件下不可通过it[0]索引方式进行数据添加，因为他是只读的
+        //必须通过提供的Add方法添加数据
+        it.Add(&quot;测试数据0&quot;);
+        it.Add(&quot;测试数据1&quot;);
+        it.Add(&quot;测试数据2&quot;);
+        Console.WriteLine(&quot;it[0]:&quot; + it[0]);
+        Console.WriteLine(&quot;it[1]:&quot; + it[1]);
+        Console.WriteLine(&quot;it[2]:&quot; + it[2]);
+        Console.ReadLine();
+    }
+}</code></pre>
+<p>    索引器既然是可以简化或者丰富对自定义类中数据集合的操作方式，那么自然也可以使用稍微复杂点的数据集合作为索引器的容器。本例中使用Dictionary作为容器。</p>
+<pre><code><code>class VariableLengthIndexer
+{
+    /// &lt;summary&gt;
+    /// 可供索引器使用的容器，此处使用Dictionary代替，
+
+    /// 实现使用string类型数据当作索引器的指针，同时实现索引器的可变长度
+    /// &lt;/summary&gt;
+    private Dictionary&lt;string, string&gt; dic = new Dictionary&lt;string, string&gt;();
+
+    /// &lt;summary&gt;
+    /// 使用表达式主体创建索引器
+    /// &lt;/summary&gt;
+    /// &lt;param name=&quot;s&quot;&gt;&lt;/param&gt;
+    /// &lt;returns&gt;&lt;/returns&gt;
+    public string this[string s] =&gt; dic[s];
+    
+    public void Add(string key,string value)
+    {
+        if (dic.ContainsKey(key))
+        {
+            dic[key] = value;
+        }
+        else
+        {
+            dic.Add(key, value);
+        }
+    }
+}
+class Test
+{
+    public static void test()
+    {
+        //泛型索引器测试
+        VariableLengthIndexer it = new VariableLengthIndexer();
+        //此条件下不可通过it[0]索引方式进行数据添加，因为他是只读的
+        //必须通过提供的Add方法添加数据
+        it.Add(&quot;数据0&quot;, &quot;测试数据0&quot;);
+        it.Add(&quot;数据1&quot;, &quot;测试数据1&quot;);
+        it.Add(&quot;数据2&quot;, &quot;测试数据2&quot;);
+        Console.WriteLine(&quot;it[数据1]:&quot; + it[&quot;数据1&quot;]);
+        Console.WriteLine(&quot;it[数据2]:&quot; + it[&quot;数据2&quot;]);
+        Console.WriteLine(&quot;it[数据3]:&quot; + it[&quot;数据3&quot;]);
+        Console.ReadLine();
+    }
+}</code></pre>
+<p>    前面的几个例子中，仅仅是对于索引器的认识，实际工作中并没有使用价值，因为所作的操作完全可以使用 .NET 中预定义的数据集合完成。个人觉得<strong>C#7.0</strong>之后提供的<em>表达式主体</em>实际作用并不大，甚至没有必要。个人认为索引器最大价值存在于<code>get</code>和<code>set</code>访问器中对于数据操作的自定义处理，可以在访问器中对数据进行修正或者过滤，这才是其比较好的价值体现。</p>
+<p>    通过在索引器中对数据处理做封装，可以简化平常大部分的操作，此类也可根据实际情况嵌入到数据库访问实体类中。</p>
+<pre><code><code>/// &lt;summary&gt;
+/// 本实例通过考试成绩的处理演示索引器对数据处理的过程
+/// &lt;/summary&gt;
+class TestScore
+{
+    private Dictionary&lt;string, int&gt; scores = new Dictionary&lt;string, int&gt;();
+
+    public string this[string s]
+    {
+        get
+        {
+            if (!scores.ContainsKey(s))
+            {
+                return $&quot;非常抱歉，{s}的成绩尚未录入&quot;;
+            }
+            switch (scores[s])
+            {
+                case 10:
+                case 20:
+                case 30:
+                case 40:
+                case 50:
+                    return $&quot;很遗憾，{s}不及格，分数仅为{scores[s]}&quot;;
+                case 60:
+                case 70:
+                    return $&quot;考的不错，{s}已及格，分数为{scores[s]}&quot;;
+                case 80:
+                case 90:
+                    return $&quot;成绩优秀，{s}成绩优秀，分数为{scores[s]}&quot;;
+                case 100:
+                    return $&quot;非常优秀，{s}获取满分{scores[s]}分&quot;;
+                default:
+                    return $&quot;{s}的成绩可能存在异常，分数为{scores[s]}&quot;;
+            }
+        }
+        set
+        {
+            if (int.TryParse(value, out int v))
+            {
+                //对分数做四舍五入处理
+                v = (int)Math.Round(v * 0.1) * 10;
+
+                if (!scores.ContainsKey(s))
+                {
+                    scores.Add(s, v);
+                }
+                else
+                {
+                    scores[s] = v;
+                }
+            }
+        }
+    }
+}
+
+class Test
+{
+    public static void test()
+    {
+        TestScore ts = new TestScore();
+        ts[&quot;张三&quot;] = &quot;23&quot;;
+        ts[&quot;李四&quot;] = &quot;54&quot;;
+        ts[&quot;王二&quot;] = &quot;66&quot;;
+        ts[&quot;麻子&quot;] = &quot;89&quot;;
+        ts[&quot;王朝&quot;] = &quot;100&quot;;
+        ts[&quot;马汉&quot;] = &quot;5&quot;;
+        ts[&quot;老王&quot;] = &quot;&quot;;
+
+        Console.WriteLine(ts[&quot;张三&quot;]);
+        Console.WriteLine(ts[&quot;李四&quot;]);
+        Console.WriteLine(ts[&quot;王二&quot;]);
+        Console.WriteLine(ts[&quot;麻子&quot;]);
+        Console.WriteLine(ts[&quot;王朝&quot;]);
+        Console.WriteLine(ts[&quot;马汉&quot;]);
+        Console.WriteLine(ts[&quot;老王&quot;]);
+        Console.ReadLine();
+
+    }
+}</code></pre>
+<p><img src="./images/C# 索引器的理解和使用0.png" /></p>
+<h2 id="多参数索引器">多参数索引器</h2>
+<p>    前面通过单参数所以其的实现分析了索引器的使用方式即可能的使用范围，下面进行下简单的拓展，分析多参数索引器的使用方式，依旧使用上面分数的例子做演示。</p>
+<pre><code><code>struct Student
+{
+    public string Name;
+    public string Classes;
+    public string Grade;
+    public int Score;
+        
+    public override string ToString()
+    {
+        return $&quot;{this.Grade}\t{this.Classes}\t{this.Name}\t{this.Score}&quot;;
+    }
+}
+
+public class ArrayList1 : ArrayList
+{
+    public override bool Contains(object item)
+    {
+        if (item.GetType().ToString() == &quot;Student&quot;)
+        {
+            foreach (var a in this)
+            {
+                if (a.GetType().ToString() == &quot;Student&quot;)
+                {
+                    var s1 = (Student)a;
+                    var s2 = (Student)item;
+                    if (s1.Name == s2.Name &amp;&amp; s1.Classes == s2.Classes &amp;&amp; s1.Grade == s2.Grade)
+                    {
+                        return true;
+                    }
+                    return false;
+                }
+            }
+        }
+        return base.Contains(item);
+    }
+}
+
+class TestScore
+{
+    public ArrayList1 ArrList = new ArrayList1();
+
+    public string this[string name, string grade, string classes]
+    {
+        get
+        {
+            string rtn = &quot;&quot;;
+            foreach (Student a in ArrList)
+            {
+                if (a.Name == name &amp;&amp; a.Classes == classes &amp;&amp; a.Grade == grade)
+                {
+                    switch (a.Score)
+                    {
+                        case 10:
+                        case 20:
+                        case 30:
+                        case 40:
+                        case 50:
+                            rtn = $&quot;很遗憾，{name}不及格，分数仅为{a.Score}&quot;;
+                            break;
+                        case 60:
+                        case 70:
+                            rtn = $&quot;考的不错，{name}已及格，分数为{a.Score}&quot;;
+                            break;
+                        case 80:
+                        case 90:
+                            rtn = $&quot;成绩优秀，{name}成绩优秀，分数为{a.Score}&quot;;
+                            break;
+                        case 100:
+                            rtn = $&quot;非常优秀，{name}获取满分{a.Score}分&quot;;
+                            break;
+                        default:
+                            rtn = $&quot;{name}的成绩可能存在异常，分数为{a.Score}&quot;;
+                            break;
+                    }
+                }
+            }
+            if (rtn == &quot;&quot;)
+            {
+                return $&quot;非常抱歉，{name}的成绩尚未录入&quot;;
+            }
+            return rtn;
+        }
+        set
+        {
+            if (int.TryParse(value, out int v))
+            {
+                //对分数做四舍五入处理
+                v = (int)Math.Round(v * 0.1) * 10;
+
+                Student st = new Student
+                {
+                    Name = name,
+                    Grade = grade,
+                    Classes = classes,
+                    Score = v
+                };
+                //重复项，不再插入，避免查找时出现重复
+                if (!ArrList.Contains(st))
+                {
+                    ArrList.Add(st);
+                }
+            }
+        }
+    }
+}
+
+class Test
+{
+    public static void test()
+    {
+        TestScore ts = new TestScore();
+        ts[&quot;张三&quot;, &quot;三年级&quot;, &quot;二班&quot;] = &quot;23&quot;;
+        ts[&quot;李四&quot;, &quot;三年级&quot;, &quot;二班&quot;] = &quot;54&quot;;
+        ts[&quot;王二&quot;, &quot;三年级&quot;, &quot;二班&quot;] = &quot;66&quot;;
+        ts[&quot;麻子&quot;, &quot;三年级&quot;, &quot;二班&quot;] = &quot;89&quot;;
+        ts[&quot;王朝&quot;, &quot;三年级&quot;, &quot;二班&quot;] = &quot;100&quot;;
+        ts[&quot;马汉&quot;, &quot;三年级&quot;, &quot;二班&quot;] = &quot;5&quot;;
+        ts[&quot;老王&quot;, &quot;三年级&quot;, &quot;二班&quot;] = &quot;&quot;;
+        Console.WriteLine(&quot;查看存入的数据：&quot;);
+        Console.WriteLine($&quot;共存入了：{ts.ArrList.Count}组数据&quot;);
+        Console.WriteLine();
+        //不使用索引器，直接访问实例中的容器
+
+        foreach (Student s in ts.ArrList)
+        {
+            Console.WriteLine(s.ToString());
+        }
+        Console.WriteLine();
+
+        Console.WriteLine(ts[&quot;张三&quot;, &quot;三年级&quot;, &quot;二班&quot;]);
+        Console.WriteLine(ts[&quot;李四&quot;, &quot;三年级&quot;, &quot;二班&quot;]);
+        Console.WriteLine(ts[&quot;王二&quot;, &quot;三年级&quot;, &quot;二班&quot;]);
+        Console.WriteLine(ts[&quot;麻子&quot;, &quot;三年级&quot;, &quot;二班&quot;]);
+        Console.WriteLine(ts[&quot;王朝&quot;, &quot;三年级&quot;, &quot;二班&quot;]);
+        Console.WriteLine(ts[&quot;马汉&quot;, &quot;三年级&quot;, &quot;二班&quot;]);
+        Console.WriteLine(ts[&quot;老王&quot;, &quot;三年级&quot;, &quot;二班&quot;]);
+        Console.ReadLine();
+
+    }
+}
+</code></pre>
+<p><img src="./images/C# 索引器的理解和使用1.png" /></p>
+<p>    同时二维数组中多个参数的实现方式，同样也支持二维数组</p>
+<pre><code><code>public string[,] sampleStrArr = new string[10,10];
+public string this[int x,int y]
+{
+    get { return sampleStrArr[x, y]; }
+    set { sampleStrArr[x, y] = value; }
+}
+
+public static void test()
+{
+    SampleIndxer it = new SampleIndxer();
+    it[0, 0] = &quot;测试数据0,0&quot;;
+    it[0, 1] = &quot;测试数据0,1&quot;;
+    it[1, 1] = &quot;测试数据1,1&quot;;
+    it[1, 2] = &quot;测试数据1,2&quot;;
+    it[3, 3] = &quot;测试数据3,3&quot;;
+
+    Console.WriteLine(&quot;it[0,0]:&quot; + it[0, 0]);
+    Console.WriteLine(&quot;it[0,1]:&quot; + it[0, 1]);
+    Console.WriteLine(&quot;it[1,1]:&quot; + it[1, 1]);
+    Console.WriteLine(&quot;it[1,2]:&quot; + it[1, 2]);
+    Console.WriteLine(&quot;it[3,3]:&quot; + it[3, 3]);
+
+    Console.ReadLine();
+}</code></pre>
+<h2 id="索引器的重载">索引器的重载</h2>
+<p>    前面说过，索引器相当于一个方法，他们同样都支持重载。与方法不同的是，索引器没有独立的名称，只能通过返回值的不同和参数的不同来区分不同的签名，从而实现重载。</p>
+<pre><code><code>class VariableLengthIndexer
+{
+    private Dictionary&lt;string, int&gt; dic = new Dictionary&lt;string, int&gt;();
+
+    //通过Key，查找Value
+    public int this[string s]
+    {
+        get { return dic[s]; }
+    }
+    //通过Value查找Key
+    public string this[int num]
+    {
+        get { return dic.Where(x =&gt; x.Value == num).Last().Key; }
+    }
+    //通过Value查找Key，添加无效参数num1演示重载
+    public string this[int num, int num1]
+    {
+        get { return dic.Where(x =&gt; x.Value == num).Last().Key; }
+    }
+
+    public void Add(string key, int value)
+    {
+        if (dic.ContainsKey(key))
+        {
+            dic[key] = value;
+        }
+        else
+        {
+            dic.Add(key, value);
+        }
+    }
+}
+class Test
+{
+    public static void test()
+    {
+        //泛型索引器测试
+        VariableLengthIndexer it = new VariableLengthIndexer();
+        it.Add(&quot;测试数据1&quot;, 1);
+        it.Add(&quot;测试数据2&quot;, 2);
+        it.Add(&quot;测试数据3&quot;, 3);
+        it.Add(&quot;测试数据4&quot;, 4);
+        //通过Key查找Value
+        Console.WriteLine(&quot;通过Key查找Value&quot;);
+        Console.WriteLine(&quot;Key:测试数据1,Value:&quot; + it[&quot;测试数据1&quot;]);
+        Console.WriteLine(&quot;Key:测试数据2,Value:&quot; + it[&quot;测试数据2&quot;]);
+        Console.WriteLine(&quot;Key:测试数据3,Value:&quot; + it[&quot;测试数据3&quot;]);
+        Console.WriteLine(&quot;Key:测试数据4,Value:&quot; + it[&quot;测试数据4&quot;]);
+        //通过Value查找Key
+        Console.WriteLine(&quot;通过Value查找Key&quot;);
+        Console.WriteLine(&quot;Value:1,Key:&quot; + it[1]);
+        Console.WriteLine(&quot;Value:2,Key:&quot; + it[2]);
+        Console.WriteLine(&quot;Value:3,Key:&quot; + it[3]);
+        Console.WriteLine(&quot;Value:4,Key:&quot; + it[4]);
+        //通过Value查找Key，并添加无效参数传入
+        Console.WriteLine(&quot;通过Value查找Key，并添加无效参数传入&quot;);
+        Console.WriteLine(&quot;Value:1,Key:&quot; + it[1, 1]);
+        Console.WriteLine(&quot;Value:2,Key:&quot; + it[2, 2]);
+        Console.WriteLine(&quot;Value:3,Key:&quot; + it[3, 3]);
+        Console.WriteLine(&quot;Value:4,Key:&quot; + it[4, 4]);
+
+        Console.ReadLine();
+    }
+}</code></pre>
+<p><img src="./images/C# 索引器的理解和使用2.png" /></p>
+<p>参考文献：</p>
+<p>1 <a href="https://www.cnblogs.com/daimajun/p/6819081.html">C# 中常用的索引器 https://www.cnblogs.com/daimajun/p/6819081.html</a></p>
+<p>2 <a href="https://docs.microsoft.com/zh-cn/dotnet/csharp/programming-guide/indexers/">索引器（C# 编程指南）https://docs.microsoft.com/zh-cn/dotnet/csharp/programming-guide/indexers/</a></p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,275 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修基于华为物联网IOT的应用开发 --- 基于.net 的SDK封装' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>基于华为物联网IOT的应用开发 --- 基于.net 的SDK封装</center></div><div class='banquan'>原文出处:本文由博客园博主伍华聪提供。<br/>
+原文连接:https://www.cnblogs.com/wuhuacong/p/11726446.html</div><br>
+    <p>最近，物联网的概念比较热门，一大批厂商抢着占领物联网的高低，包括有华为物联网、阿里云物联网、腾讯物联网、AWS物联网等等，无法一一列举，一般物联网包含设备侧开发、平台侧开发、应用侧开发，三个部分构成了线上线下的完整连接，和我们常规的微信应用、钉钉应用等不同，物联网的终端是由各种各样的设备组合而成，这些设备通过各种不同的协议（如CoAP，LWM2M、MQTT）连接到IOT的平台，而且这些设备是低能耗的设备，可以实时的发送数据上来，也可以接受来自IOT平台下发的各种操作指令。本篇随笔主要介绍基于华为物联网IOT的应用开发，实现对.net SDK的封装，方便后期进行应用集成使用。</p>
+<h3>1、物联网的相关介绍</h3>
+<p>物联网其实有点类似我们以前做的一些行业设备的接入，不过它相对比较通用化一些，可以连接各种各样的类型设备，而且更加安全、低能耗等，我们以前接入很多设备，可能需要走TCP/UDP协议，然后在后台服务器有一个对这些设备管理的一个Socket服务器，不过和物联网对比，这些都被彻底改造过了，以便适应更多的 应用场景，更简化的开发，以及支持更强大的功能吧。</p>
+<p>物联网目前可以针对一些传感器采集一些特定的参数，如光感、温度、湿度、压力、电压、电流等常规的信息，也可以扩展实现语音、图像、视频等方面的采集处理，如经典的智慧路灯应用场景。</p>
+<p>下面是其中的一个应用的架构设计，主要就是针对这些设备管理，物联网还提供了很多完善的应用API接口，使得我们可以更加简化对设备的管理（不用架设Socket服务），更加方便的通过API获取相应的信息，节省更多的维护成本。</p>
+<p><img src="./images/基于华为物联网IOT的应用开发 --- 基于.net 的SDK封装0.png" alt="" width="343" height="353" /></p>
+<p>&nbsp;</p>
+<p id="p-z2a-6k9-ugo" class="p">物联网平台支持海量设备连接上云，设备与云端可以实现稳定可靠地双向通信。</p>
+<ul id="ul-vr1-2y4-tdb" class="ul">
+<li id="li-svg-eg4-ebl" class="li">提供设备端SDK、驱动、软件包等帮助不同设备、网关轻松接入物联网云。</li>
+<li id="li-nrq-3nv-3lx" class="li">提供2G/ 3G /4G、NB-IoT、LoRa、WiFi等不同网络设备接入方案，解决企业异构网络设备接入管理痛点。</li>
+<li id="li-gdp-yk2-khr" class="li">提供MQTT、CoAP、HTTP/S等多种协议的设备端SDK，既满足长连接的实时性需求，也满足短连接的低功耗需求。</li>
+<li id="li-jbj-i3x-7b7" class="li">开源多种平台设备端代码，提供跨平台移植指导，赋能企业基于多种平台做设备接入。</li>
+</ul>
+<p>一般的物联网平台，都会包括产品管理、设备管理、设备组管理、规则引擎管理、消息推送和消息订阅、任务管理、设备升级等等，不同的物联网云平台有所不同。</p>
+<p>&nbsp;</p>
+<p>物联网的几个相关的协议：</p>
+<p>MQTT（Message Queue Telemetry Transport）</p>
+<p>MQTT是一个物联网传输协议，被设计用于轻量级的发布/订阅式消息传输，旨在为低带宽和不稳定的网络环境中的物联网设备提供可靠的网络服务。</p>
+<p>MQTTS指MQTT+SSL/TLS，在MQTTS中使用SSL/TLS协议进行加密传输。</p>
+<p>&nbsp;</p>
+<p>CoAP（Constrained Application Protocol）</p>
+<p>受约束的应用协议（CoAP）是一种软件协议，旨在使非常简单的电子设备能够在互联网上进行交互式通信。</p>
+<p>CoAPS指CoAP over DTLS，在CoAPS中使用DTLS协议进行加密传输。</p>
+<p>&nbsp;</p>
+<p>LWM2M（lightweight Machine to Machine）</p>
+<p>LWM2M是由OMA（Open Mobile Alliance)定义的物联网协议，主要使用在资源受限(包括存储、功耗等)的NB-IoT终端</p>
+<p>&nbsp;</p>
+<h3>2、应用侧开发接口</h3>
+<p>应用侧的开发接口一般云平台都会提供不同平台的SDK，如阿里云开源提供Java SDK/C# SDK等；而华为则提供了Java、PHP等SDK，没有包含.net 的SDK。</p>
+<p>阿里物联网云的应用侧API接口包括：</p>
+<p><img src="./images/基于华为物联网IOT的应用开发 --- 基于.net 的SDK封装1.png" alt="" width="152" height="338" /></p>
+<p>&nbsp;华为物联网云的应用侧API接口包括：</p>
+<p><img src="./images/基于华为物联网IOT的应用开发 --- 基于.net 的SDK封装2.png" alt="" width="181" height="396" /></p>
+<p><img src="./images/基于华为物联网IOT的应用开发 --- 基于.net 的SDK封装3.png" alt="" width="950" height="449" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;本篇主要介绍最基础的物联网SDK的包装，以方便后续的应用开发集成。本篇随笔也主要是基于华为应用侧API的封装，使用C#语言实现对.net SDK的全部封装处理。</p>
+<p>&nbsp;针对上面的接口分类，我们定义不同的接口类来处理它们。</p>
+<p><img src="./images/基于华为物联网IOT的应用开发 --- 基于.net 的SDK封装4.png" alt="" /></p>
+<p>基本上所有API访问都先需要通过鉴权接口获取访问的token，鉴权接口定义如下所示。</p>
+<p><img src="./images/基于华为物联网IOT的应用开发 --- 基于.net 的SDK封装5.png" alt="" width="380" height="407" /></p>
+<p>而且华为的API接口，需要使用X509证书处理的，我们可以通过在官网下载对应的X509证书进行集成测试API。</p>
+<p>为了实现对API进行的.net SDK封装，我们定义一些系统常见变量，方便在接口中使用。</p>
+<p><img src="./images/基于华为物联网IOT的应用开发 --- 基于.net 的SDK封装6.png" alt="" width="676" height="475" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;根据鉴权返回的结果，我们定义一个对应的实体类来存储这些属性信息，如下所示。</p>
+<div class="cnblogs_code">
+<pre><code>    <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+    <span style="color: #808080;">///</span><span style="color: #008000;"> 鉴权结果
+    </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> AuthenticationResult : BaseJsonResult
+    {
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 申请权限范围，即accessToken所能访问物联网平台资源的范围，参数值固定为default。
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> scope { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> accessToken的类型，参数值固定为Bearer 。
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> tokenType { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> accessToken的有效时间，参数值固定为3600秒
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span> expiresIn { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 鉴权参数，访问物联网平台API接口的凭证。
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> accessToken { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 鉴权参数，有效时间为1个月，用于&ldquo;刷新Token&rdquo;接口。
+        </span><span style="color: #808080;">///</span><span style="color: #008000;"> 当accessToken即将过期时，可通过&ldquo;刷新Token&rdquo;接口来获取新的accessToken。
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> refreshToken { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+    }</span></pre>
+</div>
+<p>然后根据鉴权定义，我们实现对这个接口的封装处理。</p>
+<div class="cnblogs_code">
+<pre><code>    <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+    <span style="color: #808080;">///</span><span style="color: #008000;"> IOT鉴权接口实现
+    </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> AuthenticationApi : IAuthenticationApi
+    {
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 用户鉴权
+        </span><span style="color: #808080;">///</span><span style="color: #008000;"> 应用服务器首次访问物联网平台的开放API时，需调用此接口完成接入认证；
+        </span><span style="color: #808080;">///</span><span style="color: #008000;"> 应用服务器在物联网平台的认证过期后，需调用此接口重新进行认证，才能继续访问物联网平台的开放API。
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span><span style="color: #000000;"> AuthenticationResult Authentication()
+        {
+            </span><span style="color: #0000ff;">string</span> postData = <span style="color: #0000ff;">string</span>.Format(<span style="color: #800000;">"</span><span style="color: #800000;">appId={0}&amp;secret={1}</span><span style="color: #800000;">"</span><span style="color: #000000;">, Constants.AppId, Constants.Secret);
+            </span><span style="color: #0000ff;">var</span> url = Constants.AppBaseUrl + <span style="color: #800000;">"</span><span style="color: #800000;">/iocm/app/sec/v1.1.0/login</span><span style="color: #800000;">"</span>;<span style="color: #008000;">//</span><span style="color: #008000;">名称大小写不能错</span>
+<span style="color: #000000;">
+            HttpHelper helper </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> HttpHelper();
+            helper.ContentType </span>= <span style="color: #800000;">"</span><span style="color: #800000;">application/x-www-form-urlencoded</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            helper.ClientCertificates </span>= <span style="color: #0000ff;">new</span> X509CertificateCollection() { <span style="color: #0000ff;">new</span><span style="color: #000000;"> X509Certificate2(Constants.CertFilePath, Constants.CertPassword) };
+
+            </span><span style="color: #0000ff;">string</span> content = helper.GetHtml(url, postData, <span style="color: #0000ff;">true</span><span style="color: #000000;">);
+            </span><span style="color: #0000ff;">var</span> result = JsonConvert.DeserializeObject&lt;AuthenticationResult&gt;<span style="color: #000000;">(content);
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> result;
+        }</span></pre>
+</div>
+<p>对于Token的刷新操作，封装也是类似操作</p>
+<div class="cnblogs_code">
+<pre><code>        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 刷新token。
+        </span><span style="color: #808080;">///</span><span style="color: #008000;"> 应用服务器通过鉴权接口获取到的accessToken是有有效时间的，在accessToken快过期时，
+        </span><span style="color: #808080;">///</span><span style="color: #008000;"> 应用服务器通过调用此接口，获取新的accessToken。
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="refreshToken"&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 刷新token，用来获取一个新的accessToken。refreshToken在调用鉴权接口或刷新token接口时获得。
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">public</span> AuthenticationResult RefreshToken(<span style="color: #0000ff;">string</span><span style="color: #000000;"> refreshToken)
+        {
+            </span><span style="color: #0000ff;">string</span> postData = <span style="color: #0000ff;">new</span><span style="color: #000000;">
+            {
+                appId </span>=<span style="color: #000000;"> Constants.AppId,
+                secret </span>=<span style="color: #000000;"> Constants.Secret,
+                refreshToken </span>=<span style="color: #000000;"> refreshToken
+            }.ToJson();
+            </span><span style="color: #0000ff;">var</span> url = Constants.AppBaseUrl + <span style="color: #800000;">"</span><span style="color: #800000;">/iocm/app/sec/v1.1.0/refreshToken</span><span style="color: #800000;">"</span>;<span style="color: #008000;">//</span><span style="color: #008000;">名称大小写不能错</span>
+
+            <span style="color: #0000ff;">var</span> result = WeJsonHelper&lt;AuthenticationResult&gt;<span style="color: #000000;">.ConvertJson(url, postData);
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> result;
+        }</span></pre>
+</div>
+<p>上面有些是为了方便操作，定义了一些公用类库，以减少代码的重复。</p>
+<p>一般除了鉴权外的所有的API，它们处理方式都类似的，都是以&nbsp;application/json 格式进行交互，使用POST、PUT、GET、Delete操作方式实现对数据的处理。</p>
+<p>而且它们都需要有固定的请求头信息，我们以设备注册为例进行介绍。</p>
+<p><img src="./images/基于华为物联网IOT的应用开发 --- 基于.net 的SDK封装7.png" alt="" width="593" height="408" /></p>
+<p>&nbsp;</p>
+<p>一般我们可以通过一个函数封装，对接口的头部请求信息进行设置，如下所示。</p>
+<div class="cnblogs_code">
+<pre><code>        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 通用获取头部信息
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="accessToken"&gt;</span><span style="color: #008000;">接口访问口令</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">protected</span> NameValueCollection GetHeader(<span style="color: #0000ff;">string</span><span style="color: #000000;"> accessToken)
+        {
+            </span><span style="color: #0000ff;">var</span> header = <span style="color: #0000ff;">new</span><span style="color: #000000;"> NameValueCollection();
+            header.Add(Constants.HEADER_APP_KEY, Constants.AppId);
+            header.Add(Constants.HEADER_APP_AUTH, </span><span style="color: #0000ff;">string</span>.Format(<span style="color: #800000;">"</span><span style="color: #800000;">Bearer {0}</span><span style="color: #800000;">"</span><span style="color: #000000;">, accessToken));
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> header;
+        }</span></pre>
+</div>
+<p>然后在定义请求的JSON和返回的JSON对应的实体类对象，封装对应的API接口即可。</p>
+<p>例如，我们注册设备的接口封装如下所示。</p>
+<div class="cnblogs_code">
+<pre><code>    <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+    <span style="color: #808080;">///</span><span style="color: #008000;"> 设备管理接口实现
+    </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> DeviceApi : BaseCommon, IDeviceApi
+    {
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 注册设备（验证码方式）。
+        </span><span style="color: #808080;">///</span><span style="color: #008000;"> 在设备接入物联网平台前，应用服务器需要调用此接口在物联网平台注册设备，并设置设备的唯一标识（如IMEI）。
+        </span><span style="color: #808080;">///</span><span style="color: #008000;"> 在设备接入物联网平台时携带设备唯一标识，完成设备的接入认证。
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="accessToken"&gt;&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="info"&gt;&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">public</span> RegDeviceResult RegisterDevice(<span style="color: #0000ff;">string</span><span style="color: #000000;"> accessToken, RegDeviceJson info)
+        {
+            </span><span style="color: #0000ff;">var</span> header =<span style="color: #000000;"> GetHeader(accessToken);
+
+            </span><span style="color: #0000ff;">string</span> postData =<span style="color: #000000;"> info.ToJson();
+            </span><span style="color: #0000ff;">var</span> url = Constants.AppBaseUrl + <span style="color: #800000;">"</span><span style="color: #800000;">/iocm/app/reg/v1.1.0/deviceCredentials</span><span style="color: #800000;">"</span>;<span style="color: #008000;">//</span><span style="color: #008000;">名称大小写不能错</span>
+            url += <span style="color: #0000ff;">string</span>.Format(<span style="color: #800000;">"</span><span style="color: #800000;">?appId={0}</span><span style="color: #800000;">"</span><span style="color: #000000;">, Constants.AppId);
+
+            </span><span style="color: #0000ff;">var</span> result = WeJsonHelper&lt;RegDeviceResult&gt;<span style="color: #000000;">.ConvertJson(url, postData, header);
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> result;
+        }
+......</span></pre>
+</div>
+<p>这里请求的信息是&nbsp;RegDeviceJson ， 返回信息的类是RegDeviceResult 。我们依照API定义，实现对应的处理即可。</p>
+<p>为了方便处理，我们可以把这些对应设备的实体类定义在一个文件里面，如DeviceJson.cs里面，如下所示，这样非常方便我们管理。</p>
+<p><img src="./images/基于华为物联网IOT的应用开发 --- 基于.net 的SDK封装8.png" alt="" width="813" height="571" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;其他业务范畴的Api也是如此封装，不在一一赘述。</p>
+<p>我们测试的时候，可以建立一个单独的Winform项目进行接口功能的测试，也可以自己编写单元测试代码进行测试，根据自己熟练程度选择吧。</p>
+<p>例如鉴权接口测试代码如下所示，我们可以看看输出进行判断是否正常工作。</p>
+<div class="cnblogs_code">
+<pre><code>        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> btnLogin_Click(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)
+        {
+            </span><span style="color: #0000ff;">var</span> result =<span style="color: #000000;"> basicApi.Authentication();
+            Console.WriteLine(result </span>!= <span style="color: #0000ff;">null</span> ? <span style="color: #800000;">"</span><span style="color: #800000;">accessToken:</span><span style="color: #800000;">"</span> + result.ToJson() : <span style="color: #800000;">"</span><span style="color: #800000;">获取结果出错</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+
+            </span><span style="color: #0000ff;">if</span> (result != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+            {
+                </span><span style="color: #0000ff;">var</span> refreshResult =<span style="color: #000000;"> basicApi.RefreshToken(result.refreshToken);
+
+                Console.WriteLine(refreshResult </span>!= <span style="color: #0000ff;">null</span> ? <span style="color: #800000;">"</span><span style="color: #800000;">accessToken:</span><span style="color: #800000;">"</span> + refreshResult.ToJson() : <span style="color: #800000;">"</span><span style="color: #800000;">获取结果出错</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                </span><span style="color: #0000ff;">this</span>.accessToken = refreshResult.accessToken;<span style="color: #008000;">//</span><span style="color: #008000;">记录待用</span>
+<span style="color: #000000;">            }
+        }</span></pre>
+</div>
+<p>设备注册的功能测试如下所示。</p>
+<div class="cnblogs_code">
+<pre><code>        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> btnRegDevice_Click(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)
+        {
+            </span><span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">string</span><span style="color: #000000;">.IsNullOrEmpty(accessToken))
+            {
+                MessageUtil.ShowTips(</span><span style="color: #800000;">"</span><span style="color: #800000;">请先鉴权获取AccessToken</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;">;
+            }
+
+            </span><span style="color: #0000ff;">var</span> deviceApi = <span style="color: #0000ff;">new</span><span style="color: #000000;"> DeviceApi();
+            </span><span style="color: #0000ff;">var</span> regDeviceInfo = <span style="color: #0000ff;">new</span><span style="color: #000000;"> RegDeviceJson()
+            {
+                endUserId </span>= <span style="color: #800000;">"</span><span style="color: #800000;">64bf5869-b271-4007-8db8-fab185e19c10</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+                nodeId </span>= <span style="color: #800000;">"</span><span style="color: #800000;">64bf5869-b271-4007-8db8-fab185e19c10</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+                psk </span>= <span style="color: #800000;">"</span><span style="color: #800000;">12345678</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+                timeout </span>= <span style="color: #800080;">0</span><span style="color: #000000;">,
+                verifyCode </span>= <span style="color: #800000;">""</span><span style="color: #000000;">,
+                deviceInfo </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> DeviceJson()
+                {
+                    deviceType </span>= <span style="color: #800000;">"</span><span style="color: #800000;">Smoke</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+                    manufacturerId </span>= <span style="color: #800000;">"</span><span style="color: #800000;">49ac78c99f3e453598c155870efe8bfc</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+                    manufacturerName </span>= <span style="color: #800000;">"</span><span style="color: #800000;">iqidi</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">与manufacturerId、manufacturerName、deviceType、model和protocolType系列参数二选一
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">productId = "5d9bf49b6a018f02d04cae28",</span>
+                    model = <span style="color: #800000;">"</span><span style="color: #800000;">1001</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+                    name </span>= <span style="color: #800000;">"</span><span style="color: #800000;">NBSimulator</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+                    imsi </span>= <span style="color: #800000;">"</span><span style="color: #800000;">fafafasfasf</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+                    mac </span>= <span style="color: #800000;">"</span><span style="color: #800000;">testetst</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+                    isSecurity </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">.ToString().ToUpper(),
+                    protocolType </span>= <span style="color: #800000;">"</span><span style="color: #800000;">LWM2M</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+                }
+            };
+
+            </span><span style="color: #0000ff;">var</span> regResult =<span style="color: #000000;"> deviceApi.RegisterDevice(accessToken, regDeviceInfo);
+            Console.WriteLine(regResult </span>!= <span style="color: #0000ff;">null</span> ? regResult.ToJson() : <span style="color: #800000;">"</span><span style="color: #800000;">no regResult</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+        }</span></pre>
+</div>
+<p>另外对于事件的通知，我们一般是在应用端被动的进行相应的处理，因此需要对它们的消息进行转换和处理。</p>
+<p><img src="./images/基于华为物联网IOT的应用开发 --- 基于.net 的SDK封装9.png" alt="" width="187" height="521" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;针对以上的消息通知，我们需要定义对应的消息类型，然后进行判断处理。</p>
+<p>我们另起一个项目，然后定义对应给的事件接收处理，如下所示是一个统一的入口处理。</p>
+<p><img src="./images/基于华为物联网IOT的应用开发 --- 基于.net 的SDK封装10.png" alt="" width="853" height="659" /></p>
+<p>&nbsp;</p>
+<p>有了一个总入口，我们把对应通知的信息转换为对应的实体后，就可以进行记录或者响应的处理了。</p>
+<p>在后面我们接着开发应用功能的时候，这些对应的接口API就可以集成整合在我们的系统中了。</p>
+<p>&nbsp;</p>
+<p>&nbsp;以上就是对于华为物联网IOT平台应用侧的API封装处理的思路， 供大家参考交流。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

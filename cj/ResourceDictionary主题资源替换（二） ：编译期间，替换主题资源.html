@@ -1,0 +1,83 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修ResourceDictionary主题资源替换（二） ：编译期间，替换主题资源' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>ResourceDictionary主题资源替换（二） ：编译期间，替换主题资源</center></div><div class='banquan'>原文出处:本文由博客园博主唐宋元明清2188提供。<br/>
+原文连接:https://www.cnblogs.com/kybs0/p/10731416.html</div><br>
+    <p>之前的<a href="https://www.cnblogs.com/kybs0/p/10675462.html" target="_blank">ResourceDictionary主题资源替换（一）通过加载顺序来覆盖之前的主题资源</a>，介绍了WPF框架对ResourceDictionary资源的合并规则。</p>
+<p>&nbsp;此篇介绍一种在编译期间，实现资源替换的方案</p>
+<h3>前言</h3>
+<p>如下图，项目中存在俩个主题资源字典，我们想通过配置一键修改项目的主题。</p>
+<p><img src="./images/ResourceDictionary主题资源替换（二） ：编译期间，替换主题资源0.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;<img src="./images/ResourceDictionary主题资源替换（二） ：编译期间，替换主题资源1.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;首先，我们默认使用的是灰色主题</p>
+<p><img src="./images/ResourceDictionary主题资源替换（二） ：编译期间，替换主题资源2.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;<img src="./images/ResourceDictionary主题资源替换（二） ：编译期间，替换主题资源3.png" alt="" /></p>
+<h3>添加项目属性文件</h3>
+<p>新建文件Themes.props（主题设置），</p>
+<p><img src="./images/ResourceDictionary主题资源替换（二） ：编译期间，替换主题资源4.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>并添加当前主题版本：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">Project</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">2</span>   <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">PropertyGroup</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">3</span>     <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">Theme</span><span style="color: #0000ff;">&gt;</span>Theme-Red<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">Theme</span><span style="color: #0000ff;">&gt;</span>  
+<span style="color: #008080;">4</span>   <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">PropertyGroup</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">5</span> <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">Project</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<p>如上，切换当前版本为红色主题</p>
+<h3>修改项目csproject</h3>
+<p>引入主题配置文件：</p>
+<div class="cnblogs_code">
+<pre><code>  <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">Import </span><span style="color: #ff0000;">Project</span><span style="color: #0000ff;">="..\Themes.props"</span><span style="color: #ff0000;"> Condition</span><span style="color: #0000ff;">="Exists('..\Themes.props')"</span> <span style="color: #0000ff;">/&gt;</span></pre>
+</div>
+<p>添加资源替换：</p>
+<p>在编译前，判断当前主题，如果为红色主题，则替换；</p>
+<ul>
+<li>将项目中的文件Theme-Normal.xaml、Theme-Red.xaml全部删除（如果Theme-Red.xaml没有添加到项目中，是以本地文件存在，则不需要此删除步骤）</li>
+<li>将Theme-Red.xaml伪装为，当前程序资源中的Theme-Normal.xaml</li>
+</ul>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span>   <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">Target </span><span style="color: #ff0000;">Name</span><span style="color: #0000ff;">="ReplaceTheme"</span><span style="color: #ff0000;"> BeforeTargets</span><span style="color: #0000ff;">="BeforeBuild"</span><span style="color: #ff0000;"> Condition</span><span style="color: #0000ff;">="'$(Theme)' == 'Theme-Red'"</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;"> 2</span>     <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">ItemGroup</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;"> 3</span>       <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">Page </span><span style="color: #ff0000;">Remove</span><span style="color: #0000ff;">="Theme-Normal.xaml"</span> <span style="color: #0000ff;">/&gt;</span>
+<span style="color: #008080;"> 4</span>       <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">Page </span><span style="color: #ff0000;">Remove</span><span style="color: #0000ff;">="Theme-Red.xaml"</span> <span style="color: #0000ff;">/&gt;</span>
+<span style="color: #008080;"> 5</span>       <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">Page </span><span style="color: #ff0000;">Include</span><span style="color: #0000ff;">="Theme-Red.xaml"</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;"> 6</span>         <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">Generator</span><span style="color: #0000ff;">&gt;</span>MSBuild:Compile<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">Generator</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;"> 7</span>         <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">Link</span><span style="color: #0000ff;">&gt;</span>Theme-Normal.xaml<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">Link</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;"> 8</span>       <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">Page</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;"> 9</span>     <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">ItemGroup</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">10</span>   <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">Target</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>替换后的主题色：</p>
+<p>&nbsp;<img src="./images/ResourceDictionary主题资源替换（二） ：编译期间，替换主题资源5.png" alt="" /></p>
+<p>&nbsp;</p>
+<h3>需要注意的坑</h3>
+<p>此方案，需要资源字典中的键值匹配对应，如果缺失了某个样式等资源，后续可能会有意想不到的异常哦~</p>
+<p>如何规避？</p>
+<p>可以下载资源字典修复工具，Github地址：<span class="path-divider"><strong><a href="https://github.com/Kybs0/ResourceIntegrityCheck" data-pjax="#js-repo-pjax-container">ResourceIntegrityCheck</a></strong></span></p>
+<p><img src="./images/ResourceDictionary主题资源替换（二） ：编译期间，替换主题资源6.png" alt="" /></p>
+<p>&nbsp;工具会将缺失的资源，从另一份资源字典中复制到此资源文件中。所以修复完成，提交代码前可以确认下，资源是否匹配当前主题。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

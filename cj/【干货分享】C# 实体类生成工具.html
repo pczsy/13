@@ -1,0 +1,119 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修【干货分享】C# 实体类生成工具' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>【干货分享】C# 实体类生成工具</center></div><div class='banquan'>原文出处:本文由博客园博主艾三元提供。<br/>
+原文连接:https://www.cnblogs.com/i3yuan/p/11070840.html</div><br>
+    <p><span style="color: #2d94de; font-size: 18pt;">前言</span>：</p>
+<p>&nbsp; 项目实战中不论是业务编码还是通用编码，总会归纳出一些通用的工具类。放入项目中一劳永逸，让兄弟姐妹们避免编写重复代码。所以利用了工作之余的时间，将这些散落在多个项目中精致优雅的工具类，归纳起来形成工程，方便后续工作的使用和便捷开发。</p>
+<p>根据实际需求，编写了此工具。目前只支持SQLServer数据库，不过我自己有时间也会完成其他数据库支持的，有兴趣的读者可以继续扩展支持其他数据库。</p>
+<p><span style="font-size: 18pt; color: #2d94de;">功能</span>：</p>
+<p><span style="font-size: 14pt;">1</span>、<span style="font-family: 楷体; font-size: 14pt;">能自动获得用户数据库中的所有数据表；</span><br /><span style="font-size: 14pt;">2</span>、<span style="font-family: 楷体; font-size: 14pt;">能根据用户所选的数据表，自动生成实体类</span>；<br /><span style="font-size: 14pt;">3</span>、<span style="font-family: 楷体; font-size: 14pt;">能自动产生 C# 实体类的(*.cs)代码文件；</span></p>
+<p><span style="font-size: 18pt; color: #2d94de;">实体工具</span>：</p>
+<p><span style="font-family: 楷体; font-size: 14pt;">一、界面截图：</span></p>
+<p><img src="./images/【干货分享】C# 实体类生成工具0.png" alt="" width="770" height="633" /></p>
+<p><span style="font-family: 楷体; font-size: 14pt;">二、SQL语句部分代码</span><strong><br /></strong></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">--</span><span style="color: #008080;">--1. 获取所有的数据库名-----</span>
+<span style="color: #0000ff;">SELECT</span> NAME <span style="color: #0000ff;">FROM</span> MASTER.DBO.SYSDATABASES <span style="color: #0000ff;">ORDER</span> <span style="color: #0000ff;">BY</span><span style="color: #000000;"> NAME
+
+</span><span style="color: #008080;">--</span><span style="color: #008080;">---2. 获取所有的表名------</span>
+<span style="color: #0000ff;">SELECT</span> NAME <span style="color: #0000ff;">FROM</span> SYSOBJECTS <span style="color: #0000ff;">WHERE</span> XTYPE<span style="color: #808080;">=</span><span style="color: #ff0000;">'</span><span style="color: #ff0000;">U</span><span style="color: #ff0000;">'</span> <span style="color: #0000ff;">ORDER</span> <span style="color: #0000ff;">BY</span><span style="color: #000000;"> NAME
+</span><span style="color: #008080;">--</span><span style="color: #008080;">XTYPE='U':表示所有用户表;</span><span style="color: #008080;">
+--</span><span style="color: #008080;">XTYPE='S':表示所有系统表;</span>
+<span style="color: #0000ff;">SELECT</span> NAME <span style="color: #0000ff;">FROM</span> SYSOBJECTS <span style="color: #0000ff;">WHERE</span> TYPE <span style="color: #808080;">=</span> <span style="color: #ff0000;">'</span><span style="color: #ff0000;">U</span><span style="color: #ff0000;">'</span> <span style="color: #808080;">AND</span> SYSSTAT <span style="color: #808080;">=</span> <span style="color: #ff0000;">'</span><span style="color: #ff0000;">83</span><span style="color: #ff0000;">'</span>
+<span style="color: #008080;">--</span><span style="color: #008080;">--注意：一般情况只需要TYPE = 'U'，但有时候会有系统表混在其中（不知道什么原因），加上后面一句后就能删除这些系统表了。</span><span style="color: #008080;"><br /></span></pre>
+</div>
+<p><span style="font-family: 楷体; font-size: 14pt;">三、C#部分代码</span></p>
+<div class="cnblogs_code">
+<pre><code>        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 获取所有数据库
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="connection"&gt;&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> List&lt;DbTable&gt; GetAllDataBaseName(<span style="color: #0000ff;">string</span><span style="color: #000000;"> connection)
+        {
+            List</span>&lt;DbTable&gt; dic = <span style="color: #0000ff;">new</span> List&lt;DbTable&gt;<span style="color: #000000;">();
+            </span><span style="color: #0000ff;">string</span> ConnString = <span style="color: #800000;">"</span><span style="color: #800000;">select name from Master.sys.SysDatabases order by name</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            SqlConnection connect </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> SqlConnection(connection);
+            SqlCommand cmd </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> SqlCommand(ConnString, connect);
+            </span><span style="color: #0000ff;">try</span><span style="color: #000000;">
+            {
+                </span><span style="color: #0000ff;">if</span> (connect.State ==<span style="color: #000000;"> ConnectionState.Closed)
+                {
+                    connect.Open();
+                    IDataReader dr </span>=<span style="color: #000000;"> cmd.ExecuteReader();
+                    dic.Clear();
+                    </span><span style="color: #0000ff;">while</span><span style="color: #000000;"> (dr.Read())
+                    {
+                        dic.Add(</span><span style="color: #0000ff;">new</span> DbTable { value = dr[<span style="color: #800000;">"</span><span style="color: #800000;">name</span><span style="color: #800000;">"</span>].ToString(), key = dr[<span style="color: #800000;">"</span><span style="color: #800000;">name</span><span style="color: #800000;">"</span><span style="color: #000000;">].ToString() });
+                    }
+                    dr.Close();
+
+                }
+            }
+            </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception ex)
+            {
+                 </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> AggregateException(<span style="color: #800000;">"</span><span style="color: #800000;">获得数据库地址错误，你想上天吗？</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            }
+            </span><span style="color: #0000ff;">finally</span><span style="color: #000000;">
+            {
+                </span><span style="color: #0000ff;">if</span> (connect != <span style="color: #0000ff;">null</span> &amp;&amp; connect.State ==<span style="color: #000000;"> ConnectionState.Open)
+                {
+                    connect.Dispose();
+                }
+            }
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> dic;
+        }</span></pre>
+</div>
+<div class="cnblogs_code">
+<pre><code>        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 写文件
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="fileName"&gt;</span><span style="color: #008000;">文件完整路径</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="content"&gt;</span><span style="color: #008000;">内容</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> WriteAndSave(<span style="color: #0000ff;">string</span> fileName, <span style="color: #0000ff;">string</span><span style="color: #000000;"> content)
+        {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">实例化一个文件流---&gt;与写入文件相关联</span>
+            <span style="color: #0000ff;">using</span> (<span style="color: #0000ff;">var</span> fs = <span style="color: #0000ff;">new</span><span style="color: #000000;"> FileStream(fileName, FileMode.Create, FileAccess.Write))
+            {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">实例化一个StreamWriter--&gt;与fs相关联</span>
+                <span style="color: #0000ff;">using</span> (<span style="color: #0000ff;">var</span> sw = <span style="color: #0000ff;">new</span><span style="color: #000000;"> StreamWriter(fs))
+                {
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">开始写入</span>
+<span style="color: #000000;">                    sw.Write(content);
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">清空缓冲区</span>
+<span style="color: #000000;">                    sw.Flush();
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">关闭流</span>
+<span style="color: #000000;">                    sw.Close();
+                    fs.Close();
+                }
+            }
+        }</span></pre>
+</div>
+<p><span style="color: #2d94de;"><span style="font-size: 18pt;">工具下载</span>：</span></p>
+<p><a title="C#实体类工具" href="https://files-cdn.cnblogs.com/files/i3yuan/CodeTool.rar" target="_blank"><strong>实体类生成工具[下载]</strong></a></p>
+<p><span style="color: #2d94de; font-size: 18pt;">总结</span><strong>：</strong></p>
+<p>1.避免编写重复代码，编写此工具生成实体类快速开发。</p>
+<p>2.这类工具在网上已有不少，但是自己可以归纳起来形成工程，放入项目中，不仅自己从中可以学到新的知识也同时提升了自己的总结归纳能力。</p>
+<p>3.此工具还未完善，只支持SQLServer数据库，不过我自己有时间也会完成其他数据库支持的，有兴趣的读者可以继续扩展支持其他数据库。</p>
+<p>4.如果有不对的或不理解的地方，希望大家可以多多指正，提出问题，才能站在更多用户角度，编写了出更便捷实用的工具。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,389 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修NPOI 导出 excel 性能测试' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>NPOI 导出 excel 性能测试</center></div><div class='banquan'>原文出处:本文由博客园博主WeihanLi提供。<br/>
+原文连接:https://www.cnblogs.com/weihanli/p/npoi-export-perf-test.html</div><br>
+    <h1 id="npoi-导出-excel-性能测试">NPOI 导出 excel 性能测试</h1>
+<h2 id="intro">Intro</h2>
+<p>网上看到很多人说 NPOI 的性能不行，自己写了一个 NPOI 的扩展库，于是想尝试看看 NPOI 的性能究竟怎么样，道听途说始终不如自己动手一试。</p>
+<h2 id="测试环境">测试环境</h2>
+<p>测试工具：</p>
+<ul>
+<li>BenchmarkDotNet v0.11.5</li>
+<li>EPPlus.Core.Extensions v2.3.2</li>
+<li>EPPlus v4.5.3.1</li>
+<li>NPOI 2.4.1</li>
+</ul>
+<p>测试代码：（<a href="https://github.com/WeihanLi/WeihanLi.Npoi/blob/dev/perf/WeihanLi.Npoi.Benchmark/WorkbookBasicTest.cs">Github 源码</a>）</p>
+<pre><code><code>[SimpleJob(launchCount: 1, warmupCount: 1, targetCount: 5)]
+[MemoryDiagnoser]
+[MinColumn, MaxColumn, MeanColumn, MedianColumn]
+public class WorkbookBasicTest
+{
+    private const int ColsCount = 10;
+
+    [Params(10000, 30000, 50000, 65535)]
+    public int RowsCount;
+
+    [Benchmark(Baseline = true)]
+    public byte[] NpoiXlsWorkbookInit()
+    {
+        var workbook = ExcelHelper.PrepareWorkbook(ExcelFormat.Xls);
+
+        var sheet = workbook.CreateSheet(&quot;tempSheet&quot;);
+
+        for (var i = 0; i &lt; RowsCount; i++)
+        {
+            var row = sheet.CreateRow(i);
+            for (var j = 0; j &lt; ColsCount; j++)
+            {
+                var cell = row.CreateCell(j);
+                cell.SetCellValue($&quot;as ({i}, {j}) sa&quot;);
+            }
+        }
+
+        return workbook.ToExcelBytes();
+    }
+
+    [Benchmark]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public byte[] NpoiXlsxWorkbookInit()
+    {
+        var workbook = ExcelHelper.PrepareWorkbook(ExcelFormat.Xlsx);
+
+        var sheet = workbook.CreateSheet(&quot;tempSheet&quot;);
+
+        for (var i = 0; i &lt; RowsCount; i++)
+        {
+            var row = sheet.CreateRow(i);
+            for (var j = 0; j &lt; ColsCount; j++)
+            {
+                var cell = row.CreateCell(j);
+                cell.SetCellValue($&quot;as ({i}, {j}) sa&quot;);
+            }
+        }
+
+        return workbook.ToExcelBytes();
+    }
+
+    [Benchmark]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public byte[] EpplusWorkbookInit()
+    {
+        var excel = new ExcelPackage();
+
+        var sheet = excel.Workbook.Worksheets.Add(&quot;tempSheet&quot;);
+
+        for (var i = 1; i &lt;= RowsCount; i++)
+        {
+            for (var j = 1; j &lt;= ColsCount; j++)
+            {
+                sheet.Cells[i, j].Value = $&quot;as ({i}, {j}) sa&quot;;
+            }
+        }
+
+        return excel.GetAsByteArray();
+    }
+}</code></pre>
+<h2 id="测试结果">测试结果</h2>
+<p>在 Github 上查看结果 <a href="https://github.com/WeihanLi/WeihanLi.Npoi/blob/dev/perf/WeihanLi.Npoi.Benchmark/BenchmarkDotNet.Artifacts/results/WeihanLi.Npoi.Benchmark.WorkbookBasicTest-report-github.md" class="uri">https://github.com/WeihanLi/WeihanLi.Npoi/blob/dev/perf/WeihanLi.Npoi.Benchmark/BenchmarkDotNet.Artifacts/results/WeihanLi.Npoi.Benchmark.WorkbookBasicTest-report-github.md</a></p>
+<pre class="ini"><code>
+BenchmarkDotNet=v0.11.5, OS=Windows 10.0.18362
+Intel Core i5-3470 CPU 3.20GHz (Ivy Bridge), 1 CPU, 4 logical and 4 physical cores
+.NET Core SDK=3.0.100
+  [Host]     : .NET Core 2.2.6 (CoreCLR 4.6.27817.03, CoreFX 4.6.27818.02), 64bit RyuJIT
+  Job-CBYTBY : .NET Core 2.2.6 (CoreCLR 4.6.27817.03, CoreFX 4.6.27818.02), 64bit RyuJIT
+
+IterationCount=5  LaunchCount=1  WarmupCount=1  
+</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th>Method</th>
+<th>RowsCount</th>
+<th style="text-align: right;">Mean</th>
+<th style="text-align: right;">Error</th>
+<th style="text-align: right;">StdDev</th>
+<th style="text-align: right;">Min</th>
+<th style="text-align: right;">Max</th>
+<th style="text-align: right;">Median</th>
+<th style="text-align: right;">Ratio</th>
+<th style="text-align: right;">RatioSD</th>
+<th style="text-align: right;">Gen 0</th>
+<th style="text-align: right;">Gen 1</th>
+<th style="text-align: right;">Gen 2</th>
+<th style="text-align: right;">Allocated</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>NpoiXlsWorkbookInit</strong></td>
+<td><strong>10000</strong></td>
+<td style="text-align: right;"><strong>324.7 ms</strong></td>
+<td style="text-align: right;"><strong>1.583 ms</strong></td>
+<td style="text-align: right;"><strong>0.4110 ms</strong></td>
+<td style="text-align: right;"><strong>324.3 ms</strong></td>
+<td style="text-align: right;"><strong>325.4 ms</strong></td>
+<td style="text-align: right;"><strong>324.6 ms</strong></td>
+<td style="text-align: right;"><strong>1.00</strong></td>
+<td style="text-align: right;"><strong>0.00</strong></td>
+<td style="text-align: right;"><strong>10000.0000</strong></td>
+<td style="text-align: right;"><strong>5000.0000</strong></td>
+<td style="text-align: right;"><strong>2000.0000</strong></td>
+<td style="text-align: right;"><strong>78.6 MB</strong></td>
+</tr>
+<tr class="even">
+<td>NpoiXlsxWorkbookInit</td>
+<td>10000</td>
+<td style="text-align: right;">1,369.0 ms</td>
+<td style="text-align: right;">73.747 ms</td>
+<td style="text-align: right;">19.1517 ms</td>
+<td style="text-align: right;">1,341.3 ms</td>
+<td style="text-align: right;">1,384.4 ms</td>
+<td style="text-align: right;">1,381.1 ms</td>
+<td style="text-align: right;">4.22</td>
+<td style="text-align: right;">0.06</td>
+<td style="text-align: right;">57000.0000</td>
+<td style="text-align: right;">14000.0000</td>
+<td style="text-align: right;">4000.0000</td>
+<td style="text-align: right;">306.45 MB</td>
+</tr>
+<tr class="odd">
+<td>EpplusWorkbookInit</td>
+<td>10000</td>
+<td style="text-align: right;">552.9 ms</td>
+<td style="text-align: right;">12.740 ms</td>
+<td style="text-align: right;">3.3085 ms</td>
+<td style="text-align: right;">549.7 ms</td>
+<td style="text-align: right;">557.7 ms</td>
+<td style="text-align: right;">552.4 ms</td>
+<td style="text-align: right;">1.70</td>
+<td style="text-align: right;">0.01</td>
+<td style="text-align: right;">18000.0000</td>
+<td style="text-align: right;">7000.0000</td>
+<td style="text-align: right;">3000.0000</td>
+<td style="text-align: right;">121.05 MB</td>
+</tr>
+<tr class="even">
+<td></td>
+<td></td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+</tr>
+<tr class="odd">
+<td><strong>NpoiXlsWorkbookInit</strong></td>
+<td><strong>30000</strong></td>
+<td style="text-align: right;"><strong>1,222.4 ms</strong></td>
+<td style="text-align: right;"><strong>33.717 ms</strong></td>
+<td style="text-align: right;"><strong>8.7562 ms</strong></td>
+<td style="text-align: right;"><strong>1,209.0 ms</strong></td>
+<td style="text-align: right;"><strong>1,233.1 ms</strong></td>
+<td style="text-align: right;"><strong>1,222.5 ms</strong></td>
+<td style="text-align: right;"><strong>1.00</strong></td>
+<td style="text-align: right;"><strong>0.00</strong></td>
+<td style="text-align: right;"><strong>29000.0000</strong></td>
+<td style="text-align: right;"><strong>11000.0000</strong></td>
+<td style="text-align: right;"><strong>3000.0000</strong></td>
+<td style="text-align: right;"><strong>235.03 MB</strong></td>
+</tr>
+<tr class="even">
+<td>NpoiXlsxWorkbookInit</td>
+<td>30000</td>
+<td style="text-align: right;">4,226.2 ms</td>
+<td style="text-align: right;">299.833 ms</td>
+<td style="text-align: right;">77.8658 ms</td>
+<td style="text-align: right;">4,109.5 ms</td>
+<td style="text-align: right;">4,308.6 ms</td>
+<td style="text-align: right;">4,257.2 ms</td>
+<td style="text-align: right;">3.46</td>
+<td style="text-align: right;">0.08</td>
+<td style="text-align: right;">174000.0000</td>
+<td style="text-align: right;">34000.0000</td>
+<td style="text-align: right;">6000.0000</td>
+<td style="text-align: right;">913.9 MB</td>
+</tr>
+<tr class="odd">
+<td>EpplusWorkbookInit</td>
+<td>30000</td>
+<td style="text-align: right;">1,695.4 ms</td>
+<td style="text-align: right;">31.751 ms</td>
+<td style="text-align: right;">8.2457 ms</td>
+<td style="text-align: right;">1,686.3 ms</td>
+<td style="text-align: right;">1,706.5 ms</td>
+<td style="text-align: right;">1,694.2 ms</td>
+<td style="text-align: right;">1.39</td>
+<td style="text-align: right;">0.02</td>
+<td style="text-align: right;">48000.0000</td>
+<td style="text-align: right;">17000.0000</td>
+<td style="text-align: right;">5000.0000</td>
+<td style="text-align: right;">358.51 MB</td>
+</tr>
+<tr class="even">
+<td></td>
+<td></td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+</tr>
+<tr class="odd">
+<td><strong>NpoiXlsWorkbookInit</strong></td>
+<td><strong>50000</strong></td>
+<td style="text-align: right;"><strong>2,323.5 ms</strong></td>
+<td style="text-align: right;"><strong>236.041 ms</strong></td>
+<td style="text-align: right;"><strong>61.2990 ms</strong></td>
+<td style="text-align: right;"><strong>2,286.0 ms</strong></td>
+<td style="text-align: right;"><strong>2,431.9 ms</strong></td>
+<td style="text-align: right;"><strong>2,294.2 ms</strong></td>
+<td style="text-align: right;"><strong>1.00</strong></td>
+<td style="text-align: right;"><strong>0.00</strong></td>
+<td style="text-align: right;"><strong>47000.0000</strong></td>
+<td style="text-align: right;"><strong>18000.0000</strong></td>
+<td style="text-align: right;"><strong>4000.0000</strong></td>
+<td style="text-align: right;"><strong>417.1 MB</strong></td>
+</tr>
+<tr class="even">
+<td>NpoiXlsxWorkbookInit</td>
+<td>50000</td>
+<td style="text-align: right;">7,055.2 ms</td>
+<td style="text-align: right;">279.256 ms</td>
+<td style="text-align: right;">72.5218 ms</td>
+<td style="text-align: right;">6,982.8 ms</td>
+<td style="text-align: right;">7,150.2 ms</td>
+<td style="text-align: right;">7,027.2 ms</td>
+<td style="text-align: right;">3.04</td>
+<td style="text-align: right;">0.10</td>
+<td style="text-align: right;">288000.0000</td>
+<td style="text-align: right;">51000.0000</td>
+<td style="text-align: right;">6000.0000</td>
+<td style="text-align: right;">1545.32 MB</td>
+</tr>
+<tr class="odd">
+<td>EpplusWorkbookInit</td>
+<td>50000</td>
+<td style="text-align: right;">2,806.9 ms</td>
+<td style="text-align: right;">56.266 ms</td>
+<td style="text-align: right;">14.6121 ms</td>
+<td style="text-align: right;">2,792.9 ms</td>
+<td style="text-align: right;">2,829.1 ms</td>
+<td style="text-align: right;">2,804.6 ms</td>
+<td style="text-align: right;">1.21</td>
+<td style="text-align: right;">0.03</td>
+<td style="text-align: right;">79000.0000</td>
+<td style="text-align: right;">27000.0000</td>
+<td style="text-align: right;">7000.0000</td>
+<td style="text-align: right;">578.46 MB</td>
+</tr>
+<tr class="even">
+<td></td>
+<td></td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+</tr>
+<tr class="odd">
+<td><strong>NpoiXlsWorkbookInit</strong></td>
+<td><strong>65535</strong></td>
+<td style="text-align: right;"><strong>3,646.8 ms</strong></td>
+<td style="text-align: right;"><strong>131.129 ms</strong></td>
+<td style="text-align: right;"><strong>34.0537 ms</strong></td>
+<td style="text-align: right;"><strong>3,603.0 ms</strong></td>
+<td style="text-align: right;"><strong>3,696.3 ms</strong></td>
+<td style="text-align: right;"><strong>3,642.5 ms</strong></td>
+<td style="text-align: right;"><strong>1.00</strong></td>
+<td style="text-align: right;"><strong>0.00</strong></td>
+<td style="text-align: right;"><strong>61000.0000</strong></td>
+<td style="text-align: right;"><strong>21000.0000</strong></td>
+<td style="text-align: right;"><strong>4000.0000</strong></td>
+<td style="text-align: right;"><strong>504.46 MB</strong></td>
+</tr>
+<tr class="even">
+<td>NpoiXlsxWorkbookInit</td>
+<td>65535</td>
+<td style="text-align: right;">9,295.6 ms</td>
+<td style="text-align: right;">486.761 ms</td>
+<td style="text-align: right;">126.4104 ms</td>
+<td style="text-align: right;">9,163.3 ms</td>
+<td style="text-align: right;">9,468.6 ms</td>
+<td style="text-align: right;">9,330.5 ms</td>
+<td style="text-align: right;">2.55</td>
+<td style="text-align: right;">0.04</td>
+<td style="text-align: right;">390000.0000</td>
+<td style="text-align: right;">67000.0000</td>
+<td style="text-align: right;">8000.0000</td>
+<td style="text-align: right;">2048.14 MB</td>
+</tr>
+<tr class="odd">
+<td>EpplusWorkbookInit</td>
+<td>65535</td>
+<td style="text-align: right;">3,721.6 ms</td>
+<td style="text-align: right;">124.945 ms</td>
+<td style="text-align: right;">32.4478 ms</td>
+<td style="text-align: right;">3,680.7 ms</td>
+<td style="text-align: right;">3,766.8 ms</td>
+<td style="text-align: right;">3,714.1 ms</td>
+<td style="text-align: right;">1.02</td>
+<td style="text-align: right;">0.01</td>
+<td style="text-align: right;">102000.0000</td>
+<td style="text-align: right;">35000.0000</td>
+<td style="text-align: right;">8000.0000</td>
+<td style="text-align: right;">747.85 MB</td>
+</tr>
+</tbody>
+</table>
+<p>从上面的测试结果来看，npoi 导出 xls 的性能还是相当好的，无论是所用时间还是内存都占优势，只是 xls 一个 sheet 最多 65535 行数据，所以测试数据最多只有 65535，其次就是 epplus 导出 xlsx，最次是 npoi 导出 xlsx 了。</p>
+<h2 id="测试结论">测试结论</h2>
+<p>如果使用 NPOI 导出建议导出 <code>xls</code>，如果要导出数据较多，可以导出 csv ，如果看了另外一个 csv 导出的测试，csv 导出性能要比 excel 好很多，如果实在是要导出 excel，导入 <code>xls</code> 的话就分多个 sheet 处理，如果一定要导出 <code>xlsx</code> 格式的 excel ，推荐用 epplus 来处理，相比 npoi 导出 <code>xlsx</code> 性能更好，内存占用更少</p>
+<h2 id="reference">Reference</h2>
+<ul>
+<li><a href="https://benchmarkdotnet.org/" class="uri">https://benchmarkdotnet.org/</a></li>
+<li><a href="https://github.com/WeihanLi/WeihanLi.Npoi/blob/dev/perf/WeihanLi.Npoi.Benchmark/WorkbookBasicTest.cs" class="uri">https://github.com/WeihanLi/WeihanLi.Npoi/blob/dev/perf/WeihanLi.Npoi.Benchmark/WorkbookBasicTest.cs</a></li>
+</ul>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

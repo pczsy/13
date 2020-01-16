@@ -1,0 +1,229 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修详细QRCode生成二维码和下载实现案例' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>详细QRCode生成二维码和下载实现案例</center></div><div class='banquan'>原文出处:本文由博客园博主听海漫步提供。<br/>
+原文连接:https://www.cnblogs.com/nnnnnn/p/10689964.html</div><br>
+    <div class="cnblogs_code">
+<pre><code><span style="color: #008080;">  1</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System;
+</span><span style="color: #008080;">  2</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Collections.Generic;
+</span><span style="color: #008080;">  3</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Linq;
+</span><span style="color: #008080;">  4</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Web;
+</span><span style="color: #008080;">  5</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> ThoughtWorks.QRCode.Codec;
+</span><span style="color: #008080;">  6</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Drawing;
+</span><span style="color: #008080;">  7</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Drawing.Imaging;
+</span><span style="color: #008080;">  8</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> Game.Utils;
+</span><span style="color: #008080;">  9</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Drawing.Drawing2D;
+</span><span style="color: #008080;"> 10</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> Game.Facade;
+</span><span style="color: #008080;"> 11</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Net;
+</span><span style="color: #008080;"> 12</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.IO;
+</span><span style="color: #008080;"> 13</span> 
+<span style="color: #008080;"> 14</span> <span style="color: #0000ff;">namespace</span><span style="color: #000000;"> Game.Web.WS
+</span><span style="color: #008080;"> 15</span> <span style="color: #000000;">{
+</span><span style="color: #008080;"> 16</span>     <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;"> 17</span>     <span style="color: #808080;">///</span><span style="color: #008000;"> QRCode 的摘要说明
+</span><span style="color: #008080;"> 18</span>     <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;"> 19</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> QRCode : IHttpHandler
+</span><span style="color: #008080;"> 20</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;"> 21</span> 
+<span style="color: #008080;"> 22</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> ProcessRequest(HttpContext context)
+</span><span style="color: #008080;"> 23</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 24</span> <span style="color: #000000;">            GetQRCode(context);
+</span><span style="color: #008080;"> 25</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 26</span> 
+<span style="color: #008080;"> 27</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;"> 28</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 绘制二维码
+</span><span style="color: #008080;"> 29</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;"> 30</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="context"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;"> 31</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> GetQRCode(HttpContext context)
+</span><span style="color: #008080;"> 32</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 33</span>             <span style="color: #0000ff;">string</span> encodeData = GameRequest.GetQueryString(<span style="color: #800000;">"</span><span style="color: #800000;">qt</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 34</span>             <span style="color: #0000ff;">string</span> icoURL = GameRequest.GetQueryString(<span style="color: #800000;">"</span><span style="color: #800000;">qm</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 35</span>             <span style="color: #0000ff;">int</span> width = GameRequest.GetQueryInt(<span style="color: #800000;">"</span><span style="color: #800000;">qs</span><span style="color: #800000;">"</span>, <span style="color: #800080;">0</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 36</span>             <span style="color: #0000ff;">if</span> (encodeData != <span style="color: #0000ff;">string</span><span style="color: #000000;">.Empty)
+</span><span style="color: #008080;"> 37</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 38</span> <span style="color: #000000;">                calQrcode(encodeData, icoURL, width, context);
+</span><span style="color: #008080;"> 39</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 40</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 41</span> 
+<span style="color: #008080;"> 42</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;"> 43</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 按照指定的大小绘制二维码
+</span><span style="color: #008080;"> 44</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;"> 45</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="sData"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;"> 46</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="width"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;"> 47</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+<span style="color: #008080;"> 48</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> calQrcode(<span style="color: #0000ff;">string</span> sData, <span style="color: #0000ff;">string</span> icoURL, <span style="color: #0000ff;">int</span><span style="color: #000000;"> size, HttpContext context)
+</span><span style="color: #008080;"> 49</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 50</span>             <span style="color: #008000;">//</span><span style="color: #008000;">二维码版本,大小获取</span>
+<span style="color: #008080;"> 51</span>             Color qrCodeBackgroundColor =<span style="color: #000000;"> Color.White;
+</span><span style="color: #008080;"> 52</span>             Color qrCodeForegroundColor =<span style="color: #000000;"> Color.Black;
+</span><span style="color: #008080;"> 53</span>             <span style="color: #0000ff;">int</span> length =<span style="color: #000000;"> System.Text.Encoding.UTF8.GetBytes(sData).Length;
+</span><span style="color: #008080;"> 54</span> 
+<span style="color: #008080;"> 55</span>             <span style="color: #008000;">//</span><span style="color: #008000;">生成二维码数据</span>
+<span style="color: #008080;"> 56</span>             QRCodeEncoder qrCodeEncoder = <span style="color: #0000ff;">new</span><span style="color: #000000;"> QRCodeEncoder();
+</span><span style="color: #008080;"> 57</span>             qrCodeEncoder.QRCodeEncodeMode =<span style="color: #000000;"> QRCodeEncoder.ENCODE_MODE.BYTE;
+</span><span style="color: #008080;"> 58</span>             qrCodeEncoder.QRCodeErrorCorrect = QRCodeEncoder.ERROR_CORRECTION.M;<span style="color: #008000;">//</span><span style="color: #008000;">使用M纠错级别</span>
+<span style="color: #008080;"> 59</span>             qrCodeEncoder.QRCodeVersion = <span style="color: #800080;">0</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 60</span>             <span style="color: #0000ff;">var</span> encodedData =<span style="color: #000000;"> qrCodeEncoder.Encode(sData, System.Text.Encoding.UTF8);
+</span><span style="color: #008080;"> 61</span> 
+<span style="color: #008080;"> 62</span>             <span style="color: #008000;">//</span><span style="color: #008000;">绘制图片</span>
+<span style="color: #008080;"> 63</span>             <span style="color: #0000ff;">int</span> x = <span style="color: #800080;">0</span>, y = <span style="color: #800080;">0</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 64</span>             <span style="color: #0000ff;">int</span> w = <span style="color: #800080;">0</span>, h = <span style="color: #800080;">0</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 65</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 二维码矩阵单边数据点数目</span>
+<span style="color: #008080;"> 66</span>             <span style="color: #0000ff;">int</span> count =<span style="color: #000000;"> encodedData.Length;
+</span><span style="color: #008080;"> 67</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 获取单个数据点边长</span>
+<span style="color: #008080;"> 68</span>             <span style="color: #0000ff;">double</span> sideLength = Convert.ToDouble(size) /<span style="color: #000000;"> count;
+</span><span style="color: #008080;"> 69</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 初始化背景色画笔</span>
+<span style="color: #008080;"> 70</span>             SolidBrush backcolor = <span style="color: #0000ff;">new</span><span style="color: #000000;"> SolidBrush(qrCodeBackgroundColor);
+</span><span style="color: #008080;"> 71</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 初始化前景色画笔</span>
+<span style="color: #008080;"> 72</span>             SolidBrush forecolor = <span style="color: #0000ff;">new</span><span style="color: #000000;"> SolidBrush(qrCodeForegroundColor);
+</span><span style="color: #008080;"> 73</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 定义画布</span>
+<span style="color: #008080;"> 74</span>             Bitmap image = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Bitmap(size, size);
+</span><span style="color: #008080;"> 75</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 获取GDI+绘图图画</span>
+<span style="color: #008080;"> 76</span>             Graphics graph =<span style="color: #000000;"> Graphics.FromImage(image);
+</span><span style="color: #008080;"> 77</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 先填充背景色</span>
+<span style="color: #008080;"> 78</span>             graph.FillRectangle(backcolor, <span style="color: #800080;">0</span>, <span style="color: #800080;">0</span><span style="color: #000000;">, size, size);
+</span><span style="color: #008080;"> 79</span> 
+<span style="color: #008080;"> 80</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 变量数据矩阵生成二维码</span>
+<span style="color: #008080;"> 81</span>             <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> row = <span style="color: #800080;">0</span>; row &lt; count; row++<span style="color: #000000;">)
+</span><span style="color: #008080;"> 82</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 83</span>                 <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> col = <span style="color: #800080;">0</span>; col &lt; count; col++<span style="color: #000000;">)
+</span><span style="color: #008080;"> 84</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;"> 85</span>                     <span style="color: #008000;">//</span><span style="color: #008000;"> 计算数据点矩阵起始坐标和宽高</span>
+<span style="color: #008080;"> 86</span>                     x = Convert.ToInt32(Math.Round(col *<span style="color: #000000;"> sideLength));
+</span><span style="color: #008080;"> 87</span>                     y = Convert.ToInt32(Math.Round(row *<span style="color: #000000;"> sideLength));
+</span><span style="color: #008080;"> 88</span>                     w = Convert.ToInt32(Math.Ceiling((col + <span style="color: #800080;">1</span>) * sideLength) - Math.Floor(col *<span style="color: #000000;"> sideLength));
+</span><span style="color: #008080;"> 89</span>                     h = Convert.ToInt32(Math.Ceiling((row + <span style="color: #800080;">1</span>) * sideLength) - Math.Floor(row *<span style="color: #000000;"> sideLength));
+</span><span style="color: #008080;"> 90</span> 
+<span style="color: #008080;"> 91</span>                     <span style="color: #008000;">//</span><span style="color: #008000;"> 绘制数据矩阵</span>
+<span style="color: #008080;"> 92</span>                     graph.FillRectangle(encodedData[col][row] ?<span style="color: #000000;"> forecolor : backcolor, x, y, w, h);
+</span><span style="color: #008080;"> 93</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;"> 94</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 95</span> 
+<span style="color: #008080;"> 96</span>             <span style="color: #008000;">//</span><span style="color: #008000;">添加LOGO</span>
+<span style="color: #008080;"> 97</span>             <span style="color: #0000ff;">string</span> path = context.Server.MapPath(<span style="color: #800000;">"</span><span style="color: #800000;">/favicon.ico</span><span style="color: #800000;">"</span><span style="color: #000000;">);            
+</span><span style="color: #008080;"> 98</span>             Bitmap logoImage = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 99</span>             FileInfo fileInfo = <span style="color: #0000ff;">new</span><span style="color: #000000;"> FileInfo(path);
+</span><span style="color: #008080;">100</span>             <span style="color: #0000ff;">if</span><span style="color: #000000;"> (fileInfo.Exists)
+</span><span style="color: #008080;">101</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">102</span>                 logoImage = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Bitmap(path);
+</span><span style="color: #008080;">103</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">104</span>             <span style="color: #0000ff;">if</span> (icoURL != <span style="color: #800000;">""</span><span style="color: #000000;">)
+</span><span style="color: #008080;">105</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">106</span>                 HttpWebRequest webRequest =<span style="color: #000000;"> (HttpWebRequest)HttpWebRequest.Create(icoURL);
+</span><span style="color: #008080;">107</span>                 <span style="color: #0000ff;">try</span>
+<span style="color: #008080;">108</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">109</span>                     HttpWebResponse webReponse =<span style="color: #000000;"> (HttpWebResponse)webRequest.GetResponse();
+</span><span style="color: #008080;">110</span>                     <span style="color: #0000ff;">if</span> (webReponse.StatusCode ==<span style="color: #000000;"> HttpStatusCode.OK)
+</span><span style="color: #008080;">111</span> <span style="color: #000000;">                    {
+</span><span style="color: #008080;">112</span>                         <span style="color: #0000ff;">using</span> (Stream stream =<span style="color: #000000;"> webReponse.GetResponseStream())
+</span><span style="color: #008080;">113</span> <span style="color: #000000;">                        {
+</span><span style="color: #008080;">114</span>                             Image img =<span style="color: #000000;"> Image.FromStream(stream);
+</span><span style="color: #008080;">115</span>                             logoImage = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Bitmap(img);
+</span><span style="color: #008080;">116</span> <span style="color: #000000;">                            img.Dispose();
+</span><span style="color: #008080;">117</span> <span style="color: #000000;">                        }
+</span><span style="color: #008080;">118</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">119</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">120</span>                 <span style="color: #0000ff;">catch</span><span style="color: #000000;"> { }
+</span><span style="color: #008080;">121</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">122</span>             <span style="color: #0000ff;">if</span> (logoImage != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+</span><span style="color: #008080;">123</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">124</span>                 image =<span style="color: #000000;"> CoverImage(image, logoImage, graph);
+</span><span style="color: #008080;">125</span> <span style="color: #000000;">                logoImage.Dispose();            
+</span><span style="color: #008080;">126</span> <span style="color: #000000;">            }         
+</span><span style="color: #008080;">127</span>             <span style="color: #008000;">//</span><span style="color: #008000;">输出</span>
+<span style="color: #008080;">128</span>             System.IO.MemoryStream ms = <span style="color: #0000ff;">new</span><span style="color: #000000;"> System.IO.MemoryStream();
+</span><span style="color: #008080;">129</span> <span style="color: #000000;">            image.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
+</span><span style="color: #008080;">130</span> <span style="color: #000000;">            context.Response.ClearContent();
+</span><span style="color: #008080;">131</span>             context.Response.ContentType = <span style="color: #800000;">"</span><span style="color: #800000;">image/png</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+</span><span style="color: #008080;">132</span>             context.Response.AddHeader(<span style="color: #800000;">"</span><span style="color: #800000;">Content-Disposition</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">attachment;  filename=</span><span style="color: #800000;">"</span> + HttpUtility.UrlEncode(<span style="color: #800000;">"</span><span style="color: #800000;">QRCodeImg.png</span><span style="color: #800000;">"</span><span style="color: #000000;">, System.Text.Encoding.UTF8));
+</span><span style="color: #008080;">133</span> <span style="color: #000000;">            context.Response.BinaryWrite(ms.ToArray());
+</span><span style="color: #008080;">134</span> <span style="color: #000000;">            context.Response.Flush();
+</span><span style="color: #008080;">135</span> <span style="color: #000000;">            context.Response.End();
+</span><span style="color: #008080;">136</span> <span style="color: #000000;">            image.Dispose();
+</span><span style="color: #008080;">137</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">138</span> 
+<span style="color: #008080;">139</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">140</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 层叠图片
+</span><span style="color: #008080;">141</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">142</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="original"&gt;</span><span style="color: #008000;">原始图片(目前只支持正方形)</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;">143</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="image"&gt;</span><span style="color: #008000;">层叠图片(目前只支持正方形)</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;">144</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;</span><span style="color: #008000;">处理以后的图片</span><span style="color: #808080;">&lt;/returns&gt;</span>
+<span style="color: #008080;">145</span>         <span style="color: #0000ff;">private</span> Bitmap CoverImage(Bitmap original, Bitmap image, Graphics graph = <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+</span><span style="color: #008080;">146</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">147</span>             <span style="color: #008000;">//</span><span style="color: #008000;">缩放附加图片</span>
+<span style="color: #008080;">148</span>             <span style="color: #0000ff;">int</span> sideSLen =<span style="color: #000000;"> original.Width;
+</span><span style="color: #008080;">149</span>             <span style="color: #0000ff;">int</span> sideTLen = sideSLen / <span style="color: #800080;">4</span><span style="color: #000000;">;
+</span><span style="color: #008080;">150</span>             image =<span style="color: #000000;"> ResizeImage(image, sideTLen, sideTLen);
+</span><span style="color: #008080;">151</span> 
+<span style="color: #008080;">152</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 获取GDI+绘图图画</span>
+<span style="color: #008080;">153</span>             graph = graph == <span style="color: #0000ff;">null</span> ?<span style="color: #000000;"> Graphics.FromImage(original) : graph;
+</span><span style="color: #008080;">154</span> 
+<span style="color: #008080;">155</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 将附加图片绘制到原始图中央</span>
+<span style="color: #008080;">156</span>             graph.DrawImage(image, (original.Width - sideTLen) / <span style="color: #800080;">2</span>, (original.Height - sideTLen) / <span style="color: #800080;">2</span><span style="color: #000000;">, sideTLen, sideTLen);
+</span><span style="color: #008080;">157</span> 
+<span style="color: #008080;">158</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 释放GDI+绘图图画内存</span>
+<span style="color: #008080;">159</span> <span style="color: #000000;">            graph.Dispose();
+</span><span style="color: #008080;">160</span> 
+<span style="color: #008080;">161</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 返回处理结果</span>
+<span style="color: #008080;">162</span>             <span style="color: #0000ff;">return</span><span style="color: #000000;"> original;
+</span><span style="color: #008080;">163</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">164</span> 
+<span style="color: #008080;">165</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">166</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 图片缩放
+</span><span style="color: #008080;">167</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">168</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="bmp"&gt;</span><span style="color: #008000;">原始Bitmap</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;">169</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="newW"&gt;</span><span style="color: #008000;">新的宽度</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;">170</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="newH"&gt;</span><span style="color: #008000;">新的高度</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;">171</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;</span><span style="color: #008000;">处理以后的图片</span><span style="color: #808080;">&lt;/returns&gt;</span>
+<span style="color: #008080;">172</span>         <span style="color: #0000ff;">private</span> Bitmap ResizeImage(Bitmap original, <span style="color: #0000ff;">int</span> width, <span style="color: #0000ff;">int</span><span style="color: #000000;"> height)
+</span><span style="color: #008080;">173</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">174</span>             <span style="color: #0000ff;">try</span>
+<span style="color: #008080;">175</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">176</span>                 Bitmap image = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Bitmap(width, height);
+</span><span style="color: #008080;">177</span>                 Graphics graph =<span style="color: #000000;"> Graphics.FromImage(image);
+</span><span style="color: #008080;">178</span>                 <span style="color: #008000;">//</span><span style="color: #008000;"> 插值算法的质量</span>
+<span style="color: #008080;">179</span>                 graph.CompositingQuality =<span style="color: #000000;"> CompositingQuality.HighQuality;
+</span><span style="color: #008080;">180</span>                 graph.SmoothingMode =<span style="color: #000000;"> SmoothingMode.HighQuality;
+</span><span style="color: #008080;">181</span>                 graph.InterpolationMode =<span style="color: #000000;"> InterpolationMode.HighQualityBicubic;
+</span><span style="color: #008080;">182</span>                 graph.DrawImage(original, <span style="color: #0000ff;">new</span> Rectangle(<span style="color: #800080;">0</span>, <span style="color: #800080;">0</span><span style="color: #000000;">, width, height),
+</span><span style="color: #008080;">183</span>                     <span style="color: #0000ff;">new</span> Rectangle(<span style="color: #800080;">0</span>, <span style="color: #800080;">0</span><span style="color: #000000;">, original.Width, original.Height), GraphicsUnit.Pixel);
+</span><span style="color: #008080;">184</span> <span style="color: #000000;">                graph.Dispose();
+</span><span style="color: #008080;">185</span>                 <span style="color: #0000ff;">return</span><span style="color: #000000;"> image;
+</span><span style="color: #008080;">186</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">187</span>             <span style="color: #0000ff;">catch</span>
+<span style="color: #008080;">188</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">189</span>                 <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+</span><span style="color: #008080;">190</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">191</span> <span style="color: #000000;">        }       
+</span><span style="color: #008080;">192</span> 
+<span style="color: #008080;">193</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">bool</span><span style="color: #000000;"> IsReusable
+</span><span style="color: #008080;">194</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">195</span>             <span style="color: #0000ff;">get</span>
+<span style="color: #008080;">196</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">197</span>                 <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+</span><span style="color: #008080;">198</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">199</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">200</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">201</span> }</pre>
+</div>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

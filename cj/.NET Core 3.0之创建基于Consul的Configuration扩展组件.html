@@ -1,0 +1,400 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修.NET Core 3.0之创建基于Consul的Configuration扩展组件' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>.NET Core 3.0之创建基于Consul的Configuration扩展组件</center></div><div class='banquan'>原文出处:本文由博客园博主艾心❤提供。<br/>
+原文连接:https://www.cnblogs.com/edison0621/p/10922281.html</div><br>
+    <h1 style="font-size: 200%; border-bottom: #5ea2d6 1px solid; font-weight: bold; color: #0378bb; padding-bottom: 10px; padding-top: 0px; padding-left: 20px; clear: both; border-left: #3d97cb 12px solid; line-height: 1.5em; padding-right: 100px;">写在前面</h1>
+<p>经过前面三篇关于.NET Core Configuration的文章之后，本篇文章主要讨论如何扩展一个Configuration组件出来。如果前面三篇文章没有看到，可以点击如下地址访问</p>
+<ul>
+<li>
+<h3><a href="https://www.cnblogs.com/edison0621/p/10854215.html"><span style="color: #4bacc6; font-size: small;">.NET Core 3.0之深入源码理解Configuration(一)</span></a></h3>
+</li>
+<li>
+<h3><a href="https://www.cnblogs.com/edison0621/p/10889325.html"><span style="color: #4bacc6; font-size: small;">.NET Core 3.0之深入源码理解Configuration(二)</span></a></h3>
+</li>
+<li>
+<h3><a href="https://www.cnblogs.com/edison0621/p/10891365.html"><span style="color: #4bacc6; font-size: small;">.NET Core 3.0之深入源码理解Configuration(三)</span></a></h3>
+</li>
+</ul>
+<p>了解了Configuration的源码后，再去扩展一个组件就会比较简单，接下来我们将在.NET Core 3.0-preview5的基础上创建一个基于Consul的配置组件。</p>
+<p>相信大家对Consul已经比较了解了，很多项目都会使用Consul作为配置中心，此处也不做其他阐述了，主要是讲一下，创建Consul配置扩展的一些思路。使用Consul配置功能时，我们可以将信息转成JSON格式后再存储，那么我们在读取的时候，在体验上就像是从读取JSON文件中读取一样。</p>
+<h1 style="font-size: 200%; border-bottom: #5ea2d6 1px solid; font-weight: bold; color: #0378bb; padding-bottom: 10px; padding-top: 0px; padding-left: 20px; clear: both; border-left: #3d97cb 12px solid; line-height: 1.5em; padding-right: 100px;">开发前的准备</h1>
+<h2 style="font-size: 18px; color: #aa7652; padding-bottom: 5px; padding-top: 5px; padding-left: 30px; padding-right: 8px; background-color: #f5f5f4; border-radius: 5px; border: #d0cfcf 1px solid;">初始化Consul</h2>
+<p>假设你已经安装并启动了Consul，我们打开Key/Value功能界面，创建两组配置选项出来，分别是commonservice和userservice，如下图所示</p>
+<p><a href="https://img2018.cnblogs.com/blog/533598/201905/533598-20190525141703543-181117393.png"><img style="background-image: none; padding-top: 0px; padding-left: 0px; display: inline; padding-right: 0px; border-width: 0px;" title="Consul-key-value-dashboard" src="./images/.NET Core 3.0之创建基于Consul的Configuration扩展组件0.png" alt="Consul-key-value-dashboard" width="1908" height="561" border="0" /></a></p>
+<p>配置值采用JSON格式</p>
+<p><a href="https://img2018.cnblogs.com/blog/533598/201905/533598-20190525141704218-2144717142.png"><img style="background-image: none; padding-top: 0px; padding-left: 0px; display: inline; padding-right: 0px; border-width: 0px;" title="Consul-key-value-commonservice-json" src="./images/.NET Core 3.0之创建基于Consul的Configuration扩展组件1.png" alt="Consul-key-value-commonservice-json" width="1908" height="689" border="0" /></a></p>
+<h2 style="font-size: 18px; color: #aa7652; padding-bottom: 5px; padding-top: 5px; padding-left: 30px; padding-right: 8px; background-color: #f5f5f4; border-radius: 5px; border: #d0cfcf 1px solid;">实现思路</h2>
+<p>我们知道在Configuration整个的设计框架里，比较重要的类ConfigurationRoot，内部又有一个IConfigurationProvider集合属性，也就是说我们追加IConfigurationProvider实例最终也会被放到到该集合中，如下图所示</p>
+<p><a href="https://img2018.cnblogs.com/blog/533598/201905/533598-20190525141704760-1220559954.png"><img style="background-image: none; padding-top: 0px; padding-left: 0px; display: inline; padding-right: 0px; border-width: 0px;" title="rootproviders" src="./images/.NET Core 3.0之创建基于Consul的Configuration扩展组件2.png" alt="rootproviders" width="727" height="251" border="0" /></a></p>
+<p>该项目中，我使用到了一个已经封装好的Consul(V0.7.2.6)类库，同时基于.NET Core关于Configuration的设计风格，做如下的框架设计</p>
+<p><a href="https://img2018.cnblogs.com/blog/533598/201905/533598-20190525141705304-1647877483.png"><img style="background-image: none; padding-top: 0px; padding-left: 0px; display: inline; padding-right: 0px; border-width: 0px;" title="consul" src="./images/.NET Core 3.0之创建基于Consul的Configuration扩展组件3.png" alt="consul" width="710" height="334" border="0" /></a></p>
+<p>考虑到我会在该组件内部创建ConsulClient实例，所以对ConsulClient构造函数的一部分参数做了抽象提取，并添加到了IConsulConfigurationSource中，以增强该组件的灵活性。</p>
+<p>之前说过，Consul中的配置信息是以JSON格式存储的，所以此处使用到了Microsoft.Extensions.Configuration.Json.JsonConfigurationFileParser，用以将JSON格式的信息转换为Configuration的通用格式Key/Value。</p>
+<h1 style="font-size: 200%; border-bottom: #5ea2d6 1px solid; font-weight: bold; color: #0378bb; padding-bottom: 10px; padding-top: 0px; padding-left: 20px; clear: both; border-left: #3d97cb 12px solid; line-height: 1.5em; padding-right: 100px;">核心代码</h1>
+<h2 style="font-size: 18px; color: #aa7652; padding-bottom: 5px; padding-top: 5px; padding-left: 30px; padding-right: 8px; background-color: #f5f5f4; border-radius: 5px; border: #d0cfcf 1px solid;">IConsulConfigurationSource</h2>
+<div class="csharpcode">
+<pre><code><span class="lnum">   1:  </span><span class="rem">/// &lt;summary&gt;</span></pre>
+<pre><code><span class="lnum">   2:  </span><span class="rem">/// ConsulConfigurationSource</span></pre>
+<pre><code><span class="lnum">   3:  </span><span class="rem">/// &lt;/summary&gt;</span></pre>
+<pre><code><span class="lnum">   4:  </span><span class="kwrd">public</span> <span class="kwrd">interface</span> IConsulConfigurationSource : IConfigurationSource</pre>
+<pre><code><span class="lnum">   5:  </span>{</pre>
+<pre><code><span class="lnum">   6:  </span>    <span class="rem">/// &lt;summary&gt;</span></pre>
+<pre><code><span class="lnum">   7:  </span>    <span class="rem">/// CancellationToken</span></pre>
+<pre><code><span class="lnum">   8:  </span>    <span class="rem">/// &lt;/summary&gt;</span></pre>
+<pre><code><span class="lnum">   9:  </span>    CancellationToken CancellationToken { get; }</pre>
+<pre><code><span class="lnum">  10:  </span>&nbsp;</pre>
+<pre><code><span class="lnum">  11:  </span>    <span class="rem">/// &lt;summary&gt;</span></pre>
+<pre><code><span class="lnum">  12:  </span>    <span class="rem">/// Consul构造函数实例，可自定义传入</span></pre>
+<pre><code><span class="lnum">  13:  </span>    <span class="rem">/// &lt;/summary&gt;</span></pre>
+<pre><code><span class="lnum">  14:  </span>    Action&lt;ConsulClientConfiguration&gt; ConsulClientConfiguration { get; set; }</pre>
+<pre><code><span class="lnum">  15:  </span>&nbsp;</pre>
+<pre><code><span class="lnum">  16:  </span>    <span class="rem">/// &lt;summary&gt;</span></pre>
+<pre><code><span class="lnum">  17:  </span>    <span class="rem">///  Consul构造函数实例，可自定义传入</span></pre>
+<pre><code><span class="lnum">  18:  </span>    <span class="rem">/// &lt;/summary&gt;</span></pre>
+<pre><code><span class="lnum">  19:  </span>    Action&lt;HttpClient&gt; ConsulHttpClient { get; set; }</pre>
+<pre><code><span class="lnum">  20:  </span>&nbsp;</pre>
+<pre><code><span class="lnum">  21:  </span>    <span class="rem">/// &lt;summary&gt;</span></pre>
+<pre><code><span class="lnum">  22:  </span>    <span class="rem">///  Consul构造函数实例，可自定义传入</span></pre>
+<pre><code><span class="lnum">  23:  </span>    <span class="rem">/// &lt;/summary&gt;</span></pre>
+<pre><code><span class="lnum">  24:  </span>    Action&lt;HttpClientHandler&gt; ConsulHttpClientHandler { get; set; }</pre>
+<pre><code><span class="lnum">  25:  </span>&nbsp;</pre>
+<pre><code><span class="lnum">  26:  </span>    <span class="rem">/// &lt;summary&gt;</span></pre>
+<pre><code><span class="lnum">  27:  </span>    <span class="rem">/// 服务名称</span></pre>
+<pre><code><span class="lnum">  28:  </span>    <span class="rem">/// &lt;/summary&gt;</span></pre>
+<pre><code><span class="lnum">  29:  </span>    <span class="kwrd">string</span> ServiceKey { get; }</pre>
+<pre><code><span class="lnum">  30:  </span>&nbsp;</pre>
+<pre><code><span class="lnum">  31:  </span>    <span class="rem">/// &lt;summary&gt;</span></pre>
+<pre><code><span class="lnum">  32:  </span>    <span class="rem">/// 可选项</span></pre>
+<pre><code><span class="lnum">  33:  </span>    <span class="rem">/// &lt;/summary&gt;</span></pre>
+<pre><code><span class="lnum">  34:  </span>    <span class="kwrd">bool</span> Optional { get; set; }</pre>
+<pre><code><span class="lnum">  35:  </span>&nbsp;</pre>
+<pre><code><span class="lnum">  36:  </span>    <span class="rem">/// &lt;summary&gt;</span></pre>
+<pre><code><span class="lnum">  37:  </span>    <span class="rem">/// Consul查询选项</span></pre>
+<pre><code><span class="lnum">  38:  </span>    <span class="rem">/// &lt;/summary&gt;</span></pre>
+<pre><code><span class="lnum">  39:  </span>    QueryOptions QueryOptions { get; set; }</pre>
+<pre><code><span class="lnum">  40:  </span>&nbsp;</pre>
+<pre><code><span class="lnum">  41:  </span>    <span class="rem">/// &lt;summary&gt;</span></pre>
+<pre><code><span class="lnum">  42:  </span>    <span class="rem">/// 重新加载延迟时间，单位是毫秒</span></pre>
+<pre><code><span class="lnum">  43:  </span>    <span class="rem">/// &lt;/summary&gt;</span></pre>
+<pre><code><span class="lnum">  44:  </span>    <span class="kwrd">int</span> ReloadDelay { get; set; }</pre>
+<pre><code><span class="lnum">  45:  </span>&nbsp;</pre>
+<pre><code><span class="lnum">  46:  </span>    <span class="rem">/// &lt;summary&gt;</span></pre>
+<pre><code><span class="lnum">  47:  </span>    <span class="rem">/// 是否在配置改变的时候重新加载</span></pre>
+<pre><code><span class="lnum">  48:  </span>    <span class="rem">/// &lt;/summary&gt;</span></pre>
+<pre><code><span class="lnum">  49:  </span>    <span class="kwrd">bool</span> ReloadOnChange { get; set; }</pre>
+<pre><code><span class="lnum">  50:  </span>}</pre>
+</div>
+<style><!--
+.csharpcode, .csharpcode pre
+{
+	font-size: small;
+	color: black;
+	font-family: consolas, "Courier New", courier, monospace;
+	background-color: #ffffff;
+	/*white-space: pre;*/
+}
+.csharpcode pre { margin: 0em; }
+.csharpcode .rem { color: #008000; }
+.csharpcode .kwrd { color: #0000ff; }
+.csharpcode .str { color: #006080; }
+.csharpcode .op { color: #0000c0; }
+.csharpcode .preproc { color: #cc6633; }
+.csharpcode .asp { background-color: #ffff00; }
+.csharpcode .html { color: #800000; }
+.csharpcode .attr { color: #ff0000; }
+.csharpcode .alt 
+{
+	background-color: #f4f4f4;
+	width: 100%;
+	margin: 0em;
+}
+.csharpcode .lnum { color: #606060; }
+--></style>
+<h2 style="font-size: 18px; color: #aa7652; padding-bottom: 5px; padding-top: 5px; padding-left: 30px; padding-right: 8px; background-color: #f5f5f4; border-radius: 5px; border: #d0cfcf 1px solid;">ConsulConfigurationSource</h2>
+<p>该类提供了一个构造函数，用于接收ServiceKey和CancellationToken实例</p>
+<div class="csharpcode">
+<pre><code><span class="lnum">   1:  </span><span class="kwrd">public</span> ConsulConfigurationSource(<span class="kwrd">string</span> serviceKey, CancellationToken cancellationToken)</pre>
+<pre><code><span class="lnum">   2:  </span>{</pre>
+<pre><code><span class="lnum">   3:  </span>    <span class="kwrd">if</span> (<span class="kwrd">string</span>.IsNullOrWhiteSpace(serviceKey))</pre>
+<pre><code><span class="lnum">   4:  </span>    {</pre>
+<pre><code><span class="lnum">   5:  </span>        <span class="kwrd">throw</span> <span class="kwrd">new</span> ArgumentNullException(nameof(serviceKey));</pre>
+<pre><code><span class="lnum">   6:  </span>    }</pre>
+<pre><code><span class="lnum">   7:  </span>&nbsp;</pre>
+<pre><code><span class="lnum">   8:  </span>    <span class="kwrd">this</span>.ServiceKey = serviceKey;</pre>
+<pre><code><span class="lnum">   9:  </span>    <span class="kwrd">this</span>.CancellationToken = cancellationToken;</pre>
+<pre><code><span class="lnum">  10:  </span>}</pre>
+</div>
+<p>其build()方法也比较简单，主要是初始化ConsulConfigurationParser实例</p>
+<div class="csharpcode">
+<pre><code><span class="lnum">   1:  </span><span class="kwrd">public</span> IConfigurationProvider Build(IConfigurationBuilder builder)</pre>
+<pre><code><span class="lnum">   2:  </span>{</pre>
+<pre><code><span class="lnum">   3:  </span>    ConsulConfigurationParser consulParser = <span class="kwrd">new</span> ConsulConfigurationParser(<span class="kwrd">this</span>);</pre>
+<pre><code><span class="lnum">   4:  </span>&nbsp;</pre>
+<pre><code><span class="lnum">   5:  </span>    <span class="kwrd">return</span> <span class="kwrd">new</span> ConsulConfigurationProvider(<span class="kwrd">this</span>, consulParser);</pre>
+<pre><code><span class="lnum">   6:  </span>}</pre>
+</div>
+<style><!--
+.csharpcode, .csharpcode pre
+{
+	font-size: small;
+	color: black;
+	font-family: consolas, "Courier New", courier, monospace;
+	background-color: #ffffff;
+	/*white-space: pre;*/
+}
+.csharpcode pre { margin: 0em; }
+.csharpcode .rem { color: #008000; }
+.csharpcode .kwrd { color: #0000ff; }
+.csharpcode .str { color: #006080; }
+.csharpcode .op { color: #0000c0; }
+.csharpcode .preproc { color: #cc6633; }
+.csharpcode .asp { background-color: #ffff00; }
+.csharpcode .html { color: #800000; }
+.csharpcode .attr { color: #ff0000; }
+.csharpcode .alt 
+{
+	background-color: #f4f4f4;
+	width: 100%;
+	margin: 0em;
+}
+.csharpcode .lnum { color: #606060; }
+--></style>
+<h2 style="font-size: 18px; color: #aa7652; padding-bottom: 5px; padding-top: 5px; padding-left: 30px; padding-right: 8px; background-color: #f5f5f4; border-radius: 5px; border: #d0cfcf 1px solid;">ConsulConfigurationParser</h2>
+<p>该类比较复杂，主要实现Consul配置的获取、监控以及容错处理，公共方法源码如下</p>
+<div class="csharpcode">
+<pre><code><span class="lnum">   1:  </span><span class="rem">/// &lt;summary&gt;</span></pre>
+<pre><code><span class="lnum">   2:  </span><span class="rem">/// 获取并转换Consul配置信息</span></pre>
+<pre><code><span class="lnum">   3:  </span><span class="rem">/// &lt;/summary&gt;</span></pre>
+<pre><code><span class="lnum">   4:  </span><span class="rem">/// &lt;param name="reloading"&gt;&lt;/param&gt;</span></pre>
+<pre><code><span class="lnum">   5:  </span><span class="rem">/// &lt;param name="source"&gt;&lt;/param&gt;</span></pre>
+<pre><code><span class="lnum">   6:  </span><span class="rem">/// &lt;returns&gt;&lt;/returns&gt;</span></pre>
+<pre><code><span class="lnum">   7:  </span><span class="kwrd">public</span> async Task&lt;IDictionary&lt;<span class="kwrd">string</span>, <span class="kwrd">string</span>&gt;&gt; GetConfig(<span class="kwrd">bool</span> reloading, IConsulConfigurationSource source)</pre>
+<pre><code><span class="lnum">   8:  </span>{</pre>
+<pre><code><span class="lnum">   9:  </span>    <span class="kwrd">try</span></pre>
+<pre><code><span class="lnum">  10:  </span>    {</pre>
+<pre><code><span class="lnum">  11:  </span>        QueryResult&lt;KVPair&gt; kvPair = await <span class="kwrd">this</span>.GetKvPairs(source.ServiceKey, source.QueryOptions, source.CancellationToken).ConfigureAwait(<span class="kwrd">false</span>);</pre>
+<pre><code><span class="lnum">  12:  </span>        <span class="kwrd">if</span> ((kvPair?.Response == <span class="kwrd">null</span>) &amp;&amp; !source.Optional)</pre>
+<pre><code><span class="lnum">  13:  </span>        {</pre>
+<pre><code><span class="lnum">  14:  </span>            <span class="kwrd">if</span> (!reloading)</pre>
+<pre><code><span class="lnum">  15:  </span>            {</pre>
+<pre><code><span class="lnum">  16:  </span>                <span class="kwrd">throw</span> <span class="kwrd">new</span> FormatException(Resources.Error_InvalidService(source.ServiceKey));</pre>
+<pre><code><span class="lnum">  17:  </span>            }</pre>
+<pre><code><span class="lnum">  18:  </span>&nbsp;</pre>
+<pre><code><span class="lnum">  19:  </span>            <span class="kwrd">return</span> <span class="kwrd">new</span> Dictionary&lt;<span class="kwrd">string</span>, <span class="kwrd">string</span>&gt;();</pre>
+<pre><code><span class="lnum">  20:  </span>        }</pre>
+<pre><code><span class="lnum">  21:  </span>&nbsp;</pre>
+<pre><code><span class="lnum">  22:  </span>        <span class="kwrd">if</span> (kvPair?.Response == <span class="kwrd">null</span>)</pre>
+<pre><code><span class="lnum">  23:  </span>        {</pre>
+<pre><code><span class="lnum">  24:  </span>            <span class="kwrd">throw</span> <span class="kwrd">new</span> FormatException(Resources.Error_ValueNotExist(source.ServiceKey));</pre>
+<pre><code><span class="lnum">  25:  </span>        }</pre>
+<pre><code><span class="lnum">  26:  </span>&nbsp;</pre>
+<pre><code><span class="lnum">  27:  </span>        <span class="kwrd">this</span>.UpdateLastIndex(kvPair);</pre>
+<pre><code><span class="lnum">  28:  </span>&nbsp;</pre>
+<pre><code><span class="lnum">  29:  </span>        <span class="kwrd">return</span> JsonConfigurationFileParser.Parse(source.ServiceKey, <span class="kwrd">new</span> MemoryStream(kvPair.Response.Value));</pre>
+<pre><code><span class="lnum">  30:  </span>    }</pre>
+<pre><code><span class="lnum">  31:  </span>    <span class="kwrd">catch</span> (Exception exception)</pre>
+<pre><code><span class="lnum">  32:  </span>    {</pre>
+<pre><code><span class="lnum">  33:  </span>        <span class="kwrd">throw</span> exception;</pre>
+<pre><code><span class="lnum">  34:  </span>    }</pre>
+<pre><code><span class="lnum">  35:  </span>}</pre>
+<pre><code><span class="lnum">  36:  </span>&nbsp;</pre>
+<pre><code><span class="lnum">  37:  </span><span class="rem">/// &lt;summary&gt;</span></pre>
+<pre><code><span class="lnum">  38:  </span><span class="rem">/// Consul配置信息监控</span></pre>
+<pre><code><span class="lnum">  39:  </span><span class="rem">/// &lt;/summary&gt;</span></pre>
+<pre><code><span class="lnum">  40:  </span><span class="rem">/// &lt;param name="key"&gt;&lt;/param&gt;</span></pre>
+<pre><code><span class="lnum">  41:  </span><span class="rem">/// &lt;param name="cancellationToken"&gt;&lt;/param&gt;</span></pre>
+<pre><code><span class="lnum">  42:  </span><span class="rem">/// &lt;returns&gt;&lt;/returns&gt;</span></pre>
+<pre><code><span class="lnum">  43:  </span><span class="kwrd">public</span> IChangeToken Watch(<span class="kwrd">string</span> key, CancellationToken cancellationToken)</pre>
+<pre><code><span class="lnum">  44:  </span>{</pre>
+<pre><code><span class="lnum">  45:  </span>    Task.Run(() =&gt; <span class="kwrd">this</span>.RefreshForChanges(key, cancellationToken), cancellationToken);</pre>
+<pre><code><span class="lnum">  46:  </span>&nbsp;</pre>
+<pre><code><span class="lnum">  47:  </span>    <span class="kwrd">return</span> <span class="kwrd">this</span>.reloadToken;</pre>
+<pre><code><span class="lnum">  48:  </span>}</pre>
+</div>
+<style><!--
+.csharpcode, .csharpcode pre
+{
+	font-size: small;
+	color: black;
+	font-family: consolas, "Courier New", courier, monospace;
+	background-color: #ffffff;
+	/*white-space: pre;*/
+}
+.csharpcode pre { margin: 0em; }
+.csharpcode .rem { color: #008000; }
+.csharpcode .kwrd { color: #0000ff; }
+.csharpcode .str { color: #006080; }
+.csharpcode .op { color: #0000c0; }
+.csharpcode .preproc { color: #cc6633; }
+.csharpcode .asp { background-color: #ffff00; }
+.csharpcode .html { color: #800000; }
+.csharpcode .attr { color: #ff0000; }
+.csharpcode .alt 
+{
+	background-color: #f4f4f4;
+	width: 100%;
+	margin: 0em;
+}
+.csharpcode .lnum { color: #606060; }
+--></style>
+<p>另外，关于Consul的监控主要利用了QueryResult.LastIndex属性，该类缓存了该属性的值，并与实获取的值进行比较，以判断是否需要重新加载内存中的缓存配置</p>
+<h2 style="font-size: 18px; color: #aa7652; padding-bottom: 5px; padding-top: 5px; padding-left: 30px; padding-right: 8px; background-color: #f5f5f4; border-radius: 5px; border: #d0cfcf 1px solid;">ConsulConfigurationProvider</h2>
+<p>该类除了实现Load方法外，还会根据ReloadOnChange属性，在构造函数中注册OnChange事件，用于重新加载配置信息，源码如下：</p>
+<div class="csharpcode">
+<pre><code><span class="lnum">   1:  </span><span class="kwrd">public</span> <span class="kwrd">sealed</span> <span class="kwrd">class</span> ConsulConfigurationProvider : ConfigurationProvider</pre>
+<pre><code><span class="lnum">   2:  </span>{</pre>
+<pre><code><span class="lnum">   3:  </span>    <span class="kwrd">private</span> <span class="kwrd">readonly</span> ConsulConfigurationParser configurationParser;</pre>
+<pre><code><span class="lnum">   4:  </span>    <span class="kwrd">private</span> <span class="kwrd">readonly</span> IConsulConfigurationSource source;</pre>
+<pre><code><span class="lnum">   5:  </span>&nbsp;</pre>
+<pre><code><span class="lnum">   6:  </span>    <span class="kwrd">public</span> ConsulConfigurationProvider(IConsulConfigurationSource source, ConsulConfigurationParser configurationParser)</pre>
+<pre><code><span class="lnum">   7:  </span>    {</pre>
+<pre><code><span class="lnum">   8:  </span>        <span class="kwrd">this</span>.configurationParser = configurationParser;</pre>
+<pre><code><span class="lnum">   9:  </span>        <span class="kwrd">this</span>.source = source;</pre>
+<pre><code><span class="lnum">  10:  </span>&nbsp;</pre>
+<pre><code><span class="lnum">  11:  </span>        <span class="kwrd">if</span> (source.ReloadOnChange)</pre>
+<pre><code><span class="lnum">  12:  </span>        {</pre>
+<pre><code><span class="lnum">  13:  </span>            ChangeToken.OnChange(</pre>
+<pre><code><span class="lnum">  14:  </span>                () =&gt; <span class="kwrd">this</span>.configurationParser.Watch(<span class="kwrd">this</span>.source.ServiceKey, <span class="kwrd">this</span>.source.CancellationToken),</pre>
+<pre><code><span class="lnum">  15:  </span>                async () =&gt;</pre>
+<pre><code><span class="lnum">  16:  </span>                {</pre>
+<pre><code><span class="lnum">  17:  </span>                    await <span class="kwrd">this</span>.configurationParser.GetConfig(<span class="kwrd">true</span>, source).ConfigureAwait(<span class="kwrd">false</span>);</pre>
+<pre><code><span class="lnum">  18:  </span>&nbsp;</pre>
+<pre><code><span class="lnum">  19:  </span>                    Thread.Sleep(source.ReloadDelay);</pre>
+<pre><code><span class="lnum">  20:  </span>&nbsp;</pre>
+<pre><code><span class="lnum">  21:  </span>                    <span class="kwrd">this</span>.OnReload();</pre>
+<pre><code><span class="lnum">  22:  </span>                });</pre>
+<pre><code><span class="lnum">  23:  </span>        }</pre>
+<pre><code><span class="lnum">  24:  </span>    }</pre>
+<pre><code><span class="lnum">  25:  </span>&nbsp;</pre>
+<pre><code><span class="lnum">  26:  </span>    <span class="kwrd">public</span> <span class="kwrd">override</span> <span class="kwrd">void</span> Load()</pre>
+<pre><code><span class="lnum">  27:  </span>    {</pre>
+<pre><code><span class="lnum">  28:  </span>        <span class="kwrd">try</span></pre>
+<pre><code><span class="lnum">  29:  </span>        {</pre>
+<pre><code><span class="lnum">  30:  </span>            <span class="kwrd">this</span>.Data = <span class="kwrd">this</span>.configurationParser.GetConfig(<span class="kwrd">false</span>, <span class="kwrd">this</span>.source).ConfigureAwait(<span class="kwrd">false</span>).GetAwaiter().GetResult();</pre>
+<pre><code><span class="lnum">  31:  </span>        }</pre>
+<pre><code><span class="lnum">  32:  </span>        <span class="kwrd">catch</span> (AggregateException aggregateException)</pre>
+<pre><code><span class="lnum">  33:  </span>        {</pre>
+<pre><code><span class="lnum">  34:  </span>            <span class="kwrd">throw</span> aggregateException.InnerException;</pre>
+<pre><code><span class="lnum">  35:  </span>        }</pre>
+<pre><code><span class="lnum">  36:  </span>    }</pre>
+<pre><code><span class="lnum">  37:  </span>}</pre>
+</div>
+<style><!--
+.csharpcode, .csharpcode pre
+{
+	font-size: small;
+	color: black;
+	font-family: consolas, "Courier New", courier, monospace;
+	background-color: #ffffff;
+	/*white-space: pre;*/
+}
+.csharpcode pre { margin: 0em; }
+.csharpcode .rem { color: #008000; }
+.csharpcode .kwrd { color: #0000ff; }
+.csharpcode .str { color: #006080; }
+.csharpcode .op { color: #0000c0; }
+.csharpcode .preproc { color: #cc6633; }
+.csharpcode .asp { background-color: #ffff00; }
+.csharpcode .html { color: #800000; }
+.csharpcode .attr { color: #ff0000; }
+.csharpcode .alt 
+{
+	background-color: #f4f4f4;
+	width: 100%;
+	margin: 0em;
+}
+.csharpcode .lnum { color: #606060; }
+--></style>
+<h1 style="font-size: 200%; border-bottom: #5ea2d6 1px solid; font-weight: bold; color: #0378bb; padding-bottom: 10px; padding-top: 0px; padding-left: 20px; clear: both; border-left: #3d97cb 12px solid; line-height: 1.5em; padding-right: 100px;">调用及运行结果</h1>
+<p>此处调用在Program中实现</p>
+<div class="csharpcode">
+<pre><code><span class="lnum">   1:  </span><span class="kwrd">public</span> <span class="kwrd">class</span> Program</pre>
+<pre><code><span class="lnum">   2:  </span>{</pre>
+<pre><code><span class="lnum">   3:  </span>    <span class="kwrd">public</span> <span class="kwrd">static</span> <span class="kwrd">void</span> Main(<span class="kwrd">string</span>[] args)</pre>
+<pre><code><span class="lnum">   4:  </span>    {</pre>
+<pre><code><span class="lnum">   5:  </span>        CancellationTokenSource cancellationTokenSource = <span class="kwrd">new</span> CancellationTokenSource();</pre>
+<pre><code><span class="lnum">   6:  </span>&nbsp;</pre>
+<pre><code><span class="lnum">   7:  </span>        WebHost.CreateDefaultBuilder(args).ConfigureAppConfiguration(</pre>
+<pre><code><span class="lnum">   8:  </span>            (hostingContext, builder) =&gt;</pre>
+<pre><code><span class="lnum">   9:  </span>            {</pre>
+<pre><code><span class="lnum">  10:  </span>                builder.AddConsul(<span class="str">"userservice"</span>, cancellationTokenSource.Token, source =&gt;</pre>
+<pre><code><span class="lnum">  11:  </span>                {</pre>
+<pre><code><span class="lnum">  12:  </span>                    source.ConsulClientConfiguration = cco =&gt; cco.Address = <span class="kwrd">new</span> Uri(<span class="str">"http://localhost:8500"</span>);</pre>
+<pre><code><span class="lnum">  13:  </span>                    source.Optional = <span class="kwrd">true</span>;</pre>
+<pre><code><span class="lnum">  14:  </span>                    source.ReloadOnChange = <span class="kwrd">true</span>;</pre>
+<pre><code><span class="lnum">  15:  </span>                    source.ReloadDelay = 300;</pre>
+<pre><code><span class="lnum">  16:  </span>                    source.QueryOptions = <span class="kwrd">new</span> QueryOptions</pre>
+<pre><code><span class="lnum">  17:  </span>                    {</pre>
+<pre><code><span class="lnum">  18:  </span>                        WaitIndex = 0</pre>
+<pre><code><span class="lnum">  19:  </span>                    };</pre>
+<pre><code><span class="lnum">  20:  </span>                });</pre>
+<pre><code><span class="lnum">  21:  </span>&nbsp;</pre>
+<pre><code><span class="lnum">  22:  </span>                builder.AddConsul(<span class="str">"commonservice"</span>, cancellationTokenSource.Token, source =&gt;</pre>
+<pre><code><span class="lnum">  23:  </span>                {</pre>
+<pre><code><span class="lnum">  24:  </span>                    source.ConsulClientConfiguration = cco =&gt; cco.Address = <span class="kwrd">new</span> Uri(<span class="str">"http://localhost:8500"</span>);</pre>
+<pre><code><span class="lnum">  25:  </span>                    source.Optional = <span class="kwrd">true</span>;</pre>
+<pre><code><span class="lnum">  26:  </span>                    source.ReloadOnChange = <span class="kwrd">true</span>;</pre>
+<pre><code><span class="lnum">  27:  </span>                    source.ReloadDelay = 300;</pre>
+<pre><code><span class="lnum">  28:  </span>                    source.QueryOptions = <span class="kwrd">new</span> QueryOptions</pre>
+<pre><code><span class="lnum">  29:  </span>                    {</pre>
+<pre><code><span class="lnum">  30:  </span>                        WaitIndex = 0</pre>
+<pre><code><span class="lnum">  31:  </span>                    };</pre>
+<pre><code><span class="lnum">  32:  </span>                });</pre>
+<pre><code><span class="lnum">  33:  </span>            }).UseStartup&lt;Startup&gt;().Build().Run();</pre>
+<pre><code><span class="lnum">  34:  </span>    }</pre>
+<pre><code><span class="lnum">  35:  </span>}</pre>
+</div>
+<style><!--
+.csharpcode, .csharpcode pre
+{
+	font-size: small;
+	color: black;
+	font-family: consolas, "Courier New", courier, monospace;
+	background-color: #ffffff;
+	/*white-space: pre;*/
+}
+.csharpcode pre { margin: 0em; }
+.csharpcode .rem { color: #008000; }
+.csharpcode .kwrd { color: #0000ff; }
+.csharpcode .str { color: #006080; }
+.csharpcode .op { color: #0000c0; }
+.csharpcode .preproc { color: #cc6633; }
+.csharpcode .asp { background-color: #ffff00; }
+.csharpcode .html { color: #800000; }
+.csharpcode .attr { color: #ff0000; }
+.csharpcode .alt 
+{
+	background-color: #f4f4f4;
+	width: 100%;
+	margin: 0em;
+}
+.csharpcode .lnum { color: #606060; }
+--></style>
+<p>运行结果，如下图所示，我们已经加载到了两个ConsulProvider实例，这与我们在Program中添加的两个Consul配置一致，其中所加载到的值也和.NET Core Configuration的Key/Value风格相一致，所加载到的值也会Consul中所存储的相一致</p>
+<p><a href="https://img2018.cnblogs.com/blog/533598/201905/533598-20190525142159337-171469605.png"><img style="background-image: none; padding-top: 0px; padding-left: 0px; display: inline; padding-right: 0px; border: 0px;" title="image" src="./images/.NET Core 3.0之创建基于Consul的Configuration扩展组件4.png" alt="image" width="1479" height="604" border="0" /></a></p>
+<p><a href="https://img2018.cnblogs.com/blog/533598/201905/533598-20190525142200441-1807114625.png"><img style="background-image: none; padding-top: 0px; padding-left: 0px; display: inline; padding-right: 0px; border: 0px;" title="image" src="./images/.NET Core 3.0之创建基于Consul的Configuration扩展组件5.png" alt="image" width="1329" height="278" border="0" /></a></p>
+<p><a href="https://img2018.cnblogs.com/blog/533598/201905/533598-20190525142338191-155181235.png"><img style="background-image: none; padding-top: 0px; padding-left: 0px; display: inline; padding-right: 0px; border: 0px;" title="image" src="./images/.NET Core 3.0之创建基于Consul的Configuration扩展组件6.png" alt="image" width="1252" height="498" border="0" /></a></p>
+<h1 style="font-size: 200%; border-bottom: #5ea2d6 1px solid; font-weight: bold; color: #0378bb; padding-bottom: 10px; padding-top: 0px; padding-left: 20px; clear: both; border-left: #3d97cb 12px solid; line-height: 1.5em; padding-right: 100px;">总结</h1>
+<p>基于源码扩展一个配置组件出来，还是比较简单的，另外需要说明的是，该组件关于JSON的处理主要基于.NET Core原生类库，位于命名空间内的System.Text.Json中，所以该组件无法在.NET Core 3.0之前的版本中运行，需要引入额外的JSON组件辅助处理。</p>
+<p>源码已经托管于GitHub，地址：<a href="https://github.com/edison0621/Navyblue.Extensions.Configuration.Consul">https://github.com/edison0621/Navyblue.Extensions.Configuration.Consul</a>，记得点个小星星哦</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

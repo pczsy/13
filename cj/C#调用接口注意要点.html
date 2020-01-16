@@ -1,0 +1,162 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C#调用接口注意要点' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C#调用接口注意要点</center></div><div class='banquan'>原文出处:本文由博客园博主艾三元提供。<br/>
+原文连接:https://www.cnblogs.com/i3yuan/p/10703500.html</div><br>
+    <p>在用C#调用接口的时候，遇到需要通过调用登录接口才能调用其他的接口，因为在其他的接口需要在登录的状态下保存Cookie值才能有权限调用，</p>
+<p>所以首先需要通过调用登录接口来保存cookie值，再进行其他接口的调用</p>
+<p>1.通过Get方式</p>
+<div class="cnblogs_code">
+<pre><code>        <span style="color: #0000ff;">#region</span> get方式
+
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> HttpGet(<span style="color: #0000ff;">string</span><span style="color: #000000;"> url)
+        {
+
+            Encoding encoding </span>=<span style="color: #000000;"> Encoding.UTF8;
+            HttpWebRequest request </span>=<span style="color: #000000;"> (HttpWebRequest)WebRequest.Create(url);
+            request.Method </span>= <span style="color: #800000;">"</span><span style="color: #800000;">GET</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            request.ContentType </span>= <span style="color: #800000;">"</span><span style="color: #800000;">application/json</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            request.Headers[</span><span style="color: #800000;">"</span><span style="color: #800000;">Accept-Encoding</span><span style="color: #800000;">"</span>] = <span style="color: #800000;">"</span><span style="color: #800000;">gzip,deflase</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            request.AutomaticDecompression </span>=<span style="color: #000000;"> DecompressionMethods.GZip;
+            HttpWebResponse response </span>=<span style="color: #000000;"> (HttpWebResponse)request.GetResponse();
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> HttpCookie cookies = new HttpCookie("admin");  </span><span style="color: #008000;">//</span><span style="color: #008000;">如果有需要通过登录实现保存cookie值的话可以加一部分
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> cookies.Value = Convert.ToString(response.Headers["Set-Cookie"]); </span><span style="color: #008000;">//</span><span style="color: #008000;"> 通过响应请求读取带cookie的http数据
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> cookies.Expires = DateTime.Now.AddDays(1);
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">  HttpContext.Current.Response.Cookies.Add(cookies);</span>
+
+            <span style="color: #0000ff;">using</span> (StreamReader reader = <span style="color: #0000ff;">new</span><span style="color: #000000;"> StreamReader(response.GetResponseStream(), Encoding.UTF8))
+            {
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> reader.ReadToEnd();
+            }
+        }
+        </span><span style="color: #0000ff;">#endregion</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>但是并不是所有的get请求都需要添加这个heard的内容，有些加了这个可能出现乱码的情况，所以不要设置Accept-Encoding的Header</p>
+<p>此处之所以加此header，是因为看到网页分析工具中所得到的浏览器浏览该网页，对应的http的header的内容中，就是这样设置的。</p>
+<p>所以，代码中，也是模拟浏览器去访问网页，就设置了对应的Accept-Encoding为gzip,deflate了</p>
+<p>普通浏览器访问网页，之所以添加："Accept-Encoding" = "gzip,deflate"</p>
+<p>那是因为，浏览器对于从服务器中返回的对应的gzip压缩的网页，会自动解压缩，所以，其request的时候，添加对应的头，表明自己接受压缩后的数据。</p>
+<p>同时添加了 request.AutomaticDecompression = DecompressionMethods.GZip;这一句，便可以获得正确的数据。</p>
+<p>如果你获取网页内容太大的话，那么还是可以用这个办法的，这样就可以让HttpWebRequest自动帮你实现对应的解压缩了，可以减少数据数据传输量，节省时间，提高效率。</p>
+<p>2.通过post方式</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> HttpPost2(<span style="color: #0000ff;">string</span> url, <span style="color: #0000ff;">string</span><span style="color: #000000;"> body)
+{
+
+   </span><span style="color: #008000;">//</span><span style="color: #008000;">把用户传过来的数据转成&ldquo;UTF-8&rdquo;的字节流</span>
+    Encoding encoding =<span style="color: #000000;"> Encoding.UTF8;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">先根据用户请求的uri构造请求地址
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">创建Web访问对象</span>
+    HttpWebRequest request =<span style="color: #000000;"> (HttpWebRequest) WebRequest.Create(url);
+    request.Method </span>= <span style="color: #800000;">"</span><span style="color: #800000;">POST</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> request.Accept = "application/json";</span>
+   request.ContentType = <span style="color: #800000;">"</span><span style="color: #800000;">application/json; charset=UTF-8</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+   request.Headers[</span><span style="color: #800000;">"</span><span style="color: #800000;">Accept-Encoding</span><span style="color: #800000;">"</span>] = <span style="color: #800000;">"</span><span style="color: #800000;">gzip, deflate</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+   request.AutomaticDecompression </span>=<span style="color: #000000;"> DecompressionMethods.GZip;
+   </span><span style="color: #008000;">//</span><span style="color: #008000;">HttpCookie Cookie = System.Web.HttpContext.Current.Request.Cookies["admin"];  </span><span style="color: #008000;">//</span><span style="color: #008000;">若是需要登录过后再能访问获取url的数据，需要在请求头中设置cookie值
+   </span><span style="color: #008000;">//</span><span style="color: #008000;">if (Cookie != null)
+   </span><span style="color: #008000;">//</span><span style="color: #008000;">    request.Headers.Add("Cookie", Cookie.Value.ToString());</span>
+
+   <span style="color: #0000ff;">byte</span>[] buffer =<span style="color: #000000;"> encoding.GetBytes(body);
+   request.ContentLength </span>=<span style="color: #000000;"> buffer.Length;
+   request.GetRequestStream().Write(buffer, </span><span style="color: #800080;">0</span><span style="color: #000000;">, buffer.Length);
+   </span><span style="color: #008000;">//</span><span style="color: #008000;">通过Web访问对象获取响应内容</span>
+   HttpWebResponse response =<span style="color: #000000;"> (HttpWebResponse) request.GetResponse();
+   </span><span style="color: #008000;">//</span><span style="color: #008000;">通过响应内容流创建StreamReader对象，因为StreamReader更高级更快</span>
+   <span style="color: #0000ff;">using</span> (StreamReader reader = <span style="color: #0000ff;">new</span><span style="color: #000000;"> StreamReader(response.GetResponseStream(), Encoding.UTF8))
+   {
+    </span><span style="color: #0000ff;">return</span> reader.ReadToEnd();<span style="color: #008000;">//</span><span style="color: #008000;">利用StreamReader就可以从响应内容从头读到尾</span>
+<span style="color: #000000;">   }
+ }</span></pre>
+</div>
+<p>3.通过put请求</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">        #region</span> Put请求
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> Put(<span style="color: #0000ff;">string</span> data, <span style="color: #0000ff;">string</span><span style="color: #000000;"> uri)
+        {</span><span style="color: #008000;">//</span><span style="color: #008000;">创建Web访问对象</span>
+            HttpWebRequest Request =<span style="color: #000000;"> (HttpWebRequest)WebRequest.Create(uri);
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">把用户传过来的数据转成&ldquo;UTF-8&rdquo;的字节流</span>
+            <span style="color: #0000ff;">byte</span>[] buf = System.Text.Encoding.GetEncoding(<span style="color: #800000;">"</span><span style="color: #800000;">UTF-8</span><span style="color: #800000;">"</span><span style="color: #000000;">).GetBytes(data);
+
+            Request.Method </span>= <span style="color: #800000;">"</span><span style="color: #800000;">PUT</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            Request.ContentLength </span>=<span style="color: #000000;"> buf.Length;
+            Request.ContentType </span>= <span style="color: #800000;">"</span><span style="color: #800000;">application/json</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            Request.MaximumAutomaticRedirections </span>= <span style="color: #800080;">1</span><span style="color: #000000;">;
+            Request.AllowAutoRedirect </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">发送请求</span>
+            Stream stream =<span style="color: #000000;"> Request.GetRequestStream();
+            stream.Write(buf, </span><span style="color: #800080;">0</span><span style="color: #000000;">, buf.Length);
+            stream.Close();
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">获取接口返回值
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">通过Web访问对象获取响应内容</span>
+            HttpWebResponse Response =<span style="color: #000000;"> (HttpWebResponse)Request.GetResponse();
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">通过响应内容流创建StreamReader对象，因为StreamReader更高级更快</span>
+            StreamReader reader = <span style="color: #0000ff;">new</span><span style="color: #000000;"> StreamReader(Response.GetResponseStream(), Encoding.UTF8);
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">string returnXml = HttpUtility.UrlDecode(reader.ReadToEnd());</span><span style="color: #008000;">//</span><span style="color: #008000;">如果有编码问题就用这个方法</span>
+            <span style="color: #0000ff;">string</span> returnXml = reader.ReadToEnd();<span style="color: #008000;">//</span><span style="color: #008000;">利用StreamReader就可以从响应内容从头读到尾</span>
+<span style="color: #000000;">            reader.Close();
+            Response.Close();
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> returnXml;
+
+        }           
+        </span><span style="color: #0000ff;">#endregion</span></pre>
+</div>
+<p>4.通过Delete请求</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">        #region</span> Delete请求
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> Delete(<span style="color: #0000ff;">string</span> data, <span style="color: #0000ff;">string</span><span style="color: #000000;"> uri)
+        {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">创建Web访问对象</span>
+            HttpWebRequest Request =<span style="color: #000000;"> (HttpWebRequest)WebRequest.Create(uri);
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">把用户传过来的数据转成&ldquo;UTF-8&rdquo;的字节流</span>
+            <span style="color: #0000ff;">byte</span>[] buf = System.Text.Encoding.GetEncoding(<span style="color: #800000;">"</span><span style="color: #800000;">UTF-8</span><span style="color: #800000;">"</span><span style="color: #000000;">).GetBytes(data);
+
+            Request.Method </span>= <span style="color: #800000;">"</span><span style="color: #800000;">DELETE</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            Request.ContentLength </span>=<span style="color: #000000;"> buf.Length;
+            Request.ContentType </span>= <span style="color: #800000;">"</span><span style="color: #800000;">application/json</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            Request.MaximumAutomaticRedirections </span>= <span style="color: #800080;">1</span><span style="color: #000000;">;
+            Request.AllowAutoRedirect </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">发送请求</span>
+            Stream stream =<span style="color: #000000;"> Request.GetRequestStream();
+            stream.Write(buf, </span><span style="color: #800080;">0</span><span style="color: #000000;">, buf.Length);
+            stream.Close();
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">获取接口返回值
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">通过Web访问对象获取响应内容</span>
+            HttpWebResponse Response =<span style="color: #000000;"> (HttpWebResponse)Request.GetResponse();
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">通过响应内容流创建StreamReader对象，因为StreamReader更高级更快</span>
+            StreamReader reader = <span style="color: #0000ff;">new</span><span style="color: #000000;"> StreamReader(Response.GetResponseStream(), Encoding.UTF8);
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">string returnXml = HttpUtility.UrlDecode(reader.ReadToEnd());</span><span style="color: #008000;">//</span><span style="color: #008000;">如果有编码问题就用这个方法</span>
+            <span style="color: #0000ff;">string</span> returnXml = reader.ReadToEnd();<span style="color: #008000;">//</span><span style="color: #008000;">利用StreamReader就可以从响应内容从头读到尾</span>
+<span style="color: #000000;">            reader.Close();
+            Response.Close();
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> returnXml;
+
+        }
+       </span><span style="color: #0000ff;">#endregion</span></pre>
+</div>
+<p>不同的场景需求，使用不同的方式，应用在不同的场景 。</p>
+<p>通过这几种组合方式 ，可以调用http接口，完成调用和测试。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

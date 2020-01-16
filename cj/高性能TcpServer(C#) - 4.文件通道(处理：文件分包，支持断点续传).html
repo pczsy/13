@@ -1,0 +1,70 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修高性能TcpServer(C#) - 4.文件通道(处理：文件分包，支持断点续传)' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>高性能TcpServer(C#) - 4.文件通道(处理：文件分包，支持断点续传)</center></div><div class='banquan'>原文出处:本文由博客园博主chen1880提供。<br/>
+原文连接:https://www.cnblogs.com/chen1880/p/11238734.html</div><br>
+    <p><a href="https://www.cnblogs.com/chen1880/p/11238663.html" target="_blank">高性能TcpServer(C#)&nbsp;-&nbsp;1.网络通信协议</a></p>
+<p><a href="https://www.cnblogs.com/chen1880/p/11238672.html" target="_blank">高性能TcpServer(C#)&nbsp;-&nbsp;2.创建高性能Socket服务器SocketAsyncEventArgs的实现(IOCP)</a></p>
+<p><a href="https://www.cnblogs.com/chen1880/p/11238699.html" target="_blank">高性能TcpServer(C#) -&nbsp;3.命令通道(处理：掉包，粘包，垃圾包)</a></p>
+<p><a href="https://www.cnblogs.com/chen1880/p/11238734.html" target="_blank">高性能TcpServer(C#)&nbsp;-&nbsp;4.文件通道(处理：文件分包，支持断点续传)</a></p>
+<p><a href="https://www.cnblogs.com/chen1880/p/11238744.html" target="_blank">高性能TcpServer(C#)&nbsp;-&nbsp;5.客户端管理</a></p>
+<p><a href="https://www.cnblogs.com/chen1880/p/11238820.html" target="_blank">高性能TcpServer(C#) - 6.代码下载</a></p>
+<p>&nbsp;</p>
+<p class="p"><span style="font-size: 18pt;"><strong><span style="font-family: 宋体;">应用场景</span></strong></span><span style="font-family: 宋体;"><br /></span></p>
+<p class="p">&nbsp;</p>
+<p class="p"><span style="font-family: 宋体;">升级程序</span></p>
+<p class="p"><span style="font-family: 宋体;">流程：终端</span>-&gt;<span style="font-family: 宋体;">查询服务器版本比较</span><span style="font-family: Calibri;">-&gt;</span><span style="font-family: 宋体;">升级程序</span><span style="font-family: Calibri;">(</span><span style="font-family: 宋体;">获取包数，获取各包数据</span><span style="font-family: Calibri;">)-&gt;</span><span style="font-family: 宋体;">数据拼装生成文件</span><span style="font-family: Calibri;">-&gt;</span><span style="font-family: 宋体;">最后更新服务器上该设备的版本信息</span></p>
+<p class="p"><span style="font-family: 宋体;">分包代码段：</span></p>
+<p class="pre">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;static Dictionary&lt;int, string&gt; ReadFile(string path)</p>
+<p class="pre">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{</p>
+<p class="pre">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Dictionary&lt;int, string&gt; dicFileData = new Dictionary&lt;int, string&gt;();</p>
+<p class="pre">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FileStream fs = new FileStream(path, FileMode.Open);</p>
+<p class="pre">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;BinaryReader binReader = new BinaryReader(fs);</p>
+<p class="pre">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int bagindex = 1;</p>
+<p class="pre">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int dataindex = 0;</p>
+<p class="pre">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;byte[] bBuffer = new byte[fs.Length];</p>
+<p class="pre">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int bagsize = 235;// <span style="font-family: 宋体;">一包数据大小</span></p>
+<p class="pre">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;byte[] temp = new byte[bagsize];</p>
+<p class="pre">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;binReader.Read(bBuffer, 0, (int)fs.Length);</p>
+<p class="pre">&nbsp;</p>
+<p class="pre">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (int i = 0; i &lt; bBuffer.Length; i++)</p>
+<p class="pre">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{</p>
+<p class="pre">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if ((bagsize - 1) == dataindex || (bBuffer.Length - 1) == i)</p>
+<p class="pre">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{</p>
+<p class="pre">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if ((bBuffer.Length - 1) == i) temp[dataindex++] = bBuffer[i];</p>
+<p class="pre">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;string data = CCommonFunc.ToHexString(temp, dataindex, false);</p>
+<p class="pre">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dicFileData.Add(bagindex, data);</p>
+<p class="pre">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bagindex++;</p>
+<p class="pre">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dataindex = 0;</p>
+<p class="pre">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;temp = new byte[bagsize];</p>
+<p class="pre">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}</p>
+<p class="pre">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;temp[dataindex++] = bBuffer[i];</p>
+<p class="pre">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}</p>
+<p class="pre">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;binReader.Close();</p>
+<p class="pre">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fs.Close();</p>
+<p class="pre">&nbsp;</p>
+<p class="pre">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return dicFileData;</p>
+<p class="pre">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}</p>
+<p class="p"><strong><span style="font-family: 宋体;">测试：</span></strong></p>
+<p class="p">&nbsp;<img src="./images/高性能TcpServer(C#) - 4.文件通道(处理：文件分包，支持断点续传)0.png" alt="" /></p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

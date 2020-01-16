@@ -1,0 +1,173 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修ServiceStack.Redis高效封装和简易破解' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>ServiceStack.Redis高效封装和简易破解</center></div><div class='banquan'>原文出处:本文由博客园博主东汉提供。<br/>
+原文连接:https://www.cnblogs.com/michaeldonghan/p/11632931.html</div><br>
+    <h2>1.ServiceStack.Redis封装</h2>
+<p>封装的Redis操作类名为RedisHandle，如下代码块（只展示部分代码），它的特点：</p>
+<p>1）使用连接池管理连接，见代码中的PooledClientManager属性。如果不用连接池，而是代码直接RedisClient client = new RedisClient("localhost", 6379, "password");去获取一个连接实例操作，那么当Redis操作频繁时，代价很大，不可行。</p>
+<p>2）支持读写分离的Redis服务端（如果你只用一个Redis服务端，那么读写服务端连接字符串一样即可）。</p>
+<p>3）操作Redis时，自动切换读写Redis连接实例，见代码中的GetRedisClient函数，所有写操作取&ldquo;写连接实例&rdquo;PooledClientManager.GetClient()，所有读操作取&ldquo;读连接实例&rdquo;PooledClientManager.GetReadOnlyClient()。</p>
+<p>注意：如果你读写是两个做了主从复制的Redis服务端，那么要考虑主从复制是否有延迟，是否有一些读操作要求实时数据，如果是，那么需要在GetXX读数据时用写连接实例。这时候，可以改写此GetXX函数，可在函数参数末尾增加&nbsp;bool? isReadOnly = null&nbsp;带默认值的参数，即支持外部调用指定用哪种连接实例操作。这种情况一般是系统把Redis当作一个NoSql数据库；而更多时候我们系统是把Redis当作一个缓存，不需要做主从复制，读写连接实例指向的是同一个Redis服务端，当系统比较大时可能会用到缓存集群（比如一致性哈希缓存等）。</p>
+<p>4）后继如果Redis需要做一致性哈希等集群，那么可以实例化多个RedisHandle实例，然后撰写算法来取相应的RedisHandle实例。&nbsp;</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">  1</span> <span style="color: #0000ff;">namespace</span><span style="color: #000000;"> NetDh.RedisUtility
+</span><span style="color: #008080;">  2</span> <span style="color: #000000;">{
+</span><span style="color: #008080;">  3</span>     <span style="color: #008000;">/*</span>
+<span style="color: #008080;">  4</span> <span style="color: #008000;">     * 一个RedisHandle实例对应一个Redis服务端或者一组主从复制Redis服务端。
+</span><span style="color: #008080;">  5</span> <span style="color: #008000;">     * 如果Redis需要做一致性哈希等集群，则要自己撰写算法来取相应的RedisHandle实例。
+</span><span style="color: #008080;">  6</span>      <span style="color: #008000;">*/</span>
+<span style="color: #008080;">  7</span> 
+<span style="color: #008080;">  8</span>     <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">  9</span>     <span style="color: #808080;">///</span><span style="color: #008000;"> Redis操作类
+</span><span style="color: #008080;"> 10</span>     <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;"> 11</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> RedisHandle
+</span><span style="color: #008080;"> 12</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;"> 13</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;"> 14</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> Redis连接池管理实例
+</span><span style="color: #008080;"> 15</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;"> 16</span>         <span style="color: #0000ff;">public</span> PooledRedisClientManager PooledClientManager { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+</span><span style="color: #008080;"> 17</span> 
+<span style="color: #008080;"> 18</span>         <span style="color: #008000;">/*</span><span style="color: #008000;"> 如果你的需求需要经常切换Redis数据库，则可把Db当属性，这样每一个RedisHandle实例可以对应操作某Redis的某个数据库。此时，可在构造函数中增加int db参数。</span><span style="color: #008000;">*/</span>
+<span style="color: #008080;"> 19</span>         <span style="color: #808080;">///</span><span style="color: #008000;">// </span><span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;"> 20</span>         <span style="color: #808080;">///</span><span style="color: #008000;">// 一个Redis服务端默认有16个数据库，默认都是用第0个数据库。如果需要切换数据库，则传入db值(0~15)
+</span><span style="color: #008080;"> 21</span>         <span style="color: #808080;">///</span><span style="color: #008000;">// </span><span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;"> 22</span>         <span style="color: #008000;">//</span><span style="color: #008000;">public int Db { get; set; }</span>
+<span style="color: #008080;"> 23</span> 
+<span style="color: #008080;"> 24</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;"> 25</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 构造函数
+</span><span style="color: #008080;"> 26</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;"> 27</span>         <span style="color: #0000ff;">public</span><span style="color: #000000;"> RedisHandle()
+</span><span style="color: #008080;"> 28</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 29</span>             <span style="color: #0000ff;">#region</span> 此代码为创建&ldquo;连接池示例&rdquo;，配置信息直接用静态类RedisClientConfig1承载，你也可以选择用配置文件承载
+<span style="color: #008080;"> 30</span>             <span style="color: #0000ff;">var</span> config = <span style="color: #0000ff;">new</span><span style="color: #000000;"> RedisClientManagerConfig
+</span><span style="color: #008080;"> 31</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 32</span>                 AutoStart = <span style="color: #0000ff;">true</span><span style="color: #000000;">,
+</span><span style="color: #008080;"> 33</span>                 MaxWritePoolSize =<span style="color: #000000;"> RedisClientConfig1.MaxWritePoolSize,
+</span><span style="color: #008080;"> 34</span>                 MaxReadPoolSize =<span style="color: #000000;"> RedisClientConfig1.MaxReadPoolSize,
+</span><span style="color: #008080;"> 35</span>                 DefaultDb =<span style="color: #000000;"> RedisClientConfig1.DefaultDb,
+</span><span style="color: #008080;"> 36</span> <span style="color: #000000;">            };
+</span><span style="color: #008080;"> 37</span>             <span style="color: #008000;">//</span><span style="color: #008000;">如果你只用到一个Redis服务端，那么配置读写时就指定一样的连接字符串即可。</span>
+<span style="color: #008080;"> 38</span>             PooledClientManager = <span style="color: #0000ff;">new</span><span style="color: #000000;"> PooledRedisClientManager(RedisClientConfig1.ReadWriteServers
+</span><span style="color: #008080;"> 39</span> <span style="color: #000000;">                , RedisClientConfig1.ReadOnlyServers, config)
+</span><span style="color: #008080;"> 40</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 41</span>                 ConnectTimeout =<span style="color: #000000;"> RedisClientConfig1.ConnectTimeout,
+</span><span style="color: #008080;"> 42</span>                 SocketSendTimeout =<span style="color: #000000;"> RedisClientConfig1.SendTimeout,
+</span><span style="color: #008080;"> 43</span>                 SocketReceiveTimeout =<span style="color: #000000;"> RedisClientConfig1.ReceiveTimeout,
+</span><span style="color: #008080;"> 44</span>                 IdleTimeOutSecs =<span style="color: #000000;"> RedisClientConfig1.IdleTimeOutSecs,
+</span><span style="color: #008080;"> 45</span>                 PoolTimeout =<span style="color: #000000;"> RedisClientConfig1.PoolTimeout
+</span><span style="color: #008080;"> 46</span> <span style="color: #000000;">            };
+</span><span style="color: #008080;"> 47</span>             <span style="color: #0000ff;">#endregion</span>
+<span style="color: #008080;"> 48</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 49</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;"> 50</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 构造函数
+</span><span style="color: #008080;"> 51</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;"> 52</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="poolManager"&gt;</span><span style="color: #008000;">连接池，外部传入自己创建的PooledRedisClientManager连接池对象，
+</span><span style="color: #008080;"> 53</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 可以把其它RedisHandle实例的PooledClientManager传入，共用连接池</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;"> 54</span>         <span style="color: #0000ff;">public</span><span style="color: #000000;"> RedisHandle(PooledRedisClientManager poolManager)
+</span><span style="color: #008080;"> 55</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 56</span>             PooledClientManager =<span style="color: #000000;"> poolManager;
+</span><span style="color: #008080;"> 57</span> 
+<span style="color: #008080;"> 58</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 59</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;"> 60</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 获取Redis客户端连接对象，有连接池管理。
+</span><span style="color: #008080;"> 61</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;"> 62</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="isReadOnly"&gt;</span><span style="color: #008000;">是否取只读连接。Get操作一般是读，Set操作一般是写</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;"> 63</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+<span style="color: #008080;"> 64</span>         <span style="color: #0000ff;">public</span> RedisClient GetRedisClient(<span style="color: #0000ff;">bool</span> isReadOnly = <span style="color: #0000ff;">false</span><span style="color: #000000;">)
+</span><span style="color: #008080;"> 65</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 66</span> <span style="color: #000000;">            RedisClient result;
+</span><span style="color: #008080;"> 67</span>             <span style="color: #0000ff;">if</span> (!<span style="color: #000000;">isReadOnly)
+</span><span style="color: #008080;"> 68</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 69</span>                 <span style="color: #008000;">//</span><span style="color: #008000;">RedisClientManager.GetCacheClient()会返回一个新实例，而且只提供一小部分方法，它的作用是帮你判断是否用写实例还是读实例</span>
+<span style="color: #008080;"> 70</span>                 result = PooledClientManager.GetClient() <span style="color: #0000ff;">as</span><span style="color: #000000;"> RedisClient;
+</span><span style="color: #008080;"> 71</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 72</span>             <span style="color: #0000ff;">else</span>
+<span style="color: #008080;"> 73</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 74</span>                 <span style="color: #008000;">//</span><span style="color: #008000;">如果你读写是两个做了主从复制的Redis服务端，那么要考虑主从复制是否有延迟。有一些读操作是否是即时的，需要在写实例中获取。</span>
+<span style="color: #008080;"> 75</span>                 result = PooledClientManager.GetReadOnlyClient() <span style="color: #0000ff;">as</span><span style="color: #000000;"> RedisClient;
+</span><span style="color: #008080;"> 76</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 77</span>             <span style="color: #008000;">//</span><span style="color: #008000;">如果你的需求需要经常切换Redis数据库，则下一句可以用。否则一般都只用默认0数据库，集群是没有数据库的概念。
+</span><span style="color: #008080;"> 78</span>             <span style="color: #008000;">//</span><span style="color: #008000;">result.ChangeDb(Db);</span>
+<span style="color: #008080;"> 79</span>             <span style="color: #0000ff;">return</span><span style="color: #000000;"> result;
+</span><span style="color: #008080;"> 80</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 81</span> 
+<span style="color: #008080;"> 82</span>         <span style="color: #0000ff;">#region</span> 存储单值 key-value，其中value是string，使用时如果value是int，可以把比如int转成string存储
+<span style="color: #008080;"> 83</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> SetValue(<span style="color: #0000ff;">string</span> key, <span style="color: #0000ff;">string</span> value, <span style="color: #0000ff;">int</span> expirySeconds = -<span style="color: #800080;">1</span><span style="color: #000000;">)
+</span><span style="color: #008080;"> 84</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 85</span>             <span style="color: #0000ff;">using</span> (RedisClient redisClient =<span style="color: #000000;"> GetRedisClient())
+</span><span style="color: #008080;"> 86</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 87</span>                 <span style="color: #008000;">//</span><span style="color: #008000;">redisClient.SetEntry(key, value, expireIn);</span>
+<span style="color: #008080;"> 88</span>                 <span style="color: #0000ff;">if</span> (expirySeconds == -<span style="color: #800080;">1</span><span style="color: #000000;">)
+</span><span style="color: #008080;"> 89</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;"> 90</span> <span style="color: #000000;">                    redisClient.SetValue(key, value);
+</span><span style="color: #008080;"> 91</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;"> 92</span>                 <span style="color: #0000ff;">else</span>
+<span style="color: #008080;"> 93</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;"> 94</span>                     redisClient.SetValue(key, value, <span style="color: #0000ff;">new</span> TimeSpan(<span style="color: #800080;">0</span>, <span style="color: #800080;">0</span>, <span style="color: #800080;">0</span><span style="color: #000000;">, expirySeconds));
+</span><span style="color: #008080;"> 95</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;"> 96</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 97</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 98</span> 
+<span style="color: #008080;"> 99</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> GetValue(<span style="color: #0000ff;">string</span><span style="color: #000000;"> key)
+</span><span style="color: #008080;">100</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">101</span>             <span style="color: #0000ff;">using</span> (RedisClient redisClient = GetRedisClient(<span style="color: #0000ff;">true</span><span style="color: #000000;">))
+</span><span style="color: #008080;">102</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">103</span>                 <span style="color: #0000ff;">var</span> val =<span style="color: #000000;"> redisClient.GetValue(key);
+</span><span style="color: #008080;">104</span> 
+<span style="color: #008080;">105</span>                 <span style="color: #0000ff;">return</span><span style="color: #000000;"> val;
+</span><span style="color: #008080;">106</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">107</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">108</span> 
+<span style="color: #008080;">109</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">bool</span> Remove(<span style="color: #0000ff;">string</span><span style="color: #000000;"> key)
+</span><span style="color: #008080;">110</span>         {<br />　　　　　　　　...</pre>
+</div>
+<p>5）在GetRedisClient函数中有句注释的代码<span style="color: #339966;">//result.ChangeDb(Db);<span style="color: #000000;">。其中</span></span>，ChangeDb是切换Redis数据库（Redis默认有16个数据库，见redis-server.exe目录下的redis.conf配置文件中的&ldquo;databases 16&rdquo;）。我们一般默认都是用第0个数据库，如果需要切换数据库，则传入Db值(0~15)。我这边一般不会用到切换数据库的需求，如果你的需求需要经常切换Redis数据库，此句可用。否则一般都只用默认0数据库，集群是没有数据库的概念。</p>
+<p>为了说明一个Redis服务端有多个数据库以及数据库之间的切换，做个小示例，如下图，我在Redis的第0个数据库存放了键值对数据"test2:1"，当我切到第1个数据库ChangeDb(1)时，GetValue("test2")返回的是null，当切回第0个数据库时，就取到1的值。</p>
+<p><img src="./images/ServiceStack.Redis高效封装和简易破解0.png" alt="" /></p>
+<p>&nbsp;现在用命令登录Redis再演示一遍这个过程，如下图：</p>
+<p><img src="./images/ServiceStack.Redis高效封装和简易破解1.png" alt="" /></p>
+<p>&nbsp;&nbsp;6）RedisHandle操作类包含的操作，大致如下图，Redis支持的数据类型比Memcache多，而且很实用，如果你的系统存取缓存会涉及比较复杂的逻辑，推荐使用Redis，Memcache能的Redis都能。</p>
+<p><img src="./images/ServiceStack.Redis高效封装和简易破解2.png" alt="" /></p>
+<p>完整的源码请参考：<a href="https://gitee.com/donghan/NetDh-Framework/tree/master/Data/NetDh.RedisUtility">https://gitee.com/donghan/NetDh-Framework/tree/master/Data/NetDh.RedisUtility</a></p>
+<p>此工具类已经并到我的NetDh框架项目中，NetDh框架码云地址：<a href="https://gitee.com/donghan/NetDh-Framework">https://gitee.com/donghan/NetDh-Framework</a>&nbsp;</p>
+<p>&nbsp;</p>
+<h2>2.ServiceStack.Redis破解</h2>
+<p>我这边封装的是ServiceStack.Redis最新版本5.7.0，它在4.0版本之后就商业化，有做限制：每小时只能有6000次的Redis访问。网上有对ServiceStack.Redis和StackExchange.Reids进行比较，结果是前者性能比较好，不管真假，我是ServiceStack.Redis 3.x就开始用它了，一如既往继续用呗，有限制就破解呗。</p>
+<p>步骤：</p>
+<p>1）限制6000次是在ServiceStack.Text.dll中，而且在两个地方，用ILSpy打开ServiceStack.Text.dll，在搜索栏输入&ldquo;RedisRequestPerHour&rdquo;，可以看到RedisRequestPerHour=6000的限制，如下图（第1步你可不做，看看就好）：</p>
+<p><img src="./images/ServiceStack.Redis高效封装和简易破解3.png" alt="" width="637" height="318" /></p>
+<p>&nbsp;&nbsp;再搜索&ldquo;AssertValidUsage&rdquo;，发现另一个地方的6000次限制，如下图：</p>
+<p><img src="./images/ServiceStack.Redis高效封装和简易破解4.png" alt="" width="651" height="417" /></p>
+<p>2）下载一个十六进制编辑器，我网上找的是wxMEdit工具（下载页面：http://wxmedit.github.io/downloads.html）。</p>
+<p>3）先备份ServiceStack.Text.dll，用十六进制编辑器打开ServiceStack.Text.dll。</p>
+<p>分析：6000转换成字节形式是 70 17 00 00（虽然6000的16进制是00001770），int的最大值2147483647转换成字节形式是 FF FF&nbsp;FF 7F，所以只要把70 17 00 00替换成FF FF FF 7F即可。</p>
+<p>如下图，替换之前点了&ldquo;查找下一个&rdquo;发现全局就两个地方，那就确定是要修改的值，然后点击&ldquo;替换&rdquo;两次，ctrl+s保存文件，dll修改完成。</p>
+<p><img src="./images/ServiceStack.Redis高效封装和简易破解5.png" alt="" /></p>
+<p>&nbsp;4）再用ILSpy看这两个值，已经修改了，如下图（第4步你也可不做，看看就好）：</p>
+<p><img src="./images/ServiceStack.Redis高效封装和简易破解6.png" alt="" width="688" height="444" /></p>
+<p>5）把修改的dll覆盖原来dll，最好在IDE中把原来的引用移除，重新添加引用一次，以防有缓存执行的还是旧的dll。编写如下代码测试：</p>
+<p><img src="./images/ServiceStack.Redis高效封装和简易破解7.png" alt="" width="531" height="149" /></p>
+<p>覆盖dll之前会报6000限制，覆盖之后输出ok正常：</p>
+<p><img src="./images/ServiceStack.Redis高效封装和简易破解8.png" alt="" width="214" height="83" /></p>
+<p>&nbsp;&nbsp;完美，点赞！</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

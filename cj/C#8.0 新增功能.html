@@ -1,0 +1,391 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C#8.0 新增功能' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C#8.0 新增功能</center></div><div class='banquan'>原文出处:本文由博客园博主冰乐提供。<br/>
+原文连接:https://www.cnblogs.com/taotaozhuanyong/p/11699796.html</div><br>
+    <p><span style="font-size: 18px;"><strong>1、Readonly成员</strong></span></p>
+<p>　　可将readonly修饰符应用于结构的任何成员，它指示该成员不会修改状态。这比将readonly修饰符应用于struct声明更精细。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">struct</span><span style="color: #000000;"> Point
+{
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">double</span> X { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">double</span> Y { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">double</span> Distance =&gt; Math.Sqrt(X * X + Y *<span style="color: #000000;"> Y);
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">override</span> <span style="color: #0000ff;">string</span> ToString() =&gt; $<span style="color: #800000;">"</span><span style="color: #800000;">({X}, {Y}) is {Distance} from the origin</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+}</span></pre>
+</div>
+<p>像大多数结构一样ToString（）方法不会修改状态。可以通过readonly修饰符添加到ToString（）的声明来对此进行指示：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">readonly</span> <span style="color: #0000ff;">override</span> <span style="color: #0000ff;">string</span> ToString() =&gt; $<span style="color: #800000;">"</span><span style="color: #800000;">({X}, {Y}) is {Distance} from the origin</span><span style="color: #800000;">"</span>;</pre>
+</div>
+<p>上述更改会发生编译器警告，因为ToString访问Distance属性，该属性未标记为readonly，如下图所示：</p>
+<p><img src="./images/C#8.0 新增功能0.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;需要创建防御性副本时，编译器会发出警告，Distance属性不会更改状态，因此可以通过将readonly修饰符添加到声明来修复此警告：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">readonly</span> <span style="color: #0000ff;">double</span> Distance =&gt; Math.Sqrt(X * X + Y * Y);</pre>
+</div>
+<p>请注意，readonly修饰符对于只读属性是必须的。编译器不会假设get访问器不修改状态；必须明确声明readonly，编译器会强制实施以下规则：</p>
+<p>　　readonly成员不修改状态，除非readonly修饰符，否则不会编译以下方法：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">readonly</span> <span style="color: #0000ff;">void</span> Translate(<span style="color: #0000ff;">int</span> xOffset,<span style="color: #0000ff;">int</span><span style="color: #000000;"> yOffset)
+{
+    X </span>+=<span style="color: #000000;"> xOffset;
+    Y </span>+=<span style="color: #000000;"> yOffset;
+}</span></pre>
+</div>
+<p><img src="./images/C#8.0 新增功能1.png" alt="" /></p>
+<p>&nbsp;通过此功能，可以指定设计意图，使编译器可以强制执行该意图，并基于该意图进行优化。</p>
+<p><strong><span style="font-size: 18px;">2、默认接口成员</span></strong></p>
+<p>　现在可以将成员添加到接口，并未这些成员提供实现。借助次语言功能，API坐着可以将方法添加到以后版本的接口中，而不会破坏与该接口当前实现的源或耳机中南海文件兼容性。现在有的实现继承默认接口。此功能使C#与面向Android 或Swift的API进行互操作，此类API支持类似功能。默认接口成员还支持类似于&ldquo;特征&rdquo;语言功能的方案。</p>
+<p>默认接口成员会影响很多方案和语言元素。<a href="https://docs.microsoft.com/zh-cn/dotnet/csharp/tutorials/default-interface-methods-versions">https://docs.microsoft.com/zh-cn/dotnet/csharp/tutorials/default-interface-methods-versions</a></p>
+<p><strong><span style="font-size: 18px;">3、在更多位置中使用更多模式</span></strong></p>
+<p>模式匹配提供了在相关但不同类型的数据中提供形状相关功能的工具。C#7.0通过使用is表达式和switch语句引入了类型模式和常量模式的语法。这些功能代表了支持数据和功能分离时的编程范例的初步尝试。随着行业转向更多微服务和其他基于云的体系结构，还需要其他语言功能。</p>
+<p>C#8.0扩展了此词汇表。这样就可以在代码中的更多位置使用更多模式表达式。当数据和功能分离时，请考虑使用这些功能。当算法依赖于对象运行时类型以外的事实时，请考虑使用模式匹配。这些技术提供了另一种表达设计的方式。</p>
+<p>除了烤鱼在新位置使用新模式之外，C#8.0还添加了&ldquo;递归模式&rdquo;。任何模式表达式的结果都是一个表达式。递归模式只是应用于另外一个模式表达式输出的模式表达式。</p>
+<p><strong><span style="font-size: 18px;">switch表达式</span></strong></p>
+<p>通常情况下，switch语句在其每个case块中生成一个值。借助Switch表达式，可以使用更简洁的表达式语句，只是些许重复的case和break关键字额大括号。以下面列出彩虹颜色的枚举为例：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">enum</span><span style="color: #000000;"> Rainbow
+{
+    Red,
+    Orange,
+    Yellow,
+    Green,
+    Blue,
+    Indigo,
+    Violet
+}</span></pre>
+</div>
+<p>如果应用定义了通过R、G、B组件构造而成的RGBColor类型，可使用以下包含switch表达式的方法，将Rainbow转换为RGB值：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> RGBColor FromRainbow(Rainbow colorBand) =&gt;<span style="color: #000000;">
+colorBand </span><span style="color: #0000ff;">switch</span><span style="color: #000000;">
+{
+    Rainbow.Red </span>=&gt; <span style="color: #0000ff;">new</span> RGBColor(<span style="color: #800080;">0xFF</span>, <span style="color: #800080;">0x00</span>, <span style="color: #800080;">0x00</span><span style="color: #000000;">),
+    Rainbow.Orange </span>=&gt; <span style="color: #0000ff;">new</span> RGBColor(<span style="color: #800080;">0xFF</span>, <span style="color: #800080;">0x7F</span>, <span style="color: #800080;">0x00</span><span style="color: #000000;">),
+    Rainbow.Yellow </span>=&gt; <span style="color: #0000ff;">new</span> RGBColor(<span style="color: #800080;">0xFF</span>, <span style="color: #800080;">0xFF</span>, <span style="color: #800080;">0x00</span><span style="color: #000000;">),
+    Rainbow.Green </span>=&gt; <span style="color: #0000ff;">new</span> RGBColor(<span style="color: #800080;">0x00</span>, <span style="color: #800080;">0xFF</span>, <span style="color: #800080;">0x00</span><span style="color: #000000;">),
+    Rainbow.Blue </span>=&gt; <span style="color: #0000ff;">new</span> RGBColor(<span style="color: #800080;">0x00</span>, <span style="color: #800080;">0x00</span>, <span style="color: #800080;">0xFF</span><span style="color: #000000;">),
+    Rainbow.Indigo </span>=&gt; <span style="color: #0000ff;">new</span> RGBColor(<span style="color: #800080;">0x4B</span>, <span style="color: #800080;">0x00</span>, <span style="color: #800080;">0x82</span><span style="color: #000000;">),
+    Rainbow.Violet </span>=&gt; <span style="color: #0000ff;">new</span> RGBColor(<span style="color: #800080;">0x94</span>, <span style="color: #800080;">0x00</span>, <span style="color: #800080;">0xD3</span><span style="color: #000000;">),
+    _ </span>=&gt; <span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> ArgumentException(message: <span style="color: #800000;">"</span><span style="color: #800000;">invalid enum value</span><span style="color: #800000;">"</span><span style="color: #000000;">, paramName: nameof(colorBand)),
+};</span></pre>
+</div>
+<p>这里有几个语法改进：</p>
+<p>　　1、变量位于switch关键字之前。不同的顺序使得在视觉上可以很轻松的区分switch表达式和switch语句。</p>
+<p>　　2、将case和：元素替换为=&gt;，它更简洁，更直观。</p>
+<p>　　3、将default事例替换为_弃元。</p>
+<p>　　4、正文是表达式，不是语句。</p>
+<p>将其与使用经典switch语句的等效代码进行对比：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span><span style="color: #000000;"> RGBColor FromRainbowClassic(Rainbow colorBand)
+{
+    </span><span style="color: #0000ff;">switch</span><span style="color: #000000;"> (colorBand)
+    {
+        </span><span style="color: #0000ff;">case</span><span style="color: #000000;"> Rainbow.Red:
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span> RGBColor(<span style="color: #800080;">0xFF</span>, <span style="color: #800080;">0x00</span>, <span style="color: #800080;">0x00</span><span style="color: #000000;">);
+        </span><span style="color: #0000ff;">case</span><span style="color: #000000;"> Rainbow.Orange:
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span> RGBColor(<span style="color: #800080;">0xFF</span>, <span style="color: #800080;">0x7F</span>, <span style="color: #800080;">0x00</span><span style="color: #000000;">);
+        </span><span style="color: #0000ff;">case</span><span style="color: #000000;"> Rainbow.Yellow:
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span> RGBColor(<span style="color: #800080;">0xFF</span>, <span style="color: #800080;">0xFF</span>, <span style="color: #800080;">0x00</span><span style="color: #000000;">);
+        </span><span style="color: #0000ff;">case</span><span style="color: #000000;"> Rainbow.Green:
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span> RGBColor(<span style="color: #800080;">0x00</span>, <span style="color: #800080;">0xFF</span>, <span style="color: #800080;">0x00</span><span style="color: #000000;">);
+        </span><span style="color: #0000ff;">case</span><span style="color: #000000;"> Rainbow.Blue:
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span> RGBColor(<span style="color: #800080;">0x00</span>, <span style="color: #800080;">0x00</span>, <span style="color: #800080;">0xFF</span><span style="color: #000000;">);
+        </span><span style="color: #0000ff;">case</span><span style="color: #000000;"> Rainbow.Indigo:
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span> RGBColor(<span style="color: #800080;">0x4B</span>, <span style="color: #800080;">0x00</span>, <span style="color: #800080;">0x82</span><span style="color: #000000;">);
+        </span><span style="color: #0000ff;">case</span><span style="color: #000000;"> Rainbow.Violet:
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span> RGBColor(<span style="color: #800080;">0x94</span>, <span style="color: #800080;">0x00</span>, <span style="color: #800080;">0xD3</span><span style="color: #000000;">);
+        </span><span style="color: #0000ff;">default</span><span style="color: #000000;">:
+            </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> ArgumentException(message: <span style="color: #800000;">"</span><span style="color: #800000;">invalid enum value</span><span style="color: #800000;">"</span><span style="color: #000000;">, paramName: nameof(colorBand));
+    };
+}</span></pre>
+</div>
+<p><span style="font-size: 16px;">属性模式：</span></p>
+<p>借助属性模式，可以匹配所有检查的对象的属性。请看一个电子商务网站的事例额，该网站必须根据买家地址计算销售税，这种计算不时Address类的核心职责。它会随时间变化，可能比地址格式的更改更频繁，销售税的金额取决于地址的State属性。下面的方法使用属性模式从地址和价格计算销售税：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">decimal</span> ComputeSalesTax(Address location, <span style="color: #0000ff;">decimal</span> salePrice) =&gt;<span style="color: #000000;">
+    location </span><span style="color: #0000ff;">switch</span><span style="color: #000000;">
+    {
+        { State: </span><span style="color: #800000;">"</span><span style="color: #800000;">WA</span><span style="color: #800000;">"</span> } =&gt; salePrice * <span style="color: #800080;">0.06M</span><span style="color: #000000;">,
+        { State: </span><span style="color: #800000;">"</span><span style="color: #800000;">MN</span><span style="color: #800000;">"</span> } =&gt; salePrice * <span style="color: #800080;">0.75M</span><span style="color: #000000;">,
+        { State: </span><span style="color: #800000;">"</span><span style="color: #800000;">MI</span><span style="color: #800000;">"</span> } =&gt; salePrice * <span style="color: #800080;">0.05M</span><span style="color: #000000;">,
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> other cases removed for brevity...</span>
+        _ =&gt;<span style="color: #000000;"> 0M
+    };</span></pre>
+</div>
+<p>&nbsp;模式匹配为表达此算法创建了简介的语法</p>
+<p><span style="font-size: 16px;">元素模式：</span></p>
+<p>一些算法依赖于多个输入，使用元组模式，可以根据表示为元组的多个值进行。以下代码显示了游戏&ldquo;rock,pack,scissors(石头剪刀布)&rdquo;的切换表达式</p>
+<div class="cnblogs_code">
+<pre><code> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">string</span> RockPaperScissors(<span style="color: #0000ff;">string</span> first, <span style="color: #0000ff;">string</span><span style="color: #000000;"> second)
+    </span>=&gt; (first, second) <span style="color: #0000ff;">switch</span><span style="color: #000000;">
+    {
+        (</span><span style="color: #800000;">"</span><span style="color: #800000;">rock</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">paper</span><span style="color: #800000;">"</span>) =&gt; <span style="color: #800000;">"</span><span style="color: #800000;">rock is covered by paper. Paper wins.</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+        (</span><span style="color: #800000;">"</span><span style="color: #800000;">rock</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">scissors</span><span style="color: #800000;">"</span>) =&gt; <span style="color: #800000;">"</span><span style="color: #800000;">rock breaks scissors. Rock wins.</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+        (</span><span style="color: #800000;">"</span><span style="color: #800000;">paper</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">rock</span><span style="color: #800000;">"</span>) =&gt; <span style="color: #800000;">"</span><span style="color: #800000;">paper covers rock. Paper wins.</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+        (</span><span style="color: #800000;">"</span><span style="color: #800000;">paper</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">scissors</span><span style="color: #800000;">"</span>) =&gt; <span style="color: #800000;">"</span><span style="color: #800000;">paper is cut by scissors. Scissors wins.</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+        (</span><span style="color: #800000;">"</span><span style="color: #800000;">scissors</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">rock</span><span style="color: #800000;">"</span>) =&gt; <span style="color: #800000;">"</span><span style="color: #800000;">scissors is broken by rock. Rock wins.</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+        (</span><span style="color: #800000;">"</span><span style="color: #800000;">scissors</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">paper</span><span style="color: #800000;">"</span>) =&gt; <span style="color: #800000;">"</span><span style="color: #800000;">scissors cuts paper. Scissors wins.</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+        (_, _) </span>=&gt; <span style="color: #800000;">"</span><span style="color: #800000;">tie</span><span style="color: #800000;">"</span><span style="color: #000000;">
+    };</span></pre>
+</div>
+<p>消息显示获胜者，弃元表示平局（石头剪刀布游戏）的三种组合或其他文本输入。</p>
+<p><strong><span style="font-size: 18px;">位置模式</span></strong></p>
+<p>某些类型包含Deconstruct方法，就可以使用位置模式，该方法将其属性解构为离散变量。如果可以访问Deconstruct方法，就可以使用位置模式检查对象的属性并将这些属性用于模式。考虑以下Point类。其中包含用于为X和Y创建离散变量的Deconstruct方法：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Point
+{
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span> X { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span> Y { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+
+    </span><span style="color: #0000ff;">public</span> Point(<span style="color: #0000ff;">int</span> x, <span style="color: #0000ff;">int</span> y) =&gt; (X, Y) =<span style="color: #000000;"> (x, y);
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> Deconstruct(<span style="color: #0000ff;">out</span> <span style="color: #0000ff;">int</span> x, <span style="color: #0000ff;">out</span> <span style="color: #0000ff;">int</span> y) =&gt; (x, y) =<span style="color: #000000;"> (X, Y);
+}</span></pre>
+</div>
+<p>此外，请考虑以下表示象限的各种位置的枚举：</p>
+<div class="cnblogs_code">
+<pre><code> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">enum</span><span style="color: #000000;"> Quadrant
+ {
+     Unknown,
+     Origin,
+     One,
+     Two,
+     Three,
+     Four,
+     OnBorder
+ }</span></pre>
+</div>
+<p>下面的方法使用位置模式来提取x和y的值，然后，它使用when自居来确定改点的Quadrant：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">static</span> Quadrant GetQuadrant(Point point) =&gt; point <span style="color: #0000ff;">switch</span><span style="color: #000000;">
+{
+    (</span><span style="color: #800080;">0</span>, <span style="color: #800080;">0</span>) =&gt;<span style="color: #000000;"> Quadrant.Origin,
+    </span><span style="color: #0000ff;">var</span> (x, y) when x &gt; <span style="color: #800080;">0</span> &amp;&amp; y &gt; <span style="color: #800080;">0</span> =&gt;<span style="color: #000000;"> Quadrant.One,
+    </span><span style="color: #0000ff;">var</span> (x, y) when x &lt; <span style="color: #800080;">0</span> &amp;&amp; y &gt; <span style="color: #800080;">0</span> =&gt;<span style="color: #000000;"> Quadrant.Two,
+    </span><span style="color: #0000ff;">var</span> (x, y) when x &lt; <span style="color: #800080;">0</span> &amp;&amp; y &lt; <span style="color: #800080;">0</span> =&gt;<span style="color: #000000;"> Quadrant.Three,
+    </span><span style="color: #0000ff;">var</span> (x, y) when x &gt; <span style="color: #800080;">0</span> &amp;&amp; y &lt; <span style="color: #800080;">0</span> =&gt;<span style="color: #000000;"> Quadrant.Four,
+    </span><span style="color: #0000ff;">var</span> (_, _) =&gt;<span style="color: #000000;"> Quadrant.OnBorder,
+    _ </span>=&gt;<span style="color: #000000;"> Quadrant.Unknown
+};</span></pre>
+</div>
+<p>当x或y为0（但不是两者同时为0）时，前一个开关中的弃元模式匹配，switch表达式必须要么生成值，要么引发异常。如果这些情况都不匹配，则switch表达式将引发异常。如果没有switch表达式中涵盖所有可能的情况，编译器将生成一个警告。</p>
+<p>可以在模式匹配高级教程中探索模式匹配方法。<a href="https://docs.microsoft.com/zh-cn/dotnet/csharp/tutorials/pattern-matching">https://docs.microsoft.com/zh-cn/dotnet/csharp/tutorials/pattern-matching</a></p>
+<p><span style="font-size: 18px;"><strong>4、using声明</strong></span></p>
+<p>using声明是前面带using关键字的变量声明。它指示编译器声明的变量应该在封闭范围的末尾进行处理。以下面编写文本文件的代码为例：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> WriteLinesToFile(IEnumerable&lt;<span style="color: #0000ff;">string</span>&gt;<span style="color: #000000;"> lines)
+{
+    </span><span style="color: #0000ff;">using</span> <span style="color: #0000ff;">var</span> file = <span style="color: #0000ff;">new</span> System.IO.StreamWriter(<span style="color: #800000;">"</span><span style="color: #800000;">WriteLines2.txt</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+    </span><span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">var</span> line <span style="color: #0000ff;">in</span><span style="color: #000000;"> lines)
+    {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">如果该行不包含单词&ldquo;Second&rdquo;，则将该行写入文件</span>
+        <span style="color: #0000ff;">if</span> (!line.Contains(<span style="color: #800000;">"</span><span style="color: #800000;">Second</span><span style="color: #800000;">"</span><span style="color: #000000;">))
+        {
+            file.WriteLine(line);
+        }
+    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">文件已在此处释放</span>
+}</pre>
+</div>
+<p>在前面的示例中，当到达方法的右括号时，将对该文件进行处理，这是声明file的范围的末尾，前面的代码相当于下面使用经典using 语句的代码：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> WriteLinesToFile(IEnumerable&lt;<span style="color: #0000ff;">string</span>&gt;<span style="color: #000000;"> lines)
+{
+    </span><span style="color: #0000ff;">using</span> (<span style="color: #0000ff;">var</span> file=<span style="color: #0000ff;">new</span> System.IO.StreamWriter(<span style="color: #800000;">"</span><span style="color: #800000;">WriteLines2.txt</span><span style="color: #800000;">"</span><span style="color: #000000;">))
+    {
+        </span><span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">var</span> line <span style="color: #0000ff;">in</span><span style="color: #000000;"> lines)
+        {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">如果该行不包含单词&ldquo;Second&rdquo;，则将该行写入文件</span>
+            <span style="color: #0000ff;">if</span> (!line.Contains(<span style="color: #800000;">"</span><span style="color: #800000;">Second</span><span style="color: #800000;">"</span><span style="color: #000000;">))
+            {
+                file.WriteLine(line);
+            }
+        }
+    }</span><span style="color: #008000;">//</span><span style="color: #008000;">文件已在此处被释放</span>
+}</pre>
+</div>
+<p>在前面的示例中，当到达与using语句关联的右括号时，将对该文件进行处理。在这两种情况下，编译器将生成对Dispose（）的调用。如果using语句中的表达式不可处置，编译器将生成一个错误。</p>
+<p><span style="font-size: 18px;"><strong>5、静态本地函数</strong></span></p>
+<p>现在可以向本地函数添加static修饰符，以确保本地函数不会从封闭范围捕获（引用）任何变量。这样做会生成CS8421，&ldquo;静态本地函数不能包含对&lt;variable&gt;的引用&rdquo;。</p>
+<p>考虑下列代码，本地函数LocalFunction访问在封闭范围（方法M）中声明的变量y，因此，不能用static修饰符来声明LocalFunction:</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">int</span><span style="color: #000000;"> M()
+{
+    </span><span style="color: #0000ff;">int</span><span style="color: #000000;"> y;
+    LocalFunction();
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> y;
+
+    </span><span style="color: #0000ff;">void</span> LocalFunction() =&gt; y = <span style="color: #800080;">0</span><span style="color: #000000;">;
+}</span></pre>
+</div>
+<p>如果在LocalFunction方法前面加上static：</p>
+<p><img src="./images/C#8.0 新增功能2.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>下面的代码包含一个静态本地函数，它可以是静态的，因为它不访问封闭范围中的热呢变量：</p>
+<div class="cnblogs_code">
+<pre><code> <span style="color: #0000ff;">int</span><span style="color: #000000;"> M()
+ {
+     </span><span style="color: #0000ff;">int</span> y = <span style="color: #800080;">5</span><span style="color: #000000;">;
+     </span><span style="color: #0000ff;">int</span> x = <span style="color: #800080;">7</span><span style="color: #000000;">;
+     </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> Add(x, y);
+
+     </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">int</span> Add(<span style="color: #0000ff;">int</span> left, <span style="color: #0000ff;">int</span> right) =&gt; left +<span style="color: #000000;"> right;
+ }</span></pre>
+</div>
+<p><strong><span style="font-size: 18px;">6、可处置的ref结构</span></strong></p>
+<p>用ref修饰符声明的struct可能无法实现任何借口，因此无法实现IDisposable。因此，要能够处理ref struct，它必须有一个可访问的void Dispose（）方法。这同样适用于readonly ref struct声明。</p>
+<p><strong><span style="font-size: 18px;">7、可谓空引用类型</span></strong></p>
+<p>在可谓空注释上下文中，引用类型的任何变量都被视为不可谓空引用类型。若要指示一个变量可能为null，必须在类型名称后面附加?，以将该变量声明为可谓空引用类型。</p>
+<p>如果，不用?来声明，传统代码中，这样写，会报错：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+{
+    List</span>&lt;<span style="color: #0000ff;">string</span>&gt; list = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+    </span><span style="color: #0000ff;">var</span> newList = list.Where(s =&gt; s.Length &gt; <span style="color: #800080;">2</span>) ?? <span style="color: #0000ff;">new</span> List&lt;<span style="color: #0000ff;">string</span>&gt;<span style="color: #000000;">();
+    </span><span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">var</span> item <span style="color: #0000ff;">in</span><span style="color: #000000;"> newList)
+    {
+        Console.WriteLine(item);
+    }
+    Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">ok</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+    Console.ReadLine();
+}</span></pre>
+</div>
+<p><img src="./images/C#8.0 新增功能3.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>改进之后，就没问题了：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+{
+    List</span>&lt;<span style="color: #0000ff;">string</span>&gt; list = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+    </span><span style="color: #0000ff;">var</span> newList = list?.Where(s =&gt; s.Length &gt; <span style="color: #800080;">2</span>) ?? <span style="color: #0000ff;">new</span> List&lt;<span style="color: #0000ff;">string</span>&gt;<span style="color: #000000;">();
+    </span><span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">var</span> item <span style="color: #0000ff;">in</span><span style="color: #000000;"> newList)
+    {
+        Console.WriteLine(item);
+    }
+    Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">ok</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+    Console.ReadLine();
+}</span></pre>
+</div>
+<p>&nbsp;</p>
+<p><img src="./images/C#8.0 新增功能4.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;对于不可为空引用类型，编译器使用流分析来确保在声明时将本地变量初始化为非Null值，字段必须在构造过程中初始化，如果没有通过调用任何可用的构造函数或通过初始化表达式来设置变量，编译器将生成警告。此外，不能向不可为空引用类型分配一个可以为Null的值。</p>
+<p>不对可为空引用类型进行检查以确保他们没有被赋予Null值或初始化为Null。不过，编译器使用流分析来确保可为空引用类型的任何变量在被访问或分配给不可为空引用类型之前，都会对其Null性进行检查。</p>
+<p><strong><span style="font-size: 18px;">8、异步流</span></strong></p>
+<p>从C#8.0开始，可以创建并以异步方式使用流。返回异步流的方法有三个属性：</p>
+<p>　　1、它是用async修饰符声明的</p>
+<p>　　2、它将返回IAsyncEnumerable&lt;T&gt;</p>
+<p>　　3、该方法包含用于在异步流中返回连续元素的yield return 语句</p>
+<p>使用异步流需要在枚举流元素时在foreach关键字前面添加await关键字。谈价await关键字需要枚举异步流的方法，以使用async修饰符进行声明并返回async方法允许的类型。通常在意味着返回Task或Task&lt;TResult&gt;。也可以为ValueTask或ValueTask&lt;TResult&gt;。方法既可以使用异步流，也可以生成异步流，这意味着它将返回IAsyncEnumerable&lt;T&gt;。下面的代码生成一个从0到10的序列，在生成没个数字之间等待100毫秒：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">async</span> System.Collections.Generic.IAsyncEnumerable&lt;<span style="color: #0000ff;">int</span>&gt;<span style="color: #000000;"> GenerateSequence()
+{
+    </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; <span style="color: #800080;">20</span>; i++<span style="color: #000000;">)
+    {
+        </span><span style="color: #0000ff;">await</span> Task.Delay(<span style="color: #800080;">100</span><span style="color: #000000;">);
+        </span><span style="color: #0000ff;">yield</span> <span style="color: #0000ff;">return</span><span style="color: #000000;"> i;
+    }
+}</span></pre>
+</div>
+<p>可以使用await foreach语句来枚举序列：</p>
+<div class="cnblogs_code">
+<pre><code> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">async</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> TestGenerateSequence()
+ {
+     </span><span style="color: #0000ff;">await</span> <span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">var</span> item <span style="color: #0000ff;">in</span><span style="color: #000000;"> GenerateSequence())
+     {
+         Console.WriteLine(item);
+     }
+ }</span></pre>
+</div>
+<p><strong><span style="font-size: 18px;">9、索引和范围</span></strong></p>
+<p>&nbsp;范围和索引为在数组中指定资范围（Span&lt;T&gt;或ReadOnlySpan&lt;T&gt;）提供了简洁语法。</p>
+<p>此语言支持依赖于两个新类型和两个新运算符。</p>
+<p>　　1、System.Index表示一个序列索引</p>
+<p>　　2、^运算符，指定一个索引与序列末尾相关。</p>
+<p>　　3、System.Range表示序列的子范围</p>
+<p>　　4、范围运算符（..），用于指定范围的开始和末尾，就像操作数一样。</p>
+<p>让我们从索引规则开始。请考虑数组sequence。0索引与sequence[0]相同。^0索引与sequence[sequence.Length]相同。请注意，sequence[^0]不会引发异常，就像是sequence[sequence.Length]一样。对于任何数字n，索引^n与sequence.Length-n相同。</p>
+<p>范围指定范围的开始和末尾。包括此范围的开始，但是不包括此范围的末尾，这表示此范围包含开始但不包含末尾。范围[0..^0]表示整个范围，就像[0..sequence.Length]表示整个范围。</p>
+<p>请看以下一个示例，请考虑以下数组，用其顺数索引和倒数索引进行注释：</p>
+<div class="cnblogs_code">
+<pre><code> <span style="color: #0000ff;">var</span> words = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">string</span><span style="color: #000000;">[]
+ {
+                 </span><span style="color: #008000;">//</span><span style="color: #008000;"> index from start    index from end</span>
+     <span style="color: #800000;">"</span><span style="color: #800000;">The</span><span style="color: #800000;">"</span>,      <span style="color: #008000;">//</span><span style="color: #008000;"> 0                   ^9</span>
+     <span style="color: #800000;">"</span><span style="color: #800000;">quick</span><span style="color: #800000;">"</span>,    <span style="color: #008000;">//</span><span style="color: #008000;"> 1                   ^8</span>
+     <span style="color: #800000;">"</span><span style="color: #800000;">brown</span><span style="color: #800000;">"</span>,    <span style="color: #008000;">//</span><span style="color: #008000;"> 2                   ^7</span>
+     <span style="color: #800000;">"</span><span style="color: #800000;">fox</span><span style="color: #800000;">"</span>,      <span style="color: #008000;">//</span><span style="color: #008000;"> 3                   ^6</span>
+     <span style="color: #800000;">"</span><span style="color: #800000;">jumped</span><span style="color: #800000;">"</span>,   <span style="color: #008000;">//</span><span style="color: #008000;"> 4                   ^5</span>
+     <span style="color: #800000;">"</span><span style="color: #800000;">over</span><span style="color: #800000;">"</span>,     <span style="color: #008000;">//</span><span style="color: #008000;"> 5                   ^4</span>
+     <span style="color: #800000;">"</span><span style="color: #800000;">the</span><span style="color: #800000;">"</span>,      <span style="color: #008000;">//</span><span style="color: #008000;"> 6                   ^3</span>
+     <span style="color: #800000;">"</span><span style="color: #800000;">lazy</span><span style="color: #800000;">"</span>,     <span style="color: #008000;">//</span><span style="color: #008000;"> 7                   ^2</span>
+     <span style="color: #800000;">"</span><span style="color: #800000;">dog</span><span style="color: #800000;">"</span>       <span style="color: #008000;">//</span><span style="color: #008000;"> 8                   ^1</span>
+ };              <span style="color: #008000;">//</span><span style="color: #008000;"> 9 (or words.Length) ^0</span></pre>
+</div>
+<p>可以使用^1索引检索最后一个词：</p>
+<div class="cnblogs_code">
+<pre><code> Console.WriteLine($<span style="color: #800000;">"</span><span style="color: #800000;">The last word is {words[^1]}</span><span style="color: #800000;">"</span>);</pre>
+</div>
+<p><img src="./images/C#8.0 新增功能5.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;以下代码创建了一个包含单词"quick"、"brown"和"fox"的子范围。它包括words[1]到words[3]，元素words[4]不在此范围内。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> quickBrownFox = words[<span style="color: #800080;">1</span>..<span style="color: #800080;">4</span><span style="color: #000000;">];
+</span><span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">var</span> item <span style="color: #0000ff;">in</span><span style="color: #000000;"> quickBrownFox)
+{
+    Console.WriteLine(item);
+}</span></pre>
+</div>
+<p><img src="./images/C#8.0 新增功能6.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;以下代码使用"lazy"和"dog"创建一个子范围，它包括words[^2]和words[^1]。不包括结束索引words[^0]:</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> lazyDog = words[^<span style="color: #800080;">2</span>..^<span style="color: #800080;">0</span>];</pre>
+</div>
+<p>下面的示例为开始和/或结束创建了开放范围：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> allWords = words[..];      <span style="color: #008000;">//</span><span style="color: #008000;"> contains "The" through "dog".</span>
+<span style="color: #0000ff;">var</span> firstPhrase = words[..<span style="color: #800080;">4</span>];  <span style="color: #008000;">//</span><span style="color: #008000;"> contains "The" through "fox"</span>
+<span style="color: #0000ff;">var</span> lastPhrase = words[<span style="color: #800080;">6</span>..];   <span style="color: #008000;">//</span><span style="color: #008000;"> contains "the", "lazy" and "dog"</span></pre>
+</div>
+<p>此外可以将范围声明为变量：</p>
+<div class="cnblogs_code">
+<pre><code>Range phrase = <span style="color: #800080;">1</span>..<span style="color: #800080;">4</span>;</pre>
+</div>
+<p>然后可以在[和]字符中使用该范围：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> text = words[phrase];</pre>
+</div>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

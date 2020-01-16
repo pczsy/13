@@ -1,0 +1,290 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C# 利用AForge进行摄像头信息采集' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C# 利用AForge进行摄像头信息采集</center></div><div class='banquan'>原文出处:本文由博客园博主Alan.hsiang提供。<br/>
+原文连接:https://www.cnblogs.com/hsiang/p/11762412.html</div><br>
+    <h2><span style="color: #339966;">概述</span></h2>
+<p>AForge.NET是一个专门为开发者和研究者基于C#框架设计的，提供了不同的类库和关于类库的资源，还有很多应用程序例子，包括计算机视觉与人工智能，图像处理，神经网络，遗传算法，机器学习，机器人等领域。本文主要讲解利用AForge进行图像采集的相关内容【包括拍照，视频录制】，仅供学习分享使用。</p>
+<h2><span style="color: #339966;">AForge.Net相关类库介绍</span></h2>
+<ul>
+<li>AForge.dll 是框架的核心基础类库，为其他类库提供服务。</li>
+<li>AForge.Controls.dll 包含AForge.Net的UI控件，主要用于页面显示。</li>
+<li>AForge.Imaging.dll 主要是框架中用于图像处理的类库，主要负责图像的处理</li>
+<li>AForge.Video.dll 主要是框架中对视频处理的类库。</li>
+<li>AForge.Video.DirectShow.dll 主要是通过DirectShow接口访问视频资源的类库。</li>
+<li>AForge.Video.FFMPEG.dll 是一个还未正式发布的类库，通过FFMPEG类库对视频进行读写。</li>
+</ul>
+<h2><span style="color: #339966;">通过NuGet管理器引入AForge类库</span></h2>
+<p>项目名称右键--&gt;管理NuGet程序包，打卡NuGet包管理器&nbsp; 如下所示：</p>
+<p><img src="./images/C# 利用AForge进行摄像头信息采集0.png" alt="" width="574" height="348" /></p>
+<h2><span style="color: #339966;">示例效果图</span></h2>
+<p>本示例主要包括打开，关闭摄像头，拍照，连续拍照，开始录制视频，暂停录制视频，停止录视频，退出等功能。</p>
+<p>如下所示：左侧为摄像头投影区域，右侧为图像控件，显示拍照所得的图片</p>
+<p><img src="./images/C# 利用AForge进行摄像头信息采集1.png" alt="" width="523" height="449" /></p>
+<h2><span style="color: #339966;">核心代码</span></h2>
+<p>获取视频设备列表以及设备对应的分辨率</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('070f949d-0d2f-4864-b82d-5d69945d08f9')"><img id="code_img_closed_070f949d-0d2f-4864-b82d-5d69945d08f9" class="code_img_closed" src="./images/C# 利用AForge进行摄像头信息采集2.png" alt="" /><img id="code_img_opened_070f949d-0d2f-4864-b82d-5d69945d08f9" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('070f949d-0d2f-4864-b82d-5d69945d08f9',event)" src="./images/C# 利用AForge进行摄像头信息采集3.png" alt="" />
+<div id="cnblogs_code_open_070f949d-0d2f-4864-b82d-5d69945d08f9" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;"> 2</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 页面加载摄像头设备
+</span><span style="color: #008080;"> 3</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;"> 4</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="sender"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;"> 5</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="e"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;"> 6</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> FrmMain_Load(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)
+</span><span style="color: #008080;"> 7</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 8</span>             <span style="color: #0000ff;">try</span>
+<span style="color: #008080;"> 9</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">10</span>                 <span style="color: #0000ff;">this</span>.lblTime.Text = <span style="color: #800000;">""</span><span style="color: #000000;">;
+</span><span style="color: #008080;">11</span>                 <span style="color: #008000;">//</span><span style="color: #008000;"> 枚举所有视频输入设备</span>
+<span style="color: #008080;">12</span>                 videoDevices = <span style="color: #0000ff;">new</span><span style="color: #000000;"> FilterInfoCollection(FilterCategory.VideoInputDevice);
+</span><span style="color: #008080;">13</span>                 <span style="color: #0000ff;">if</span> (videoDevices.Count == <span style="color: #800080;">0</span><span style="color: #000000;">)
+</span><span style="color: #008080;">14</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">15</span>                     lblStatus.Text = <span style="color: #800000;">"</span><span style="color: #800000;">No local capture devices</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+</span><span style="color: #008080;">16</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">17</span>                 <span style="color: #0000ff;">foreach</span> (FilterInfo device <span style="color: #0000ff;">in</span><span style="color: #000000;"> videoDevices)
+</span><span style="color: #008080;">18</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">19</span>                     <span style="color: #0000ff;">int</span> i = <span style="color: #800080;">1</span><span style="color: #000000;">;
+</span><span style="color: #008080;">20</span> <span style="color: #000000;">                    cmbDevices.Items.Add(device.Name);
+</span><span style="color: #008080;">21</span>                     lblStatus.Text = (<span style="color: #800000;">"</span><span style="color: #800000;">摄像头</span><span style="color: #800000;">"</span> + i + <span style="color: #800000;">"</span><span style="color: #800000;">初始化完毕...</span><span style="color: #800000;">"</span> + <span style="color: #800000;">"</span><span style="color: #800000;">\n</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">22</span>                     i++<span style="color: #000000;">;
+</span><span style="color: #008080;">23</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">24</span>                 cmbDevices.SelectedIndex = <span style="color: #800080;">0</span><span style="color: #000000;">;
+</span><span style="color: #008080;">25</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">26</span>             <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (ApplicationException)
+</span><span style="color: #008080;">27</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">28</span>                 <span style="color: #0000ff;">this</span>.lblStatus.Text = <span style="color: #800000;">"</span><span style="color: #800000;">No local capture devices</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+</span><span style="color: #008080;">29</span>                 videoDevices = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+</span><span style="color: #008080;">30</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">31</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">32</span> 
+<span style="color: #008080;">33</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> cmbDevices_SelectedIndexChanged(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)
+</span><span style="color: #008080;">34</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">35</span>             <span style="color: #0000ff;">this</span><span style="color: #000000;">.cmbResolution.Items.Clear();
+</span><span style="color: #008080;">36</span>             videoSource = <span style="color: #0000ff;">new</span><span style="color: #000000;"> VideoCaptureDevice(videoDevices[cmbDevices.SelectedIndex].MonikerString);
+</span><span style="color: #008080;">37</span>             <span style="color: #0000ff;">foreach</span>(<span style="color: #0000ff;">var</span> cap <span style="color: #0000ff;">in</span><span style="color: #000000;"> videoSource.VideoCapabilities) {
+</span><span style="color: #008080;">38</span>                 <span style="color: #0000ff;">this</span>.cmbResolution.Items.Add(<span style="color: #0000ff;">string</span>.Format(<span style="color: #800000;">"</span><span style="color: #800000;">({0},{1})</span><span style="color: #800000;">"</span><span style="color: #000000;">,cap.FrameSize.Width,cap.FrameSize.Height));
+</span><span style="color: #008080;">39</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">40</span>             <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span>.cmbResolution.Items.Count &gt; <span style="color: #800080;">0</span><span style="color: #000000;">)
+</span><span style="color: #008080;">41</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">42</span>                 <span style="color: #0000ff;">this</span>.cmbResolution.SelectedIndex = <span style="color: #800080;">0</span><span style="color: #000000;">;
+</span><span style="color: #008080;">43</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">44</span>         }</pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>打开视频设备和关闭视频设备</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('fb6cd16e-5406-443e-b696-d4141343850b')"><img id="code_img_closed_fb6cd16e-5406-443e-b696-d4141343850b" class="code_img_closed" src="./images/C# 利用AForge进行摄像头信息采集2.png" alt="" /><img id="code_img_opened_fb6cd16e-5406-443e-b696-d4141343850b" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('fb6cd16e-5406-443e-b696-d4141343850b',event)" src="./images/C# 利用AForge进行摄像头信息采集3.png" alt="" />
+<div id="cnblogs_code_open_fb6cd16e-5406-443e-b696-d4141343850b" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;"> 1</span>    <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;"> 2</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 设备打开
+</span><span style="color: #008080;"> 3</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;"> 4</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="sender"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;"> 5</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="e"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;"> 6</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> btnOpen_Click(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)
+</span><span style="color: #008080;"> 7</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 8</span>             <span style="color: #0000ff;">int</span> index = <span style="color: #0000ff;">this</span><span style="color: #000000;">.cmbResolution.SelectedIndex;
+</span><span style="color: #008080;"> 9</span>             videoSource = <span style="color: #0000ff;">new</span><span style="color: #000000;"> VideoCaptureDevice(videoDevices[cmbDevices.SelectedIndex].MonikerString);
+</span><span style="color: #008080;">10</span>             videoSource.VideoResolution =<span style="color: #000000;"> videoSource.VideoCapabilities[index]; 
+</span><span style="color: #008080;">11</span>             <span style="color: #0000ff;">this</span>.vsPlayer.VideoSource =<span style="color: #000000;"> videoSource;
+</span><span style="color: #008080;">12</span>             <span style="color: #008000;">//</span><span style="color: #008000;">设置对应的事件</span>
+<span style="color: #008080;">13</span>             videoSource.NewFrame += <span style="color: #0000ff;">new</span><span style="color: #000000;"> NewFrameEventHandler(videoSource_NewFrame);
+</span><span style="color: #008080;">14</span>             <span style="color: #0000ff;">this</span><span style="color: #000000;">.vsPlayer.Start();
+</span><span style="color: #008080;">15</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">16</span> 
+<span style="color: #008080;">17</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">18</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 产生新帧的触发事件
+</span><span style="color: #008080;">19</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">20</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="sender"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;">21</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="eventArgs"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;">22</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> videoSource_NewFrame(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, NewFrameEventArgs eventArgs)
+</span><span style="color: #008080;">23</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">24</span>             <span style="color: #0000ff;">lock</span><span style="color: #000000;"> (objLock)
+</span><span style="color: #008080;">25</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">26</span>                 Bitmap bmp = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+</span><span style="color: #008080;">27</span>                 <span style="color: #0000ff;">if</span><span style="color: #000000;"> (isMultiPhoto)
+</span><span style="color: #008080;">28</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">29</span>                     bmp =<span style="color: #000000;"> (System.Drawing.Bitmap)eventArgs.Frame.Clone();
+</span><span style="color: #008080;">30</span>                     <span style="color: #0000ff;">string</span> imgFolder =<span style="color: #000000;"> Common.GetImagePath();
+</span><span style="color: #008080;">31</span>                     <span style="color: #0000ff;">string</span> picName = <span style="color: #0000ff;">string</span>.Format(<span style="color: #800000;">"</span><span style="color: #800000;">{0}\\{1}.jpg</span><span style="color: #800000;">"</span>, imgFolder, DateTime.Now.ToString(<span style="color: #800000;">"</span><span style="color: #800000;">yyyyMMddHHmmss</span><span style="color: #800000;">"</span><span style="color: #000000;">));
+</span><span style="color: #008080;">32</span> <span style="color: #000000;">                    Common.SaveImage(picName, bmp);
+</span><span style="color: #008080;">33</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">34</span>                 <span style="color: #008000;">//</span><span style="color: #008000;">Write Videos</span>
+<span style="color: #008080;">35</span>                 <span style="color: #0000ff;">if</span><span style="color: #000000;"> (isRecordVideo)
+</span><span style="color: #008080;">36</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">37</span>                     bmp =<span style="color: #000000;"> (System.Drawing.Bitmap)eventArgs.Frame.Clone();
+</span><span style="color: #008080;">38</span> <span style="color: #000000;">                    videoWriter.WriteVideoFrame(bmp);
+</span><span style="color: #008080;">39</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">40</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">41</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">42</span> 
+<span style="color: #008080;">43</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">44</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 设备关闭
+</span><span style="color: #008080;">45</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">46</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="sender"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;">47</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="e"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;">48</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> btnClose_Click(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)
+</span><span style="color: #008080;">49</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">50</span>             <span style="color: #0000ff;">this</span><span style="color: #000000;">.vsPlayer.SignalToStop();
+</span><span style="color: #008080;">51</span>             <span style="color: #0000ff;">this</span><span style="color: #000000;">.vsPlayer.WaitForStop();
+</span><span style="color: #008080;">52</span>         }</pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>拍照</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('9b44734a-2d14-4e3f-81ef-c8f1cc1c01be')"><img id="code_img_closed_9b44734a-2d14-4e3f-81ef-c8f1cc1c01be" class="code_img_closed" src="./images/C# 利用AForge进行摄像头信息采集2.png" alt="" /><img id="code_img_opened_9b44734a-2d14-4e3f-81ef-c8f1cc1c01be" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('9b44734a-2d14-4e3f-81ef-c8f1cc1c01be',event)" src="./images/C# 利用AForge进行摄像头信息采集3.png" alt="" />
+<div id="cnblogs_code_open_9b44734a-2d14-4e3f-81ef-c8f1cc1c01be" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;"> 2</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 拍照
+</span><span style="color: #008080;"> 3</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;"> 4</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="sender"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;"> 5</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="e"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;"> 6</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> btnCapture_Click(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)
+</span><span style="color: #008080;"> 7</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 8</span>             <span style="color: #0000ff;">try</span>
+<span style="color: #008080;"> 9</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">10</span>                 <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span><span style="color: #000000;">.vsPlayer.IsRunning)
+</span><span style="color: #008080;">11</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">12</span>                     Bitmap bitMap = <span style="color: #0000ff;">this</span><span style="color: #000000;">.vsPlayer.GetCurrentVideoFrame();
+</span><span style="color: #008080;">13</span>                     <span style="color: #0000ff;">this</span>.pbImage.Image =<span style="color: #000000;"> bitMap;
+</span><span style="color: #008080;">14</span>                     <span style="color: #008000;">//</span><span style="color: #008000;">设置图片相对控件的大小</span>
+<span style="color: #008080;">15</span>                     <span style="color: #0000ff;">this</span>.pbImage.SizeMode =<span style="color: #000000;"> PictureBoxSizeMode.StretchImage;
+</span><span style="color: #008080;">16</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">17</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">18</span>             <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception ex)
+</span><span style="color: #008080;">19</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">20</span>                 MessageBox.Show(<span style="color: #800000;">"</span><span style="color: #800000;">摄像头异常：</span><span style="color: #800000;">"</span> +<span style="color: #000000;"> ex.Message);
+</span><span style="color: #008080;">21</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">22</span>         }</pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>连拍功能</p>
+<p>连拍主要是同时视频控件的一个帧触发事件，在事件中对图像进行保存，达到连拍的效果，如下所示：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span>  <span style="color: #008000;">//</span><span style="color: #008000;">设置对应的事件</span>
+<span style="color: #008080;">2</span> videoSource.NewFrame += <span style="color: #0000ff;">new</span> NewFrameEventHandler(videoSource_NewFrame);</pre>
+</div>
+<p>视频录制</p>
+<p>视频录制，是采用VideoFileWriter对获取到的每一帧进行写入到视频文件中，如下所示：</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('5c234aa5-76ca-4f2a-8c99-a105f4b3b0c1')"><img id="code_img_closed_5c234aa5-76ca-4f2a-8c99-a105f4b3b0c1" class="code_img_closed" src="./images/C# 利用AForge进行摄像头信息采集2.png" alt="" /><img id="code_img_opened_5c234aa5-76ca-4f2a-8c99-a105f4b3b0c1" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('5c234aa5-76ca-4f2a-8c99-a105f4b3b0c1',event)" src="./images/C# 利用AForge进行摄像头信息采集3.png" alt="" />
+<div id="cnblogs_code_open_5c234aa5-76ca-4f2a-8c99-a105f4b3b0c1" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;"> 1</span>  <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;"> 2</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 开始录视频
+</span><span style="color: #008080;"> 3</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;"> 4</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="sender"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;"> 5</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="e"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;"> 6</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> btnStartVideo_Click(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)
+</span><span style="color: #008080;"> 7</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 8</span>             <span style="color: #0000ff;">try</span>
+<span style="color: #008080;"> 9</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">10</span>                 <span style="color: #008000;">//</span><span style="color: #008000;">创建一个视频文件</span>
+<span style="color: #008080;">11</span>                 <span style="color: #0000ff;">string</span> vdoPath =<span style="color: #000000;"> Common.GetVideoPath();
+</span><span style="color: #008080;">12</span>                 <span style="color: #0000ff;">string</span> vdoName = <span style="color: #0000ff;">string</span>.Format(<span style="color: #800000;">"</span><span style="color: #800000;">{0}\\{1}.avi</span><span style="color: #800000;">"</span>, vdoPath, DateTime.Now.ToString(<span style="color: #800000;">"</span><span style="color: #800000;">yyyyMMdd HH-mm-ss</span><span style="color: #800000;">"</span><span style="color: #000000;">));
+</span><span style="color: #008080;">13</span>                 
+<span style="color: #008080;">14</span>                 <span style="color: #0000ff;">this</span>.timer1.Enabled = <span style="color: #0000ff;">true</span>;<span style="color: #008000;">//</span><span style="color: #008000;">是否执行System.Timers.Timer.Elapsed事件；</span>
+<span style="color: #008080;">15</span>                 <span style="color: #0000ff;">this</span>.lblStatus.Text=<span style="color: #800000;">"</span><span style="color: #800000;">录制中...\n</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+</span><span style="color: #008080;">16</span>                 tickNum = <span style="color: #800080;">0</span><span style="color: #000000;">;
+</span><span style="color: #008080;">17</span>                 videoWriter = <span style="color: #0000ff;">new</span><span style="color: #000000;"> VideoFileWriter();
+</span><span style="color: #008080;">18</span>                 <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span><span style="color: #000000;">.vsPlayer.IsRunning)
+</span><span style="color: #008080;">19</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">20</span> <span style="color: #000000;">                    videoWriter.Open(vdoName, vdoWidth, vdoHeight, frameRate, VideoCodec.MPEG4);
+</span><span style="color: #008080;">21</span>                     isRecordVideo = <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+</span><span style="color: #008080;">22</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">23</span>                 <span style="color: #0000ff;">else</span>
+<span style="color: #008080;">24</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">25</span>                     MessageBox.Show(<span style="color: #800000;">"</span><span style="color: #800000;">没有视频源输入，无法录制视频。</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">错误</span><span style="color: #800000;">"</span><span style="color: #000000;">, MessageBoxButtons.OK, MessageBoxIcon.Error);
+</span><span style="color: #008080;">26</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">27</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">28</span>             <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception ex)
+</span><span style="color: #008080;">29</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">30</span>                 MessageBox.Show(<span style="color: #800000;">"</span><span style="color: #800000;">摄像头异常：</span><span style="color: #800000;">"</span> +<span style="color: #000000;"> ex.Message);
+</span><span style="color: #008080;">31</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">32</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">33</span> 
+<span style="color: #008080;">34</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">35</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 停止录视频
+</span><span style="color: #008080;">36</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">37</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="sender"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;">38</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="e"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;">39</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> btnStopVideo_Click(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)
+</span><span style="color: #008080;">40</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">41</span>             <span style="color: #0000ff;">this</span>.isRecordVideo = <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+</span><span style="color: #008080;">42</span>             <span style="color: #0000ff;">this</span><span style="color: #000000;">.videoWriter.Close();
+</span><span style="color: #008080;">43</span>             <span style="color: #0000ff;">this</span>.timer1.Enabled = <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+</span><span style="color: #008080;">44</span>             tickNum = <span style="color: #800080;">0</span><span style="color: #000000;">;
+</span><span style="color: #008080;">45</span>             <span style="color: #0000ff;">this</span>.lblStatus.Text=<span style="color: #800000;">"</span><span style="color: #800000;">录制停止!\n</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+</span><span style="color: #008080;">46</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">47</span> 
+<span style="color: #008080;">48</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">49</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 定时器
+</span><span style="color: #008080;">50</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">51</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="sender"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;">52</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="e"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;">53</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> timer1_Tick(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)
+</span><span style="color: #008080;">54</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">55</span>             tickNum++<span style="color: #000000;">;
+</span><span style="color: #008080;">56</span>             <span style="color: #0000ff;">int</span> temp =<span style="color: #000000;"> tickNum;
+</span><span style="color: #008080;">57</span>             <span style="color: #0000ff;">string</span> tick =<span style="color: #000000;"> Common.GetTimeSpan(temp);
+</span><span style="color: #008080;">58</span>             <span style="color: #0000ff;">this</span>.lblTime.Text =<span style="color: #000000;"> tick;
+</span><span style="color: #008080;">59</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">60</span> 
+<span style="color: #008080;">61</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">62</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 暂停录制
+</span><span style="color: #008080;">63</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">64</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="sender"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;">65</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="e"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;">66</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> btnPauseVideo_Click(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)
+</span><span style="color: #008080;">67</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">68</span>             <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span>.btnPauseVideo.Text.Trim() == <span style="color: #800000;">"</span><span style="color: #800000;">暂停录像</span><span style="color: #800000;">"</span><span style="color: #000000;">)
+</span><span style="color: #008080;">69</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">70</span>                 isRecordVideo = <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+</span><span style="color: #008080;">71</span>                 <span style="color: #0000ff;">this</span>.btnPauseVideo.Text = <span style="color: #800000;">"</span><span style="color: #800000;">恢复录像</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+</span><span style="color: #008080;">72</span>                 <span style="color: #0000ff;">this</span>.timer1.Enabled = <span style="color: #0000ff;">false</span>;    <span style="color: #008000;">//</span><span style="color: #008000;">暂停计时</span>
+<span style="color: #008080;">73</span>                 <span style="color: #0000ff;">return</span><span style="color: #000000;">;
+</span><span style="color: #008080;">74</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">75</span>             <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span>.btnPauseVideo.Text.Trim() == <span style="color: #800000;">"</span><span style="color: #800000;">恢复录像</span><span style="color: #800000;">"</span><span style="color: #000000;">)
+</span><span style="color: #008080;">76</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">77</span>                 isRecordVideo = <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+</span><span style="color: #008080;">78</span>                 <span style="color: #0000ff;">this</span>.btnPauseVideo.Text = <span style="color: #800000;">"</span><span style="color: #800000;">暂停录像</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+</span><span style="color: #008080;">79</span>                 <span style="color: #0000ff;">this</span>.timer1.Enabled = <span style="color: #0000ff;">true</span>;     <span style="color: #008000;">//</span><span style="color: #008000;">恢复计时</span>
+<span style="color: #008080;">80</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">81</span>         }</pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<h2><span style="color: #339966;">注意事项</span></h2>
+<p>1. 由于视频录制是采用FFMPEG类库进行处理，所以除了需要AForge.Video.FFMPEG.dll以外，还需要FFMPEG类库（C++），位于【AForge.NET Framework-2.2.5\Externals\ffmpeg\bin】目录下，copy到应用程序目下即可，如下图所示：</p>
+<p><img src="./images/C# 利用AForge进行摄像头信息采集10.png" alt="" width="497" height="226" /></p>
+<p>&nbsp;</p>
+<p>2. 由于AForge.Video.FFMPEG.dll类库只支持.NetFrameWork2.0，所以需要采用混合模式，App.config配置如下：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #0000ff;">&lt;?</span><span style="color: #ff00ff;">xml version="1.0" encoding="utf-8"</span><span style="color: #0000ff;">?&gt;</span>
+<span style="color: #008080;">2</span> <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">configuration</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">3</span>     <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">startup  </span><span style="color: #ff0000;">useLegacyV2RuntimeActivationPolicy</span><span style="color: #0000ff;">="true"</span><span style="color: #0000ff;">&gt;</span> 
+<span style="color: #008080;">4</span>     <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">supportedRuntime </span><span style="color: #ff0000;">version</span><span style="color: #0000ff;">="v4.0"</span><span style="color: #ff0000;"> sku</span><span style="color: #0000ff;">=".NETFramework,Version=v4.6.1"</span><span style="color: #0000ff;">/&gt;&lt;/</span><span style="color: #800000;">startup</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">5</span>    <strong> <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">supportedRuntime </span><span style="color: #ff0000;">version</span><span style="color: #0000ff;">="v2.0.50727"</span><span style="color: #0000ff;">/&gt;</span></strong>
+<span style="color: #008080;">6</span> <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">configuration</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<p>3. 由于FFMPEG只支持x86模式，不支持混合模式，所以需要在配置管理器进行配置x86平台，如下所示：</p>
+<p><img src="./images/C# 利用AForge进行摄像头信息采集11.png" alt="" width="519" height="195" /></p>
+<p>&nbsp;</p>
+<p>4. 由于视频帧频率过快，所以需要进行加锁控制，否则会造成【读写受保护的内存】错误。</p>
+<p>经过以上4步，才可以进行视频录制。如果是进行拍照，则不需要。</p>
+<h2><span style="color: #339966;">备注</span></h2>
+<p>心有猛虎，细嗅蔷薇。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

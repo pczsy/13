@@ -1,0 +1,197 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Microsoft Dynamics CRM 批量上传web资源（非官方WebResourceUtility）并替换实体图标' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Microsoft Dynamics CRM 批量上传web资源（非官方WebResourceUtility）并替换实体图标</center></div><div class='banquan'>原文出处:本文由博客园博主抢囡囡糖未遂提供。<br/>
+原文连接:https://www.cnblogs.com/xiefengdaxia123/p/11921924.html</div><br>
+    <p><span style="font-size: 15px;"><strong>背景：</strong></span></p>
+<p>去年以前可以按照目录WebResourceUtility批量上传web资源，昨天发现用不了了，拿到WebResourceUtility源码改了一下都不是很方便，感觉官方写的太冗余，太长了，跟我喜欢的简单粗暴思想不太符合，刚好无意阅览了一个上传资源的代码，干脆自己手写一个根据目录去上传web资源的工具。</p>
+<p><strong><span style="font-size: 15px;">工具：</span></strong></p>
+<p>LinqPad 5</p>
+<p>Microsoft Dynamics SDK 9.0</p>
+<p>XrmToolBox</p>
+<p><strong>老规矩先上效果图：</strong></p>
+<p>目录包含的文件</p>
+<p><img src="./images/Microsoft Dynamics CRM 批量上传web资源（非官方WebResourceUtility）并替换实体图标0.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>批量创建web资源后，发布</p>
+<p>&nbsp;<img src="./images/Microsoft Dynamics CRM 批量上传web资源（非官方WebResourceUtility）并替换实体图标1.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>解决方案添加现有资源</p>
+<p>&nbsp;<img src="./images/Microsoft Dynamics CRM 批量上传web资源（非官方WebResourceUtility）并替换实体图标2.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;<strong>代码</strong></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">  1</span> <span style="color: #008000;">//</span><span style="color: #008000;">Microsoft Dynamics CRM 批量上传web资源（非官方WebResourceUtility）替换图标
+</span><span style="color: #008080;">  2</span> <span style="color: #008000;">//</span><span style="color: #008000;">对应web资源在mscrm的文件类型</span>
+<span style="color: #008080;">  3</span> <span style="color: #0000ff;">enum</span><span style="color: #000000;"> FileTypes
+</span><span style="color: #008080;">  4</span> <span style="color: #000000;">{
+</span><span style="color: #008080;">  5</span>     HTML = <span style="color: #800080;">1</span><span style="color: #000000;">,
+</span><span style="color: #008080;">  6</span>     CSS = <span style="color: #800080;">2</span><span style="color: #000000;">,
+</span><span style="color: #008080;">  7</span>     JS = <span style="color: #800080;">3</span><span style="color: #000000;">,
+</span><span style="color: #008080;">  8</span>     XML = <span style="color: #800080;">4</span><span style="color: #000000;">,
+</span><span style="color: #008080;">  9</span>     PNG = <span style="color: #800080;">5</span><span style="color: #000000;">,
+</span><span style="color: #008080;"> 10</span>     JPG = <span style="color: #800080;">6</span><span style="color: #000000;">,
+</span><span style="color: #008080;"> 11</span>     GIF = <span style="color: #800080;">7</span><span style="color: #000000;">,
+</span><span style="color: #008080;"> 12</span>     XAP = <span style="color: #800080;">8</span><span style="color: #000000;">,
+</span><span style="color: #008080;"> 13</span>     XSL = <span style="color: #800080;">9</span><span style="color: #000000;">,
+</span><span style="color: #008080;"> 14</span>     ICO = <span style="color: #800080;">10</span><span style="color: #000000;">,
+</span><span style="color: #008080;"> 15</span>     SVG = <span style="color: #800080;">11</span><span style="color: #000000;">,
+</span><span style="color: #008080;"> 16</span>     RESX = <span style="color: #800080;">12</span>
+<span style="color: #008080;"> 17</span> <span style="color: #000000;">}
+</span><span style="color: #008080;"> 18</span> <span style="color: #008000;">//</span><span style="color: #008000;">根据目录获取目录下所有的文件</span>
+<span style="color: #008080;"> 19</span> Dictionary&lt;<span style="color: #0000ff;">string</span>, <span style="color: #0000ff;">int</span>&gt; GetFilesWithDir(<span style="color: #0000ff;">string</span><span style="color: #000000;"> localPath)
+</span><span style="color: #008080;"> 20</span> <span style="color: #000000;">{
+</span><span style="color: #008080;"> 21</span>     Dictionary&lt;<span style="color: #0000ff;">string</span>, <span style="color: #0000ff;">int</span>&gt; dict = <span style="color: #0000ff;">new</span> Dictionary&lt;<span style="color: #0000ff;">string</span>, <span style="color: #0000ff;">int</span>&gt;<span style="color: #000000;">();
+</span><span style="color: #008080;"> 22</span>     <span style="color: #0000ff;">var</span> typelist = Enum.GetNames(<span style="color: #0000ff;">typeof</span><span style="color: #000000;">(FileTypes));
+</span><span style="color: #008080;"> 23</span>     <span style="color: #0000ff;">var</span> dirs =<span style="color: #000000;"> Directory.GetDirectories(localPath);
+</span><span style="color: #008080;"> 24</span>     <span style="color: #008000;">//</span><span style="color: #008000;">dirs.Dump();</span>
+<span style="color: #008080;"> 25</span>     <span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">var</span> dir <span style="color: #0000ff;">in</span><span style="color: #000000;"> dirs)
+</span><span style="color: #008080;"> 26</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;"> 27</span>         <span style="color: #0000ff;">var</span> files =<span style="color: #000000;"> Directory.GetFiles(dir);
+</span><span style="color: #008080;"> 28</span>         <span style="color: #008000;">//</span><span style="color: #008000;">files.Dump();</span>
+<span style="color: #008080;"> 29</span>         <span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">var</span> file <span style="color: #0000ff;">in</span><span style="color: #000000;"> files)
+</span><span style="color: #008080;"> 30</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 31</span>             <span style="color: #0000ff;">var</span> index = file.LastIndexOf(<span style="color: #800000;">"</span><span style="color: #800000;">.</span><span style="color: #800000;">"</span>);<span style="color: #008000;">//</span><span style="color: #008000;">.Dump();</span>
+<span style="color: #008080;"> 32</span>             <span style="color: #0000ff;">if</span> (index == -<span style="color: #800080;">1</span>) <span style="color: #0000ff;">continue</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 33</span>             <span style="color: #0000ff;">var</span> filetype = file.Substring(index + <span style="color: #800080;">1</span><span style="color: #000000;">).ToUpper();
+</span><span style="color: #008080;"> 34</span>             <span style="color: #0000ff;">if</span><span style="color: #000000;"> (typelist.Contains(filetype))
+</span><span style="color: #008080;"> 35</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 36</span> <span style="color: #000000;">                dict.Add(file,
+</span><span style="color: #008080;"> 37</span>                 Enum.Parse(<span style="color: #0000ff;">typeof</span><span style="color: #000000;">(FileTypes), filetype).GetHashCode()
+</span><span style="color: #008080;"> 38</span> <span style="color: #000000;">                );
+</span><span style="color: #008080;"> 39</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 40</span> 
+<span style="color: #008080;"> 41</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 42</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;"> 43</span>     <span style="color: #0000ff;">return</span><span style="color: #000000;"> dict;
+</span><span style="color: #008080;"> 44</span> <span style="color: #000000;">}
+</span><span style="color: #008080;"> 45</span> 
+<span style="color: #008080;"> 46</span> <span style="color: #008000;">//</span><span style="color: #008000;">创建或更新web资源</span>
+<span style="color: #008080;"> 47</span> Guid CreateOrUpateFile2WebResoulse(IOrganizationService service, <span style="color: #0000ff;">string</span> filePath, FileTypes type, <span style="color: #0000ff;">string</span> rootPath, <span style="color: #0000ff;">string</span> serverPath = <span style="color: #800000;">"</span><span style="color: #800000;">new_/icons/</span><span style="color: #800000;">"</span><span style="color: #000000;">)
+</span><span style="color: #008080;"> 48</span> <span style="color: #000000;">{
+</span><span style="color: #008080;"> 49</span>     Stopwatch sw = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Stopwatch();
+</span><span style="color: #008080;"> 50</span> <span style="color: #000000;">    sw.Start();
+</span><span style="color: #008080;"> 51</span> 
+<span style="color: #008080;"> 52</span>     <span style="color: #0000ff;">string</span> fileName = filePath.Replace(rootPath, serverPath).Replace(<span style="color: #800000;">"</span><span style="color: #800000;">\\</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">/</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 53</span> 
+<span style="color: #008080;"> 54</span>     <span style="color: #0000ff;">var</span> fileContent =<span style="color: #000000;"> File.ReadAllText(filePath);
+</span><span style="color: #008080;"> 55</span> 
+<span style="color: #008080;"> 56</span>     fileName = Regex.Replace(fileName, <span style="color: #800000;">@"</span><span style="color: #800000;">[\u4e00-\u9fa5]</span><span style="color: #800000;">"</span>, <span style="color: #800000;">""</span>).Replace(<span style="color: #800000;">"</span><span style="color: #800000;">//</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">/</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 57</span> 
+<span style="color: #008080;"> 58</span>     <span style="color: #008000;">//</span><span style="color: #008000;">常规文本文件</span>
+<span style="color: #008080;"> 59</span>     <span style="color: #0000ff;">var</span> customTypes = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">int</span>[] { <span style="color: #800080;">1</span>, <span style="color: #800080;">2</span>, <span style="color: #800080;">3</span>, <span style="color: #800080;">4</span>, <span style="color: #800080;">11</span>, <span style="color: #800080;">12</span><span style="color: #000000;"> };
+</span><span style="color: #008080;"> 60</span> 
+<span style="color: #008080;"> 61</span>     QueryExpression query = <span style="color: #0000ff;">new</span> QueryExpression(<span style="color: #800000;">"</span><span style="color: #800000;">webresource</span><span style="color: #800000;">"</span><span style="color: #000000;">)
+</span><span style="color: #008080;"> 62</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;"> 63</span>         ColumnSet = <span style="color: #0000ff;">new</span> ColumnSet(<span style="color: #0000ff;">new</span> <span style="color: #0000ff;">string</span>[] { <span style="color: #800000;">"</span><span style="color: #800000;">webresourceid</span><span style="color: #800000;">"</span><span style="color: #000000;"> }),
+</span><span style="color: #008080;"> 64</span>         Criteria = <span style="color: #0000ff;">new</span><span style="color: #000000;"> FilterExpression(LogicalOperator.And)
+</span><span style="color: #008080;"> 65</span> <span style="color: #000000;">    };
+</span><span style="color: #008080;"> 66</span>     query.Criteria.AddCondition(<span style="color: #800000;">"</span><span style="color: #800000;">name</span><span style="color: #800000;">"</span>, ConditionOperator.Equal, <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">object</span><span style="color: #000000;">[] { fileName });
+</span><span style="color: #008080;"> 67</span>     EntityCollection entitys =<span style="color: #000000;"> service.RetrieveMultiple(query);
+</span><span style="color: #008080;"> 68</span> 
+<span style="color: #008080;"> 69</span> <span style="color: #000000;">    Guid entityId;
+</span><span style="color: #008080;"> 70</span> 
+<span style="color: #008080;"> 71</span>     Entity entity = <span style="color: #0000ff;">new</span> Entity(<span style="color: #800000;">"</span><span style="color: #800000;">webresource</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 72</span>     entity[<span style="color: #800000;">"</span><span style="color: #800000;">content</span><span style="color: #800000;">"</span>] = customTypes.Contains(type.GetHashCode()) ?<span style="color: #000000;"> Convert.ToBase64String(Encoding.UTF8.GetBytes(fileContent.ToString())) : ImgToBase64String(filePath);
+</span><span style="color: #008080;"> 73</span> 
+<span style="color: #008080;"> 74</span>     <span style="color: #0000ff;">if</span> (entitys.Entities.Count == <span style="color: #800080;">0</span><span style="color: #000000;">)
+</span><span style="color: #008080;"> 75</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;"> 76</span>         entity[<span style="color: #800000;">"</span><span style="color: #800000;">webresourcetype</span><span style="color: #800000;">"</span>] = <span style="color: #0000ff;">new</span><span style="color: #000000;"> OptionSetValue(type.GetHashCode());
+</span><span style="color: #008080;"> 77</span>         entity[<span style="color: #800000;">"</span><span style="color: #800000;">displayname</span><span style="color: #800000;">"</span>] =<span style="color: #000000;"> fileName;
+</span><span style="color: #008080;"> 78</span>         entity[<span style="color: #800000;">"</span><span style="color: #800000;">name</span><span style="color: #800000;">"</span>] =<span style="color: #000000;"> fileName;
+</span><span style="color: #008080;"> 79</span>         entity[<span style="color: #800000;">"</span><span style="color: #800000;">componentstate</span><span style="color: #800000;">"</span>] = <span style="color: #0000ff;">new</span> OptionSetValue(<span style="color: #800080;">0</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 80</span>         entityId =<span style="color: #000000;"> service.Create(entity);
+</span><span style="color: #008080;"> 81</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;"> 82</span>     <span style="color: #0000ff;">else</span>
+<span style="color: #008080;"> 83</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;"> 84</span>         entity = entitys.Entities[<span style="color: #800080;">0</span><span style="color: #000000;">];
+</span><span style="color: #008080;"> 85</span> <span style="color: #000000;">        service.Update(entity);
+</span><span style="color: #008080;"> 86</span>         entityId =<span style="color: #000000;"> entity.Id;
+</span><span style="color: #008080;"> 87</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;"> 88</span> <span style="color: #000000;">    sw.Stop();
+</span><span style="color: #008080;"> 89</span>     Console.WriteLine($<span style="color: #800000;">"</span><span style="color: #800000;">{fileName} 创建/更新成功！耗时：{sw.ElapsedMilliseconds} 毫秒。</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 90</span>     <span style="color: #0000ff;">return</span><span style="color: #000000;"> entityId;
+</span><span style="color: #008080;"> 91</span> <span style="color: #000000;">}
+</span><span style="color: #008080;"> 92</span> 
+<span style="color: #008080;"> 93</span> <span style="color: #008000;">//</span><span style="color: #008000;">发布web资源</span>
+<span style="color: #008080;"> 94</span> <span style="color: #0000ff;">void</span> publishWebResources(List&lt;Guid&gt;<span style="color: #000000;"> ids,IOrganizationService service)
+</span><span style="color: #008080;"> 95</span> <span style="color: #000000;">{
+</span><span style="color: #008080;"> 96</span>     Stopwatch sw=<span style="color: #0000ff;">new</span><span style="color: #000000;"> Stopwatch();
+</span><span style="color: #008080;"> 97</span> <span style="color: #000000;">    sw.Start();
+</span><span style="color: #008080;"> 98</span>     
+<span style="color: #008080;"> 99</span>     <span style="color: #0000ff;">var</span> sb=<span style="color: #0000ff;">new</span><span style="color: #000000;"> StringBuilder();
+</span><span style="color: #008080;">100</span>     
+<span style="color: #008080;">101</span>     <span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">var</span> id <span style="color: #0000ff;">in</span><span style="color: #000000;"> ids)
+</span><span style="color: #008080;">102</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;">103</span>         sb.AppendLine($<span style="color: #800000;">"</span><span style="color: #800000;">\r\n&lt;webresource&gt;{id.ToString().ToUpper()}&lt;/webresource&gt;\r\n</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">104</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">105</span>     XElement element = XElement.Parse(<span style="color: #800000;">"</span><span style="color: #800000;">&lt;importexportxml&gt;\r\n&lt;webresources&gt;</span><span style="color: #800000;">"</span>+sb.ToString()+<span style="color: #800000;">"</span><span style="color: #800000;">&lt;/webresources&gt;\r\n&lt;/importexportxml&gt;</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">106</span>     PublishXmlRequest request = <span style="color: #0000ff;">new</span><span style="color: #000000;"> PublishXmlRequest();
+</span><span style="color: #008080;">107</span>     request.ParameterXml =<span style="color: #000000;"> element.ToString();
+</span><span style="color: #008080;">108</span> <span style="color: #000000;">    service.Execute(request);
+</span><span style="color: #008080;">109</span> <span style="color: #000000;">    sw.Stop();
+</span><span style="color: #008080;">110</span>     Console.WriteLine($<span style="color: #800000;">"</span><span style="color: #800000;">批量发布！耗时：{sw.ElapsedMilliseconds} 毫秒。</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">111</span> 
+<span style="color: #008080;">112</span> <span style="color: #000000;">}
+</span><span style="color: #008080;">113</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> Main()
+</span><span style="color: #008080;">114</span> <span style="color: #000000;">{    
+</span><span style="color: #008080;">115</span>     <span style="color: #0000ff;">var</span> service =<span style="color: #000000;"> Dynamic365.GetService(Envs.dev);
+</span><span style="color: #008080;">116</span>     
+<span style="color: #008080;">117</span>     <span style="color: #0000ff;">var</span> rootPath = <span style="color: #800000;">@"</span><span style="color: #800000;">D:\Desktop\图标20191123\图标20191123\</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+</span><span style="color: #008080;">118</span>     <span style="color: #0000ff;">var</span> targetPath = <span style="color: #800000;">@"</span><span style="color: #800000;">new_/dyicon/</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+</span><span style="color: #008080;">119</span>     <span style="color: #0000ff;">var</span> dict=GetFilesWithDir(rootPath).Dump(<span style="color: #800000;">"</span><span style="color: #800000;">目录包含的文件</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">120</span>     
+<span style="color: #008080;">121</span>     <span style="color: #0000ff;">var</span> ids=<span style="color: #0000ff;">new</span> List&lt;Guid&gt;<span style="color: #000000;">();
+</span><span style="color: #008080;">122</span>     
+<span style="color: #008080;">123</span>     <span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">var</span> kv <span style="color: #0000ff;">in</span><span style="color: #000000;"> dict)
+</span><span style="color: #008080;">124</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;">125</span> <span style="color: #000000;">        Guid id;
+</span><span style="color: #008080;">126</span>         <span style="color: #0000ff;">try</span>
+<span style="color: #008080;">127</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">128</span>             id=<span style="color: #000000;">CreateOrUpateFile2WebResoulse(service, kv.Key, (FileTypes)kv.Value, rootPath, targetPath);
+</span><span style="color: #008080;">129</span> 
+<span style="color: #008080;">130</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">131</span>         <span style="color: #0000ff;">catch</span><span style="color: #000000;">(Exception ex)
+</span><span style="color: #008080;">132</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">133</span> <span style="color: #000000;">            ex.Dump();
+</span><span style="color: #008080;">134</span>             
+<span style="color: #008080;">135</span>             <span style="color: #008000;">//</span><span style="color: #008000;">报错重新执行一次</span>
+<span style="color: #008080;">136</span>             id=<span style="color: #000000;">CreateOrUpateFile2WebResoulse(service, kv.Key, (FileTypes)kv.Value, rootPath, targetPath);
+</span><span style="color: #008080;">137</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">138</span> <span style="color: #000000;">        ids.Add(id);
+</span><span style="color: #008080;">139</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">140</span>     
+<span style="color: #008080;">141</span> <span style="color: #000000;">    publishWebResources(ids,service);
+</span><span style="color: #008080;">142</span> }</pre>
+</div>
+<p>问题延伸：</p>
+<p>web资源批量上传后，但是还是需要手动选择web资源替换实体图标，这里在xrmtoolbox的插件市场找到iconator插件</p>
+<p><img src="./images/Microsoft Dynamics CRM 批量上传web资源（非官方WebResourceUtility）并替换实体图标3.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;实体修改图标最终效果图</p>
+<p><img src="./images/Microsoft Dynamics CRM 批量上传web资源（非官方WebResourceUtility）并替换实体图标4.png" alt="" /></p>
+<p>&nbsp;更换站点地图底色后</p>
+<p><img src="./images/Microsoft Dynamics CRM 批量上传web资源（非官方WebResourceUtility）并替换实体图标5.png" alt="" /></p>
+<p>&nbsp;移动端：</p>
+<p><img src="./images/Microsoft Dynamics CRM 批量上传web资源（非官方WebResourceUtility）并替换实体图标6.png" alt="" /></p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

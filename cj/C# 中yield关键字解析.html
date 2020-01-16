@@ -1,0 +1,374 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C# 中yield关键字解析' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C# 中yield关键字解析</center></div><div class='banquan'>原文出处:本文由博客园博主小世界的野孩子提供。<br/>
+原文连接:https://www.cnblogs.com/hulizhong/p/11763956.html</div><br>
+    <h2><strong>前言</strong></h2>
+<p><span style="font-family: 微软雅黑;">　　前段时间了解到</span>yield关键字，一直觉得还不错。今天给大家分享一下yield关键字的用法。yield return 返回集合不是一次性返回所有集合元素，而是一次调用返回一个元素。具体如何使用yield return 返回集合呢？我们一起往下面看吧。</p>
+<h2><strong>yield使用介绍</strong></h2>
+<p style="margin-left: 30px;"><strong>yield return 和yield break：</strong></p>
+<p style="margin-left: 30px;"><strong><span style="font-family: 微软雅黑;">我们看下平常循环返回集合的使用操作（返回</span>1-100中的偶数）：</strong></p>
+<div class="cnblogs_code">
+<pre><code>  <span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">private</span> List&lt;<span style="color: #0000ff;">int</span>&gt; _numArray; <span style="color: #008000;">//</span><span style="color: #008000;">用来保存1-100 这100个整数</span>
+<span style="color: #000000;">
+        Program() </span><span style="color: #008000;">//</span><span style="color: #008000;">构造函数。我们可以通过这个构造函数往待测试集合中存入1-100这100个测试数据</span>
+<span style="color: #000000;">        {
+            _numArray </span>= <span style="color: #0000ff;">new</span> List&lt;<span style="color: #0000ff;">int</span>&gt;(); <span style="color: #008000;">//</span><span style="color: #008000;">给集合变量开始在堆内存上开内存，并且把内存首地址交给这个_numArray变量</span>
+
+            <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">1</span>; i &lt;= <span style="color: #800080;">100</span>; i++<span style="color: #000000;">)
+            {
+                _numArray.Add(i);  </span><span style="color: #008000;">//</span><span style="color: #008000;">把1到100保存在集合当中方便操作</span>
+<span style="color: #000000;">            }
+        }
+
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            </span><span style="color: #0000ff;">new</span><span style="color: #000000;"> Program();
+
+            TestMethod();
+
+
+        }
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">测试求1到100之间的全部偶数</span>
+        <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> TestMethod()
+        {
+            </span><span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">var</span> item <span style="color: #0000ff;">in</span><span style="color: #000000;"> GetAllEvenNumberOld())
+            {
+                Console.WriteLine(item); </span><span style="color: #008000;">//</span><span style="color: #008000;">输出偶数测试</span>
+<span style="color: #000000;">            }
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 使用平常返回集合方法
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">static</span> IEnumerable&lt;<span style="color: #0000ff;">int</span>&gt;<span style="color: #000000;"> GetAllEvenNumberOld()
+        {
+            </span><span style="color: #0000ff;">var</span> listNum = <span style="color: #0000ff;">new</span> List&lt;<span style="color: #0000ff;">int</span>&gt;<span style="color: #000000;">();
+            </span><span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">int</span> num <span style="color: #0000ff;">in</span><span style="color: #000000;"> _numArray)
+            {
+                </span><span style="color: #0000ff;">if</span> (num % <span style="color: #800080;">2</span> == <span style="color: #800080;">0</span>) <span style="color: #008000;">//</span><span style="color: #008000;">判断是不是偶数</span>
+<span style="color: #000000;">                {
+                    listNum.Add(num); </span><span style="color: #008000;">//</span><span style="color: #008000;">返回当前偶数</span>
+<span style="color: #000000;">
+                }
+            }
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> listNum;
+        } 
+    }</span></pre>
+</div>
+<p>&nbsp;</p>
+<p style="margin-left: 30px;"><strong><span style="font-family: 微软雅黑;">然后我们再看看使用</span>yield return返回集合操作：</strong></p>
+<div class="cnblogs_code">
+<pre><code> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">private</span> List&lt;<span style="color: #0000ff;">int</span>&gt; _numArray; <span style="color: #008000;">//</span><span style="color: #008000;">用来保存1-100 这100个整数</span>
+<span style="color: #000000;">
+        Program() </span><span style="color: #008000;">//</span><span style="color: #008000;">构造函数。我们可以通过这个构造函数往待测试集合中存入1-100这100个测试数据</span>
+<span style="color: #000000;">        {
+            _numArray </span>= <span style="color: #0000ff;">new</span> List&lt;<span style="color: #0000ff;">int</span>&gt;(); <span style="color: #008000;">//</span><span style="color: #008000;">给集合变量开始在堆内存上开内存，并且把内存首地址交给这个_numArray变量</span>
+
+            <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">1</span>; i &lt;= <span style="color: #800080;">100</span>; i++<span style="color: #000000;">)
+            {
+                _numArray.Add(i);  </span><span style="color: #008000;">//</span><span style="color: #008000;">把1到100保存在集合当中方便操作</span>
+<span style="color: #000000;">            }
+        }
+
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            </span><span style="color: #0000ff;">new</span><span style="color: #000000;"> Program();
+
+            TestMethod();
+
+
+        }
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">测试求1到100之间的全部偶数</span>
+        <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> TestMethod()
+        {
+            </span><span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">var</span> item <span style="color: #0000ff;">in</span><span style="color: #000000;"> GetAllEvenNumber())
+            {
+                Console.WriteLine(item); </span><span style="color: #008000;">//</span><span style="color: #008000;">输出偶数测试</span>
+<span style="color: #000000;">            }
+        }  
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">使用Yield Return情况下的方法</span>
+        <span style="color: #0000ff;">static</span> IEnumerable&lt;<span style="color: #0000ff;">int</span>&gt;<span style="color: #000000;"> GetAllEvenNumber()
+        {
+
+            </span><span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">int</span> num <span style="color: #0000ff;">in</span><span style="color: #000000;"> _numArray)
+            {
+                </span><span style="color: #0000ff;">if</span> (num % <span style="color: #800080;">2</span> == <span style="color: #800080;">0</span>) <span style="color: #008000;">//</span><span style="color: #008000;">判断是不是偶数</span>
+<span style="color: #000000;">                {
+                    </span><span style="color: #0000ff;">yield</span> <span style="color: #0000ff;">return</span> num; <span style="color: #008000;">//</span><span style="color: #008000;">返回当前偶数</span>
+<span style="color: #000000;">
+                }
+            }
+            </span><span style="color: #0000ff;">yield</span> <span style="color: #0000ff;">break</span>;  <span style="color: #008000;">//</span><span style="color: #008000;">当前集合已经遍历完毕，我们就跳出当前函数，其实你不加也可以
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">这个作用就是提前结束当前函数，就是说这个函数运行完毕了。</span>
+<span style="color: #000000;">        }
+
+
+    }</span></pre>
+</div>
+<p>&nbsp;</p>
+<h2><strong><span style="font-family: 微软雅黑;">与平常</span>return比较</strong></h2>
+<p style="margin-left: 30px;"><span style="font-family: 微软雅黑;">上面我们看到了</span>yield return 的使用方法，那么这个与return返回集合有什么区别呢？我们看下面一个案例来进行分析：</p>
+<p style="margin-left: 30px;"><span style="font-family: 微软雅黑;">我们首先先看通过</span>returun返回集合的一个案例：</p>
+<div class="cnblogs_code">
+<pre><code>    <span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    { 
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            </span><span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">var</span> item <span style="color: #0000ff;">in</span><span style="color: #000000;"> GetNums())
+            {
+                Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">  common return:{item}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            }
+        } 
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 平常return 返回集合
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> IEnumerable&lt;<span style="color: #0000ff;">int</span>&gt;<span style="color: #000000;"> GetNums()
+        {
+            </span><span style="color: #0000ff;">var</span> listNum = <span style="color: #0000ff;">new</span> List&lt;<span style="color: #0000ff;">int</span>&gt;<span style="color: #000000;">();
+            </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; <span style="color: #800080;">10</span>; i++<span style="color: #000000;">)
+            {
+                Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">yield return:{i}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                listNum.Add(i);
+            }
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> listNum;
+        }
+
+
+    }</span></pre>
+</div>
+<p><img src="./images/C# 中yield关键字解析0.png" alt="" /></p>
+<p style="margin-left: 30px;"><span style="font-family: 微软雅黑;">通过代码的运行结果，我们可以看到这里返回的结果</span> yield return 和comment return是分成两边的。先执行完一个然后开始执行另外一个。不干涉。</p>
+<p style="margin-left: 30px;"><span style="font-family: 微软雅黑;">我们接着看下使用</span>yield return返回集合：</p>
+<div class="cnblogs_code">
+<pre><code>    <span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    { 
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            </span><span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">var</span> item <span style="color: #0000ff;">in</span><span style="color: #000000;"> GetNumsYield())
+            {
+                Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">  common return:{item}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            }
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 通过yield return 返回集合
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> IEnumerable&lt;<span style="color: #0000ff;">int</span>&gt;<span style="color: #000000;"> GetNumsYield()
+        {
+            </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; <span style="color: #800080;">10</span>; i++<span style="color: #000000;">)
+            {
+                Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">yield return:{i}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                </span><span style="color: #0000ff;">yield</span> <span style="color: #0000ff;">return</span><span style="color: #000000;"> i;
+            }
+        } 
+    }</span></pre>
+</div>
+<p><img src="./images/C# 中yield关键字解析1.png" alt="" /></p>
+<p style="margin-left: 30px;"><span style="font-family: 微软雅黑;">我们看这个运行结果，这里</span>yield return 和comment return 的输出完全交替了。这里说明是一次调用就返回了一个元素。</p>
+<p style="margin-left: 30px;"><strong><span style="font-family: 微软雅黑;">通过上面的案例我们可以发现，</span>yield return 并不是等所有执行完了才一次性返回的。而是调用一次就返回一次结果的元素。这也就是按需供给。</strong></p>
+<h2><strong>解析定义类</strong></h2>
+<p style="margin-left: 30px;"><span style="font-family: 宋体;">我们已经大致了解了</span>yield <span style="font-family: 宋体;">的用法和它与平常的返回的区别。我们可以继续查看其运行原理。我们首先看这么一个案例（在</span><span style="font-family: Calibri;">0-10</span><span style="font-family: 宋体;">中随机返回五个数字）：</span></p>
+<p style="margin-left: 30px;">我们通过<a href="https://sharplab.io/">SharpLab</a><span style="font-family: 宋体;">反编译其代码</span>,<span style="font-family: 宋体;">我们进行查看发现</span><span style="font-family: Calibri;">yield</span><span style="font-family: 宋体;">具体详细实现：</span></p>
+<p><img src="./images/C# 中yield关键字解析2.png" alt="" width="626" height="601" />&nbsp;<img src="./images/C# 中yield关键字解析3.png" alt="" width="617" height="533" /></p>
+<p style="margin-left: 30px;"><strong><span style="font-family: 宋体;">我们看到</span>yield<span style="font-family: 宋体;">内部含有一个迭代器。这样去实现的迭代遍历。同时包含</span><span style="font-family: Calibri;">_state</span><span style="font-family: 宋体;">字段、用来存储上一次的记录。</span><span style="font-family: Calibri;">_current</span><span style="font-family: 宋体;">包含当前的值、也通过</span><span style="font-family: Calibri;">_initialThreadId</span><span style="font-family: 宋体;">获取当前线程</span><span style="font-family: Calibri;">id</span><span style="font-family: 宋体;">。其中主要的方法是迭代器方法</span><span style="font-family: Calibri;">MoveNext()</span><span style="font-family: 宋体;">。我们根据反编译结果来实现一个与</span><span style="font-family: Calibri;">yiled</span><span style="font-family: 宋体;">相似的类：</span></strong></p>
+<p style="margin-left: 30px;">&nbsp;</p>
+<div class="cnblogs_code">
+<pre><code>    <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+    <span style="color: #808080;">///</span><span style="color: #008000;"> 解析yield并定义相似类
+    </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">sealed</span> <span style="color: #0000ff;">class</span> GetRandomNumbersClass : IEnumerable&lt;<span style="color: #0000ff;">int</span>&gt;, IEnumerable, IEnumerator&lt;<span style="color: #0000ff;">int</span>&gt;<span style="color: #000000;">, IDisposable, IEnumerator
+    {
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> Random r = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Random();
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 状态
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> _state;
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;">储存当前值
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> _current;
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 线程id
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> _initialThreadId;
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 集合元素数量
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> count;
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 集合元素数量
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> _count;
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 当前指针
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> i;
+
+        </span><span style="color: #0000ff;">int</span> IEnumerator&lt;<span style="color: #0000ff;">int</span>&gt;<span style="color: #000000;">.Current
+        {
+            [DebuggerHidden]
+            </span><span style="color: #0000ff;">get</span><span style="color: #000000;">
+            {
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> _current;
+            }
+        }
+
+        </span><span style="color: #0000ff;">object</span><span style="color: #000000;"> IEnumerator.Current
+        {
+            [DebuggerHidden]
+            </span><span style="color: #0000ff;">get</span><span style="color: #000000;">
+            {
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> _current;
+            }
+        }
+
+        [DebuggerHidden]
+        </span><span style="color: #0000ff;">public</span> GetRandomNumbersClass(<span style="color: #0000ff;">int</span><span style="color: #000000;"> state)
+        {
+            </span><span style="color: #0000ff;">this</span>._state =<span style="color: #000000;"> state;
+            _initialThreadId </span>=<span style="color: #000000;"> Environment.CurrentManagedThreadId;
+        }
+
+        [DebuggerHidden]
+        </span><span style="color: #0000ff;">void</span><span style="color: #000000;"> IDisposable.Dispose()
+        {
+        }
+
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">bool</span><span style="color: #000000;"> MoveNext()
+        {
+            </span><span style="color: #0000ff;">switch</span><span style="color: #000000;"> (_state)
+            {
+                </span><span style="color: #0000ff;">default</span><span style="color: #000000;">:
+                    </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+                </span><span style="color: #0000ff;">case</span> <span style="color: #800080;">0</span><span style="color: #000000;">:
+                    _state </span>= -<span style="color: #800080;">1</span><span style="color: #000000;">;
+                    i </span>= <span style="color: #800080;">0</span><span style="color: #000000;">;
+                    </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+                </span><span style="color: #0000ff;">case</span> <span style="color: #800080;">1</span><span style="color: #000000;">:
+                    _state </span>= -<span style="color: #800080;">1</span><span style="color: #000000;">;
+                    i</span>++<span style="color: #000000;">;
+                    </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+            }
+            </span><span style="color: #0000ff;">if</span> (i &lt;<span style="color: #000000;"> count)
+            {
+                _current </span>= r.Next(<span style="color: #800080;">10</span><span style="color: #000000;">);
+                _state </span>= <span style="color: #800080;">1</span><span style="color: #000000;">;
+                </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+            }
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+        }
+
+        </span><span style="color: #0000ff;">bool</span><span style="color: #000000;"> IEnumerator.MoveNext()
+        {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">ILSpy generated this explicit interface implementation from .override directive in MoveNext</span>
+            <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">.MoveNext();
+        }
+
+        [DebuggerHidden]
+        </span><span style="color: #0000ff;">void</span><span style="color: #000000;"> IEnumerator.Reset()
+        {
+            </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> NotSupportedException();
+        }
+
+        [DebuggerHidden]
+        </span><span style="color: #0000ff;">public</span> IEnumerator&lt;<span style="color: #0000ff;">int</span>&gt;<span style="color: #000000;"> GetEnumerator()
+        {
+            GetRandomNumbersClass _getRandom;
+            </span><span style="color: #0000ff;">if</span> (_state == -<span style="color: #800080;">2</span> &amp;&amp; _initialThreadId ==<span style="color: #000000;"> Environment.CurrentManagedThreadId)
+            {
+                _state </span>= <span style="color: #800080;">0</span><span style="color: #000000;">;
+                _getRandom </span>= <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+            }
+            </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+            {
+                _getRandom </span>= <span style="color: #0000ff;">new</span> GetRandomNumbersClass(<span style="color: #800080;">0</span><span style="color: #000000;">);
+            }
+            _getRandom.count </span>=<span style="color: #000000;"> _count;
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> _getRandom;
+        }
+
+        [DebuggerHidden]
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> GetEnumerator();
+        }
+
+
+        [IteratorStateMachine(</span><span style="color: #0000ff;">typeof</span><span style="color: #000000;">(GetRandomNumbersClass))]
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> IEnumerable&lt;<span style="color: #0000ff;">int</span>&gt; GetList(<span style="color: #0000ff;">int</span><span style="color: #000000;"> count)
+        {
+            GetRandomNumbersClass getRandomNumbersClass </span>= <span style="color: #0000ff;">new</span> GetRandomNumbersClass(-<span style="color: #800080;">2</span><span style="color: #000000;">);
+            getRandomNumbersClass._count </span>=<span style="color: #000000;"> count;
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> getRandomNumbersClass;
+        }
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            IEnumerator</span>&lt;<span style="color: #0000ff;">int</span>&gt; enumerator = GetList(<span style="color: #800080;">5</span><span style="color: #000000;">).GetEnumerator();
+            </span><span style="color: #0000ff;">try</span><span style="color: #000000;">
+            {
+                </span><span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">int</span> item <span style="color: #0000ff;">in</span> GetList(<span style="color: #800080;">5</span><span style="color: #000000;">))
+                    Console.WriteLine(item);
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">while (enumerator.MoveNext())
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">{
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">    int current = enumerator.Current;
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">    Console.WriteLine(current);
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">}</span>
+<span style="color: #000000;">            }
+            </span><span style="color: #0000ff;">finally</span><span style="color: #000000;">
+            {
+                </span><span style="color: #0000ff;">if</span> (enumerator != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+                {
+                    enumerator.Dispose();
+                }
+            }
+            Console.ReadKey();
+        }
+    }</span></pre>
+</div>
+<p style="margin-left: 30px;">&nbsp;</p>
+<p><strong>　</strong></p>
+<hr />
+<p>&nbsp;</p>
+<p><strong>　用爱生活，你会使自己幸福！用爱工作，你会使很多人幸福！&nbsp;</strong></p>
+<p><a href="https://www.cnblogs.com/hulizhong/p/11205119.html" target="_blank"><strong>&nbsp; &nbsp;C<strong>#基础知识详解系列</strong></strong></a></p>
+<p><strong><strong>&nbsp; &nbsp;欢迎大家扫描下方二维码，和我一起学习更多的知识😊</strong></strong></p>
+<p>&nbsp;<strong><img src="./images/C# 中yield关键字解析4.png" alt="" width="278" height="278" /></strong></p>
+<p style="margin-left: 30px;">&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

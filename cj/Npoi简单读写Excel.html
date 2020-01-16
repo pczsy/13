@@ -1,0 +1,260 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Npoi简单读写Excel' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Npoi简单读写Excel</center></div><div class='banquan'>原文出处:本文由博客园博主遥远的Ta提供。<br/>
+原文连接:https://www.cnblogs.com/lycb/p/10771766.html</div><br>
+    <p><span style="font-family: 'Microsoft YaHei'; font-size: 14pt;"><strong>什么是NPOI ?</strong></span></p>
+<p>　　简而言之，NPOI就是可以在没有Office的情况下对Word或Excel文档进行读写等操作。</p>
+<p><span style="font-size: 14pt;"><strong>使用方式 :</strong></span></p>
+<p><strong>　　</strong>1、准备NPOI的dll文件</p>
+<p>　　　　下载链接：<a href="https://npoi.codeplex.com/releases" rel="nofollow" target="_blank">https://npoi.codeplex.com/releases</a></p>
+<p>　　2、将下载的dll文件引入项目中</p>
+<p>　　3、引用命名空间</p>
+<p>　&nbsp; &nbsp;　<strong><img src="./images/Npoi简单读写Excel0.png" alt="" /></strong></p>
+<p><span style="font-size: 14pt;"><strong>须知：</strong></span></p>
+<p>　　1、Excel表格分为：WorkBook（工作薄）-&gt; Sheet（工作表） -&gt; 行：Row 单元格：Cell。</p>
+<p>　　2、NPOI是POI的C#版本，NPOI的行和列的index都是从0开始</p>
+<p>　　3、POI读取Excel有两种格式一个是HSSF，另一个是XSSF。 HSSF和XSSF的区别如下：&nbsp;<br />　　　&nbsp; HSSF is the POI Project's pure Java implementation of the Excel '97(-2007) file format.&nbsp;<br />　　　&nbsp; XSSF is the POI Project's pure Java implementation of the Excel 2007 OOXML (.xlsx) file format.&nbsp;<br />　　　&nbsp; 即：HSSF适用2007以前的版本,XSSF适用2007版本及其以上的。</p>
+<p>　&nbsp; &nbsp; &nbsp;　下面使用NPOI读取Excel例子：主要功能是将DataTable导入Excel，或将Excel读取到DataTable中。</p>
+<p><strong><span style="font-size: 14pt;">代码如下：</span></strong></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span>   　　　 <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;"> 2</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 将DataTable导入到Excel
+</span><span style="color: #008080;"> 3</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;"> 4</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="data"&gt;</span><span style="color: #008000;">要导入的数据</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;"> 5</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="filepath"&gt;</span><span style="color: #008000;">导入的文件路径（包含文件名称）</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;"> 6</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="sheename"&gt;</span><span style="color: #008000;">要导入的表名</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;"> 7</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="iscolumwrite"&gt;</span><span style="color: #008000;">是否写入列名</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;"> 8</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;</span><span style="color: #008000;">导入Excel的行数</span><span style="color: #808080;">&lt;/returns&gt;</span>
+<span style="color: #008080;"> 9</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span> DataTableToExcel(DataTable data, <span style="color: #0000ff;">string</span> filepath, <span style="color: #0000ff;">string</span> sheename, <span style="color: #0000ff;">bool</span><span style="color: #000000;"> iscolumwrite)
+</span><span style="color: #008080;">10</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">11</span>             <span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span><span style="color: #000000;">;
+</span><span style="color: #008080;">12</span>             <span style="color: #0000ff;">int</span> j = <span style="color: #800080;">0</span><span style="color: #000000;">;
+</span><span style="color: #008080;">13</span>             <span style="color: #0000ff;">int</span> count = <span style="color: #800080;">0</span><span style="color: #000000;">;
+</span><span style="color: #008080;">14</span>             ISheet sheet = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+</span><span style="color: #008080;">15</span>             <span style="color: #0000ff;">using</span> (fs = <span style="color: #0000ff;">new</span><span style="color: #000000;"> FileStream(filepath, FileMode.OpenOrCreate, FileAccess.ReadWrite))
+</span><span style="color: #008080;">16</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">17</span>                 <span style="color: #008000;">//</span><span style="color: #008000;">根据Excel不同版本实例不同工作铺</span>
+<span style="color: #008080;">18</span>                 <span style="color: #0000ff;">if</span> (filepath.IndexOf(<span style="color: #800000;">"</span><span style="color: #800000;">.xlsx</span><span style="color: #800000;">"</span>) &gt; <span style="color: #800080;">0</span>) <span style="color: #008000;">//</span><span style="color: #008000;"> 2007版本</span>
+<span style="color: #008080;">19</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">20</span>                     workbook = <span style="color: #0000ff;">new</span><span style="color: #000000;"> XSSFWorkbook();
+</span><span style="color: #008080;">21</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">22</span>                 <span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (filepath.IndexOf(<span style="color: #800000;">"</span><span style="color: #800000;">.xls</span><span style="color: #800000;">"</span>) &gt; <span style="color: #800080;">0</span>) <span style="color: #008000;">//</span><span style="color: #008000;"> 2003版本</span>
+<span style="color: #008080;">23</span>                     workbook = <span style="color: #0000ff;">new</span><span style="color: #000000;"> HSSFWorkbook();
+</span><span style="color: #008080;">24</span> 
+<span style="color: #008080;">25</span>                 <span style="color: #0000ff;">try</span>
+<span style="color: #008080;">26</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">27</span>                     <span style="color: #0000ff;">if</span> (workbook != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+</span><span style="color: #008080;">28</span> <span style="color: #000000;">                    {
+</span><span style="color: #008080;">29</span>                         sheet =<span style="color: #000000;"> workbook.CreateSheet(sheename);
+</span><span style="color: #008080;">30</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">31</span>                     <span style="color: #0000ff;">else</span>
+<span style="color: #008080;">32</span> <span style="color: #000000;">                    {
+</span><span style="color: #008080;">33</span>                         <span style="color: #0000ff;">return</span> -<span style="color: #800080;">1</span><span style="color: #000000;">;
+</span><span style="color: #008080;">34</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">35</span> 
+<span style="color: #008080;">36</span>                     <span style="color: #0000ff;">if</span> (iscolumwrite == <span style="color: #0000ff;">true</span>) <span style="color: #008000;">//</span><span style="color: #008000;">写入DataTable的列名</span>
+<span style="color: #008080;">37</span> <span style="color: #000000;">                    {
+</span><span style="color: #008080;">38</span>                         IRow row = sheet.CreateRow(<span style="color: #800080;">0</span><span style="color: #000000;">);
+</span><span style="color: #008080;">39</span>                         <span style="color: #0000ff;">for</span> (j = <span style="color: #800080;">0</span>; j &lt; data.Columns.Count; ++<span style="color: #000000;">j)
+</span><span style="color: #008080;">40</span> <span style="color: #000000;">                        {
+</span><span style="color: #008080;">41</span> <span style="color: #000000;">                            row.CreateCell(j).SetCellValue(data.Columns[j].ColumnName);
+</span><span style="color: #008080;">42</span> <span style="color: #000000;">                        }
+</span><span style="color: #008080;">43</span>                         count = <span style="color: #800080;">1</span><span style="color: #000000;">;
+</span><span style="color: #008080;">44</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">45</span>                     <span style="color: #0000ff;">else</span>
+<span style="color: #008080;">46</span> <span style="color: #000000;">                    {
+</span><span style="color: #008080;">47</span>                         count = <span style="color: #800080;">0</span><span style="color: #000000;">;
+</span><span style="color: #008080;">48</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">49</span> 
+<span style="color: #008080;">50</span>                     <span style="color: #0000ff;">for</span> (i = <span style="color: #800080;">0</span>; i &lt; data.Rows.Count; ++<span style="color: #000000;">i)
+</span><span style="color: #008080;">51</span> <span style="color: #000000;">                    {
+</span><span style="color: #008080;">52</span>                         IRow row =<span style="color: #000000;"> sheet.CreateRow(count);
+</span><span style="color: #008080;">53</span>                         <span style="color: #0000ff;">for</span> (j = <span style="color: #800080;">0</span>; j &lt; data.Columns.Count; ++<span style="color: #000000;">j)
+</span><span style="color: #008080;">54</span> <span style="color: #000000;">                        {
+</span><span style="color: #008080;">55</span> <span style="color: #000000;">                            row.CreateCell(j).SetCellValue(data.Rows[i][j].ToString());
+</span><span style="color: #008080;">56</span> <span style="color: #000000;">                        }
+</span><span style="color: #008080;">57</span>                         count++<span style="color: #000000;">;
+</span><span style="color: #008080;">58</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">59</span>                     workbook.Write(fs); <span style="color: #008000;">//</span><span style="color: #008000;">写入到excel</span>
+<span style="color: #008080;">60</span>                     <span style="color: #0000ff;">return</span><span style="color: #000000;"> count;
+</span><span style="color: #008080;">61</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">62</span>                 <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception ex)
+</span><span style="color: #008080;">63</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">64</span>                     Console.WriteLine(<span style="color: #800000;">"</span><span style="color: #800000;">Exception: </span><span style="color: #800000;">"</span> +<span style="color: #000000;"> ex.Message);
+</span><span style="color: #008080;">65</span>                     <span style="color: #0000ff;">return</span> -<span style="color: #800080;">1</span><span style="color: #000000;">;
+</span><span style="color: #008080;">66</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">67</span>                 <span style="color: #0000ff;">finally</span><span style="color: #000000;"> { fs.Close(); fs.Dispose(); }
+</span><span style="color: #008080;">68</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">69</span>         }</pre>
+</div>
+<p>&nbsp;</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span>  　　　　 <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;"> 2</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 将Excel导入DataTable
+</span><span style="color: #008080;"> 3</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;"> 4</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="filepath"&gt;</span><span style="color: #008000;">导入的文件路径（包括文件名）</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;"> 5</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="sheetname"&gt;</span><span style="color: #008000;">工作表名称</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;"> 6</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="isFirstRowColumn"&gt;</span><span style="color: #008000;">第一行是否是DataTable的列名</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;"> 7</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;</span><span style="color: #008000;">DataTable</span><span style="color: #808080;">&lt;/returns&gt;</span>
+<span style="color: #008080;"> 8</span>         <span style="color: #0000ff;">public</span> DataTable ExcelToDataTable(<span style="color: #0000ff;">string</span> filepath, <span style="color: #0000ff;">string</span> sheetname, <span style="color: #0000ff;">bool</span><span style="color: #000000;"> isFirstRowColumn)
+</span><span style="color: #008080;"> 9</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">10</span>             ISheet sheet = <span style="color: #0000ff;">null</span>;<span style="color: #008000;">//</span><span style="color: #008000;">工作表</span>
+<span style="color: #008080;">11</span>             DataTable data = <span style="color: #0000ff;">new</span><span style="color: #000000;"> DataTable();
+</span><span style="color: #008080;">12</span> 
+<span style="color: #008080;">13</span>             <span style="color: #0000ff;">var</span> startrow = <span style="color: #800080;">0</span><span style="color: #000000;">;
+</span><span style="color: #008080;">14</span>             <span style="color: #0000ff;">using</span> (fs = <span style="color: #0000ff;">new</span><span style="color: #000000;"> FileStream(filepath, FileMode.Open, FileAccess.Read))
+</span><span style="color: #008080;">15</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">16</span>                 <span style="color: #0000ff;">try</span>
+<span style="color: #008080;">17</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">18</span>                     <span style="color: #0000ff;">if</span> (filepath.IndexOf(<span style="color: #800000;">"</span><span style="color: #800000;">.xlsx</span><span style="color: #800000;">"</span>) &gt; <span style="color: #800080;">0</span>) <span style="color: #008000;">//</span><span style="color: #008000;"> 2007版本</span>
+<span style="color: #008080;">19</span>                         workbook = <span style="color: #0000ff;">new</span><span style="color: #000000;"> XSSFWorkbook(fs);
+</span><span style="color: #008080;">20</span>                     <span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (filepath.IndexOf(<span style="color: #800000;">"</span><span style="color: #800000;">.xls</span><span style="color: #800000;">"</span>) &gt; <span style="color: #800080;">0</span>) <span style="color: #008000;">//</span><span style="color: #008000;"> 2003版本</span>
+<span style="color: #008080;">21</span>                         workbook = <span style="color: #0000ff;">new</span><span style="color: #000000;"> HSSFWorkbook(fs);
+</span><span style="color: #008080;">22</span>                     <span style="color: #0000ff;">if</span> (sheetname != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+</span><span style="color: #008080;">23</span> <span style="color: #000000;">                    {
+</span><span style="color: #008080;">24</span>                         sheet =<span style="color: #000000;"> workbook.GetSheet(sheetname);
+</span><span style="color: #008080;">25</span>                         <span style="color: #0000ff;">if</span> (sheet == <span style="color: #0000ff;">null</span>) <span style="color: #008000;">//</span><span style="color: #008000;">如果没有找到指定的sheetName对应的sheet，则尝试获取第一个sheet</span>
+<span style="color: #008080;">26</span> <span style="color: #000000;">                        {
+</span><span style="color: #008080;">27</span>                             sheet = workbook.GetSheetAt(<span style="color: #800080;">0</span><span style="color: #000000;">);
+</span><span style="color: #008080;">28</span> <span style="color: #000000;">                        }
+</span><span style="color: #008080;">29</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">30</span>                     <span style="color: #0000ff;">else</span>
+<span style="color: #008080;">31</span> <span style="color: #000000;">                    {
+</span><span style="color: #008080;">32</span>                         sheet = workbook.GetSheetAt(<span style="color: #800080;">0</span><span style="color: #000000;">);
+</span><span style="color: #008080;">33</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">34</span>                     <span style="color: #0000ff;">if</span> (sheet != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+</span><span style="color: #008080;">35</span> <span style="color: #000000;">                    {
+</span><span style="color: #008080;">36</span>                         IRow firstrow = sheet.GetRow(<span style="color: #800080;">0</span><span style="color: #000000;">);
+</span><span style="color: #008080;">37</span>                         <span style="color: #0000ff;">int</span> cellCount = firstrow.LastCellNum; <span style="color: #008000;">//</span><span style="color: #008000;">行最后一个cell的编号 即总的列数</span>
+<span style="color: #008080;">38</span>                         <span style="color: #0000ff;">if</span><span style="color: #000000;"> (isFirstRowColumn)
+</span><span style="color: #008080;">39</span> <span style="color: #000000;">                        {
+</span><span style="color: #008080;">40</span>                             <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = firstrow.FirstCellNum; i &lt; cellCount; i++<span style="color: #000000;">)
+</span><span style="color: #008080;">41</span> <span style="color: #000000;">                            {
+</span><span style="color: #008080;">42</span>                                 ICell cell =<span style="color: #000000;"> firstrow.GetCell(i);
+</span><span style="color: #008080;">43</span>                                 <span style="color: #0000ff;">if</span> (cell != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+</span><span style="color: #008080;">44</span> <span style="color: #000000;">                                {
+</span><span style="color: #008080;">45</span>                                     <span style="color: #0000ff;">string</span> cellvalue =<span style="color: #000000;"> cell.StringCellValue;
+</span><span style="color: #008080;">46</span>                                     <span style="color: #0000ff;">if</span> (cellvalue != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+</span><span style="color: #008080;">47</span> <span style="color: #000000;">                                    {
+</span><span style="color: #008080;">48</span>                                         DataColumn column = <span style="color: #0000ff;">new</span><span style="color: #000000;"> DataColumn(cellvalue);
+</span><span style="color: #008080;">49</span> <span style="color: #000000;">                                        data.Columns.Add(column);
+</span><span style="color: #008080;">50</span> <span style="color: #000000;">                                    }
+</span><span style="color: #008080;">51</span> <span style="color: #000000;">                                }
+</span><span style="color: #008080;">52</span> <span style="color: #000000;">                            }
+</span><span style="color: #008080;">53</span>                             startrow = sheet.FirstRowNum + <span style="color: #800080;">1</span><span style="color: #000000;">;
+</span><span style="color: #008080;">54</span> <span style="color: #000000;">                        }
+</span><span style="color: #008080;">55</span>                         <span style="color: #0000ff;">else</span>
+<span style="color: #008080;">56</span> <span style="color: #000000;">                        {
+</span><span style="color: #008080;">57</span>                             startrow =<span style="color: #000000;"> sheet.FirstRowNum;
+</span><span style="color: #008080;">58</span> <span style="color: #000000;">                        }
+</span><span style="color: #008080;">59</span>                         <span style="color: #008000;">//</span><span style="color: #008000;">读数据行</span>
+<span style="color: #008080;">60</span>                         <span style="color: #0000ff;">int</span> rowcount =<span style="color: #000000;"> sheet.LastRowNum;
+</span><span style="color: #008080;">61</span>                         <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = startrow; i &lt; rowcount; i++<span style="color: #000000;">)
+</span><span style="color: #008080;">62</span> <span style="color: #000000;">                        {
+</span><span style="color: #008080;">63</span>                             IRow row =<span style="color: #000000;"> sheet.GetRow(i);
+</span><span style="color: #008080;">64</span>                             <span style="color: #0000ff;">if</span> (row == <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+</span><span style="color: #008080;">65</span> <span style="color: #000000;">                            {
+</span><span style="color: #008080;">66</span>                                 <span style="color: #0000ff;">continue</span>; <span style="color: #008000;">//</span><span style="color: #008000;">没有数据的行默认是null</span>
+<span style="color: #008080;">67</span> <span style="color: #000000;">                            }
+</span><span style="color: #008080;">68</span>                             DataRow datarow = data.NewRow();<span style="color: #008000;">//</span><span style="color: #008000;">具有相同架构的行</span>
+<span style="color: #008080;">69</span>                             <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> j = row.FirstCellNum; j &lt; cellCount; j++<span style="color: #000000;">)
+</span><span style="color: #008080;">70</span> <span style="color: #000000;">                            {
+</span><span style="color: #008080;">71</span>                                 <span style="color: #0000ff;">if</span> (row.GetCell(j) != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+</span><span style="color: #008080;">72</span> <span style="color: #000000;">                                {
+</span><span style="color: #008080;">73</span>                                     datarow[j] =<span style="color: #000000;"> row.GetCell(j).ToString();
+</span><span style="color: #008080;">74</span> <span style="color: #000000;">                                }
+</span><span style="color: #008080;">75</span> <span style="color: #000000;">                            }
+</span><span style="color: #008080;">76</span> <span style="color: #000000;">                            data.Rows.Add(datarow);
+</span><span style="color: #008080;">77</span> <span style="color: #000000;">                        }
+</span><span style="color: #008080;">78</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">79</span>                     <span style="color: #0000ff;">return</span><span style="color: #000000;"> data;
+</span><span style="color: #008080;">80</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">81</span>                 <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception ex)
+</span><span style="color: #008080;">82</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">83</span>                     Console.WriteLine(<span style="color: #800000;">"</span><span style="color: #800000;">Exception: </span><span style="color: #800000;">"</span> +<span style="color: #000000;"> ex.Message);
+</span><span style="color: #008080;">84</span>                     <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+</span><span style="color: #008080;">85</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">86</span>                 <span style="color: #0000ff;">finally</span><span style="color: #000000;"> { fs.Close(); fs.Dispose(); }
+</span><span style="color: #008080;">87</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">88</span>         }</pre>
+</div>
+<p>&nbsp;</p>
+<p>测试代码：</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('5c7e9799-8c37-4ed6-a135-a5b64ed713b1')"><img id="code_img_closed_5c7e9799-8c37-4ed6-a135-a5b64ed713b1" class="code_img_closed" src="./images/Npoi简单读写Excel1.png" alt="" /><img id="code_img_opened_5c7e9799-8c37-4ed6-a135-a5b64ed713b1" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('5c7e9799-8c37-4ed6-a135-a5b64ed713b1',event)" src="./images/Npoi简单读写Excel2.png" alt="" />
+<div id="cnblogs_code_open_5c7e9799-8c37-4ed6-a135-a5b64ed713b1" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System;
+</span><span style="color: #008080;"> 2</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Collections.Generic;
+</span><span style="color: #008080;"> 3</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Linq;
+</span><span style="color: #008080;"> 4</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Text;
+</span><span style="color: #008080;"> 5</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Data;
+</span><span style="color: #008080;"> 6</span> 
+<span style="color: #008080;"> 7</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> NPOIHelperTool;
+</span><span style="color: #008080;"> 8</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> Bll;
+</span><span style="color: #008080;"> 9</span> <span style="color: #0000ff;">namespace</span><span style="color: #000000;"> ConsoleApplication1
+</span><span style="color: #008080;">10</span> <span style="color: #000000;">{
+</span><span style="color: #008080;">11</span>     <span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+</span><span style="color: #008080;">12</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;">13</span>         <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+</span><span style="color: #008080;">14</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">15</span>             DataTable data = <span style="color: #0000ff;">new</span><span style="color: #000000;"> DataTable();
+</span><span style="color: #008080;">16</span>             <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; <span style="color: #800080;">5</span>; ++<span style="color: #000000;">i)
+</span><span style="color: #008080;">17</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">18</span>                 data.Columns.Add(<span style="color: #800000;">"</span><span style="color: #800000;">Columns_</span><span style="color: #800000;">"</span> + i.ToString(), <span style="color: #0000ff;">typeof</span>(<span style="color: #0000ff;">string</span><span style="color: #000000;">));
+</span><span style="color: #008080;">19</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">20</span> 
+<span style="color: #008080;">21</span>             <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; <span style="color: #800080;">10</span>; ++<span style="color: #000000;">i)
+</span><span style="color: #008080;">22</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">23</span>                 DataRow row =<span style="color: #000000;"> data.NewRow();
+</span><span style="color: #008080;">24</span>                 row[<span style="color: #800000;">"</span><span style="color: #800000;">Columns_0</span><span style="color: #800000;">"</span>] = <span style="color: #800000;">"</span><span style="color: #800000;">item0_</span><span style="color: #800000;">"</span> +<span style="color: #000000;"> i.ToString();
+</span><span style="color: #008080;">25</span>                 row[<span style="color: #800000;">"</span><span style="color: #800000;">Columns_1</span><span style="color: #800000;">"</span>] = <span style="color: #800000;">"</span><span style="color: #800000;">item1_</span><span style="color: #800000;">"</span> +<span style="color: #000000;"> i.ToString();
+</span><span style="color: #008080;">26</span>                 row[<span style="color: #800000;">"</span><span style="color: #800000;">Columns_2</span><span style="color: #800000;">"</span>] = <span style="color: #800000;">"</span><span style="color: #800000;">item2_</span><span style="color: #800000;">"</span> +<span style="color: #000000;"> i.ToString();
+</span><span style="color: #008080;">27</span>                 row[<span style="color: #800000;">"</span><span style="color: #800000;">Columns_3</span><span style="color: #800000;">"</span>] = <span style="color: #800000;">"</span><span style="color: #800000;">item3_</span><span style="color: #800000;">"</span> +<span style="color: #000000;"> i.ToString();
+</span><span style="color: #008080;">28</span>                 row[<span style="color: #800000;">"</span><span style="color: #800000;">Columns_4</span><span style="color: #800000;">"</span>] = <span style="color: #800000;">"</span><span style="color: #800000;">item4_</span><span style="color: #800000;">"</span> +<span style="color: #000000;"> i.ToString();
+</span><span style="color: #008080;">29</span> <span style="color: #000000;">                data.Rows.Add(row);
+</span><span style="color: #008080;">30</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">31</span> 
+<span style="color: #008080;">32</span>             ExcelHelper h = <span style="color: #0000ff;">new</span><span style="color: #000000;"> ExcelHelper();
+</span><span style="color: #008080;">33</span>             DataTable de = h.ExcelToDataTable(<span style="color: #800000;">@"</span><span style="color: #800000;">E:\Myuser.xls</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">Sheet1</span><span style="color: #800000;">"</span>, <span style="color: #0000ff;">true</span><span style="color: #000000;">);
+</span><span style="color: #008080;">34</span>             <span style="color: #0000ff;">int</span> c = h.DataTableToExcel(data, <span style="color: #800000;">@"</span><span style="color: #800000;">E:\Test.xls</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">sheet1</span><span style="color: #800000;">"</span>, <span style="color: #0000ff;">true</span><span style="color: #000000;">);
+</span><span style="color: #008080;">35</span>             IList&lt;student&gt; a = TypeUtil.ToList&lt;student&gt;<span style="color: #000000;">(de);
+</span><span style="color: #008080;">36</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">37</span> 
+<span style="color: #008080;">38</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">39</span>     <span style="color: #0000ff;">class</span><span style="color: #000000;"> student
+</span><span style="color: #008080;">40</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;">41</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> Id { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+</span><span style="color: #008080;">42</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> Name { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+</span><span style="color: #008080;">43</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> nc { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+</span><span style="color: #008080;">44</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">45</span> }</pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp;</p>
+<p>参考：</p>
+<p><a href="https://www.cnblogs.com/Raning/p/5872822.html">https://www.cnblogs.com/Raning/p/5872822.html</a></p>
+<p><a href="https://blog.csdn.net/dcrmg/article/details/52356236">https://blog.csdn.net/dcrmg/article/details/52356236</a></p>
+<p><a href="http://www.cnblogs.com/Erik_Xu/archive/2012/06/08/2541957.html">http://www.cnblogs.com/Erik_Xu/archive/2012/06/08/2541957.html</a></p>
+<p>&nbsp;</p>
+<p>作者：<a href="https://www.cnblogs.com/lycb">遥远的Ta</a></p>
+<p>出处：<a href="https://www.cnblogs.com/lycb">https://www.cnblogs.com/lycb</a></p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

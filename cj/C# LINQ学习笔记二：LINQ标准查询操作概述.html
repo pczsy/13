@@ -1,0 +1,1479 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C# LINQ学习笔记二：LINQ标准查询操作概述' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C# LINQ学习笔记二：LINQ标准查询操作概述</center></div><div class='banquan'>原文出处:本文由博客园博主缥缈的尘埃提供。<br/>
+原文连接:https://www.cnblogs.com/atomy/p/12099096.html</div><br>
+    <p>&nbsp; &nbsp;&nbsp;本笔记摘抄自：<a href="https://www.cnblogs.com/liqingwen/p/5801249.html">https://www.cnblogs.com/liqingwen/p/5801249.html</a>，记录一下学习过程以备后续查用。</p>
+<p><img src="./images/C# LINQ学习笔记二：LINQ标准查询操作概述0.png" alt="" /></p>
+<p>&nbsp; &nbsp; &ldquo;标准查询运算符&rdquo;是组成语言集成查询 (LINQ) 模式的方法，大多数这些方法都在序列上运行，其中的序列是一个对象，其类型实现了IEnumerable&lt;T&gt;接口</p>
+<p>或 IQueryable&lt;T&gt; 接口。标准查询运算符提供了包括筛选、投影、聚合、排序等功能在内的查询功能，各个标准查询运算符在执行时间上有所不同，具体情况</p>
+<p>取决于它们是返回单一值还是值序列：</p>
+<p><strong>&nbsp; &nbsp; 返回单一值的方法（例如Average和Sum）会立即执行，返回序列的方法会延迟查询执行，并返回一个可枚举的对象。</strong>&nbsp;</p>
+<p>&nbsp; &nbsp; 对于在内存中集合上运行的方法（即扩展IEnumerable&lt;T&gt;的方法），返回的可枚举对象将捕获传递到方法的参数。在枚举该对象时，将使用查询运算符的</p>
+<p>逻辑，并返回查询结果。与之相反，扩展IQueryable&lt;T&gt;的方法不会实现任何查询行为，但会生成一个表示要执行的查询的表达式树，查询处理由源</p>
+<p>IQueryable&lt;T&gt;对象处理。</p>
+<p>&nbsp; &nbsp; <strong>一、按标准执行方式分类</strong></p>
+<p>&nbsp; &nbsp; 标准查询运算符方法的LINQ to Objects实现采用两种主要方式之一来执行：立即执行和延迟执行，采用延迟执行的查询运算符可以进一步分为两类：流式和</p>
+<p>非流式。</p>
+<p>&nbsp; &nbsp; 1、执行方式</p>
+<p>&nbsp; &nbsp; 立即执行：立即执行意味着在代码中声明查询的位置读取数据源并执行运算，返回单个不可枚举的结果的所有标准查询运算符都立即执行。</p>
+<p>&nbsp; &nbsp; 延迟执行：延迟执行意味着不在代码中声明查询的位置执行运算，仅当对查询变量进行枚举操作时才执行运算，例如通过使用foreach语句，这意味着查询的</p>
+<p>执行结果取决于执行查询而非定义查询时的数据源内容。如果多次枚举查询变量，则每次结果可能都不同。几乎所有返回类型为IEnumerable&lt;T&gt;或</p>
+<p>IOrderedEnumerable&lt;TElement&gt;的标准查询运算符都以延迟方式执行。</p>
+<p>&nbsp; &nbsp; 2、延迟执行</p>
+<p>&nbsp; &nbsp; 流式：运算符不需要在生成元素前读取所有源数据。在执行时，流式运算符一边读取每个源元素，一边对该源元素执行运算，并在可行时生成元素，流式运</p>
+<p>算符将持续读取源元素直到可以生成结果元素，这意味着可能要读取多个源元素才能生成一个结果元素。</p>
+<p>&nbsp; &nbsp; 非流式：运算符必须读取所有源数据才能生成结果元素，诸如排序和分组等运算属于此类别。在执行时，非流式查询运算符读取所有源数据，将其放入数据</p>
+<p>结构中，执行运算然后生成结果元素。</p>
+<p>&nbsp; &nbsp; <strong>二、排列数据</strong></p>
+<p>&nbsp; &nbsp; 排序操作按一个或多个特性对序列的元素进行排序。第一个排序条件对元素执行主要排序，通过指定第二个排序条件，可以对各个主要排序组中的元素进行</p>
+<p>排序。 <br />&nbsp; &nbsp; 下图演示对一个字符序列按字母排序操作的执行结果 ：</p>
+<p><img src="./images/C# LINQ学习笔记二：LINQ标准查询操作概述1.png" alt="" /></p>
+<table border="0"><caption>标准查询运算符操作方法 -&nbsp;排序</caption>
+<tbody>
+<tr>
+<td>方法名</td>
+<td>说明</td>
+<td>C# 查询表达式语法</td>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</tr>
+<tr>
+<td>OrderBy</td>
+<td>按升序对值进行排序。</td>
+<td>orderby</td>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</tr>
+<tr>
+<td>OrderByDescending</td>
+<td>按降序对值进行排序。</td>
+<td>orderby &hellip; descending</td>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</tr>
+<tr>
+<td>ThenBy</td>
+<td>按升序执行次要排序。</td>
+<td>orderby &hellip;, &hellip;</td>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</tr>
+<tr>
+<td>ThenByDescending</td>
+<td>按降序执行次要排序。</td>
+<td>orderby &hellip;, &hellip; descending</td>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</tr>
+<tr>
+<td>Reverse</td>
+<td>颠倒集合中的元素的顺序。</td>
+<td>X</td>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</tr>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</tbody>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</table>
+<p>&nbsp; &nbsp; 下面代码演示orderby升序排序：</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('414d0002-e8ff-4573-9d31-5c698c6c71d1')"><img id="code_img_closed_414d0002-e8ff-4573-9d31-5c698c6c71d1" class="code_img_closed" src="./images/C# LINQ学习笔记二：LINQ标准查询操作概述2.png" alt="" /><img id="code_img_opened_414d0002-e8ff-4573-9d31-5c698c6c71d1" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('414d0002-e8ff-4573-9d31-5c698c6c71d1',event)" src="./images/C# LINQ学习笔记二：LINQ标准查询操作概述3.png" alt="" />
+<div id="cnblogs_code_open_414d0002-e8ff-4573-9d31-5c698c6c71d1" class="cnblogs_code_hide">
+<pre><code>    <span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            </span><span style="color: #0000ff;">#region</span> LINQ orderby升序排序
+            <span style="color: #0000ff;">var</span> words = <span style="color: #0000ff;">new</span>[] { <span style="color: #800000;">"</span><span style="color: #800000;">the</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">quick</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">brown</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">fox</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">jumps</span><span style="color: #800000;">"</span><span style="color: #000000;"> };
+            </span><span style="color: #0000ff;">var</span> query = 
+                <span style="color: #0000ff;">from</span> word <span style="color: #0000ff;">in</span><span style="color: #000000;"> words
+                </span><span style="color: #0000ff;">orderby</span><span style="color: #000000;"> word.Length
+                </span><span style="color: #0000ff;">select</span><span style="color: #000000;"> word;
+            </span><span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">var</span> word <span style="color: #0000ff;">in</span><span style="color: #000000;"> query)
+            {
+                Console.WriteLine(word);
+            }
+            Console.Read();
+            </span><span style="color: #0000ff;">#endregion</span><span style="color: #000000;">
+        }
+    }</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp; &nbsp; 运行结果如下：</p>
+<p><img src="./images/C# LINQ学习笔记二：LINQ标准查询操作概述4.png" alt="" /></p>
+<p>&nbsp; &nbsp; 下面代码演示orderby降序排序：</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('605dc49a-835d-4bdb-a36d-eb4747a29b5f')"><img id="code_img_closed_605dc49a-835d-4bdb-a36d-eb4747a29b5f" class="code_img_closed" src="./images/C# LINQ学习笔记二：LINQ标准查询操作概述2.png" alt="" /><img id="code_img_opened_605dc49a-835d-4bdb-a36d-eb4747a29b5f" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('605dc49a-835d-4bdb-a36d-eb4747a29b5f',event)" src="./images/C# LINQ学习笔记二：LINQ标准查询操作概述3.png" alt="" />
+<div id="cnblogs_code_open_605dc49a-835d-4bdb-a36d-eb4747a29b5f" class="cnblogs_code_hide">
+<pre><code>    <span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            </span><span style="color: #0000ff;">#region</span> LINQ orderby降序排序
+            <span style="color: #0000ff;">var</span> words = <span style="color: #0000ff;">new</span>[] { <span style="color: #800000;">"</span><span style="color: #800000;">the</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">quick</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">brown</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">fox</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">jumps</span><span style="color: #800000;">"</span><span style="color: #000000;"> };
+            </span><span style="color: #0000ff;">var</span> query = 
+                <span style="color: #0000ff;">from</span> word <span style="color: #0000ff;">in</span><span style="color: #000000;"> words
+                </span><span style="color: #0000ff;">orderby</span> word.Substring(<span style="color: #800080;">0</span>, <span style="color: #800080;">1</span><span style="color: #000000;">) descending
+                </span><span style="color: #0000ff;">select</span><span style="color: #000000;"> word;
+            </span><span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">var</span> word <span style="color: #0000ff;">in</span><span style="color: #000000;"> query)
+            {
+                Console.WriteLine(word);
+            }
+            Console.Read();
+            </span><span style="color: #0000ff;">#endregion</span><span style="color: #000000;">
+        }
+    }</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp; &nbsp; 运行结果如下：</p>
+<p><img src="./images/C# LINQ学习笔记二：LINQ标准查询操作概述7.png" alt="" /></p>
+<p>&nbsp; &nbsp; 下面代码演示orderby主要和次要排序（示例一）：</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('4ab6a471-9f2c-4811-b304-b4d97c04167f')"><img id="code_img_closed_4ab6a471-9f2c-4811-b304-b4d97c04167f" class="code_img_closed" src="./images/C# LINQ学习笔记二：LINQ标准查询操作概述2.png" alt="" /><img id="code_img_opened_4ab6a471-9f2c-4811-b304-b4d97c04167f" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('4ab6a471-9f2c-4811-b304-b4d97c04167f',event)" src="./images/C# LINQ学习笔记二：LINQ标准查询操作概述3.png" alt="" />
+<div id="cnblogs_code_open_4ab6a471-9f2c-4811-b304-b4d97c04167f" class="cnblogs_code_hide">
+<pre><code>    <span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            </span><span style="color: #0000ff;">#region</span> LINQ orderby主要和次要排序示例一
+            <span style="color: #0000ff;">var</span> words = <span style="color: #0000ff;">new</span>[] { <span style="color: #800000;">"</span><span style="color: #800000;">the</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">quick</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">brown</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">fox</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">jumps</span><span style="color: #800000;">"</span><span style="color: #000000;"> };
+            </span><span style="color: #0000ff;">var</span> query = 
+                <span style="color: #0000ff;">from</span> word <span style="color: #0000ff;">in</span><span style="color: #000000;"> words
+                </span><span style="color: #0000ff;">orderby</span> word.Length, word.Substring(<span style="color: #800080;">0</span>, <span style="color: #800080;">1</span><span style="color: #000000;">)
+                </span><span style="color: #0000ff;">select</span><span style="color: #000000;"> word;
+            </span><span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">var</span> word <span style="color: #0000ff;">in</span><span style="color: #000000;"> query)
+            {
+                Console.WriteLine(word);
+            }
+            Console.Read();
+            </span><span style="color: #0000ff;">#endregion</span><span style="color: #000000;">
+        }
+    }</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp; &nbsp; 运行结果如下：</p>
+<p><img src="./images/C# LINQ学习笔记二：LINQ标准查询操作概述10.png" alt="" /></p>
+<p>&nbsp; &nbsp; 下面代码演示orderby主要和次要排序（示例二）：</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('07a7ecbe-624f-4536-89b1-5166a2b71c47')"><img id="code_img_closed_07a7ecbe-624f-4536-89b1-5166a2b71c47" class="code_img_closed" src="./images/C# LINQ学习笔记二：LINQ标准查询操作概述2.png" alt="" /><img id="code_img_opened_07a7ecbe-624f-4536-89b1-5166a2b71c47" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('07a7ecbe-624f-4536-89b1-5166a2b71c47',event)" src="./images/C# LINQ学习笔记二：LINQ标准查询操作概述3.png" alt="" />
+<div id="cnblogs_code_open_07a7ecbe-624f-4536-89b1-5166a2b71c47" class="cnblogs_code_hide">
+<pre><code>    <span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            </span><span style="color: #0000ff;">#region</span> LINQ orderby主要和次要排序示例二
+            <span style="color: #0000ff;">var</span> words = <span style="color: #0000ff;">new</span>[] { <span style="color: #800000;">"</span><span style="color: #800000;">the</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">quick</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">brown</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">fox</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">jumps</span><span style="color: #800000;">"</span><span style="color: #000000;"> };
+            </span><span style="color: #0000ff;">var</span> query = 
+                <span style="color: #0000ff;">from</span> word <span style="color: #0000ff;">in</span><span style="color: #000000;"> words
+                </span><span style="color: #0000ff;">orderby</span> word.Length, word.Substring(<span style="color: #800080;">0</span>, <span style="color: #800080;">1</span><span style="color: #000000;">) descending
+                </span><span style="color: #0000ff;">select</span><span style="color: #000000;"> word;
+            </span><span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">var</span> word <span style="color: #0000ff;">in</span><span style="color: #000000;"> query)
+            {
+                Console.WriteLine(word);
+            }
+            Console.Read();
+            </span><span style="color: #0000ff;">#endregion</span><span style="color: #000000;">
+        }
+    }</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp; &nbsp; 运行结果如下：</p>
+<p><img src="./images/C# LINQ学习笔记二：LINQ标准查询操作概述13.png" alt="" /></p>
+<p>&nbsp; &nbsp;&nbsp;<strong>三、Set 操作</strong></p>
+<p><strong>&nbsp; &nbsp;&nbsp;</strong>LINQ中的Set操作是指根据相同或不同集合中是否存在等效元素来生成结果集的查询操作。</p>
+<table border="0"><caption>标准查询运算符操作方法 -&nbsp;Set</caption>
+<tbody>
+<tr>
+<td>方法名</td>
+<td>说明</td>
+<td>
+<p><span id="mt6" class="sentence SentenceHover" data-guid="dbe711d9cb63cb5066ace3e0f3596c1c" data-source="C# Query Expression Syntax">C# 查询表达式语法</span></p>
+</td>
+</tr>
+<tr>
+<td>
+<p><span id="mt9" class="sentence SentenceHover" data-guid="ee87bc8747ad849f76f9f6c9f6a6f6ed" data-source="Distinct">Distinct</span></p>
+</td>
+<td>
+<p><span id="mt10" class="sentence SentenceHover" data-guid="c5bbe2cd80884e2ff82e24d5fb4269d5" data-source="Removes duplicate values from a collection.">从集合移除重复值。</span></p>
+</td>
+<td>X</td>
+</tr>
+<tr>
+<td>
+<p><span id="mt15" class="sentence SentenceHover" data-guid="d1cc652b86b9858fe78058511716e92f" data-source="Except">Except</span></p>
+</td>
+<td>
+<p><span id="mt16" class="sentence" data-guid="9054b5759f1d21f5bd61fd998b843072" data-source="Returns the set difference, which means the elements of one collection that do not appear in a second collection.">返回差集，差集是指位于一个集合但不位于另一个集合的元素。</span></p>
+</td>
+<td>X</td>
+</tr>
+<tr>
+<td>
+<p><span id="mt21" class="sentence" data-guid="ea228c391b72961cc1370e2d66442d86" data-source="Intersect">Intersect</span></p>
+</td>
+<td>
+<p><span id="mt22" class="sentence" data-guid="60cc16b8c1fbe66bd51b035d0ef0ba31" data-source="Returns the set intersection, which means elements that appear in each of two collections.">返回交集，交集是指同时出现在两个集合中的元素。</span></p>
+</td>
+<td>X</td>
+</tr>
+<tr>
+<td>
+<p><span id="mt27" class="sentence" data-guid="aa252f7bcbb4b8379004aa0c7cf76c10" data-source="Union">Union</span></p>
+</td>
+<td>
+<p><span id="mt28" class="sentence" data-guid="dd342ec78d982979c1333128cf85e91c" data-source="Returns the set union, which means unique elements that appear in either of two collections.">返回并集，并集是指位于两个集合中任一集合的唯一的元素。</span></p>
+</td>
+<td>X</td>
+</tr>
+</tbody>
+</table>
+<p>&nbsp; &nbsp; 图解Set操作</p>
+<p>&nbsp; &nbsp; 1、Distinct： 返回的序列包含输入序列的唯一元素。</p>
+<p><img src="./images/C# LINQ学习笔记二：LINQ标准查询操作概述14.png" alt="" /></p>
+<p>&nbsp; &nbsp; 2、Except： 返回的序列只包含位于第一个输入序列但不位于第二个输入序列的元素。</p>
+<p><img src="./images/C# LINQ学习笔记二：LINQ标准查询操作概述15.png" alt="" /></p>
+<p>&nbsp; &nbsp; 3、Intersect： 返回的序列包含两个输入序列共有的元素。</p>
+<p><img src="./images/C# LINQ学习笔记二：LINQ标准查询操作概述16.png" alt="" /></p>
+<p>&nbsp; &nbsp; 4、Union： 返回的序列包含两个输入序列的唯一的元素。</p>
+<p><img src="./images/C# LINQ学习笔记二：LINQ标准查询操作概述17.png" alt="" /></p>
+<p>&nbsp; &nbsp; <strong>四、过滤数据</strong></p>
+<p>&nbsp; &nbsp;&nbsp;筛选指将结果集限制为只包含某些满足指定条件的元素的操作，它又称为选择。</p>
+<p>&nbsp; &nbsp; 下图演示了对字符序列进行筛选的结果，筛选操作的谓词指定字符必须为&ldquo;A&rdquo;。</p>
+<p><img src="./images/C# LINQ学习笔记二：LINQ标准查询操作概述18.png" alt="" /></p>
+<table border="0"><caption>标准查询运算符操作方法 -&nbsp;筛选</caption>
+<tbody>
+<tr>
+<td><span id="mt7" class="sentence" data-guid="49a55a6615b7be817490ba58b1f4f8fd" data-source="Method Name">方法名</span></td>
+<td><span id="mt8" class="sentence SentenceHover" data-guid="67daf92c833c41c95db874e18fcb2786" data-source="Description">说明</span></td>
+<td><span id="mt9" class="sentence" data-guid="dbe711d9cb63cb5066ace3e0f3596c1c" data-source="C# Query Expression Syntax">C# 查询表达式语法</span></td>
+</tr>
+<tr>
+<td><span id="mt12" class="sentence" data-guid="9c9d5e9a50a7cfb57e236513da79d94e" data-source="OfType">OfType</span></td>
+<td><span id="mt13" class="sentence SentenceHover" data-guid="2829fc9fb83254a8e6f9b6b7e3239db1" data-source="Selects values, depending on their ability to be cast to a specified type.">根据值强制转换为指定类型的能力选择值。</span></td>
+<td>X</td>
+</tr>
+<tr>
+<td><span id="mt18" class="sentence SentenceHover" data-guid="567904efe9e64d9faf3e41ef402cb568" data-source="Where">Where</span></td>
+<td><span id="mt19" class="sentence" data-guid="c73b04914336890472aa05079d4a3780" data-source="Selects values that are based on a predicate function.">选择基于谓词函数的值。</span></td>
+<td><span id="mt20" class="sentence SentenceHover" data-guid="567904efe9e64d9faf3e41ef402cb568" data-source="where">where</span></td>
+</tr>
+</tbody>
+</table>
+<p>&nbsp; &nbsp; 下面代码演示过滤数据：</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('5a4b03b1-835d-4f56-aa13-87fb495f1e8d')"><img id="code_img_closed_5a4b03b1-835d-4f56-aa13-87fb495f1e8d" class="code_img_closed" src="./images/C# LINQ学习笔记二：LINQ标准查询操作概述2.png" alt="" /><img id="code_img_opened_5a4b03b1-835d-4f56-aa13-87fb495f1e8d" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('5a4b03b1-835d-4f56-aa13-87fb495f1e8d',event)" src="./images/C# LINQ学习笔记二：LINQ标准查询操作概述3.png" alt="" />
+<div id="cnblogs_code_open_5a4b03b1-835d-4f56-aa13-87fb495f1e8d" class="cnblogs_code_hide">
+<pre><code>    <span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            </span><span style="color: #0000ff;">#region</span> LINQ 过滤数据
+            <span style="color: #0000ff;">string</span>[] words = { <span style="color: #800000;">"</span><span style="color: #800000;">the</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">quick</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">brown</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">fox</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">jumps</span><span style="color: #800000;">"</span><span style="color: #000000;"> };
+            </span><span style="color: #0000ff;">var</span> query = 
+                <span style="color: #0000ff;">from</span> word <span style="color: #0000ff;">in</span><span style="color: #000000;"> words
+                </span><span style="color: #0000ff;">where</span> word.Length == <span style="color: #800080;">3</span>
+                <span style="color: #0000ff;">select</span><span style="color: #000000;"> word;
+            </span><span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">var</span> word <span style="color: #0000ff;">in</span><span style="color: #000000;"> query)
+            {
+                Console.WriteLine(word);
+            }
+            Console.Read();
+            </span><span style="color: #0000ff;">#endregion</span><span style="color: #000000;">
+        }
+    }</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp; &nbsp; 运行结果如下：</p>
+<p><img src="./images/C# LINQ学习笔记二：LINQ标准查询操作概述21.png" alt="" /></p>
+<p>&nbsp; &nbsp;&nbsp;<strong>五、量词操作</strong></p>
+<p>&nbsp; &nbsp; 限定符运算返回一个<a href="https://msdn.microsoft.com/zh-cn/library/system.boolean.aspx">Boolean</a>值，该值指示序列中是否有一些元素满足条件或是否所有元素都满足条件。</p>
+<div>&nbsp; &nbsp; 下图描述了两个不同源序列上的两个不同限定符运算。第一个运算询问是否有一个或多个元素为字符&ldquo;A&rdquo;，结果为true，第二个运算询问是否所有元素都为字</div>
+<div>
+<p>符&ldquo;A&rdquo;，结果为true。</p>
+<p><img src="./images/C# LINQ学习笔记二：LINQ标准查询操作概述22.png" alt="" /></p>
+<table border="0"><caption><span id="mt5" class="sentence" data-guid="c682edc6b292033bea938de6f260544a" data-source="The standard query operator methods that perform quantifier operations are listed in the following section.">标准查询运算符操作方法 -&nbsp;量词</span></caption>
+<tbody>
+<tr>
+<td>
+<p><span id="mt7" class="sentence" data-guid="49a55a6615b7be817490ba58b1f4f8fd" data-source="Method Name">方法名</span></p>
+</td>
+<td>
+<p><span id="mt8" class="sentence" data-guid="67daf92c833c41c95db874e18fcb2786" data-source="Description">说明</span></p>
+</td>
+<td>
+<p><span id="mt9" class="sentence" data-guid="dbe711d9cb63cb5066ace3e0f3596c1c" data-source="C# Query Expression Syntax">C# 查询表达式语法</span></p>
+</td>
+</tr>
+<tr>
+<td>All</td>
+<td>
+<p><span id="mt13" class="sentence SentenceHover" data-guid="3687d2ea4aea3d1d0658fd59cc363711" data-source="Determines whether all the elements in a sequence satisfy a condition.">确定是否序列中的所有元素都满足条件。</span></p>
+</td>
+<td>X</td>
+</tr>
+<tr>
+<td>Any</td>
+<td>
+<p><span id="mt19" class="sentence" data-guid="89615b9417e60827636a98f3f712f66a" data-source="Determines whether any elements in a sequence satisfy a condition.">确定序列中是否有元素满足条件。</span></p>
+</td>
+<td>X</td>
+</tr>
+<tr>
+<td>
+<p><span id="mt24" class="sentence SentenceHover" data-guid="857af22f119fefbfa24769ed2ad6d5e7" data-source="Contains">Contains</span></p>
+</td>
+<td>
+<p><span id="mt25" class="sentence SentenceHover" data-guid="fe6e85739bd75931c1a8ed28ef9a514f" data-source="Determines whether a sequence contains a specified element.">确定序列是否包含指定的元素。</span></p>
+</td>
+<td>X<br /><br /></td>
+
+
+
+
+
+
+
+
+
+
+
+</tr>
+
+
+
+
+
+
+
+
+
+
+
+</tbody>
+
+
+
+
+
+
+
+
+
+
+</table>
+<p><strong>&nbsp; &nbsp; 六、投影操作</strong></p>
+<p>&nbsp; &nbsp; 投影是指将对象转换为一种新形式的操作，该形式通常只包含那些将随后使用的属性。通过使用投影，您可以构建依据每个对象生成的新类型，还可以映射</p>
+<p>属性，并对该属性执行数学函数，另外还可以在不更改原始对象的情况下映射该对象。</p>
+<table border="0"><caption><span id="mt5" class="sentence" data-guid="bfb53105aea0053f141f67a40603030c" data-source="The standard query operator methods that perform projection are listed in the following section.">标准查询运算符操作方法 -&nbsp;投影</span></caption>
+<tbody>
+<tr>
+<td><span id="mt7" class="sentence SentenceHover" data-guid="49a55a6615b7be817490ba58b1f4f8fd" data-source="Method Name">方法名</span></td>
+<td><span id="mt8" class="sentence" data-guid="67daf92c833c41c95db874e18fcb2786" data-source="Description">说明</span></td>
+<td><span id="mt9" class="sentence" data-guid="dbe711d9cb63cb5066ace3e0f3596c1c" data-source="C# Query Expression Syntax">C# 查询表达式语法</span></td>
+
+
+
+
+
+
+
+
+
+
+</tr>
+<tr>
+<td><span id="mt12" class="sentence SentenceHover" data-guid="99938282f04071859941e18f16efcf42" data-source="Select">Select</span></td>
+<td><span id="mt13" class="sentence" data-guid="56711e6236f0fe49025fdea3b86b9e77" data-source="Projects values that are based on a transform function.">映射基于转换函数的值。</span></td>
+<td><span id="mt14" class="sentence" data-guid="99938282f04071859941e18f16efcf42" data-source="select">select</span></td>
+
+
+
+
+
+
+
+
+
+
+</tr>
+<tr>
+<td><span id="mt18" class="sentence SentenceHover" data-guid="09620d955110c0c2e3de4e9e47e8a2ed" data-source="SelectMany">SelectMany</span></td>
+<td><span id="mt19" class="sentence" data-guid="a99a8dff9ecdce1c4ea2d815e1935f8f" data-source="Projects sequences of values that are based on a transform function and then flattens them into one sequence.">映射基于转换函数的值序列，然后将它们展平为一个序列。</span></td>
+<td><span id="mt20" class="sentence SentenceHover" data-guid="d34154f4c39f179adecbe7bfe3def493" data-source="Use multiple &lt;span class=&quot;code&quot;&gt;from clauses">使用多个&nbsp;<span class="code">from 子句</span></span></td>
+
+
+
+
+
+
+
+
+
+
+</tr>
+
+
+
+
+
+
+
+
+
+
+</tbody>
+
+
+
+
+
+
+
+
+
+
+</table>
+<p>&nbsp; &nbsp; 下面代码演示Select：</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('a1e4012e-853a-4cac-914e-6108c4a60a9d')"><img id="code_img_closed_a1e4012e-853a-4cac-914e-6108c4a60a9d" class="code_img_closed" src="./images/C# LINQ学习笔记二：LINQ标准查询操作概述2.png" alt="" /><img id="code_img_opened_a1e4012e-853a-4cac-914e-6108c4a60a9d" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('a1e4012e-853a-4cac-914e-6108c4a60a9d',event)" src="./images/C# LINQ学习笔记二：LINQ标准查询操作概述3.png" alt="" />
+<div id="cnblogs_code_open_a1e4012e-853a-4cac-914e-6108c4a60a9d" class="cnblogs_code_hide">
+<pre><code>    <span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            </span><span style="color: #0000ff;">#region</span> LINQ Select
+            <span style="color: #0000ff;">var</span> words = <span style="color: #0000ff;">new</span>[] { <span style="color: #800000;">"</span><span style="color: #800000;">the</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">quick</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">brown</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">fox</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">jumps</span><span style="color: #800000;">"</span><span style="color: #000000;"> };
+            </span><span style="color: #0000ff;">var</span> query = 
+                <span style="color: #0000ff;">from</span> word <span style="color: #0000ff;">in</span><span style="color: #000000;"> words
+                </span><span style="color: #0000ff;">select</span> word.Substring(<span style="color: #800080;">0</span>, <span style="color: #800080;">1</span><span style="color: #000000;">);
+            </span><span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">var</span> word <span style="color: #0000ff;">in</span><span style="color: #000000;"> query)
+            {
+                Console.WriteLine(word);
+            }
+            Console.Read();
+            </span><span style="color: #0000ff;">#endregion</span><span style="color: #000000;">
+        }
+    }</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp; &nbsp; 运行结果如下：</p>
+<p><img src="./images/C# LINQ学习笔记二：LINQ标准查询操作概述25.png" alt="" /></p>
+<p>&nbsp; &nbsp; 下面代码演示SelectMany：</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('df2be338-5804-437d-b7bd-764a4e9a3cef')"><img id="code_img_closed_df2be338-5804-437d-b7bd-764a4e9a3cef" class="code_img_closed" src="./images/C# LINQ学习笔记二：LINQ标准查询操作概述2.png" alt="" /><img id="code_img_opened_df2be338-5804-437d-b7bd-764a4e9a3cef" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('df2be338-5804-437d-b7bd-764a4e9a3cef',event)" src="./images/C# LINQ学习笔记二：LINQ标准查询操作概述3.png" alt="" />
+<div id="cnblogs_code_open_df2be338-5804-437d-b7bd-764a4e9a3cef" class="cnblogs_code_hide">
+<pre><code>    <span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            </span><span style="color: #0000ff;">#region</span> LINQ SelectMany
+            <span style="color: #0000ff;">var</span> phrases = <span style="color: #0000ff;">new</span> List&lt;<span style="color: #0000ff;">string</span>&gt;() { <span style="color: #800000;">"</span><span style="color: #800000;">an apple a day</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">the quick brown fox</span><span style="color: #800000;">"</span><span style="color: #000000;"> };
+            </span><span style="color: #0000ff;">var</span> query = 
+                <span style="color: #0000ff;">from</span> phrase <span style="color: #0000ff;">in</span><span style="color: #000000;"> phrases
+                    </span><span style="color: #0000ff;">from</span> word <span style="color: #0000ff;">in</span> phrase.Split(<span style="color: #800000;">'</span> <span style="color: #800000;">'</span><span style="color: #000000;">)
+                    </span><span style="color: #0000ff;">select</span><span style="color: #000000;"> word;
+            </span><span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">var</span> word <span style="color: #0000ff;">in</span><span style="color: #000000;"> query)
+            {
+                Console.WriteLine(word);
+            }
+            Console.Read();
+            </span><span style="color: #0000ff;">#endregion</span><span style="color: #000000;">
+        }
+    }</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp; &nbsp; 运行结果如下：</p>
+<p><img src="./images/C# LINQ学习笔记二：LINQ标准查询操作概述28.png" alt="" /></p>
+<p><strong>&nbsp; &nbsp; Select()</strong>和<strong>SelectMany()</strong>的工作都是依据源值生成一个或多个结果值。<strong>Select()</strong>为每个源值生成一个结果值。因此，总体结果是一个与源集合具有相同元素数</p>
+<p>目的集合。与之相反，<strong>SelectMany()</strong>将生成单一总体结果，其中包含来自每个源值的串联子集合。作为参数传递到<strong>SelectMany()</strong>的转换函数必须为每个源值返</p>
+<p>回一个可枚举值序列，然后，<strong>SelectMany()</strong>&nbsp;将串联这些可枚举序列以创建一个大的序列。</p>
+<p>&nbsp; &nbsp; 下面两个插图演示了这两个方法的操作之间的概念性区别。在每种情况下，假定选择器（转换）函数从每个源值中选择一个由花卉数据组成的数组。</p>
+<p>&nbsp; &nbsp; 下图描述&nbsp;<strong>Select()</strong>&nbsp;如何返回一个与源集合具有相同元素数目的集合。</p>
+<p><img src="./images/C# LINQ学习笔记二：LINQ标准查询操作概述29.png" alt="" /></p>
+<p>&nbsp; &nbsp; 下图描述<strong>SelectMany()</strong>如何将中间数组序列串联为一个最终结果值，其中包含每个中间数组中的每个值。</p>
+<p><img src="./images/C# LINQ学习笔记二：LINQ标准查询操作概述30.png" alt="" /></p>
+<p>&nbsp; &nbsp; 下面的示例比较<strong>Select()</strong>和<strong>SelectMany()</strong>的行为。代码将通过从源集合的每个花卉名称列表中提取前两项来创建一个&ldquo;花束&rdquo;。在此示例中，转换函数<a href="https://msdn.microsoft.com/zh-cn/library/bb548891.aspx">Select</a>使用</p>
+<p>的&ldquo;单一值&rdquo;本身就是一个值集合。这需要额外的<strong>foreach</strong>循环，以便枚举每个子序列中的每个字符串。</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('436c2d59-a2a9-46ab-9701-21e6a75b88cd')"><img id="code_img_closed_436c2d59-a2a9-46ab-9701-21e6a75b88cd" class="code_img_closed" src="./images/C# LINQ学习笔记二：LINQ标准查询操作概述2.png" alt="" /><img id="code_img_opened_436c2d59-a2a9-46ab-9701-21e6a75b88cd" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('436c2d59-a2a9-46ab-9701-21e6a75b88cd',event)" src="./images/C# LINQ学习笔记二：LINQ标准查询操作概述3.png" alt="" />
+<div id="cnblogs_code_open_436c2d59-a2a9-46ab-9701-21e6a75b88cd" class="cnblogs_code_hide">
+<pre><code>    <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+    <span style="color: #808080;">///</span><span style="color: #008000;"> 花束类
+    </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+    <span style="color: #0000ff;">class</span><span style="color: #000000;"> Bouquet
+    {
+        </span><span style="color: #0000ff;">public</span> List&lt;<span style="color: #0000ff;">string</span>&gt; Flowers { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+    }
+    
+    </span><span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            </span><span style="color: #0000ff;">#region</span> LINQ Select和SelectMany比较
+            <span style="color: #0000ff;">var</span> bouquets = <span style="color: #0000ff;">new</span> List&lt;Bouquet&gt;<span style="color: #000000;">()
+            {
+                </span><span style="color: #0000ff;">new</span> Bouquet {Flowers = <span style="color: #0000ff;">new</span> List&lt;<span style="color: #0000ff;">string</span>&gt; {<span style="color: #800000;">"</span><span style="color: #800000;">sunflower</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">daisy</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">daffodil</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">larkspur</span><span style="color: #800000;">"</span><span style="color: #000000;">}},
+                </span><span style="color: #0000ff;">new</span> Bouquet {Flowers = <span style="color: #0000ff;">new</span> List&lt;<span style="color: #0000ff;">string</span>&gt; {<span style="color: #800000;">"</span><span style="color: #800000;">tulip</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">rose</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">orchid</span><span style="color: #800000;">"</span><span style="color: #000000;">}},
+                </span><span style="color: #0000ff;">new</span> Bouquet {Flowers = <span style="color: #0000ff;">new</span> List&lt;<span style="color: #0000ff;">string</span>&gt; {<span style="color: #800000;">"</span><span style="color: #800000;">gladiolis</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">lily</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">snapdragon</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">aster</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">protea</span><span style="color: #800000;">"</span><span style="color: #000000;">}},
+                </span><span style="color: #0000ff;">new</span> Bouquet {Flowers = <span style="color: #0000ff;">new</span> List&lt;<span style="color: #0000ff;">string</span>&gt; {<span style="color: #800000;">"</span><span style="color: #800000;">larkspur</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">lilac</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">iris</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">dahlia</span><span style="color: #800000;">"</span><span style="color: #000000;">}}
+            };
+
+            IEnumerable</span>&lt;List&lt;<span style="color: #0000ff;">string</span>&gt;&gt; query1 = bouquets.Select(bq =&gt;<span style="color: #000000;"> bq.Flowers);
+            IEnumerable</span>&lt;<span style="color: #0000ff;">string</span>&gt; query2 = bouquets.SelectMany(bq =&gt;<span style="color: #000000;"> bq.Flowers);
+
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">query1-&gt;Select():</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            </span><span style="color: #0000ff;">foreach</span> (IEnumerable&lt;<span style="color: #0000ff;">string</span>&gt; collection <span style="color: #0000ff;">in</span><span style="color: #000000;"> query1)
+            {
+                </span><span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">var</span> item <span style="color: #0000ff;">in</span><span style="color: #000000;"> collection)
+                {
+                    Console.WriteLine(item);
+                }
+            }
+
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">\nquery2-&gt;SelectMany():</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            </span><span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">var</span> item <span style="color: #0000ff;">in</span><span style="color: #000000;"> query2)
+            {
+                Console.WriteLine(item);
+            }
+
+            Console.Read();
+            </span><span style="color: #0000ff;">#endregion</span><span style="color: #000000;">
+        }
+    }</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp; &nbsp; 运行结果如下：</p>
+<p><img src="./images/C# LINQ学习笔记二：LINQ标准查询操作概述33.png" alt="" /></p>
+<p>&nbsp; &nbsp;&nbsp;<strong>七、划分数据</strong></p>
+<p>&nbsp; &nbsp; LINQ 中的分区指的是在不重新排列元素的情况下，将输入序列划分为两部分，然后返回其中一个部分的操作。</p>
+<p>&nbsp; &nbsp;&nbsp;下图显示对一个字符序列执行三个不同的分区操作的结果。第一个操作返回序列中的前三个元素；第二个操作跳过前三个元素，返回剩余的元素；第三个操作</p>
+<p>跳过序列中的前两个元素，返回接下来的三个元素。</p>
+<p><img src="./images/C# LINQ学习笔记二：LINQ标准查询操作概述34.png" alt="" /></p>
+<table border="0"><caption>分区序列的标准查询运算符方法</caption>
+<tbody>
+<tr>
+<td>
+<p><span id="mt8" class="sentence" data-guid="3c47490b6e5b9fcb9ddc2d3e5dbd8dae" data-source="Operator Name">运算符名称</span></p>
+</td>
+<td>
+<p><span id="mt9" class="sentence SentenceHover" data-guid="67daf92c833c41c95db874e18fcb2786" data-source="Description">说明</span></p>
+</td>
+<td>
+<p><span id="mt10" class="sentence" data-guid="dbe711d9cb63cb5066ace3e0f3596c1c" data-source="C# Query Expression Syntax">C# 查询表达式语法</span></p>
+</td>
+</tr>
+<tr>
+<td>
+<p><span id="mt13" class="sentence" data-guid="08b43519a7e36ee4c6c5615d1663bcfd" data-source="Skip">Skip</span></p>
+</td>
+<td>
+<p><span id="mt14" class="sentence" data-guid="0e81c4d4ab722ad9de767cb130f29b81" data-source="Skips elements up to a specified position in a sequence.">跳过序列中的指定位置之前的元素。</span></p>
+</td>
+<td>X</td>
+</tr>
+<tr>
+<td>
+<p><span id="mt19" class="sentence" data-guid="ef977568c127d48e233c30c30487f1cb" data-source="SkipWhile">SkipWhile</span></p>
+</td>
+<td>
+<p><span id="mt20" class="sentence" data-guid="cdc27cc67e48c4eaf9a96fe5040f31a8" data-source="Skips elements based on a predicate function until an element does not satisfy the condition.">基于谓词函数跳过元素，直到某元素不再满足条件。</span></p>
+</td>
+<td>X</td>
+</tr>
+<tr>
+<td>
+<p><span id="mt25" class="sentence" data-guid="600d6af0f320a021dc494cfa2daca569" data-source="Take">Take</span></p>
+</td>
+<td>
+<p><span id="mt26" class="sentence" data-guid="c260edeada6f830353f967dd584c9a6e" data-source="Takes elements up to a specified position in a sequence.">提取序列中的指定位置之前的元素。</span></p>
+</td>
+<td>X</td>
+</tr>
+<tr>
+<td>
+<p><span id="mt31" class="sentence" data-guid="f6663b7abe23a0c466dd896b46a94a51" data-source="TakeWhile">TakeWhile</span></p>
+</td>
+<td><span id="mt32" class="sentence SentenceHover" data-guid="37b9ea577fa8a4e02fb47275da8ee25d" data-source="Takes elements based on a predicate function until an element does not satisfy the condition.">基于谓词函数提取元素，直到某元素不再满足条件。</span></td>
+<td>X</td>
+</tr>
+</tbody>
+</table>
+<p>&nbsp; &nbsp; <strong>八、联接操作</strong></p>
+<p>&nbsp; &nbsp; 将两个数据源&ldquo;联接&rdquo;就是将一个数据源中的对象与另一个数据源中共享某个通用特性的对象关联起来。</p>
+<p>&nbsp; &nbsp; 当查询所面向的数据源相互之间具有无法直接领会的关系时，联接就成为一项重要的运算。在面向对象的编程中，这可能意味着在未建模对象之间进行关联，</p>
+<p>例如对单向关系进行反向推理。</p>
+<p>&nbsp; &nbsp; LINQ 框架中提供的联接方法包括<a href="https://msdn.microsoft.com/zh-cn/library/bb534675.aspx">Join</a>和<a href="https://msdn.microsoft.com/zh-cn/library/bb534297.aspx">GroupJoin</a>。这些方法执行同等联接，即根据两个数据源的键是否相等来匹配这两个数据源的联接。（与此相较，</p>
+<p>Transact-SQL支持除&ldquo;等于&rdquo;之外的联接运算符，例如&ldquo;小于&rdquo;运算符。）用关系数据库术语表达，就是说<a href="https://msdn.microsoft.com/zh-cn/library/bb534675.aspx">Join</a>实现了内部联接，这种联接只返回那些在另一个数据集</p>
+<p>中具有匹配项的对象。<a href="https://msdn.microsoft.com/zh-cn/library/bb534297.aspx">GroupJoin</a>方法在关系数据库术语中没有直接的等效项，但它<strong>实现了内部联接和左外部联接的超集</strong>。左外部联接是这样一种联接：它返回第</p>
+<p>一个（左）数据源的每个元素，即使该元素在另一个数据源中没有关联元素。</p>
+<p>&nbsp; &nbsp; 下图显示了一个概念性视图，其中包含两个集合以及这两个集合中的包含在内部联接或左外部联接中的元素。</p>
+<p><img src="./images/C# LINQ学习笔记二：LINQ标准查询操作概述35.png" alt="" /></p>
+<table border="0"><caption>标准查询运算符操作方法 -&nbsp;联接</caption>
+<tbody>
+<tr>
+<td>
+<p><span id="mt11" class="sentence SentenceHover" data-guid="49a55a6615b7be817490ba58b1f4f8fd" data-source="Method Name">方法名</span></p>
+</td>
+<td>
+<p><span id="mt12" class="sentence SentenceHover" data-guid="67daf92c833c41c95db874e18fcb2786" data-source="Description">描述</span></p>
+</td>
+<td>
+<p><span id="mt13" class="sentence SentenceHover" data-guid="dbe711d9cb63cb5066ace3e0f3596c1c" data-source="C# Query Expression Syntax">C# 查询表达式语法</span></p>
+</td>
+</tr>
+<tr>
+<td>Join</td>
+<td>
+<p><span id="mt17" class="sentence SentenceHover" data-guid="cc7585c30f493b920d6f89db837574f5" data-source="Joins two sequences based on key selector functions and extracts pairs of values.">根据键选择器函数联接两个序列并提取值对。</span></p>
+</td>
+<td>
+<p><span class="code">join &hellip; in &hellip; on &hellip; equals &hellip;</span></p>
+</td>
+</tr>
+<tr>
+<td>
+<p><span id="mt24" class="sentence SentenceHover" data-guid="438dba4499c50591a8ee88fc48cb59d4" data-source="GroupJoin">GroupJoin</span></p>
+</td>
+<td>
+<p><span id="mt25" class="sentence SentenceHover" data-guid="a6b1344ea4aaf202781fa3e8725e3edb" data-source="Joins two sequences based on key selector functions and groups the resulting matches for each element.">根据键选择器函数联接两个序列，并对每个元素的结果匹配项进行分组。</span></p>
+</td>
+<td>
+<p><span class="code">join &hellip; in &hellip; on &hellip; equals &hellip; into &hellip;</span></p>
+</td>
+</tr>
+</tbody>
+</table>
+<p>&nbsp; &nbsp;&nbsp;<strong>九、分组数据</strong></p>
+<p>&nbsp; &nbsp; 分组指将数据放入组中以便每个组中的元素共享公共特性的操作。</p>
+<p><strong>&nbsp; &nbsp;&nbsp;</strong>下图显示了对字符序列进行分组的结果，每个组的键是字符。</p>
+<p><img src="./images/C# LINQ学习笔记二：LINQ标准查询操作概述36.png" alt="" /></p>
+<table border="0"><caption>标准查询运算符方法 - 分组</caption>
+<tbody>
+<tr>
+<td>
+<p><span id="mt6" class="sentence" data-guid="49a55a6615b7be817490ba58b1f4f8fd" data-source="Method Name">方法名</span></p>
+</td>
+<td>
+<p><span id="mt7" class="sentence SentenceHover" data-guid="67daf92c833c41c95db874e18fcb2786" data-source="Description">说明</span></p>
+</td>
+<td>
+<p><span id="mt8" class="sentence SentenceHover" data-guid="dbe711d9cb63cb5066ace3e0f3596c1c" data-source="C# Query Expression Syntax">C# 查询表达式语法</span></p>
+</td>
+</tr>
+<tr>
+<td>
+<p><span id="mt11" class="sentence SentenceHover" data-guid="a5111ae8faeabbeecb633cbcf2f0a04a" data-source="GroupBy">GroupBy</span></p>
+</td>
+<td>
+<p><span id="mt12" class="sentence" data-guid="f0e240b3fd9264c0824c150a3e7bcd7d" data-source="Groups elements that share a common attribute.">对共享公共特性的元素进行分组。&nbsp;&nbsp;<span id="mt13" class="sentence" data-guid="26f1d458ecb5d8113c45ea082c76f7a1" data-source="Each group is represented by an &lt;span class=&quot;mtpsTagOuterHtml&quot; &gt;IGrouping&lt;span class=&quot;mtpsTagOuterHtml&quot;  xmlns=&quot;&quot;&gt;&amp;lt;TKey,&ensp;TElement&amp;gt; object.">每个组都由一个&nbsp;<a href="https://msdn.microsoft.com/zh-cn/library/bb344977.aspx">IGrouping&lt;TKey,&ensp;TElement&gt;</a>&nbsp;对象表示。&nbsp;&nbsp;</span></span></p>
+</td>
+<td>
+<p><span class="code">group &hellip; by&nbsp;</span></p>
+<p><span id="mt15" class="sentence" data-guid="3d263eb0233f14872193733387840c80" data-source="-or-">- 或 -</span></p>
+<p><span class="code">group &hellip; by &hellip; into &hellip;</span></p>
+</td>
+</tr>
+<tr>
+<td>
+<p><span id="mt20" class="sentence SentenceHover" data-guid="a99d2a5592a236e5f19f3450920768cd" data-source="ToLookup">ToLookup</span></p>
+</td>
+<td>
+<p><span id="mt21" class="sentence" data-guid="84be8f5d1e8fbecbc6ce7d04dc0091dd" data-source="Inserts elements into a &lt;span class=&quot;mtpsTagOuterHtml&quot; &gt;Lookup&lt;span class=&quot;mtpsTagOuterHtml&quot;  xmlns=&quot;&quot;&gt;&amp;lt;TKey,&ensp;TElement&amp;gt; (a one-to-many dictionary) based on a key selector function.">根据键选择器函数将元素插入到&nbsp;<a href="https://msdn.microsoft.com/zh-cn/library/bb460184.aspx">Lookup&lt;TKey,&ensp;TElement&gt;</a>（一个一对多字典）中。</span></p>
+</td>
+<td>X</td>
+</tr>
+</tbody>
+</table>
+<p>&nbsp; &nbsp; 下面代码演示分组数据：</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('ceabb2c6-274d-47fb-8a2d-36726a63d530')"><img id="code_img_closed_ceabb2c6-274d-47fb-8a2d-36726a63d530" class="code_img_closed" src="./images/C# LINQ学习笔记二：LINQ标准查询操作概述2.png" alt="" /><img id="code_img_opened_ceabb2c6-274d-47fb-8a2d-36726a63d530" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('ceabb2c6-274d-47fb-8a2d-36726a63d530',event)" src="./images/C# LINQ学习笔记二：LINQ标准查询操作概述3.png" alt="" />
+<div id="cnblogs_code_open_ceabb2c6-274d-47fb-8a2d-36726a63d530" class="cnblogs_code_hide">
+<pre><code>    <span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            </span><span style="color: #0000ff;">#region</span> LINQ 分组数据
+            <span style="color: #0000ff;">var</span> numbers = <span style="color: #0000ff;">new</span> List&lt;<span style="color: #0000ff;">int</span>&gt;() { <span style="color: #800080;">35</span>, <span style="color: #800080;">44</span>, <span style="color: #800080;">200</span>, <span style="color: #800080;">84</span>, <span style="color: #800080;">3987</span>, <span style="color: #800080;">4</span>, <span style="color: #800080;">199</span>, <span style="color: #800080;">329</span>, <span style="color: #800080;">446</span>, <span style="color: #800080;">208</span><span style="color: #000000;"> };
+            IEnumerable</span>&lt;IGrouping&lt;<span style="color: #0000ff;">bool</span>, <span style="color: #0000ff;">int</span>&gt;&gt; query = <span style="color: #0000ff;">from</span> number <span style="color: #0000ff;">in</span><span style="color: #000000;"> numbers
+                                                      group number by number </span>% <span style="color: #800080;">2</span> == <span style="color: #800080;">0</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">var</span> group <span style="color: #0000ff;">in</span><span style="color: #000000;"> query)
+            {
+                Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">{(group.Key ? </span><span style="color: #800000;">"</span>偶数<span style="color: #800000;">"</span><span style="color: #800000;"> : </span><span style="color: #800000;">"</span>基数<span style="color: #800000;">"</span><span style="color: #800000;">)}：</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                </span><span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">var</span> item <span style="color: #0000ff;">in</span><span style="color: #000000;"> group)
+                {
+                    Console.WriteLine(item);
+                }
+            }
+            Console.Read();
+            </span><span style="color: #0000ff;">#endregion</span><span style="color: #000000;">
+        }
+    }</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp; &nbsp; 运行结果如下：</p>
+<p><img src="./images/C# LINQ学习笔记二：LINQ标准查询操作概述39.png" alt="" /></p>
+<p>&nbsp; &nbsp; <strong>十、生成操作</strong></p>
+<p>&nbsp; &nbsp;&nbsp;生成是指创建新的值序列。</p>
+<table border="0"><caption>标准查询运算符方法 - 生成</caption>
+<tbody>
+<tr>
+<td>
+<p><span id="mt4" class="sentence SentenceHover" data-guid="49a55a6615b7be817490ba58b1f4f8fd" data-source="Method Name">方法名</span></p>
+</td>
+<td>
+<p><span id="mt5" class="sentence" data-guid="67daf92c833c41c95db874e18fcb2786" data-source="Description">说明</span></p>
+</td>
+<td>
+<p><span id="mt6" class="sentence SentenceHover" data-guid="dbe711d9cb63cb5066ace3e0f3596c1c" data-source="C# Query Expression Syntax">C# 查询表达式语法</span></p>
+</td>
+</tr>
+<tr>
+<td>
+<p><span id="mt9" class="sentence" data-guid="744d2b9978029a80441c43ea79ebdc87" data-source="DefaultIfEmpty">DefaultIfEmpty</span></p>
+</td>
+<td>
+<p><span id="mt10" class="sentence" data-guid="308e2a1abedb7916990dd25497fb0161" data-source="Replaces an empty collection with a default valued singleton collection.">将空集合替换为具有默认值的单一实例集合。</span></p>
+</td>
+<td>X</td>
+</tr>
+<tr>
+<td>Empty</td>
+<td>
+<p><span id="mt16" class="sentence SentenceHover" data-guid="90e71b2ef1dc88359f17afd929ecde68" data-source="Returns an empty collection.">返回空集合。</span></p>
+</td>
+<td>X</td>
+</tr>
+<tr>
+<td>Range</td>
+<td>
+<p><span id="mt21" class="sentence" data-guid="dad826f16b6e8ff862eb3f5b6cd39c82" data-source="Generates a collection that contains a sequence of numbers.">生成包含数字序列的集合。</span></p>
+</td>
+<td>X</td>
+</tr>
+<tr>
+<td>
+<p><span id="mt25" class="sentence SentenceHover" data-guid="32cf6da134a8b268cf4ab6b79a9a5ad9" data-source="Repeat">Repeat</span></p>
+</td>
+<td>
+<p><span id="mt26" class="sentence" data-guid="5c3ddc15365525ee22c17db3cc41b093" data-source="Generates a collection that contains one repeated value.">生成包含一个重复值的集合。</span></p>
+</td>
+<td>X</td>
+</tr>
+</tbody>
+</table>
+<p>&nbsp; &nbsp; <strong>十一、等值操作</strong></p>
+<p>&nbsp; &nbsp;&nbsp;如果两个序列的对应元素相等且这两个序列具有相同数量的元素，则视这两个序列相等。</p>
+<table border="0"><caption>标准查询运算符方法 - 等值</caption>
+<tbody>
+<tr>
+<td><span id="mt3" class="sentence" data-guid="49a55a6615b7be817490ba58b1f4f8fd" data-source="Method Name">方法名</span></td>
+<td><span id="mt4" class="sentence" data-guid="67daf92c833c41c95db874e18fcb2786" data-source="Description">说明</span></td>
+<td><span id="mt5" class="sentence" data-guid="dbe711d9cb63cb5066ace3e0f3596c1c" data-source="C# Query Expression Syntax">C# 查询表达式语法</span></td>
+</tr>
+<tr>
+<td><span id="mt8" class="sentence SentenceHover" data-guid="f4ccef7aea85cb434a5b422e9af97020" data-source="SequenceEqual">SequenceEqual</span></td>
+<td><span id="mt9" class="sentence" data-guid="fa7d0c5acfa58a980c22b9d450d9d2f5" data-source="Determines whether two sequences are equal by comparing elements in a pair-wise manner.">通过成对地比较元素确定两个序列是否相等。</span></td>
+<td>X<br /><br /></td>
+
+
+
+
+
+
+</tr>
+
+
+
+
+
+
+</tbody>
+
+
+
+
+
+</table>
+<p>&nbsp; &nbsp; <strong>十二、元素操作</strong></p>
+<p>&nbsp; &nbsp;&nbsp;元素操作从一个序列返回单个特定元素。</p>
+<table border="0"><caption>标准查询运算符操作方法 -&nbsp;元素&nbsp;</caption>
+<tbody>
+<tr>
+<td>
+<p><span id="mt4" class="sentence" data-guid="49a55a6615b7be817490ba58b1f4f8fd" data-source="Method Name">方法名</span></p>
+
+
+
+
+</td>
+<td>
+<p><span id="mt5" class="sentence" data-guid="67daf92c833c41c95db874e18fcb2786" data-source="Description">说明</span></p>
+
+
+
+
+</td>
+<td>
+<p><span id="mt6" class="sentence" data-guid="dbe711d9cb63cb5066ace3e0f3596c1c" data-source="C# Query Expression Syntax">C# 查询表达式语法</span></p>
+
+
+
+
+</td>
+
+
+
+
+</tr>
+<tr>
+<td>
+<p><span id="mt9" class="sentence" data-guid="6c1eed29fb83750f47b6c97096a9ee57" data-source="ElementAt">ElementAt</span></p>
+
+
+
+
+</td>
+<td>
+<p><span id="mt10" class="sentence SentenceHover" data-guid="fca5799dbbaa05da1a6d098d9e7911b3" data-source="Returns the element at a specified index in a collection.">返回集合中指定索引处的元素。</span></p>
+
+
+
+
+</td>
+<td>X</td>
+
+
+
+
+</tr>
+<tr>
+<td>
+<p><span id="mt15" class="sentence" data-guid="74a0f4c23f10d045a35c9e6128d01f72" data-source="ElementAtOrDefault">ElementAtOrDefault</span></p>
+
+
+
+
+</td>
+<td>
+<p><span id="mt16" class="sentence" data-guid="7d626901916abd871cd6fc97932e26e4" data-source="Returns the element at a specified index in a collection or a default value if the index is out of range.">返回集合中指定索引处的元素；如果索引超出范围，则返回默认值。</span></p>
+
+
+
+
+</td>
+<td>X</td>
+
+
+
+
+</tr>
+<tr>
+<td>
+<p><span id="mt21" class="sentence SentenceHover" data-guid="8b04d5e3775d298e78455efc5ca404d5" data-source="First">First</span></p>
+
+
+
+
+</td>
+<td>
+<p><span id="mt22" class="sentence" data-guid="3d0bbe4df281363f47bb9d57e1891228" data-source="Returns the first element of a collection, or the first element that satisfies a condition.">返回集合中的第一个元素或满足条件的第一个元素。</span></p>
+
+
+
+
+</td>
+<td>X</td>
+
+
+
+
+</tr>
+<tr>
+<td>
+<p><span id="mt27" class="sentence SentenceHover" data-guid="ac13d1f9166efbcf22d13bce029b3ebd" data-source="FirstOrDefault">FirstOrDefault</span></p>
+
+
+
+
+</td>
+<td>
+<p><span id="mt28" class="sentence SentenceHover" data-guid="3d0bbe4df281363f47bb9d57e1891228" data-source="Returns the first element of a collection, or the first element that satisfies a condition.">返回集合中的第一个元素或满足条件的第一个元素。<span id="mt29" class="sentence" data-guid="83bd37e8be6a4058e813361e31f7da6d" data-source="Returns a default value if no such element exists.">如果没有这样的元素，则返回默认值。&nbsp;&nbsp;</span></span></p>
+
+
+
+
+</td>
+<td>X</td>
+
+
+
+
+</tr>
+<tr>
+<td>Last</td>
+<td>
+<p><span id="mt36" class="sentence" data-guid="c4dbf336eb984f05cab46bb63f6acfc8" data-source="Returns the last element of a collection, or the last element that satisfies a condition.">返回集合中的最后一个元素或满足条件的最后一个元素。</span></p>
+
+
+
+
+</td>
+<td>X</td>
+
+
+
+
+</tr>
+<tr>
+<td>
+<p><span id="mt41" class="sentence SentenceHover" data-guid="fece25dfecc64a8769a8aee23163585e" data-source="LastOrDefault">LastOrDefault</span></p>
+
+
+
+
+</td>
+<td>
+<p><span id="mt42" class="sentence SentenceHover" data-guid="c4dbf336eb984f05cab46bb63f6acfc8" data-source="Returns the last element of a collection, or the last element that satisfies a condition.">返回集合中的最后一个元素或满足条件的最后一个元素。<span id="mt43" class="sentence" data-guid="83bd37e8be6a4058e813361e31f7da6d" data-source="Returns a default value if no such element exists.">如果没有这样的元素，则返回默认值。&nbsp;&nbsp;</span></span></p>
+
+
+
+
+</td>
+<td>X</td>
+
+
+
+
+</tr>
+<tr>
+<td>
+<p><span id="mt48" class="sentence" data-guid="dd5c07036f2975ff4bce568b6511d3bc" data-source="Single">Single</span></p>
+
+
+
+
+</td>
+<td>
+<p><span id="mt49" class="sentence" data-guid="b9d5ea89ec8df8131e22eedf1fb2a458" data-source="Returns the only element of a collection, or the only element that satisfies a condition.">返回集合中的唯一元素或满足条件的唯一元素。</span></p>
+
+
+
+
+</td>
+<td>X</td>
+
+
+
+
+</tr>
+<tr>
+<td>
+<p><span id="mt54" class="sentence SentenceHover" data-guid="04eaa94dbad659c094e5e6c0b95cd091" data-source="SingleOrDefault">SingleOrDefault</span></p>
+
+
+
+
+</td>
+<td>
+<p><span id="mt55" class="sentence" data-guid="b9d5ea89ec8df8131e22eedf1fb2a458" data-source="Returns the only element of a collection, or the only element that satisfies a condition.">返回集合中的唯一元素或满足条件的唯一元素。<span id="mt56" class="sentence SentenceHover" data-guid="db95ea8f92432dbba180071b4c36c428" data-source="Returns a default value if no such element exists or the collection does not contain exactly one element.">如果没有这样的元素或集合不是正好包含一个元素，则返回默认值。&nbsp;&nbsp;</span></span></p>
+
+
+
+
+</td>
+<td>X</td>
+
+
+
+
+</tr>
+
+
+
+
+</tbody>
+
+
+
+
+</table>
+<p>&nbsp; &nbsp; <strong>十三、转换数据类型</strong>&nbsp;</p>
+<p>&nbsp; &nbsp; 转换方法更改输入对象的类型。</p>
+<p>&nbsp; &nbsp; LINQ查询中的转换运算可用于各种应用程序，下面是一些示例：</p>
+<p><span id="mt4" class="sentence" data-guid="fb4e10c793370a794a8dc31718d521ae" data-source="The &lt;span class=&quot;mtpsTagOuterHtml&quot; &gt;Enumerable&lt;span class=&quot;mtpsTagOuterHtml&quot;  xmlns=&quot;&quot;&gt;.AsEnumerable&lt;span class=&quot;mtpsTagOuterHtml&quot;  xmlns=&quot;&quot;&gt;&amp;lt;TSource&amp;gt; method can be used to hide a type's custom implementation of a standard query operator.">&nbsp; &nbsp; 1、<a href="https://msdn.microsoft.com/zh-cn/library/bb335435.aspx">Enumerable.AsEnumerable&lt;TSource&gt;</a>&nbsp;方法可用于隐藏类型的标准查询运算符的自定义实现。</span></p>
+<p><span id="mt5" class="sentence" data-guid="f44466784fb555b04a81b76515e3334b" data-source="The &lt;span class=&quot;mtpsTagOuterHtml&quot; &gt;Enumerable&lt;span class=&quot;mtpsTagOuterHtml&quot;  xmlns=&quot;&quot;&gt;.OfType&lt;span class=&quot;mtpsTagOuterHtml&quot;  xmlns=&quot;&quot;&gt;&amp;lt;TResult&amp;gt; method can be used to enable non-parameterized collections for LINQ querying.">&nbsp; &nbsp; 2、<a href="https://msdn.microsoft.com/zh-cn/library/bb360913.aspx">Enumerable.OfType&lt;TResult&gt;</a>&nbsp;方法可用于启用非参数化集合以进行LINQ查询。</span></p>
+<p><span id="mt6" class="sentence" data-guid="2fd6c228b106de4ee15b80b4f7f92235" data-source="The &lt;span class=&quot;mtpsTagOuterHtml&quot; &gt;Enumerable&lt;span class=&quot;mtpsTagOuterHtml&quot;  xmlns=&quot;&quot;&gt;.ToArray&lt;span class=&quot;mtpsTagOuterHtml&quot;  xmlns=&quot;&quot;&gt;&amp;lt;TSource&amp;gt;, &lt;span class=&quot;mtpsTagOuterHtml&quot; &gt;Enumerable&lt;span class=&quot;mtpsTagOuterHtml&quot;  xmlns=&quot;&quot;&gt;.ToDictionary&lt;span class=&quot;mtpsTagOuterHtml&quot;  xmlns=&quot;&quot;&gt;&amp;lt;TSource,&ensp;TKey&amp;gt;, &lt;span class=&quot;mtpsTagOuterHtml&quot; &gt;Enumerable&lt;span class=&quot;mtpsTagOuterHtml&quot;  xmlns=&quot;&quot;&gt;.ToList&lt;span class=&quot;mtpsTagOuterHtml&quot;  xmlns=&quot;&quot;&gt;&amp;lt;TSource&amp;gt;, and &lt;span class=&quot;mtpsTagOuterHtml&quot; &gt;Enumerable&lt;span class=&quot;mtpsTagOuterHtml&quot;  xmlns=&quot;&quot;&gt;.ToLookup&lt;span class=&quot;mtpsTagOuterHtml&quot;  xmlns=&quot;&quot;&gt;&amp;lt;TSource,&ensp;TKey&amp;gt; methods can be used to force immediate query execution instead of deferring it until the query is enumerated.">&nbsp; &nbsp; 3、<a href="https://msdn.microsoft.com/zh-cn/library/bb298736.aspx">Enumerable.ToArray&lt;TSource&gt;</a>、<a href="https://msdn.microsoft.com/zh-cn/library/bb549277.aspx">Enumerable.ToDictionary&lt;TSource,&ensp;TKey&gt;</a>、<a href="https://msdn.microsoft.com/zh-cn/library/bb342261.aspx">Enumerable.ToList&lt;TSource&gt;</a>&nbsp;和&nbsp;<a href="https://msdn.microsoft.com/zh-cn/library/bb549073.aspx">Enumerable.ToLookup&lt;TSource,&ensp;TKey&gt;</a>&nbsp;</span></p>
+<p><span id="mt6" class="sentence" data-guid="2fd6c228b106de4ee15b80b4f7f92235" data-source="The &lt;span class=&quot;mtpsTagOuterHtml&quot; &gt;Enumerable&lt;span class=&quot;mtpsTagOuterHtml&quot;  xmlns=&quot;&quot;&gt;.ToArray&lt;span class=&quot;mtpsTagOuterHtml&quot;  xmlns=&quot;&quot;&gt;&amp;lt;TSource&amp;gt;, &lt;span class=&quot;mtpsTagOuterHtml&quot; &gt;Enumerable&lt;span class=&quot;mtpsTagOuterHtml&quot;  xmlns=&quot;&quot;&gt;.ToDictionary&lt;span class=&quot;mtpsTagOuterHtml&quot;  xmlns=&quot;&quot;&gt;&amp;lt;TSource,&ensp;TKey&amp;gt;, &lt;span class=&quot;mtpsTagOuterHtml&quot; &gt;Enumerable&lt;span class=&quot;mtpsTagOuterHtml&quot;  xmlns=&quot;&quot;&gt;.ToList&lt;span class=&quot;mtpsTagOuterHtml&quot;  xmlns=&quot;&quot;&gt;&amp;lt;TSource&amp;gt;, and &lt;span class=&quot;mtpsTagOuterHtml&quot; &gt;Enumerable&lt;span class=&quot;mtpsTagOuterHtml&quot;  xmlns=&quot;&quot;&gt;.ToLookup&lt;span class=&quot;mtpsTagOuterHtml&quot;  xmlns=&quot;&quot;&gt;&amp;lt;TSource,&ensp;TKey&amp;gt; methods can be used to force immediate query execution instead of deferring it until the query is enumerated.">方法可用于强制立即执行查询，而非推迟到枚举查询时。</span></p>
+<table border="0"><caption>标准查询运算符方法 - 转换数据类型</caption>
+<tbody>
+<tr>
+<td><span id="mt11" class="sentence SentenceHover" data-guid="49a55a6615b7be817490ba58b1f4f8fd" data-source="Method Name">方法名</span></td>
+<td><span id="mt12" class="sentence" data-guid="67daf92c833c41c95db874e18fcb2786" data-source="Description">说明</span></td>
+<td><span id="mt13" class="sentence SentenceHover" data-guid="dbe711d9cb63cb5066ace3e0f3596c1c" data-source="C# Query Expression Syntax">C# 查询表达式语法</span></td>
+
+
+
+
+</tr>
+<tr>
+<td><span id="mt16" class="sentence SentenceHover" data-guid="9a7ab114f19f7723b375c7652a96e99c" data-source="AsEnumerable">AsEnumerable</span></td>
+<td><span id="mt17" class="sentence" data-guid="91f799f4f1fecc02d23204efe8dd24f4" data-source="Returns the input typed as &lt;span class=&quot;mtpsTagOuterHtml&quot; &gt;IEnumerable&lt;span class=&quot;mtpsTagOuterHtml&quot;  xmlns=&quot;&quot;&gt;&amp;lt;T&amp;gt;.">返回类型为&nbsp;<a href="https://msdn.microsoft.com/zh-cn/library/9eekhta0.aspx">IEnumerable&lt;T&gt;</a>&nbsp;的输入。</span></td>
+<td>X</td>
+
+
+
+
+</tr>
+<tr>
+<td><span id="mt21" class="sentence SentenceHover" data-guid="6fbfa6d3a44eb8164760eb482f752348" data-source="AsQueryable">AsQueryable</span></td>
+<td><span id="mt22" class="sentence SentenceHover" data-guid="6bf2f4754b5daf2c204c945966d90438" data-source="Converts a (generic) &lt;span class=&quot;mtpsTagOuterHtml&quot; &gt;IEnumerable to a (generic) &lt;span class=&quot;mtpsTagOuterHtml&quot; &gt;IQueryable.">将（泛型）<a href="https://msdn.microsoft.com/zh-cn/library/system.collections.ienumerable.aspx">IEnumerable</a>&nbsp;转换为（泛型）<a href="https://msdn.microsoft.com/zh-cn/library/system.linq.iqueryable.aspx">IQueryable</a>。</span></td>
+<td>X</td>
+
+
+
+
+</tr>
+<tr>
+<td><span id="mt26" class="sentence" data-guid="54c280558263a67e0a84ba34f625c464" data-source="Cast">Cast</span></td>
+<td><span id="mt27" class="sentence" data-guid="c173ed35925c060e696133e335b519ef" data-source="Casts the elements of a collection to a specified type.">将集合的元素强制转换为指定类型。</span></td>
+<td>
+<p><span id="mt28" class="sentence" data-guid="c5d9ba673386cf34d7bf9c030cf083b0" data-source="Use an explicitly typed range variable.">使用显式类型化的范围变量。&nbsp;<span id="mt29" class="sentence" data-guid="fa3a10105c9b5660cbdf9bbc8079647f" data-source="For example:">例如：</span></span></p>
+<p><span class="code">from string str in words</span></p>
+
+
+
+
+</td>
+
+
+
+
+</tr>
+<tr>
+<td><span id="mt34" class="sentence SentenceHover" data-guid="9c9d5e9a50a7cfb57e236513da79d94e" data-source="OfType">OfType</span></td>
+<td><span id="mt35" class="sentence" data-guid="0be502dbec84815c013f48c84d58b291" data-source="Filters values, depending on their ability to be cast to a specified type.">根据值强制转换为指定类型的能力筛选值。</span></td>
+<td>X</td>
+
+
+
+
+</tr>
+<tr>
+<td><span id="mt40" class="sentence SentenceHover" data-guid="dc60d3ce58cc8c81601f3c1c13ba0c57" data-source="ToArray">ToArray</span></td>
+<td><span id="mt41" class="sentence" data-guid="6f93bad7d995ad71b4676ede55efffe5" data-source="Converts a collection to an array.">将集合转换为数组。&nbsp;<span id="mt42" class="sentence" data-guid="fb8f5d9444705ca4d5868dda4168337c" data-source="This method forces query execution.">此方法强制执行查询。</span></span></td>
+<td>X</td>
+
+
+
+
+</tr>
+<tr>
+<td><span id="mt46" class="sentence" data-guid="8822674ba048d2c95d8f8fd8a2c45600" data-source="ToDictionary">ToDictionary</span></td>
+<td><span id="mt47" class="sentence SentenceHover" data-guid="8295030208dc2b636ffede78020186fc" data-source="Puts elements into a &lt;span class=&quot;mtpsTagOuterHtml&quot; &gt;Dictionary&lt;span class=&quot;mtpsTagOuterHtml&quot;  xmlns=&quot;&quot;&gt;&amp;lt;TKey,&ensp;TValue&amp;gt; based on a key selector function.">根据键选择器函数将元素放入&nbsp;<a href="https://msdn.microsoft.com/zh-cn/library/xfhwa508.aspx">Dictionary&lt;TKey,&ensp;TValue&gt;</a>&nbsp;中。&nbsp;<span id="mt48" class="sentence" data-guid="fb8f5d9444705ca4d5868dda4168337c" data-source="This method forces query execution.">此方法强制执行查询。</span></span></td>
+<td>X</td>
+
+
+
+
+</tr>
+<tr>
+<td><span id="mt52" class="sentence SentenceHover" data-guid="e5201178aeac52e02ca209f978804567" data-source="ToList">ToList</span></td>
+<td><span id="mt53" class="sentence SentenceHover" data-guid="aa7c6d5a105f834eb8a30f4c3d9009c8" data-source="Converts a collection to a &lt;span class=&quot;mtpsTagOuterHtml&quot; &gt;List&lt;span class=&quot;mtpsTagOuterHtml&quot;  xmlns=&quot;&quot;&gt;&amp;lt;T&amp;gt;.">将集合转换为&nbsp;<a href="https://msdn.microsoft.com/zh-cn/library/6sh2ey19.aspx">List&lt;T&gt;</a>。&nbsp;<span id="mt54" class="sentence" data-guid="fb8f5d9444705ca4d5868dda4168337c" data-source="This method forces query execution.">此方法强制执行查询。</span></span></td>
+<td>X</td>
+
+
+
+
+</tr>
+<tr>
+<td><span id="mt58" class="sentence" data-guid="a99d2a5592a236e5f19f3450920768cd" data-source="ToLookup">ToLookup</span></td>
+<td><span id="mt59" class="sentence SentenceHover" data-guid="22dc966a7d274aca477a65e69b984f53" data-source="Puts elements into a &lt;span class=&quot;mtpsTagOuterHtml&quot; &gt;Lookup&lt;span class=&quot;mtpsTagOuterHtml&quot;  xmlns=&quot;&quot;&gt;&amp;lt;TKey,&ensp;TElement&amp;gt; (a one-to-many dictionary) based on a key selector function.">根据键选择器函数将元素放入&nbsp;<a href="https://msdn.microsoft.com/zh-cn/library/bb460184.aspx">Lookup&lt;TKey,&ensp;TElement&gt;</a>（一对多字典）中。&nbsp;<span id="mt60" class="sentence" data-guid="fb8f5d9444705ca4d5868dda4168337c" data-source="This method forces query execution.">此方法强制执行查询。</span></span></td>
+<td>X</td>
+
+
+
+
+</tr>
+
+
+
+
+</tbody>
+
+
+
+
+</table>
+<p>&nbsp; &nbsp; 下面代码演示转换数据类型：</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('92c8f0f0-c448-4c0c-98f1-5d61b57e318a')"><img id="code_img_closed_92c8f0f0-c448-4c0c-98f1-5d61b57e318a" class="code_img_closed" src="./images/C# LINQ学习笔记二：LINQ标准查询操作概述2.png" alt="" /><img id="code_img_opened_92c8f0f0-c448-4c0c-98f1-5d61b57e318a" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('92c8f0f0-c448-4c0c-98f1-5d61b57e318a',event)" src="./images/C# LINQ学习笔记二：LINQ标准查询操作概述3.png" alt="" />
+<div id="cnblogs_code_open_92c8f0f0-c448-4c0c-98f1-5d61b57e318a" class="cnblogs_code_hide">
+<pre><code>    <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+    <span style="color: #808080;">///</span><span style="color: #008000;"> 植物类
+    </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+    <span style="color: #0000ff;">class</span><span style="color: #000000;"> Plant
+    {
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> Name { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+    }
+
+    </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+    <span style="color: #808080;">///</span><span style="color: #008000;"> 食肉植物类
+    </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+    <span style="color: #0000ff;">class</span><span style="color: #000000;"> CarnivorousPlant : Plant
+    {
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> TrapType { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+    }
+
+    </span><span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            </span><span style="color: #0000ff;">#region</span> LINQ 转换数据类型
+            <span style="color: #0000ff;">var</span> plants = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Plant[]
+            {
+                </span><span style="color: #0000ff;">new</span> CarnivorousPlant {Name = <span style="color: #800000;">"</span><span style="color: #800000;">Venus Fly Trap</span><span style="color: #800000;">"</span>, TrapType = <span style="color: #800000;">"</span><span style="color: #800000;">Snap Trap</span><span style="color: #800000;">"</span><span style="color: #000000;">},
+                </span><span style="color: #0000ff;">new</span> CarnivorousPlant {Name = <span style="color: #800000;">"</span><span style="color: #800000;">Pitcher Plant</span><span style="color: #800000;">"</span>, TrapType = <span style="color: #800000;">"</span><span style="color: #800000;">Pitfall Trap</span><span style="color: #800000;">"</span><span style="color: #000000;">},
+                </span><span style="color: #0000ff;">new</span> CarnivorousPlant {Name = <span style="color: #800000;">"</span><span style="color: #800000;">Sundew</span><span style="color: #800000;">"</span>, TrapType = <span style="color: #800000;">"</span><span style="color: #800000;">Flypaper Trap</span><span style="color: #800000;">"</span><span style="color: #000000;">},
+                </span><span style="color: #0000ff;">new</span> CarnivorousPlant {Name = <span style="color: #800000;">"</span><span style="color: #800000;">Waterwheel Plant</span><span style="color: #800000;">"</span>, TrapType = <span style="color: #800000;">"</span><span style="color: #800000;">Snap Trap</span><span style="color: #800000;">"</span><span style="color: #000000;">}
+            };
+            </span><span style="color: #0000ff;">var</span> query = <span style="color: #0000ff;">from</span> CarnivorousPlant plant <span style="color: #0000ff;">in</span><span style="color: #000000;"> plants
+                        </span><span style="color: #0000ff;">where</span> plant.TrapType == <span style="color: #800000;">"</span><span style="color: #800000;">Snap Trap</span><span style="color: #800000;">"</span>
+                        <span style="color: #0000ff;">select</span><span style="color: #000000;"> plant;
+            </span><span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">var</span> carnivorousPlant <span style="color: #0000ff;">in</span><span style="color: #000000;"> query)
+            {
+                Console.WriteLine(carnivorousPlant.Name);
+            }
+            Console.Read();
+            </span><span style="color: #0000ff;">#endregion</span><span style="color: #000000;">
+        }
+    }</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp; &nbsp; 运行结果如下：</p>
+<p><img src="./images/C# LINQ学习笔记二：LINQ标准查询操作概述42.png" alt="" /></p>
+<p>&nbsp; &nbsp; <strong>十四、串联操作</strong></p>
+<p>&nbsp; &nbsp; 串联是指将一个序列追加到另一个序列的运算。</p>
+<p>&nbsp; &nbsp; 下图演示对两个字符序列执行的串联运算。</p>
+<p><img src="./images/C# LINQ学习笔记二：LINQ标准查询操作概述43.png" alt="" /></p>
+<table border="0"><caption>标准查询运算符操作方法 - 串联</caption>
+<tbody>
+<tr>
+<td>
+<p><span id="mt5" class="sentence SentenceHover" data-guid="49a55a6615b7be817490ba58b1f4f8fd" data-source="Method Name">方法名</span></p>
+</td>
+<td>
+<p><span id="mt6" class="sentence" data-guid="67daf92c833c41c95db874e18fcb2786" data-source="Description">说明</span></p>
+</td>
+<td>
+<p><span id="mt7" class="sentence" data-guid="dbe711d9cb63cb5066ace3e0f3596c1c" data-source="C# Query Expression Syntax">C# 查询表达式语法</span></p>
+</td>
+</tr>
+<tr>
+<td>
+<p><span id="mt10" class="sentence SentenceHover" data-guid="414e7c8ede73a0c2c3d17699134f4080" data-source="Concat">Concat</span></p>
+</td>
+<td>
+<p><span id="mt11" class="sentence SentenceHover" data-guid="0bfbf994b51cb2952c8118d75de5ff8a" data-source="Concatenates two sequences to form one sequence.">串联两个序列以组成一个序列。</span></p>
+</td>
+<td>X<br /><br /></td>
+
+
+
+
+
+</tr>
+
+
+
+
+
+</tbody>
+
+
+
+
+</table>
+<p><strong>&nbsp; &nbsp; 十五、聚合操作</strong></p>
+<p>&nbsp; &nbsp; 聚合运算从值集合计算单个值。从一个月的日温度值计算日平均温度就是聚合运算的一个示例。</p>
+<p>&nbsp; &nbsp;&nbsp;下图显示了对一个数字序列执行两个不同聚合运算的结果。第一个运算对这些数字执行求和；第二个运算返回该序列中的最大值。</p>
+<p><img src="./images/C# LINQ学习笔记二：LINQ标准查询操作概述44.png" alt="" /></p>
+<table border="0"><caption>标准查询运算符操作方法 - 聚合</caption>
+<tbody>
+<tr>
+<td>
+<p><span id="mt8" class="sentence" data-guid="49a55a6615b7be817490ba58b1f4f8fd" data-source="Method Name">方法名</span></p>
+
+
+
+</td>
+<td>
+<p><span id="mt9" class="sentence SentenceHover" data-guid="67daf92c833c41c95db874e18fcb2786" data-source="Description">说明</span></p>
+
+
+
+</td>
+<td>
+<p><span id="mt10" class="sentence" data-guid="dbe711d9cb63cb5066ace3e0f3596c1c" data-source="C# Query Expression Syntax">C# 查询表达式语法</span></p>
+
+
+
+</td>
+
+
+
+</tr>
+<tr>
+<td>
+<p><span id="mt13" class="sentence SentenceHover" data-guid="39adbeb6bc21a3133e5fdcf1ec05d1a0" data-source="Aggregate">Aggregate</span></p>
+
+
+
+</td>
+<td>
+<p><span id="mt14" class="sentence SentenceHover" data-guid="390417e21ff153ccb61be7213a05a762" data-source="Performs a custom aggregation operation on the values of a collection.">对集合值执行自定义聚合运算。</span></p>
+
+
+
+</td>
+<td>X</td>
+
+
+
+</tr>
+<tr>
+<td>
+<p><span id="mt19" class="sentence SentenceHover" data-guid="6927a3a7218a3195858411433ec20a21" data-source="Average">Average</span></p>
+
+
+
+</td>
+<td>
+<p><span id="mt20" class="sentence" data-guid="8923fa29d0eaed286cde7ef6d8e4fcd9" data-source="Calculates the average value of a collection of values.">计算值集合的平均值。</span></p>
+
+
+
+</td>
+<td>X</td>
+
+
+
+</tr>
+<tr>
+<td>Count</td>
+<td>
+<p><span id="mt26" class="sentence" data-guid="d2166ab760f8ca49ed7493e27db4cef5" data-source="Counts the elements in a collection, optionally only those elements that satisfy a predicate function.">对集合中的元素进行计数，还可以仅对满足某一谓词函数的元素进行计数。</span></p>
+
+
+
+</td>
+<td>X</td>
+
+
+
+</tr>
+<tr>
+<td>
+<p><span id="mt31" class="sentence SentenceHover" data-guid="acc2b2374e86ba4ab3384bf200d064dc" data-source="LongCount">LongCount</span></p>
+
+
+
+</td>
+<td>
+<p><span id="mt32" class="sentence" data-guid="9d5d408f667c96cff7cf93595c2953a1" data-source="Counts the elements in a large collection, optionally only those elements that satisfy a predicate function.">对大型集合中的元素进行计数，还可以仅对满足某一谓词函数的元素进行计数。</span></p>
+
+
+
+</td>
+<td>X</td>
+
+
+
+</tr>
+<tr>
+<td>Max</td>
+<td>
+<p><span id="mt38" class="sentence" data-guid="30625f9164470b59df48ed187caba1a2" data-source="Determines the maximum value in a collection.">确定集合中的最大值。</span></p>
+
+
+
+</td>
+<td>X</td>
+
+
+
+</tr>
+<tr>
+<td>Min</td>
+<td>
+<p><span id="mt44" class="sentence" data-guid="c8af7e57580fdadbcbe1a07447027e7a" data-source="Determines the minimum value in a collection.">确定集合中的最小值。</span></p>
+
+
+
+</td>
+<td>X</td>
+
+
+
+</tr>
+<tr>
+<td>
+<p><span id="mt49" class="sentence SentenceHover" data-guid="1d623b89683f9ce4e074de1676d12416" data-source="Sum">Sum</span></p>
+
+
+
+</td>
+<td>
+<p><span id="mt50" class="sentence" data-guid="2792af848c0b8205a3334e883884e00c" data-source="Calculates the sum of the values in a collection.">计算集合中值的总和。</span></p>
+
+
+
+</td>
+<td>X<br /><br /></td>
+
+
+
+
+</tr>
+
+
+
+
+</tbody>
+
+
+
+</table>
+<p>&nbsp;</p>
+
+
+
+
+
+</div>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

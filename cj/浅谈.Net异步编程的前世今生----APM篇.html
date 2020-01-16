@@ -1,0 +1,204 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修浅谈.Net异步编程的前世今生----APM篇' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>浅谈.Net异步编程的前世今生----APM篇</center></div><div class='banquan'>原文出处:本文由博客园博主Wackysoft提供。<br/>
+原文连接:https://www.cnblogs.com/wackysoft/p/10777264.html</div><br>
+    <p><span style="font-size: 14pt;"><strong>前言</strong></span></p>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">在.Net程序开发过程中，我们经常会遇到如下场景：</span></p>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">编写WinForm程序客户端，需要查询数据库获取数据，于是我们根据需求写好了代码后，点击查询，发现界面卡死，无法响应。经过调试，发现查询数据库这一步执行了很久，在此过程中，UI被阻塞，无法响应任何操作。</span></p>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">如何解决此问题？我们需要分析问题成因：在WinForm窗体运行时，只有一个主线程，即为UI线程，UI线程在此过程中既负责渲染界面，又负责查询数据，因此在大量耗时的操作中，UI线程无法及时响应导致出现问题。此时我们需要将耗时操作放入异步操作，使主线程继续响应用户的操作，这样可以大大提升用户体验。</span></p>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">直接编写异步编程也许不是一件轻松的事，和同步编程不同的是，异步代码并不是始终按照写好的步骤执行，且如何在异步执行完通知前序步骤也是其中一个问题，因此会带来一系列的考验。</span></p>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">幸运的是，在.Net Framework中，提供了多种异步编程模型以及相关的API，这些模型的存在使得编写异步程序变得容易上手。随着Framework的不断升级，相应的模型也在不断改进，下面我们一起来回顾一下.Net异步编程的前世今生。</span></p>
+<p><span style="font-size: 14pt;"><strong>第一个异步编程模型：APM</strong></span></p>
+<p><span style="font-size: 18px;"><strong><span style="font-family: 'Microsoft YaHei';">概述</span></strong></span></p>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">APM，全称Asynchronous Programing Model，顾名思义，它即为异步编程模型，最早出现于.Net Framework 1.x中。</span></p>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">它使用IAsyncResult设计模式的异步操作，一般由BeginOperationName和EndOperationName两个方法实现，这两个方法分别用于开始和结束异步操作，例如FileStream类中提供了BeginRead和EndRead来对文件进行异步字节读取操作。</span></p>
+<p><span style="font-size: 18px;"><strong><span style="font-family: 'Microsoft YaHei';">使用</span></strong></span></p>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">在程序运行过程中，直接调用BeginOperationName后，会将所包含的方法放入异步操作，并返回一个IAsyncResult结果，同时异步操作在另外一个线程中执行。</span></p>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">每次在调用BeginOperationName方法后，还应调用EndOperationName方法，来获取异步执行的结果，下面我们一起来看一个示例：</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">using</span><span style="color: #000000;"> System;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Collections.Generic;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Linq;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Text;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Threading;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Threading.Tasks;
+
+</span><span style="color: #0000ff;">namespace</span><span style="color: #000000;"> APMTest
+{
+    </span><span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">delegate</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> ConsoleDelegate();
+
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            ConsoleDelegate consoleDelegate </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> ConsoleDelegate(ConsoleToUI);
+            Thread.CurrentThread.Name </span>= <span style="color: #800000;">"</span><span style="color: #800000;">主线程Thread</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            IAsyncResult ar </span>= consoleDelegate.BeginInvoke(<span style="color: #0000ff;">null</span>, <span style="color: #0000ff;">null</span><span style="color: #000000;">);
+            consoleDelegate.EndInvoke(ar);
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">我是同步输出，我的名字是：</span><span style="color: #800000;">"</span> +<span style="color: #000000;"> Thread.CurrentThread.Name);
+            Console.Read();
+        }
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> ConsoleToUI()
+        {
+            </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (Thread.CurrentThread.IsThreadPoolThread)
+            {
+                Thread.CurrentThread.Name </span>= <span style="color: #800000;">"</span><span style="color: #800000;">线程池Thread</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            }
+            </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+            {
+                Thread.CurrentThread.Name </span>= <span style="color: #800000;">"</span><span style="color: #800000;">普通Thread</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            }
+            Thread.Sleep(</span><span style="color: #800080;">3000</span>); <span style="color: #008000;">//</span><span style="color: #008000;">模拟耗时操作</span>
+            Console.WriteLine(<span style="color: #800000;">"</span><span style="color: #800000;">我是异步输出，我的名字是：</span><span style="color: #800000;">"</span> +<span style="color: #000000;"> Thread.CurrentThread.Name);
+        }
+    }
+}</span></pre>
+</div>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">在这段示例中，我们定义了一个委托来使用其BeginInvoke/EndInvoke方法用于我们自定义方法的异步执行，同时将线程名称打印出来，用于区分主线程与异步线程。</span></p>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">如代码中所示，在调用BeginInvoke之后，立即调用了EndInvoke获取结果，那么会发生什么呢？</span></p>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">如下图所示：</span></p>
+<p><img src="./images/浅谈.Net异步编程的前世今生----APM篇0.png" alt="" /></p>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">看到这里大家也许会比较诧异：为什么同步操作会在异步操作之后输出呢？这样不是和同步就一样了吗？</span></p>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">原因是这样的：EndInvoke方法会阻塞调用线程，直到异步调用结束，由于我们在异步操作中模拟了3s耗时操作，所以它会一直等待到3s结束后输出异步信息，此时才完成了异步操作，进而进行下一步的同步操作。</span></p>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">同时在BeginInvoke返回的IAynscResult中，包含如下属性：</span></p>
+<p><img src="./images/浅谈.Net异步编程的前世今生----APM篇1.png" alt="" /></p>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">通过轮询IsCompleted属性或使用AsyncWaitHandle属性，均可以获取异步操作是否完成，从而进行下一步操作，相关代码如下所示：</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">using</span><span style="color: #000000;"> System;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Collections.Generic;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Linq;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Text;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Threading;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Threading.Tasks;
+
+</span><span style="color: #0000ff;">namespace</span><span style="color: #000000;"> APMTest
+{
+    </span><span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">delegate</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> ConsoleDelegate();
+
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            ConsoleDelegate consoleDelegate </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> ConsoleDelegate(ConsoleToUI);
+            Thread.CurrentThread.Name </span>= <span style="color: #800000;">"</span><span style="color: #800000;">主线程Thread</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            IAsyncResult ar </span>= consoleDelegate.BeginInvoke(<span style="color: #0000ff;">null</span>, <span style="color: #0000ff;">null</span><span style="color: #000000;">);
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">此处改为了轮询IsCompleted属性，AsyncWaitHandle属性同理</span>
+            <span style="color: #0000ff;">while</span> (!<span style="color: #000000;">ar.IsCompleted)
+            {
+                Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">等待执行...</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            }
+            consoleDelegate.EndInvoke(ar);
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">我是同步输出，我的名字是：</span><span style="color: #800000;">"</span> +<span style="color: #000000;"> Thread.CurrentThread.Name);
+            Console.Read();
+        }
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> ConsoleToUI()
+        {
+            </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (Thread.CurrentThread.IsThreadPoolThread)
+            {
+                Thread.CurrentThread.Name </span>= <span style="color: #800000;">"</span><span style="color: #800000;">线程池Thread</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            }
+            </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+            {
+                Thread.CurrentThread.Name </span>= <span style="color: #800000;">"</span><span style="color: #800000;">普通Thread</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            }
+            Thread.Sleep(</span><span style="color: #800080;">3000</span>); <span style="color: #008000;">//</span><span style="color: #008000;">模拟耗时操作</span>
+            Console.WriteLine(<span style="color: #800000;">"</span><span style="color: #800000;">我是异步输出，我的名字是：</span><span style="color: #800000;">"</span> +<span style="color: #000000;"> Thread.CurrentThread.Name);
+        }
+    }
+}</span></pre>
+</div>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">运行后结果如下：</span></p>
+<p><img src="./images/浅谈.Net异步编程的前世今生----APM篇2.png" alt="" /></p>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">可以发现，在轮询属性时，程序仍然会等待异步操作完成，进而进行下一步的同步输出，无法达到我们需要的效果，那么究竟有没有办法解决呢？</span></p>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">此时我们需要引入一个新方法：使用回调。</span></p>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">在之前的操作中，使用BeginInvoke方法，两个参数总传入的为null。若要使用回调机制，则需传入一个类型为AsyncCallback的回调函数，并在最后一个参数中，传入需要使用的参数，如以下代码所示：</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">using</span><span style="color: #000000;"> System;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Collections.Generic;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Linq;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Text;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Threading;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Threading.Tasks;
+
+</span><span style="color: #0000ff;">namespace</span><span style="color: #000000;"> APMTest
+{
+    </span><span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">delegate</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> ConsoleDelegate();
+
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            ConsoleDelegate consoleDelegate </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> ConsoleDelegate(ConsoleToUI);
+            Thread.CurrentThread.Name </span>= <span style="color: #800000;">"</span><span style="color: #800000;">主线程Thread</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">此处传入AsyncCallback类型的回调函数，并传入需要使用的参数</span>
+<span style="color: #000000;">            consoleDelegate.BeginInvoke(CallBack, consoleDelegate);
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">IAsyncResult ar = consoleDelegate.BeginInvoke(null, null);</span>
+            <span style="color: #808080;">///</span><span style="color: #008000;">/此处改为了轮询IsCompleted属性，AsyncWaitHandle属性同理</span>
+            <span style="color: #008000;">//</span><span style="color: #008000;">while (!ar.IsCompleted)
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">{
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">    Console.WriteLine("等待执行...");
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">}
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">consoleDelegate.EndInvoke(ar);</span>
+            Console.WriteLine(<span style="color: #800000;">"</span><span style="color: #800000;">我是同步输出，我的名字是：</span><span style="color: #800000;">"</span> +<span style="color: #000000;"> Thread.CurrentThread.Name);
+            Console.Read();
+        }
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> ConsoleToUI()
+        {
+            </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (Thread.CurrentThread.IsThreadPoolThread)
+            {
+                Thread.CurrentThread.Name </span>= <span style="color: #800000;">"</span><span style="color: #800000;">线程池Thread</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            }
+            </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+            {
+                Thread.CurrentThread.Name </span>= <span style="color: #800000;">"</span><span style="color: #800000;">普通Thread</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            }
+            Thread.Sleep(</span><span style="color: #800080;">3000</span>); <span style="color: #008000;">//</span><span style="color: #008000;">模拟耗时操作</span>
+            Console.WriteLine(<span style="color: #800000;">"</span><span style="color: #800000;">我是异步输出，我的名字是：</span><span style="color: #800000;">"</span> +<span style="color: #000000;"> Thread.CurrentThread.Name);
+        }
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> CallBack(IAsyncResult ar)
+        {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">使用IAsyncResult的AsyncState获取BeginInvoke中的参数，并用于执行EndInvoke</span>
+            ConsoleDelegate callBackDelegate = ar.AsyncState <span style="color: #0000ff;">as</span><span style="color: #000000;"> ConsoleDelegate;
+            callBackDelegate.EndInvoke(ar);
+        }
+    }
+}</span></pre>
+</div>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">运行后结果如下：</span></p>
+<p><img src="./images/浅谈.Net异步编程的前世今生----APM篇3.png" alt="" /></p>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">此时可以看出，使用回调的方式已经实现了我们需要的效果。在同步执行时，将耗时操作放入异步操作，从而不影响同步操作的继续执行，在异步操作完成后，回调返回相应的结果。</span></p>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 18px;"><strong>小结</strong></span></p>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">APM模型的引入，使得编写异步程序变的如此简单，只需定义委托，将要执行的方法包含其中，并调用Begin/End方法对，即可实现异步编程。在一些基础类库中，也已经提供了异步操作的方法，直接调用即可。</span></p>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">同时我们可以看到，BeginInvoke方法，实际上是调用了线程池中的线程进行操作，因此APM模型也应属于多线程程序，同时包含主线程与线程池线程。</span></p>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">但是APM模型也存在一些缺点：</span></p>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">1、若不使用回调机制，则需等待异步操作完成后才能继续执行，此时未达到异步操作的效果。</span></p>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">2、在异步操作的过程中，无法取消，也无法得知操作进度。</span></p>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">3、若编写GUI程序，异步操作内容与主线程未在同一线程，操作控件时会引起线程安全问题。</span></p>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">为了解决这些缺陷，微软推出了其他的异步模式，预知后事如何，且听下回分解。</span></p>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 18px;"><strong>下集预告</strong></span></p>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">浅谈.Net异步编程的前世今生----EAP篇</span></p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

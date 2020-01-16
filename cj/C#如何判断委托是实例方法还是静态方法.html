@@ -1,0 +1,127 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C#如何判断委托是实例方法还是静态方法' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C#如何判断委托是实例方法还是静态方法</center></div><div class='banquan'>原文出处:本文由博客园博主白い提供。<br/>
+原文连接:https://www.cnblogs.com/Jeffrey-Chou/p/11907530.html</div><br>
+    <h3>一. 委托的分类</h3>
+<p>通过用什么类型的方法来声明为委托，可以分为两类：</p>
+<p>1. <strong>委托静态方法</strong>：把一个静态方法给委托</p>
+<p>2. <strong>委托实例方法</strong>：把一个实例对象的成员方法给委托</p>
+<p><span style="font-size: 12px;">（这两个名字是博主取的，可能不是很专业只是为了好区分）</span></p>
+<h3>二. 原理部分</h3>
+<p>委托是将函数指针和实例对象打包在一起的类，它有两个重要的成员，一个用来保存实例对象，一个用来保存函数的指针。从源码中我们可以查看System.Delegate，如下：</p>
+<p>1. 将会调用方法所在的对象</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> _target is the object we will invoke on</span>
+<span style="color: #000000;">[System.Security.SecurityCritical]
+</span><span style="color: #0000ff;">internal</span> Object _target;</pre>
+</div>
+<p>2. 将会调用的方法指针</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> _methodPtr is a pointer to the method we will invoke
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> It could be a small thunk if this is a static or UM call</span>
+<span style="color: #000000;">[System.Security.SecurityCritical]
+</span><span style="color: #0000ff;">internal</span> IntPtr _methodPtr;</pre>
+</div>
+<p>另外，我们查看System.Delegate的属性，我们可以看到一个属性 Target</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span><span style="color: #000000;"> Object Target
+{
+    </span><span style="color: #0000ff;">get</span><span style="color: #000000;">
+    {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> GetTarget();
+    }
+}    </span></pre>
+</div>
+<p>来看一下这个 GetTarget() 方法的功能</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">[System.Security.SecuritySafeCritical]
+</span><span style="color: #0000ff;">internal</span> <span style="color: #0000ff;">virtual</span><span style="color: #000000;"> Object GetTarget()
+{
+    </span><span style="color: #0000ff;">return</span> (_methodPtrAux.IsNull()) ? _target : <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+}</span></pre>
+</div>
+<p>可以看到这边有一个字段 _methodPtrAux，这是一个IntPtr类型的指针，可以看到注释可以看出，当把一个静态方法给委托的时候，将会返回一个 null，如果是一个实例方法的时候，将会返回当前方法所在的实例对象（this）</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> In the case of a static method passed to a delegate, this field stores
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> whatever _methodPtr would have stored: and _methodPtr points to a
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> small thunk which removes the "this" pointer before going on
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> to _methodPtrAux.</span>
+<span style="color: #000000;">[System.Security.SecurityCritical]
+</span><span style="color: #0000ff;">internal</span> IntPtr _methodPtrAux;</pre>
+</div>
+<h3>三. 测试代码</h3>
+<p>测试类 Test.cs：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Test
+{
+    </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+    <span style="color: #808080;">///</span><span style="color: #008000;"> 实例方法
+    </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> ShowHelloWorld1()
+    {
+        Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Hello World! -- 1</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+    }
+
+    </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+    <span style="color: #808080;">///</span><span style="color: #008000;"> 静态方法
+    </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> ShowHelloWorld2()
+    {
+        Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Hello World! -- 2</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+    }
+}</span></pre>
+</div>
+<p>委托声明：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">delegate</span> <span style="color: #0000ff;">void</span> ShowHelloWorldMethod();</pre>
+</div>
+<p>上端测试代码：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;">声明测试对象</span>
+Test test = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Test();
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">构造实例方法的委托</span>
+ShowHelloWorldMethod del =<span style="color: #000000;"> test.ShowHelloWorld1;
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">判断一下Target是不是指向方法所在的对象</span>
+Console.WriteLine(del.Target <span style="color: #0000ff;">is</span> Test);<span style="color: #008000;">//</span><span style="color: #008000;">True
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">调用一下</span>
+((Test)del.Target).ShowHelloWorld1();<span style="color: #008000;">//</span><span style="color: #008000;">Hello World! -- 1
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">构造静态方法的委托</span>
+ShowHelloWorldMethod del2 =<span style="color: #000000;"> Test.ShowHelloWorld2;
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">判断一下Target是不是null</span>
+Console.WriteLine(del2.Target == <span style="color: #0000ff;">null</span>);<span style="color: #008000;">//</span><span style="color: #008000;">true</span></pre>
+</div>
+<p>测试结果符合我们的预期：</p>
+<p><img style="display: block; margin-left: auto; margin-right: auto;" src="./images/C#如何判断委托是实例方法还是静态方法0.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h3>四. 总结</h3>
+<p>如果委托的Target属性为null说明是静态方法的委托，如果委托的Target属性不为null说明是实例方法的委托。</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

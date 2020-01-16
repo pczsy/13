@@ -1,0 +1,266 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C# 缓存的实现' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C# 缓存的实现</center></div><div class='banquan'>原文出处:本文由博客园博主园子的蜗牛提供。<br/>
+原文连接:https://www.cnblogs.com/snailblog/p/11570094.html</div><br>
+    <h2>缓存的实现</h2>
+<p>我们不是做第三方比如Redis等的缓存实现，而是根据实际情况，基于C#上做一些环境变量的保存，方便项目使用。</p>
+<h3>1、系统全局变量</h3>
+<p>很多时候，在系统运行开始，需要对系统的运行参数进行保存，以便供全局使用。</p>
+<p>代码如下：</p>
+<div class="cnblogs_code">
+<pre><code> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> PFTCacheObject
+    {
+        <span style="color: #808080;">/// &lt;summary&gt;</span>
+        <span style="color: #808080;">/// 字典</span>
+        <span style="color: #808080;">/// &lt;/summary&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> Dictionary&lt;<span style="color: #0000ff;">string</span>, <span style="color: #0000ff;">object</span>&gt; _dataDic = <span style="color: #0000ff;">new</span> Dictionary&lt;<span style="color: #0000ff;">string</span>, <span style="color: #0000ff;">object</span>&gt;();
+
+
+        <span style="color: #808080;">/// &lt;summary&gt;</span>
+        <span style="color: #808080;">/// 定义一个静态变量来保存类的实例</span>
+        <span style="color: #808080;">/// &lt;/summary&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> PFTCacheObject _session;
+
+        <span style="color: #808080;">/// &lt;summary&gt;</span>
+        <span style="color: #808080;">/// 定义一个标识确保线程同步</span>
+        <span style="color: #808080;">/// &lt;/summary&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">readonly</span> <span style="color: #0000ff;">object</span> _locker = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">object</span>();
+
+
+        <span style="color: #808080;">/// &lt;summary&gt;</span>
+        <span style="color: #808080;">/// 单例</span>
+        <span style="color: #808080;">/// &lt;/summary&gt;</span>
+        <span style="color: #808080;">/// &lt;returns&gt;返回类型为Session&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> PFTCacheObject Instance
+        {
+            <span style="color: #0000ff;">get</span>
+            {
+                <span style="color: #0000ff;">if</span> (_session == <span style="color: #0000ff;">null</span>)
+                {
+                    <span style="color: #0000ff;">lock</span> (_locker)
+                    {
+                        <span style="color: #0000ff;">if</span> (_session == <span style="color: #0000ff;">null</span>)<span style="color: #008000;">// 如果类的实例不存在则创建，否则直接返回</span>
+                        {
+                            _session = <span style="color: #0000ff;">new</span> PFTCacheObject();
+                        }
+                    }
+                }
+                <span style="color: #0000ff;">return</span> _session;
+            }
+        }
+
+        #region Remove 移除
+
+        <span style="color: #808080;">/// &lt;summary&gt;</span>
+        <span style="color: #808080;">/// 删除成员</span>
+        <span style="color: #808080;">/// &lt;/summary&gt;</span>
+        <span style="color: #808080;">/// &lt;param name="name"&gt;&lt;/param&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> Remove(<span style="color: #0000ff;">string</span> name)
+        {
+            _dataDic.Remove(name);
+        }
+
+        <span style="color: #808080;">/// &lt;summary&gt;</span>
+        <span style="color: #808080;">/// 删除全部成员</span>
+        <span style="color: #808080;">/// &lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> RemoveAll()
+        {
+            _dataDic.Clear();
+        }
+        #endregion
+
+        #region 本类的索引器
+
+        <span style="color: #808080;">/// &lt;summary&gt;</span>
+        <span style="color: #808080;">/// 本类的索引器</span>
+        <span style="color: #808080;">/// &lt;/summary&gt;</span>
+        <span style="color: #808080;">/// &lt;returns&gt;返回Object成员&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">public</span> Object <span style="color: #0000ff;">this</span>[<span style="color: #0000ff;">string</span> index]
+        {
+            <span style="color: #0000ff;">get</span>
+            {
+                <span style="color: #0000ff;">if</span> (_dataDic.ContainsKey(index))
+                {
+                    Object obj = (Object)_dataDic[index];
+                    <span style="color: #0000ff;">return</span> obj;
+                }
+                <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">null</span>;
+            }
+            <span style="color: #0000ff;">set</span>
+            {
+                <span style="color: #0000ff;">if</span> (_dataDic.ContainsKey(index))
+                {
+                    _dataDic.Remove(index);
+                }
+                _dataDic.Add(index, <span style="color: #0000ff;">value</span>);
+            }
+        }
+        #endregion
+
+
+    }</pre>
+</div>
+<p>这里使用一个静态变量的Dictionary来进行保存，所有项目均可以直接获取。</p>
+<h3>2、异步的数据缓存</h3>
+<p>在web上面，很多时候都是使用的HttpContext.Current.Items进行数据缓存，在.Net Framework框架上使用CallContext.LogicalSetData。在.Net Standard 上面CallContext.LogicalSetData已经不能使用了，替换他的方法是AsyncLocal。因为我们现在都是使用的是.Net Standard，并且我们项目并不仅仅是web，所以这里我们就只用使用AsyncLocal实现。</p>
+<p>代码如下</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> PFTCallContext
+    {
+
+        #region  共享数据库连接
+
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> AsyncLocal&lt;<span style="color: #0000ff;">object</span>&gt; _asyncLocalConnectionOject = <span style="color: #0000ff;">new</span> AsyncLocal&lt;<span style="color: #0000ff;">object</span>&gt;();
+
+        <span style="color: #808080;">/// &lt;summary&gt;</span>
+        <span style="color: #808080;">/// 设置共享数据库连接</span>
+        <span style="color: #808080;">/// &lt;/summary&gt;</span>
+        <span style="color: #808080;">/// &lt;param name="obj"&gt;&lt;/param&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> SetConnectionOject(<span style="color: #0000ff;">object</span> obj)
+        {
+            _asyncLocalConnectionOject.Value = obj;
+        }
+
+        <span style="color: #808080;">/// &lt;summary&gt;</span>
+        <span style="color: #808080;">/// 获取共享数据库连接</span>
+        <span style="color: #808080;">/// &lt;/summary&gt;</span>
+        <span style="color: #808080;">/// &lt;returns&gt;&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">object</span> GetConnectionOject()
+        {
+            <span style="color: #0000ff;">return</span> _asyncLocalConnectionOject.Value;
+        }
+
+        <span style="color: #808080;">/// &lt;summary&gt;</span>
+        <span style="color: #808080;">/// 清空共享数据库连接</span>
+        <span style="color: #808080;">/// &lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> ClearConnectionOject()
+        {
+            _asyncLocalConnectionOject.Value = <span style="color: #0000ff;">null</span>;
+        }
+
+        #endregion
+
+
+
+    }</pre>
+</div>
+<p>这里我们就先定义一个当前数据库连接对象的缓存。如果还需要其他的定义，你可以直接实现。</p>
+<h3>3、.Net Core 的MemoryCache</h3>
+<p>本来这块想使用.Net Framework框架中的cache的，但是.Net Core才是未来的大势，而且.Net Framework的cache已经有很多的实现方法了，所以这里我就直接用.Net Core 的MemoryCache。.Net Core蜗牛也在学习中，相关的API也在不断的研究，如果有问题，请大家帮忙纠正。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">class</span> PFTCache
+    {
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">readonly</span> <span style="color: #0000ff;">static</span> IMemoryCache _memoryCache;
+
+        <span style="color: #0000ff;">static</span> PFTCache()
+        {
+            _memoryCache = <span style="color: #0000ff;">new</span> MemoryCache(Options.Create(<span style="color: #0000ff;">new</span> MemoryCacheOptions()));
+        }
+
+        #region 常规缓存
+        <span style="color: #808080;">/// &lt;summary&gt;</span>
+        <span style="color: #808080;">/// 获取缓存的值</span>
+        <span style="color: #808080;">/// &lt;/summary&gt;</span>
+        <span style="color: #808080;">/// &lt;param name="key"&gt;&lt;/param&gt;</span>
+        <span style="color: #808080;">/// &lt;returns&gt;&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> Object GetCache(<span style="color: #0000ff;">string</span> key)
+        {
+            <span style="color: #0000ff;">return</span> _memoryCache.Get(key);
+        }
+        <span style="color: #808080;">/// &lt;summary&gt;</span>
+        <span style="color: #808080;">/// 移除缓存</span>
+        <span style="color: #808080;">/// &lt;/summary&gt;</span>
+        <span style="color: #808080;">/// &lt;param name="key"&gt;&lt;/param&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Remove(<span style="color: #0000ff;">string</span> key)
+        {
+            _memoryCache.Remove(key);
+        }
+        <span style="color: #808080;">/// &lt;summary&gt;</span>
+        <span style="color: #808080;">/// 设置缓存</span>
+        <span style="color: #808080;">/// &lt;/summary&gt;</span>
+        <span style="color: #808080;">/// &lt;param name="key"&gt;&lt;/param&gt;</span>
+        <span style="color: #808080;">/// &lt;param name="value"&gt;&lt;/param&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> SetCache(<span style="color: #0000ff;">string</span> key, Object <span style="color: #0000ff;">value</span>)
+        {
+            _memoryCache.GetOrCreate(key, entry =&gt;
+            {
+                <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">value</span>;
+            });
+        }
+        <span style="color: #808080;">/// &lt;summary&gt;</span>
+        <span style="color: #808080;">/// 设置缓存(固定时间过期)</span>
+        <span style="color: #808080;">/// &lt;/summary&gt;</span>
+        <span style="color: #808080;">/// &lt;param name="key"&gt;&lt;/param&gt;</span>
+        <span style="color: #808080;">/// &lt;param name="value"&gt;&lt;/param&gt;</span>
+        <span style="color: #808080;">/// &lt;param name="absoluteExpiration"&gt;&lt;/param&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> SetCacheAbsolute(<span style="color: #0000ff;">string</span> key, Object <span style="color: #0000ff;">value</span>, <span style="color: #0000ff;">int</span> absoluteExpiration)
+        {
+            _memoryCache.GetOrCreate(key, entry =&gt;
+            {
+
+                entry.SetAbsoluteExpiration(TimeSpan.FromSeconds(absoluteExpiration));
+                <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">value</span>;
+            });
+        }
+        <span style="color: #808080;">/// &lt;summary&gt;</span>
+        <span style="color: #808080;">/// 设置缓存(滚动时间过期)</span>
+        <span style="color: #808080;">/// &lt;/summary&gt;</span>
+        <span style="color: #808080;">/// &lt;param name="key"&gt;&lt;/param&gt;</span>
+        <span style="color: #808080;">/// &lt;param name="value"&gt;&lt;/param&gt;</span>
+        <span style="color: #808080;">/// &lt;param name="slidingExpiration"&gt;&lt;/param&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> SetCacheSliding(<span style="color: #0000ff;">string</span> key, Object <span style="color: #0000ff;">value</span>, <span style="color: #0000ff;">int</span> slidingExpiration)
+        {
+            _memoryCache.GetOrCreate(key, entry =&gt;
+            {
+
+                entry.SetSlidingExpiration(TimeSpan.FromSeconds(slidingExpiration));
+                <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">value</span>;
+            });
+        }
+
+        #endregion
+
+        #region 文件依赖缓存
+        <span style="color: #808080;">/// &lt;summary&gt;</span>
+        <span style="color: #808080;">/// 文件依赖缓存</span>
+        <span style="color: #808080;">/// &lt;/summary&gt;</span>
+        <span style="color: #808080;">/// &lt;param name="key"&gt;&lt;/param&gt;</span>
+        <span style="color: #808080;">/// &lt;param name="fullName"&gt;&lt;/param&gt;</span>
+        <span style="color: #808080;">/// &lt;returns&gt;&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">string</span> DependentCacheFile(<span style="color: #0000ff;">string</span> key, <span style="color: #0000ff;">string</span> fullName)
+        {
+            var basePath = PFTFile.GetDirectoryName(fullName);
+            var fileName = PFTFile.GetFileName(fullName);
+            var fileProvider = <span style="color: #0000ff;">new</span> PhysicalFileProvider(basePath);
+            <span style="color: #0000ff;">return</span> _memoryCache.GetOrCreate(key, entry =&gt;
+            {
+                entry.AddExpirationToken(fileProvider.Watch(fileName));
+                <span style="color: #0000ff;">return</span> PFTFile.IsExistFile(fullName) ? PFTFile.ReadFile(fullName) : <span style="color: #0000ff;">string</span>.Empty;
+            });
+        }
+        #endregion
+
+    }</pre>
+</div>
+<p>好了，关于缓存这块蜗牛就先说到这里。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

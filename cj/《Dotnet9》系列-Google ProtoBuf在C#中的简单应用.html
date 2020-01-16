@@ -1,0 +1,124 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修《Dotnet9》系列-Google ProtoBuf在C#中的简单应用' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>《Dotnet9》系列-Google ProtoBuf在C#中的简单应用</center></div><div class='banquan'>原文出处:本文由博客园博主Dotnet9个人博客提供。<br/>
+原文连接:https://www.cnblogs.com/Dotnet9-com/p/12052131.html</div><br>
+    <blockquote>
+<p>时间如流水，只能流去不流回！</p>
+<p>点赞再看，养成习惯，这是您给我创作的动力！</p>
+<p>本文 Dotnet9 https://dotnet9.com 已收录，站长乐于分享dotnet相关技术，比如Winform、WPF、ASP.NET Core等，亦有C++桌面相关的Qt Quick和Qt Widgets等，只分享自己熟悉的、自己会的。</p>
+</blockquote>
+<h2 id="major1">简介</h2>
+<p>什么是 Google Protocol Buffer？ 假如您在网上搜索，应该会得到类似这样的文字介绍：</p>
+<p>Google Protocol Buffer( 简称 Protobuf) 是 Google 公司内部的混合语言数据标准，目前已经正在使用的有超过 48,162 种报文格式定义和超过 12,183 个 .proto 文件。他们用于 RPC 系统和持续数据存储系统。</p>
+<p>Protocol Buffers 是一种轻便高效的结构化数据存储格式，可以用于结构化数据串行化，或者说序列化。它很适合做数据存储或 RPC 数据交换格式。可用于通讯协议、数据存储等领域的语言无关、平台无关、可扩展的序列化结构数据格式。目前提供了 C++、Java、Python 三种语言的 API。</p>
+<p>说一千道一万，Google Protocol Buffer是一个序列化数据结构好帮手， &nbsp;相对于XML、二进制序列化方式，Protobuf效率较高，支持数据量较大，protobuf序列化后的大小是json的1/10，xml格式的1/20，是二进制序列化的1/10&nbsp;(具体本人未测试过，数据由此篇文章得到：<a href="https://blog.csdn.net/jiankunking/article/details/49739303" rel="noreferrer noopener" target="_blank">protobuf效率</a>)</p>
+<h2>C#中怎么使用？</h2>
+<h3>一、准备工作</h3>
+<ol>
+<li>Visual Studio 2019(其他版本亦可）</li>
+<li>Nuget安装：Google.Protobuf和Google.Protobuf.Tools</li>
+<li>准备.proto文件</li>
+</ol>
+<h2>二、关于proto文件</h2>
+<p>使用ProtoBuf，主要有两个操作：序列化和反序列化。这两个操作都需要协议描述文件，也就是.proto文件。如果要使用protobuf存储自定义的数据，就要自己编写proto文件，如果要读取其他的ProtoBuf序列化文件，就要先知道要读取的ProtoBuf序列化文件的协议，也就是要获得对应的.proto文件，这是一个必须条件，没有对应的proto文件,就无法正确打开ProtoBuf序列化文件。</p>
+<h2>三、步骤</h2>
+<p>1、安装Google.Protobuf和Google.Protobuf.Tools的Nuget包</p>
+<p><a class="j-wpcom-lightbox" href="./images/《Dotnet9》系列-Google ProtoBuf在C#中的简单应用0.png" data-group="nogroup" data-id="0" data-index="0"><img class="wp-image-755 j-lazy" src="./images/《Dotnet9》系列-Google ProtoBuf在C#中的简单应用0.png" alt="《Dotnet9》系列-Google ProtoBuf在C#中的简单应用" data-original="./images/《Dotnet9》系列-Google ProtoBuf在C#中的简单应用0.png" /></a></p>
+<p>2、在Google.Protobuf.Tools下找到编译工具protoc.exe，我的电脑中路径是：C:\Users\admin.nuget\packages\google.protobuf.tools\3.10.1\tools\windows_x64，在此目录之上，还有很多版本，看您程序具体版本及tools版本而定。</p>
+<p>3、准备好协议描述文件xx.proto，需要注意的是，proto文件之间可以互相引用，要正常使用，必须把所有相关的proto文件都准备好。下面是我自己写的一个测试文件test.proto：</p>
+<div class="cnblogs_code">
+<pre><code>syntax = <span style="color: #800000;">"</span><span style="color: #800000;">proto3</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+option cc_enable_arenas </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+
+package Test;
+
+message TestContact {
+    int32 ID </span>= <span style="color: #800080;">1</span><span style="color: #000000;">;
+    </span><span style="color: #0000ff;">string</span> Address = <span style="color: #800080;">2</span><span style="color: #000000;">;
+    </span><span style="color: #0000ff;">string</span> Name = <span style="color: #800080;">3</span><span style="color: #000000;">;
+}</span></pre>
+</div>
+<p>4、生成解码器</p>
+<ol>
+<li>建立两个文件夹，一个名为src,另一个为gen</li>
+<li>把准备好的proto文件全部放到src中，如我的test.proto</li>
+<li>运行命令:.\protoc.exe &ndash;proto_path=src &ndash;csharp_out=gen test.proto</li>
+<li>把所有的proto文件都生成一遍</li>
+<li>在gen文件夹中，会发现有等量的.cs文件，这就是对应的解码器，我们要把他们放进自己的工程中。</li>
+</ol>
+<p><a class="j-wpcom-lightbox" href="./images/《Dotnet9》系列-Google ProtoBuf在C#中的简单应用1.png" data-group="nogroup" data-id="1" data-index="1"><img class="wp-image-753 j-lazy" src="./images/《Dotnet9》系列-Google ProtoBuf在C#中的简单应用1.png" alt="《Dotnet9》系列-Google ProtoBuf在C#中的简单应用" data-original="./images/《Dotnet9》系列-Google ProtoBuf在C#中的简单应用1.png" /></a><a class="j-wpcom-lightbox" href="./images/《Dotnet9》系列-Google ProtoBuf在C#中的简单应用2.png" data-group="nogroup" data-id="2" data-index="2"><img class="wp-image-756 j-lazy" src="./images/《Dotnet9》系列-Google ProtoBuf在C#中的简单应用2.png" alt="《Dotnet9》系列-Google ProtoBuf在C#中的简单应用" data-original="./images/《Dotnet9》系列-Google ProtoBuf在C#中的简单应用2.png" /></a><a class="j-wpcom-lightbox" href="./images/《Dotnet9》系列-Google ProtoBuf在C#中的简单应用3.png" data-group="nogroup" data-id="3" data-index="3"><img class="wp-image-754 j-lazy" src="./images/《Dotnet9》系列-Google ProtoBuf在C#中的简单应用3.png" alt="《Dotnet9》系列-Google ProtoBuf在C#中的简单应用" data-original="./images/《Dotnet9》系列-Google ProtoBuf在C#中的简单应用3.png" /></a><a class="j-wpcom-lightbox" href="./images/《Dotnet9》系列-Google ProtoBuf在C#中的简单应用4.png" data-group="nogroup" data-id="4" data-index="4"><img class="wp-image-757 j-lazy" src="./images/《Dotnet9》系列-Google ProtoBuf在C#中的简单应用4.png" alt="《Dotnet9》系列-Google ProtoBuf在C#中的简单应用" data-original="./images/《Dotnet9》系列-Google ProtoBuf在C#中的简单应用4.png" /></a><a class="j-wpcom-lightbox" href="./images/《Dotnet9》系列-Google ProtoBuf在C#中的简单应用5.png" data-group="nogroup" data-id="5" data-index="5"><img class="wp-image-751 j-lazy" src="./images/《Dotnet9》系列-Google ProtoBuf在C#中的简单应用5.png" alt="《Dotnet9》系列-Google ProtoBuf在C#中的简单应用" data-original="./images/《Dotnet9》系列-Google ProtoBuf在C#中的简单应用5.png" /></a></p>
+<p>5、打开安装了Google.Protobuf和Google.Protobuf.Tools的Nuget包的C#工程，把刚刚生成的解码器导入工程中。</p>
+<p><a class="j-wpcom-lightbox" href="https://lsq6.com/wp-content/uploads/2019/11/code_structure.png" data-group="nogroup" data-id="6" data-index="6"><img class="wp-image-1005 j-lazy" src="./images/《Dotnet9》系列-Google ProtoBuf在C#中的简单应用6.png" alt="《Dotnet9》系列-Google ProtoBuf在C#中的简单应用" data-original="https://lsq6.com/wp-content/uploads/2019/11/code_structure.png" /></a>我把tools工具和proto文件及proto cs文件一起放入工程的代码结构</p>
+<p>6、具体使用代码</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">using</span><span style="color: #000000;"> Google.Protobuf;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.IO;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> Test;
+
+</span><span style="color: #0000ff;">namespace</span><span style="color: #000000;"> protoctest
+{
+    </span><span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            TestContact t </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> TestContact();
+            t.ID </span>= <span style="color: #800080;">1</span><span style="color: #000000;">;
+            t.Name </span>= <span style="color: #800000;">"</span><span style="color: #800000;">xiao ming</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            t.Address </span>= <span style="color: #800000;">"</span><span style="color: #800000;">Cheng Du</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">序列化之前：{t}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">序列化操作</span>
+            <span style="color: #0000ff;">byte</span>[] data = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">byte</span><span style="color: #000000;">[t.CalculateSize()];
+            </span><span style="color: #0000ff;">using</span> (CodedOutputStream cos = <span style="color: #0000ff;">new</span><span style="color: #000000;"> CodedOutputStream(data))
+            {
+                t.WriteTo(cos);
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">data = cos.to.ToArray();</span>
+<span style="color: #000000;">            }
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">反序列化操作</span>
+            TestContact t1 =<span style="color: #000000;"> TestContact.Parser.ParseFrom(data);
+            Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">反序列化得到：{t1}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+
+            Console.ReadKey();
+        }
+    }
+}</span></pre>
+</div>
+<p>7、运行效果如下</p>
+<p><a class="j-wpcom-lightbox" href="./images/《Dotnet9》系列-Google ProtoBuf在C#中的简单应用7.png" data-group="nogroup" data-id="7" data-index="7"><img class="wp-image-752 j-lazy" src="./images/《Dotnet9》系列-Google ProtoBuf在C#中的简单应用7.png" alt="《Dotnet9》系列-Google ProtoBuf在C#中的简单应用" data-original="./images/《Dotnet9》系列-Google ProtoBuf在C#中的简单应用7.png" /></a></p>
+<h2>四、代码</h2>
+<p>代码已上传CSDN:<a href="https://download.csdn.net/download/HenryMoore/11970818" rel="noreferrer noopener" target="_blank">C#使用Google ProtoBuf例子</a></p>
+<p>gitee:&nbsp;<a href="https://gitee.com/lsq6/GoogleProtoCSharpTest" rel="noreferrer noopener" target="_blank">https://gitee.com/lsq6/GoogleProtoCSharpTest</a></p>
+<h2>参考文章如下：</h2>
+<ol>
+<li><a href="https://developers.google.com/protocol-buffers/docs/csharptutorial" rel="noreferrer noopener" target="_blank">Protocol Buffer Basics: C#</a></li>
+<li><a href="https://blog.yowko.com/csharp-protobuf-serialize-deserialize/" rel="noreferrer noopener" target="_blank">C# 中使用 Protocol Buffers 協定來序列化與反序列化物件</a></li>
+<li><a href="https://blog.csdn.net/Angle_Cal/article/details/82821124" rel="noreferrer noopener" target="_blank">在C#中使用Google ProtoBuf</a></li>
+</ol>
+<blockquote>
+<p>除非注明，文章均由&nbsp;<span style="text-decoration: underline;"><a href="https://dotnet9.com/" target="_blank">Dotnet9</a></span>&nbsp;整理发布，欢迎转载。</p>
+<p>转载请注明本文地址：<span style="text-decoration: underline;"><a href="https://dotnet9.com/2019/12/it-technology/csharp/dotnet9-series-google-protobuf-in-csharp.html" target="_blank">https://dotnet9.com/2019/12/it-technology/csharp/dotnet9-series-google-protobuf-in-csharp.html</a></span></p>
+<p>如有所收获，请大力转发（能点赞及推荐那是极好的）；如觉小编写文不易，欢迎<a href="https://dotnet9.com/?p=745" target="_blank"><span style="text-decoration: underline;">给Dotnet9站点打赏</span></a>，小编谢谢了；谢谢大家对dotnet技术的关注和支持 。</p>
+</blockquote>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

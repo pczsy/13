@@ -1,0 +1,78 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修4、线程池（摘自C#高级编程第7版）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>4、线程池（摘自C#高级编程第7版）</center></div><div class='banquan'>原文出处:本文由博客园博主拭不去の泪痕提供。<br/>
+原文连接:https://www.cnblogs.com/schangxiang/p/11292949.html</div><br>
+    <div><span style="background-color: #c0c0c0; font-size: 18pt;">1、需求背景</span></div>
+<div>　　创建线程需要时间。如果有不同的小任务完成，就可以事先创建许多线程，在应完成这些任务时发出请求。这个线程数最好在需要更多的线程时增加，在需要释放资源时减少。</div>
+<div>&nbsp;</div>
+<div><span style="background-color: #c0c0c0; font-size: 18pt;">2、线程池出场</span></div>
+<div>　　不需要自己创建这样一个列表。该列表由ThreadPool类托管。这个类会在需要时增减池中线程的线程数，直到最大的线程数。池中的最大线程数是可配置的。</div>
+<div>　　在双核CPU中，默认设置为1023个工作线程和1000个I/O线程。四核CPU中，默认设置为2047个工作线程和1000个I/O线程。</div>
+<div>　　也可以指定在创建线程池时应立即启动的最小线程数，以及线程池中可用的最大线程数。</div>
+<div>　　如果有更多的作业要处理，线程池中线程的个数也到了极限，最新的作业就要排队，且必须等待线程完成其任务。</div>
+<div>&nbsp;</div>
+<div><span style="background-color: #c0c0c0; font-size: 18pt;">3、举个栗子</span></div>
+<div>　　下面的实例首先读取工作线程和I/O线程的最大线程数，把这些信息写入控制台中，接着在for循环中，调用ThreadPool.QueueUserWorkItem()方法，传递一个WaitCallBack类型的委托，把JobForAThread()方法赋予线程池中的线程。线程池接收到这个请求后，就会从池中选择一个线程，来调用该方法。</div>
+<div>　　如果线程池还没有运行，就会创建一个线程池，并启动第一个线程。如果线程池已经在运行，且有一个空闲线程来完成该任务，就把该任务传递给这个线程。</div>
+<div id="9559-1564783389877" class="block-view code-view yne-code-theme-default" data-language="javascript" data-theme="default">
+<div class="para-text">
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">class</span><span style="color: #000000;"> CLRThread2
+    {
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> ThreadMethod()
+        {
+            </span><span style="color: #0000ff;">int</span><span style="color: #000000;"> nWorkThreads;
+            </span><span style="color: #0000ff;">int</span><span style="color: #000000;"> nCompletionPortThreads;
+            ThreadPool.GetMaxThreads(</span><span style="color: #0000ff;">out</span> nWorkThreads, <span style="color: #0000ff;">out</span><span style="color: #000000;"> nCompletionPortThreads);
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Max worker threads:{0},I/O completion threads:{1}</span><span style="color: #800000;">"</span><span style="color: #000000;">, nWorkThreads, nCompletionPortThreads);
+ 
+            </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; <span style="color: #800080;">5</span>; i++<span style="color: #000000;">)
+            {
+                ThreadPool.QueueUserWorkItem(JobForAThread);
+            }
+            Thread.Sleep(</span><span style="color: #800080;">3000</span><span style="color: #000000;">);
+ 
+        }
+ 
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> JobForAThread(<span style="color: #0000ff;">object</span><span style="color: #000000;"> state)
+        {
+            </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; <span style="color: #800080;">3</span>; i++<span style="color: #000000;">)
+            {
+                Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">loop {0},running inside pooled thread {1}</span><span style="color: #800000;">"</span><span style="color: #000000;">, i, Thread.CurrentThread.ManagedThreadId);
+                Thread.Sleep(</span><span style="color: #800080;">50</span><span style="color: #000000;">);
+            }
+        }
+    }</span></pre>
+</div>
+</div>
+</div>
+<div>&nbsp;<img src="./images/4、线程池（摘自C#高级编程第7版）0.png" alt="" /></div>
+<div><span style="background-color: #c0c0c0; font-size: 18pt;">4、线程池的使用限制</span></div>
+<div>　　线程池用起来简单，但它有一些限制：</div>
+<ul>
+<li>线程池中的所有线程都是后台线程。如果进程的所有前台线程都结束了，所有的后台线程就会停止。不能把入池的线程改为前台线程。</li>
+<li>不能给入池的线程设置优先级或名称</li>
+<li>对于COM对象，入池的所有线程都是多线程单元（multitihreaded apartment,MTA）线程。许多COM对象都需要单线程单元（single-threaded apartmeng,STA）线程</li>
+<li>入池的线程只能用于时间较短的任务。如果线程要一直运行（如Word的拼写检查器线程），就应该使用Thread类创建一个线程。</li>
+</ul>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

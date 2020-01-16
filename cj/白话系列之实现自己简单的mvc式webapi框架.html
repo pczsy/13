@@ -1,0 +1,323 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修白话系列之实现自己简单的mvc式webapi框架' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>白话系列之实现自己简单的mvc式webapi框架</center></div><div class='banquan'>原文出处:本文由博客园博主Best_Hong提供。<br/>
+原文连接:https://www.cnblogs.com/yichaohong/p/11579598.html</div><br>
+    <p><span style="font-size: 18px;">前言:此文为极简mvc式的api框架,只当做入门api的解析方式,并且这里也不算是mvc框架,因为没有view层,毕竟现在大部分都属于前后端分离,当然也可以提供view层,因为只是将view当做文本返回.</span></p>
+<p><span style="font-size: 18px;">github地址:https://github.com/BestHYC/WebAPISolution.git</span></p>
+<p><span style="font-size: 18px;">演示例子:</span></p>
+<p><span style="font-size: 18px;"><img src="./images/白话系列之实现自己简单的mvc式webapi框架0.png" alt="" /></span></p>
+<p>&nbsp;</p>
+<p><span style="font-size: 18px;"></span></p>
+<p>&nbsp;</p>
+<p><span style="font-size: 18px;">&nbsp;</span></p>
+<p><span style="font-size: 18px;">目标:</span></p>
+<p><span style="font-size: 18px;">1.针对Home/default进行解析.</span><span style="font-size: 18px;">2.提供简单的httpcontext处理.</span><span style="font-size: 18px;">3.对mvc的框架有个最简单的了解.4.一步步通过好的框架风格,建立自己的框架风格</span></p>
+<p><span style="font-size: 18px;">关键还有一点就是很多东西比你想的还简单,难得是里面可扩展可维护的实现方式以及面面俱到的安全验证.但是前人栽树后人乘凉,我们借鉴就好.</span></p>
+<p><span style="font-size: 18px;">一:创建controller对象</span></p>
+<p><span style="font-size: 18px;">目标:通过工厂模式,获取所有controller,并创建其对象</span></p>
+<p><span style="font-size: 18px;">1.1.定义接口,并定义所有Controller继承的基类ApiBaseController</span></p>
+<div class="cnblogs_Highlighter">
+<pre><code>    public interface IApiController
+    {
+    }
+    public abstract class ApiBaseController : IApiController
+    {
+    }
+</pre>
+</div>
+<p>　　<span style="font-size: 18px;">模拟创建一个Controller,这就是我们自己定义的控制器,其实就是你自己实现的控制器</span></p>
+<div class="cnblogs_Highlighter">
+<pre><code>    public class HomeController : ApiBaseController
+    {
+    }
+</pre>
+</div>
+<p><span style="font-size: 18px;">1.2.通过工厂模式,通过名称调用对应的控制对象,因为控制器基本上不会改变,然后通过name找到对应的控制器</span></p>
+<div class="cnblogs_Highlighter">
+<pre><code>   public interface IControllerFactory
+    {
+        IApiController CreateController(String name);
+    }
+    public class DefaultControllerFactory : IControllerFactory
+    {
+        private static List&lt;Type&gt; controllerTypes = new List&lt;Type&gt;();
+        static DefaultControllerFactory()
+        {
+            Assembly assembly = Assembly.GetExecutingAssembly();
+            foreach (Type type in assembly.GetTypes().Where(type =&gt; typeof(IApiController).IsAssignableFrom(type)))
+            {
+                controllerTypes.Add(type);
+            }
+        }
+        public IApiController CreateController(String name)
+        {
+            if (name.IndexOf("Controller") == -1) name += "Controller";
+            Type controllerType = controllerTypes.FirstOrDefault(c =&gt; String.Compare(name, c.Name, true) == 0);
+            if (controllerType == null)
+            {
+                return null;
+            }
+            return (IApiController)Activator.CreateInstance(controllerType);
+        }
+    }
+</pre>
+</div>
+<p><span style="font-size: 18px;">ok,这样就可以取个简单的控制器工厂模式.</span></p>
+<p><span style="font-size: 18px;">二:既然控制器已经创建,那么同样的情况调用里面的方法,目前home/default,会直接解析成default方法</span></p>
+<p><span style="font-size: 18px;">1.先简单的实现出调用方法</span></p>
+<p>&nbsp;</p>
+<div class="cnblogs_Highlighter">
+<pre><code>    public interface ActionInvoker
+    {
+        void InvokeAction(Object type, String actionName);
+    }
+    public class DefaultActionInvoker : ActionInvoker
+    {
+        public void InvokeAction(Object controller, String actionName)
+        {
+            MethodInfo methodInfo = controller.GetType().GetMethods().First(m =&gt; String.Compare(actionName, m.Name, true) == 0);
+            methodInfo.Invoke(controller, null);
+        }
+    }
+</pre>
+</div>
+<p>&nbsp;</p>
+<p><span style="font-size: 18px;">此处非常简单,就直接调用对应的方法名即可,这就是webapi在解析路由中出现的最简单的实现方式,</span></p>
+<p><span style="font-size: 18px;">其实理论就是如此简单,没其他人想的那么困难,接下来开始会做修饰,一步步来构建一个也是简单,但是稍微有点健全的api</span></p>
+<p><span style="font-size: 18px;">三:优化代码,针对控制器及方法做缓存</span></p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('8b4f0af2-38b8-45e6-a30a-8563a9f77024')"><img id="code_img_closed_8b4f0af2-38b8-45e6-a30a-8563a9f77024" class="code_img_closed" src="./images/白话系列之实现自己简单的mvc式webapi框架1.png" alt="" /><img id="code_img_opened_8b4f0af2-38b8-45e6-a30a-8563a9f77024" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('8b4f0af2-38b8-45e6-a30a-8563a9f77024',event)" src="./images/白话系列之实现自己简单的mvc式webapi框架2.png" alt="" />
+<div id="cnblogs_code_open_8b4f0af2-38b8-45e6-a30a-8563a9f77024" class="cnblogs_code_hide">
+<pre><code><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+    <span style="color: #808080;">///</span><span style="color: #008000;"> 全局所有IApiController类型的操作都是由此处进行缓存
+    </span><span style="color: #808080;">///</span><span style="color: #008000;"> 其他地方只做类型处理,比如 A/B,那么是对应的是AController 还是A,都是其他地方做处理
+    </span><span style="color: #808080;">///</span><span style="color: #008000;"> 注意此处,只当做类型及方法的缓存,不做任何对执行返回结果及传递对象的处理,保持功能单一
+    </span><span style="color: #808080;">///</span><span style="color: #008000;"> 保持路径单一,即A/B中A控制器只有1个,B方法也只有1个,即使有重载,也必须得通过 路由名 进行区分
+    </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+    <span style="color: #0000ff;">internal</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> ApiControllerActionCache
+    {
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> Dictionary&lt;String, Type&gt; s_controllerTypes = <span style="color: #0000ff;">new</span> Dictionary&lt;<span style="color: #0000ff;">string</span>, Type&gt;<span style="color: #000000;">();
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> Dictionary&lt;Type, ActionCache&gt; s_actionCache = <span style="color: #0000ff;">new</span> Dictionary&lt;Type, ActionCache&gt;<span style="color: #000000;">();
+        </span><span style="color: #0000ff;">static</span><span style="color: #000000;"> ApiControllerActionCache()
+        {
+            Assembly assembly </span>=<span style="color: #000000;"> Assembly.GetExecutingAssembly();
+            </span><span style="color: #0000ff;">foreach</span> (Type type <span style="color: #0000ff;">in</span> assembly.GetTypes().Where(type =&gt; <span style="color: #0000ff;">typeof</span><span style="color: #000000;">(IApiController).IsAssignableFrom(type)))
+            {
+                String name </span>=<span style="color: #000000;"> type.Name;
+                </span><span style="color: #0000ff;">if</span>(type.GetCustomAttribute&lt;PreRouteAttribute&gt;() != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+                {
+                    name </span>= type.GetCustomAttribute&lt;PreRouteAttribute&gt;<span style="color: #000000;">().PreRouteName;
+                }
+                </span><span style="color: #0000ff;">if</span> (s_controllerTypes.ContainsKey(name)) <span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> Exception($<span style="color: #800000;">"</span><span style="color: #800000;">{name}存在相同的路由名,请保持路由唯一</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                s_controllerTypes.Add(name, type);
+                s_actionCache.Add(type, </span><span style="color: #0000ff;">new</span><span style="color: #000000;"> ActionCache(type));
+            }
+        }
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span><span style="color: #000000;"> Type GetController(String controllername)
+        {
+            </span><span style="color: #0000ff;">if</span> (!s_controllerTypes.ContainsKey(controllername)) <span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> Exception(<span style="color: #800000;">"</span><span style="color: #800000;">没有此路由对应的类型</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> s_controllerTypes[controllername];
+        }
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 通过路由值获取对应的委托方法
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="controllername"&gt;&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="actionname"&gt;&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> Func&lt;IApiController, Object[], Object&gt;<span style="color: #000000;"> GetMethod(Type controller, String actionname)
+        {
+            </span><span style="color: #0000ff;">if</span>(!s_actionCache.ContainsKey(controller)) <span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> Exception(<span style="color: #800000;">"</span><span style="color: #800000;">没有此路由对应的类型</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            ActionCache cache </span>=<span style="color: #000000;"> s_actionCache[controller];
+            </span><span style="color: #0000ff;">if</span> (!cache.ContainsKey(actionname)) <span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> Exception(<span style="color: #800000;">"</span><span style="color: #800000;">没有此路由对应的方法</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> cache.GetMethodInfo(actionname);
+        }
+    }
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> ActionCache
+    {
+        </span><span style="color: #0000ff;">private</span> Dictionary&lt;String, MethodInfo&gt;<span style="color: #000000;"> m_methodinfo;
+        </span><span style="color: #0000ff;">private</span> Dictionary&lt;MethodInfo, Func&lt;IApiController, Object[], Object&gt;&gt;<span style="color: #000000;"> m_FuncCache ;
+        </span><span style="color: #0000ff;">public</span> MethodInfo <span style="color: #0000ff;">this</span><span style="color: #000000;">[String name]
+        {
+            </span><span style="color: #0000ff;">get</span><span style="color: #000000;">
+            {
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> m_methodinfo[name];
+            }
+        }
+        </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> Boolean ContainsKey(String name)
+        {
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> m_methodinfo.ContainsKey(name);
+        }
+        </span><span style="color: #0000ff;">private</span> Object m_lock = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Object();
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 可以考虑延迟加载
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="type"&gt;&lt;/param&gt;</span>
+        <span style="color: #0000ff;">public</span><span style="color: #000000;"> ActionCache(Type type)
+        {
+            m_methodinfo </span>= <span style="color: #0000ff;">new</span> Dictionary&lt;String, MethodInfo&gt;<span style="color: #000000;">();
+            m_FuncCache </span>= <span style="color: #0000ff;">new</span> Dictionary&lt;MethodInfo, Func&lt;IApiController, <span style="color: #0000ff;">object</span>[], <span style="color: #0000ff;">object</span>&gt;&gt;<span style="color: #000000;">();
+            </span><span style="color: #0000ff;">foreach</span>(MethodInfo info <span style="color: #0000ff;">in</span><span style="color: #000000;"> type.GetMethods())
+            {
+                String name </span>=<span style="color: #000000;"> info.Name;
+                </span><span style="color: #0000ff;">if</span>(info.GetCustomAttribute&lt;RouteAttribute&gt;() != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+                {
+                    name </span>= info.GetCustomAttribute&lt;RouteAttribute&gt;<span style="color: #000000;">().RouteName;
+                }
+                </span><span style="color: #0000ff;">if</span> (m_methodinfo.ContainsKey(name)) <span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> Exception($<span style="color: #800000;">"</span><span style="color: #800000;">{type.Name}中{name}重复,请保持路径唯一</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                m_methodinfo.Add(name, info);
+            }
+        }
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 通过名称获取对应的委托
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="methodInfo"&gt;&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;</span><span style="color: #008000;">IApiController:传递的执行方法, Object[]:方法参数, Object 返回值,void为空</span><span style="color: #808080;">&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">public</span> Func&lt;IApiController, Object[], Object&gt;<span style="color: #000000;"> GetMethodInfo(String methodName)
+        {
+            MethodInfo methodInfo </span>=<span style="color: #000000;"> m_methodinfo[methodName];
+            </span><span style="color: #0000ff;">if</span> (!<span style="color: #000000;">m_FuncCache.ContainsKey(methodInfo))
+            {
+                </span><span style="color: #0000ff;">lock</span><span style="color: #000000;"> (m_lock)
+                {
+                    </span><span style="color: #0000ff;">if</span> (!<span style="color: #000000;">m_FuncCache.ContainsKey(methodInfo))
+                    {
+                        m_FuncCache.Add(methodInfo, CreateExecutor(methodInfo));
+                    }
+                }
+            }
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> m_FuncCache[methodInfo];
+        }
+        </span><span style="color: #0000ff;">private</span> Func&lt;Object, Object[], Object&gt;<span style="color: #000000;"> CreateExecutor(MethodInfo methodInfo)
+        {
+            ParameterExpression target </span>= Expression.Parameter(<span style="color: #0000ff;">typeof</span>(Object), <span style="color: #800000;">"</span><span style="color: #800000;">target</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            ParameterExpression arguments </span>= Expression.Parameter(<span style="color: #0000ff;">typeof</span>(Object[]), <span style="color: #800000;">"</span><span style="color: #800000;">arguments</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            List</span>&lt;Expression&gt; parameters = <span style="color: #0000ff;">new</span> List&lt;Expression&gt;<span style="color: #000000;">();
+            ParameterInfo[] paramInfos </span>=<span style="color: #000000;"> methodInfo.GetParameters();
+            </span><span style="color: #0000ff;">for</span> (Int32 i = <span style="color: #800080;">0</span>; i &lt; paramInfos.Length; i++<span style="color: #000000;">)
+            {
+                ParameterInfo paramInfo </span>=<span style="color: #000000;"> paramInfos[i];
+                BinaryExpression getElementByIndex </span>=<span style="color: #000000;"> Expression.ArrayIndex(arguments, Expression.Constant(i));
+                UnaryExpression converToParamterType </span>=<span style="color: #000000;"> Expression.Convert(getElementByIndex, paramInfo.ParameterType);
+                parameters.Add(converToParamterType);
+            }
+            UnaryExpression instanceCast </span>=<span style="color: #000000;"> Expression.Convert(target, methodInfo.ReflectedType);
+            MethodCallExpression methodCall </span>=<span style="color: #000000;"> Expression.Call(instanceCast, methodInfo, parameters);
+            UnaryExpression converToObjectType </span>= Expression.Convert(methodCall, <span style="color: #0000ff;">typeof</span><span style="color: #000000;">(Object));
+            </span><span style="color: #0000ff;">return</span> Expression.Lambda&lt;Func&lt;Object, Object[], Object&gt;&gt;<span style="color: #000000;">(converToObjectType, target, arguments).Compile();
+        }
+    }</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p><span style="font-size: 18px;">&nbsp;注意:此处对全局controller做了一次缓存,限制为不会通过传的参数进行判定使用哪个方法,只允许单个接口存在,即</span></p>
+<p><span style="font-size: 18px;">1.如果在不同空间下具有相同类型名的,必须具有不同的preroute特性限定,</span></p>
+<p><span style="font-size: 18px;">2.如果一个类方法重载,得通过route特性限定唯一标识</span></p>
+<p><span style="font-size: 18px;">3.表达式树是通过创建一个委托,传递当前的controller对象调用对应的方法</span></p>
+<p><span style="font-size: 18px;">以上并不算框架,只属于单一调用方法功能实现,并做优化,接下来属于API框架实现</span></p>
+<p><span style="font-size: 18px;">四:API实现首先得确定传输的值及协议标准,</span></p>
+<p><span style="font-size: 18px;">4.1.确定传输中的必须信息,去掉其他所有的额外信息后有如下几点,为求简单,先全部保存成字符串形式:</span></p>
+<p><span style="font-size: 18px;">从哪里来(URlReferrer),到哪里去 URL(请求的接口),</span></p>
+<p><span style="font-size: 18px;">URL请求的参数(a/b?query=1中的query值解析),body中保存的值(frombody),包含的请求头参数(Headers)</span></p>
+<p><span style="font-size: 18px;">所有请求处理完成后,返回的值信息</span></p>
+<p>&nbsp;</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('30159c12-3638-4666-8b42-5eb1bc06e797')"><img id="code_img_closed_30159c12-3638-4666-8b42-5eb1bc06e797" class="code_img_closed" src="./images/白话系列之实现自己简单的mvc式webapi框架1.png" alt="" /><img id="code_img_opened_30159c12-3638-4666-8b42-5eb1bc06e797" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('30159c12-3638-4666-8b42-5eb1bc06e797',event)" src="./images/白话系列之实现自己简单的mvc式webapi框架2.png" alt="" />
+<div id="cnblogs_code_open_30159c12-3638-4666-8b42-5eb1bc06e797" class="cnblogs_code_hide">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> HttpRequest
+    {
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 从哪里来的
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> String UrlReferrer { <span style="color: #0000ff;">get</span><span style="color: #000000;">; }
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 到哪里去
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> String Uri { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> Uri请求参数处理
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> String QueryParams { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 请求的内容
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> String RequestContent { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 请求头参数
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> String Headers { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+    }
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> HttpResponse
+    {
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 返回的内容
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> String ResponseContent { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+    }
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> HttpContext
+    {
+        </span><span style="color: #0000ff;">public</span> HttpRequest Request { <span style="color: #0000ff;">get</span><span style="color: #000000;">; }
+        </span><span style="color: #0000ff;">public</span> HttpResponse Response { <span style="color: #0000ff;">get</span><span style="color: #000000;">; }
+    }</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp;</p>
+<p><span style="font-size: 18px;">此处只是单纯做展示使用,在后期会写一个MQ中间件时候,在做扩展.只展示HttpContext</span></p>
+<p><span style="font-size: 18px;">4.2.对Http请求做一个统一接口处理</span></p>
+<div class="cnblogs_code">
+<pre><code>    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> UrlRoutingModule : IRoutingModule
+    {
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> Init(HttpBaseContext context)
+        {
+            
+        }
+    }</span></pre>
+</div>
+<p>五:通过路由模板收集</p>
+<p>5.1.在写API的时候,会添加一个defaultapi匹配路由,注意:这里以MVC的解析规则实现</p>
+<div class="cnblogs_code">
+<pre><code>    <br />&nbsp;RouteConfig.RegisterRoutes(RouteTable.Routes);<br /><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> RouteConfig
+    {
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> RegisterRoutes(RouteCollection routes)
+        {
+            routes.IgnoreRoute("{resource}.axd/{*pathInfo}");
+            routes.MapRoute(
+                name: </span><span style="color: #800000;">"</span><span style="color: #800000;">DefaultApi</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+                routeTemplate: </span><span style="color: #800000;">"</span><span style="color: #800000;">api/{controller}/{action}/{id}</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+                defaults: new { controller = "Home", action = "Index", id = UrlParameter.Optional }</span><span style="color: #000000;">
+            );
+        }
+    }</span></pre>
+</div>
+<p>5.2.考虑此模板的功能及实现方式</p>
+<p>1.因为可能有多个默认匹配,并且执行的是顺序加载过程,所以有个RouteTable静态类收集全局模板路由</p>
+<p>2.路由有对应的默认路由及路由值(Route RouteData)及收集Collection</p>
+<p>3.Route实现路由解析,并提供RouteData值,并提供实现</p>
+<p>4.在解析Route的时候,通过生成的路由句柄DefaultRouterHandler去RouteData进行后续处理</p>
+<p>5.通过DefaultApiHandler对路由进行解析,生成对应的控制器</p>
+<p>6.通过controller,对当前的action进行解析,并绑定路由</p>
+<p>7.调取当前执行的方法后,获取返回的值对象,并对返回值进行处理</p>
+<p>大体的模型调用过程如图</p>
+<p><img src="./images/白话系列之实现自己简单的mvc式webapi框架5.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;6:实现代码:请查看对应的github地址</p>
+<p>https://github.com/BestHYC/WebAPISolution.git</p>
+<p>7.例子:(已经准备好对应的json序列化解析,赋值粘贴即可,看上图)</p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

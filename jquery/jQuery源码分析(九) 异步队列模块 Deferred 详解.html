@@ -1,0 +1,184 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修jQuery源码分析(九) 异步队列模块 Deferred 详解' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>jQuery源码分析(九) 异步队列模块 Deferred 详解</center></div><div class='banquan'>原文出处:本文由博客园博主大沙漠提供。<br/>
+原文连接:https://www.cnblogs.com/greatdesert/p/11454359.html</div><br>
+    <p>deferred对象就是jQuery的回调函数解决方案，它解决了如何处理耗时操作的问题,比如一些Ajax操作，动画操作等。(P.s:紧跟上一节:https://www.cnblogs.com/greatdesert/p/11433365.html的内容)</p>
+<p>异步队列有三种状态:待定(pending)、成功(resolved)和失败(rejected),初始时处于pending状态</p>
+<p>我们可以使用jQuery.Deferred创建一个异步队列，返回一个对象，该对象含有如下操作:</p>
+<ul>
+<li>done(fn/arr)&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp; 　　　　　　　　;添加成功回调函数，当异步队列处于成功状态时被调用,参数同:jQuery.Callbacks(flags).add(fn/arr)</li>
+<li>fail(fn/arr)&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; 　　　　　　　 ;添加失败回调函数，参数同上</li>
+<li>progress(fn/arr)&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;　　　　 &nbsp; &nbsp; ;添加消息回调函数，参数同上</li>
+<li>then(donefn/arr,failfn/arr,profn/arr)&nbsp;&nbsp; &nbsp; ;同时添加成功回调函数、失败回调函数和消息回调函数</li>
+<li>always(fn/arr)&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;　　　　　　 ;添加回调函数到doneList和failList中，即保存两份引用，当异步队列处于成功或失败状态时被调用&nbsp;&nbsp; &nbsp;;参数可以是函数、函数列表</li>
+<li>state()&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;　　　　　　 &nbsp; &nbsp; &nbsp; &nbsp;;返回异步队列的当前状态、返回pending、resolved或者rejected</li>
+<li>promise(obj)&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;　　　　　&nbsp; ;如果设置了obj参数对象则为obj对象增加异步队列的方法并返回。如果未设置参数obj，则返回当前Deferred对象的只读副本</li>
+</ul>
+<p>如果调用$.Diferred()创建一个异步队列，返回后的对象可以调用如下几个方法:</p>
+<p class="hwi">&nbsp;writer by:大沙漠 QQ:22969969</p>
+<ul>
+<li>resolve(args)&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;　　　　　　&nbsp; ;使用指定的参数调用所有的成功回调函数，异步队列进入成功状态，之后就无法再调用</li>
+<li>reject(args)&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;　　　　　&nbsp; ;使用指定的参数调用所有的失败回调函数，异步队列进入失败状态</li>
+<li>notify(args)&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;　　　　 &nbsp; &nbsp; &nbsp;;使用指定的参数调用所有的消息回调函数</li>
+<li>resolveWith(context,args)&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;　&nbsp; ;使用指定的上下文和参数调用所有的成功回调函数，异步队列进入成功状态</li>
+<li>rejectWith(context,args)&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;　　 ;使用指定的上下文和参数调用所有的失败回调函数，异步队列进入失败状态</li>
+<li>notifyWith(context,args)&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;　　 ;使用指定的上下文和参数调用所有的消息回调函数</li>
+</ul>
+<p>是不是和上一节介绍的Callbacks的fire和fireWith很像，Defferred内部就是通过通过Callback()回调函数列表来实现的，例如:</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;!</span><span style="color: #ff00ff;">DOCTYPE html</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">html </span><span style="color: #ff0000;">lang</span><span style="color: #0000ff;">="en"</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">head</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">meta </span><span style="color: #ff0000;">charset</span><span style="color: #0000ff;">="UTF-8"</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">title</span><span style="color: #0000ff;">&gt;</span>Document<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">title</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script </span><span style="color: #ff0000;">src</span><span style="color: #0000ff;">="http://libs.baidu.com/jquery/1.7.1/jquery.js"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">head</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">body</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span>
+    <span style="background-color: #f5f5f5; color: #0000ff;">function</span><span style="background-color: #f5f5f5; color: #000000;"> f1(x){console.log(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">f1 </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">+</span><span style="background-color: #f5f5f5; color: #000000;">x);}
+    </span><span style="background-color: #f5f5f5; color: #0000ff;">function</span><span style="background-color: #f5f5f5; color: #000000;"> f2(x){console.log(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">f2 </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">+</span><span style="background-color: #f5f5f5; color: #000000;">x);}
+    </span><span style="background-color: #f5f5f5; color: #0000ff;">function</span><span style="background-color: #f5f5f5; color: #000000;"> f3(x){console.log(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">f3 </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">+</span><span style="background-color: #f5f5f5; color: #000000;">x);}
+
+    </span><span style="background-color: #f5f5f5; color: #0000ff;">var</span><span style="background-color: #f5f5f5; color: #000000;"> t </span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #000000;"> $.Deferred();                   </span><span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;">创建异步队列</span>
+<span style="background-color: #f5f5f5; color: #000000;">    t.done(f1).fail(f2).progress(f3);       </span><span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;">添加成功回调函数、失败回调函数和消息列表回调函数。等同于t.then(f1,f2,f3); </span>
+<span style="background-color: #f5f5f5; color: #000000;">    t.notify(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">test</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">);                       </span><span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;">触发所有消息函数列表，输出:f3 test</span>
+<span style="background-color: #f5f5f5; color: #000000;">    t.resolve(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">done</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">);                      </span><span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;">触发所有成功回调函数,输出:done</span>
+<span style="background-color: #f5f5f5; color: #000000;">    t.reject(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">fail</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">);                       </span><span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #ff0000;">没有输出，触发成功回调函数后失败回调函数列表就会被禁用，反过来也如此</span>
+<span style="background-color: #f5f5f5; color: #000000;">    t.progress(f1);                         </span><span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;">输出:f1 test。这是因为消息回调函数之前已经被调用过，保存了上下文和参数了，如果之前没有调用，这里就没有输出。</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">body</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">html</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<p>输出如下:</p>
+<p><img src="./images/jQuery源码分析(九) 异步队列模块 Deferred 详解0.png" alt="" /></p>
+<p>&nbsp;</p>
+<p><strong><span style="font-size: 18pt;">源码分析</span></strong></p>
+<hr />
+<p><span style="color: #ff0000;">异步队列内部的实现原理就是通过jQuery.Callbacks定义三个回调函数列表，分别存储成功、失败、消息回调函数，然后返回一个对象，在该对象上设置done、fail和progress，分别对应这三个回调函数列表的add方法，这样就实现分别添加不同状态的回调函数了</span></p>
+<p>$.Deferred是通过jQuery.extend函数直接挂载到jQuery里的,结构如下:</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">jQuery.extend({
+
+    Deferred: </span><span style="color: #0000ff;">function</span><span style="color: #000000;">( func ) {
+        </span><span style="color: #0000ff;">var</span> doneList = jQuery.Callbacks( "once memory" ),            <span style="color: #008000;">//</span><span style="color: #008000;">成功回调函数列表</span>
+            failList = jQuery.Callbacks( "once memory" ),            <span style="color: #008000;">//</span><span style="color: #008000;">失败回调函数列表</span>
+            progressList = jQuery.Callbacks( "memory" ),             <span style="color: #008000;">//</span><span style="color: #008000;">消息回调函数列表　　;<span style="color: #ff0000;">这三个回调函数列表就是存储我们添加的触发函数的</span></span>
+            state = "pending",                                       <span style="color: #008000;">//</span><span style="color: #ff0000;">初始状态:pending</span>
+            lists = {                                                <span style="color: #008000;">//</span><span style="color: #008000;">后面的方法会遍历变量list中的属性名来为异步队列添加方法deffred.resolve()、resolveWith()、reject()、rejectWith()、notify()和notifyWith()</span>
+<span style="color: #000000;">                resolve: doneList,
+                reject: failList,
+                notify: progressList
+            },
+            promise </span>= {                                                <span style="color: #008000;">//</span><span style="color: #008000;">异步队列的只读副本</span>
+                <span style="color: #008000;">/*</span><span style="color: #ff0000;">略</span><span style="color: #008000;">*/</span><span style="color: #000000;">
+            },
+            deferred </span>= promise.promise({}),                                <span style="color: #008000;">//</span><span style="color: #ff0000;">异步队列</span>
+<span style="color: #000000;">            key;
+
+        </span><span style="color: #0000ff;">for</span> ( key <span style="color: #0000ff;">in</span> lists ) {                                            <span style="color: #008000;">//</span><span style="color: #008000;">添加触发成功、失败、消息回调函数的方法，执行后deferred对象就多了resolve()、resolveWith()、reject()、rejectWith()、notify()和notifyWith()方法。</span>
+            deferred[ key ] =<span style="color: #000000;"> lists[ key ].fire;
+            deferred[ key </span>+ "With" ] =<span style="color: #000000;"> lists[ key ].fireWith;
+        }
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> Handle state</span>
+        deferred.done( <span style="color: #0000ff;">function</span>() {                                        <span style="color: #008000;">//</span><span style="color: #008000;">添加三个成功回调函数，分别用于设置状态为成功(resolved)，禁用失败列表函数列表和锁定消息回调函数列表</span>
+            state = "resolved"<span style="color: #000000;">;
+        }, failList.disable, progressList.lock ).fail( </span><span style="color: #0000ff;">function</span>() {        <span style="color: #008000;">//</span><span style="color: #008000;">添加三个失败回调韩素，分别用于设置状态为失败(rejected)，禁用成功列表函数列表和锁定消息回调函数列表</span>
+            state = "rejected"<span style="color: #000000;">;
+        }, doneList.disable, progressList.lock );
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> Call given func if any</span>
+        <span style="color: #0000ff;">if</span><span style="color: #000000;"> ( func ) {
+            func.call( deferred, deferred );
+        }
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> All done!</span>
+        <span style="color: #0000ff;">return</span> deferred;                                                <span style="color: #008000;">//</span><span style="color: #ff0000;">返回异步队列deffrred</span>
+<span style="color: #000000;">    },
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">...</span>
+})</pre>
+</div>
+<p>可以看到$.Deferred最后返回的是deferred这个布局变量，而deferred是promise.promise({})的返回值，我们来看看promise的实现方法:</p>
+<div class="cnblogs_code">
+<pre><code>promise = {                        <span style="color: #008000;">//</span><span style="color: #008000;">异步队列的只读副本</span>
+    done: doneList.add,                            <span style="color: #008000;">//</span><span style="color: #008000;">添加成功回调函数，引用对应的回调函数列表的callbacks.add(fn/arr)方法，下同</span>
+    fail: failList.add,                            <span style="color: #008000;">//</span><span style="color: #008000;">添加失败回调函数</span>
+    progress: progressList.add,                    <span style="color: #008000;">//</span><span style="color: #008000;">添加消息回调函数</span>
+<span style="color: #000000;">
+    state: </span><span style="color: #0000ff;">function</span>() {                            <span style="color: #008000;">//</span><span style="color: #008000;">返回异步队列的当前状态:pending、resolved、rejected之一</span>
+        <span style="color: #0000ff;">return</span><span style="color: #000000;"> state;
+    },
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> Deprecated</span>
+<span style="color: #000000;">    isResolved: doneList.fired,
+    isRejected: failList.fired,
+
+    then: </span><span style="color: #0000ff;">function</span>( doneCallbacks, failCallbacks, progressCallbacks ) {    <span style="color: #008000;">//</span><span style="color: #008000;">同时添加成功回调函数、失败回调函数和消息回调函数</span>
+<span style="color: #000000;">        deferred.done( doneCallbacks ).fail( failCallbacks ).progress( progressCallbacks );
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+    },
+    always: </span><span style="color: #0000ff;">function</span>() {                                                <span style="color: #008000;">//</span><span style="color: #008000;">添加回调函数到doneList和failList中，即保存两份引用，当异步队列处于成功或失败状态时被调用</span>
+<span style="color: #000000;">        deferred.done.apply( deferred, arguments ).fail.apply( deferred, arguments );
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+    },
+    pipe: </span><span style="color: #0000ff;">function</span>( fnDone, fnFail, fnProgress ) {                        <span style="color: #008000;">//</span><span style="color: #008000;">过滤当前异步队列的状态和参数，并返回一个新的异步队列的副本,一般用不到</span>
+        <span style="color: #0000ff;">return</span> jQuery.Deferred(<span style="color: #0000ff;">function</span><span style="color: #000000;">( newDefer ) {
+            jQuery.each( {
+                done: [ fnDone, </span>"resolve"<span style="color: #000000;"> ],
+                fail: [ fnFail, </span>"reject"<span style="color: #000000;"> ],
+                progress: [ fnProgress, </span>"notify"<span style="color: #000000;"> ]
+            }, </span><span style="color: #0000ff;">function</span><span style="color: #000000;">( handler, data ) {
+                </span><span style="color: #0000ff;">var</span> fn = data[ 0<span style="color: #000000;"> ],
+                    action </span>= data[ 1<span style="color: #000000;"> ],
+                    returned;
+                </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> ( jQuery.isFunction( fn ) ) {
+                    deferred[ handler ](</span><span style="color: #0000ff;">function</span><span style="color: #000000;">() {
+                        returned </span>= fn.apply( <span style="color: #0000ff;">this</span><span style="color: #000000;">, arguments );
+                        </span><span style="color: #0000ff;">if</span> ( returned &amp;&amp;<span style="color: #000000;"> jQuery.isFunction( returned.promise ) ) {
+                            returned.promise().then( newDefer.resolve, newDefer.reject, newDefer.notify );
+                        } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+                            newDefer[ action </span>+ "With" ]( <span style="color: #0000ff;">this</span> === deferred ? newDefer : <span style="color: #0000ff;">this</span><span style="color: #000000;">, [ returned ] );
+                        }
+                    });
+                } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+                    deferred[ handler ]( newDefer[ action ] );
+                }
+            });
+        }).promise();
+    },
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> Get a promise for this deferred</span>
+    <span style="color: #008000;">//</span><span style="color: #008000;"> If obj is provided, the promise aspect is added to the object</span>
+    promise: <span style="color: #0000ff;">function</span>( obj ) {                            <span style="color: #008000;">//</span><span style="color: #008000;">如果设置了obj参数对象则为obj对象增加异步队列的方法并返回。如果未设置参数obj，则返回当前Deferred对象的只读副本，</span>
+        <span style="color: #0000ff;">if</span> ( obj == <span style="color: #0000ff;">null</span> ) {                                <span style="color: #008000;">//</span><span style="color: #008000;">如果obj为空</span>
+            obj = promise;                                        <span style="color: #008000;">//</span><span style="color: #008000;">则返回promise对象(是上一层作用域链的promise对象)</span>
+        } <span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+            </span><span style="color: #0000ff;">for</span> ( <span style="color: #0000ff;">var</span> key <span style="color: #0000ff;">in</span> promise ) {                    <span style="color: #008000;">//</span><span style="color: #008000;">否则遍历promise</span>
+                obj[ key ] = promise[ key ];                    <span style="color: #008000;">//</span><span style="color: #008000;">将promise的所有方法、属性保存到obj中</span>
+<span style="color: #000000;">            }
+        }
+        </span><span style="color: #0000ff;">return</span> obj;                                            <span style="color: #008000;">//</span><span style="color: #008000;">最后返回obj</span>
+<span style="color: #000000;">    }
+},</span></pre>
+</div>
+<p>$.Deferred就是对Callbacks回调函数列表的管理而已，产生了一个新的$.Defferred接口，内部添加了一个state表示异步队列的状态。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

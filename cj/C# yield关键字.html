@@ -1,0 +1,105 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C# yield关键字' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C# yield关键字</center></div><div class='banquan'>原文出处:本文由博客园博主dwBurning提供。<br/>
+原文连接:https://www.cnblogs.com/dwBurning/p/yield.html</div><br>
+    <p>关于yield关键字，网上有很多文章介绍了，但是看了之后，虽然明白了"哦，原来是这么回事"，但是在日常开发中并没有真正的用起来，所以，写此一篇，介绍一下在真正的项目中怎么使用这个关键字。</p>
+<p>开始我的正文介绍之前，可以先看一下微软的官方文档是怎么介绍yield关键字的，传送门：<a href="https://docs.microsoft.com/zh-cn/dotnet/csharp/language-reference/keywords/yield" target="_blank">https://docs.microsoft.com/zh-cn/dotnet/csharp/language-reference/keywords/yield</a></p>
+<p>在这里我新建了一个控制台程序，用于输出斐波那契数列，代码如下：我们直接在Main方法中输出斐波那契数列，这个也没有什么问题，很完美，但是考虑到实际开发中不可能把所有的处理都写在程序入口，所以我们考虑对这段代码封装一个方法V1</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+{</span><span style="color: #0000ff;">int</span> a = <span style="color: #800080;">0</span>, b = <span style="color: #800080;">1</span>, c = <span style="color: #800080;">0</span><span style="color: #000000;">;
+    </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; <span style="color: #800080;">10</span>; i++<span style="color: #000000;">)
+    {
+        Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">{0}</span><span style="color: #800000;">"</span><span style="color: #000000;">, b);
+        c </span>= a +<span style="color: #000000;"> b;
+        a </span>=<span style="color: #000000;"> b;
+        b </span>=<span style="color: #000000;"> c;
+    }
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">V1(10);
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">foreach (var i in V2(10))
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">{
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">    Console.WriteLine(i);
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">}
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">foreach (var i in V3(10))
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">{
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">    Console.WriteLine(i);
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">}</span>
+<span style="color: #000000;">
+    Console.ReadKey();
+}</span></pre>
+</div>
+<p>方法V1代码如下：与Main方法中的代码段是一模一样的，那么有经验的同学肯定会想，既然已经封装了方法，那么方法的输出应该封装成返回值，返回给Main方法，然后再输出到控制台，于是我们再次修改，封装成方法V2</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> V1(<span style="color: #0000ff;">int</span><span style="color: #000000;"> number)
+{
+    Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">V1</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+    </span><span style="color: #0000ff;">int</span> a = <span style="color: #800080;">0</span>, b = <span style="color: #800080;">1</span>, c = <span style="color: #800080;">0</span><span style="color: #000000;">;
+    </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; number; i++<span style="color: #000000;">)
+    {
+        Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">{0}</span><span style="color: #800000;">"</span><span style="color: #000000;">, b);
+        c </span>= a +<span style="color: #000000;"> b;
+        a </span>=<span style="color: #000000;"> b;
+        b </span>=<span style="color: #000000;"> c;
+    }
+}</span></pre>
+</div>
+<p>方法V2代码如下：方法V2中创建了一个List&lt;int&gt;的列表，用来接收方法返回的结果，然后在Main方法中输出。那么这里有什么问题呢？问题就是如果循环的基数很大，那么，我们的List中的item就很大，占用内存也会随之增加，于是，我们在此基础上再次改造成方法V3</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> IEnumerable&lt;<span style="color: #0000ff;">int</span>&gt; V2(<span style="color: #0000ff;">int</span><span style="color: #000000;"> number)
+{
+    Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">V2</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+    List</span>&lt;<span style="color: #0000ff;">int</span>&gt; vs = <span style="color: #0000ff;">new</span> List&lt;<span style="color: #0000ff;">int</span>&gt;<span style="color: #000000;">();
+    </span><span style="color: #0000ff;">int</span> a = <span style="color: #800080;">0</span>, b = <span style="color: #800080;">1</span>, c = <span style="color: #800080;">0</span><span style="color: #000000;">;
+    </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; number; i++<span style="color: #000000;">)
+    {
+        vs.Add(b);
+        c </span>= a +<span style="color: #000000;"> b;
+        a </span>=<span style="color: #000000;"> b;
+        b </span>=<span style="color: #000000;"> c;
+    }
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> vs;
+}</span></pre>
+</div>
+<p>方法V3代码如下：这里便用到了关键字<span style="color: #ff0000;">yield</span>，正如官方文档中所述，<span data-ttu-id="18424-110">迭代器方法运行到 <code>yield return</code> 语句时，会返回一个 <code>expression</code>，并保留当前在代码中的位置。 <span data-ttu-id="18424-111">下次调用迭代器函数时，将从该位置重新开始执行。这样的话，内存不会随着基数的增加而增加，而效果却是一模一样的。</span></span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> IEnumerable&lt;<span style="color: #0000ff;">int</span>&gt; V3(<span style="color: #0000ff;">int</span><span style="color: #000000;"> number)
+{
+    Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">V3</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+    </span><span style="color: #0000ff;">int</span> a = <span style="color: #800080;">0</span>, b = <span style="color: #800080;">1</span>, c = <span style="color: #800080;">0</span><span style="color: #000000;">;
+    </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; number; i++<span style="color: #000000;">)
+    {
+        </span><span style="color: #0000ff;">yield</span> <span style="color: #0000ff;">return</span><span style="color: #000000;"> b;
+        c </span>= a +<span style="color: #000000;"> b;
+        a </span>=<span style="color: #000000;"> b;
+        b </span>=<span style="color: #000000;"> c;
+    }
+}</span></pre>
+</div>
+<p>那么，总结经验，在你需要返回一个继承自IEnumerable的集合类型的时候，就可以使用这个yield关键字了。</p>
+<p>最后的运行效果：</p>
+<p><img src="./images/C# yield关键字0.png" alt="" /></p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,197 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C#解析深浅拷贝' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C#解析深浅拷贝</center></div><div class='banquan'>原文出处:本文由博客园博主小世界的野孩子提供。<br/>
+原文连接:https://www.cnblogs.com/hulizhong/p/11776610.html</div><br>
+    <h2><strong>前言</strong></h2>
+<p>　　前面我们学习完了设计模式，在其中我们有了解到原型模式。这里涉及到了克隆自身对象。那么也就是对对象进行拷贝。这里就涉及到了这么一个概念。深浅拷贝、何为深拷贝何为浅拷贝呢？我们一起来看看吧。</p>
+<h2><strong>浅拷贝</strong></h2>
+<p><span style="font-family: 微软雅黑;">　　首先我们看看浅拷贝。浅拷贝就是将对象中的所有字段复制到新对象中去，浅拷贝对于值类型和引用类型有不同的影响。值类型的值被复制到副本中后，修改副本中的值不会影响原来对象的值。然而引用类型被复制到副本中的是引用类型的引用。不是引用的对象。这样再修改副本中的值是会导致原来对象的值也被修改了。但是这里引用类型情况我们需要排除字符串</span>String类型。</p>
+<p><span style="font-family: 微软雅黑;">　　那么为何引用类型修改副本的值会造成原来对象的值的变化，而</span>string字符串类型却排除在外呢？首先我们需要知道这么一个概念，string类型是一个不可变的数据类型，也就是意味着对字符串对象进行了初始化，该字符串对象就不能改变了。表面上我们修改字符串的内容的方法和运算实际上是创建了一个新字符串，然后根据需要可以把旧字符串的内容复制到新字符串中。怎么理解你？我们看下面这个案例：</p>
+<div class="cnblogs_code">
+<pre><code>        <span style="color: #0000ff;">#region</span>  字符串比较
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;">   获取引用类型的内存地址方法
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="o"&gt;&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">string</span> getMemory(<span style="color: #0000ff;">object</span><span style="color: #000000;"> o)
+        {
+            GCHandle h </span>=<span style="color: #000000;"> GCHandle.Alloc(o, GCHandleType.Pinned);
+            IntPtr addr </span>=<span style="color: #000000;"> h.AddrOfPinnedObject();
+            </span><span style="color: #0000ff;">return</span> <span style="color: #800000;">"</span><span style="color: #800000;">0x</span><span style="color: #800000;">"</span> + addr.ToString(<span style="color: #800000;">"</span><span style="color: #800000;">X</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+        }
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 字符串比较
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> Compares()
+        {
+            </span><span style="color: #0000ff;">string</span> a = <span style="color: #800000;">"</span><span style="color: #800000;">123</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">a的引用地址：\t\t</span><span style="color: #800000;">"</span> +<span style="color: #000000;"> getMemory(a));
+            </span><span style="color: #0000ff;">string</span> b = <span style="color: #800000;">"</span><span style="color: #800000;">123</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">b的引用地址：\t\t</span><span style="color: #800000;">"</span> +<span style="color: #000000;"> getMemory(b));
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">a与b的比较：\t\t</span><span style="color: #800000;">"</span> +<span style="color: #000000;"> Object.ReferenceEquals(a, b));
+            b </span>= <span style="color: #800000;">"</span><span style="color: #800000;">456</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">b的引用地址：\t\t</span><span style="color: #800000;">"</span> +<span style="color: #000000;"> getMemory(b));
+
+
+        }
+
+        </span><span style="color: #0000ff;">#endregion</span></pre>
+</div>
+<p style="margin-left: 30px;"><img src="./images/C#解析深浅拷贝0.png" alt="" /></p>
+<p><span style="font-family: 微软雅黑;">　　这里我们看</span>a=&rdquo;123&rdquo;,b=&rdquo;123&rdquo;<span style="font-family: 微软雅黑;">。我们看他们的引用地址是一样的。也就是说我们先创建</span>a的时候创建了字符串a，有了一个引用地址。然后我们创建b的时候首先会寻找是否存在相同的值。如果存在相同的值就获取其引用地址。这也就是为什么a与b的引用地址是一样的。这里涉及到一个叫做字符驻留池的东西。会对字符串进行保存。那么后面我们修改b的值然后输出其引用地址，发现和之前的引用地址不一样。说明并不是修改原来的值，而是重新创建了一个字符串，重新获取了它的引用地址。</p>
+<p><span style="font-family: 微软雅黑;">　　我们接下来看一个浅拷贝的案例吧，首先我们准备的是以下的数据类型的值：</span>int，string，enum，struct，class，int[]，string[]。</p>
+<div class="cnblogs_code">
+<pre><code>    <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+    <span style="color: #808080;">///</span><span style="color: #008000;"> 枚举
+    </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">enum</span><span style="color: #000000;"> EnumTest
+    {
+        TestOne </span>= <span style="color: #800080;">1</span><span style="color: #000000;">,
+        TestTwo </span>= <span style="color: #800080;">2</span><span style="color: #000000;">
+    }
+
+    </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+    <span style="color: #808080;">///</span><span style="color: #008000;"> 结构体
+    </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">struct</span><span style="color: #000000;"> StructTest
+    {
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> Test;
+        </span><span style="color: #0000ff;">public</span> StructTest(<span style="color: #0000ff;">int</span><span style="color: #000000;"> i)
+        {
+            Test </span>=<span style="color: #000000;"> i;
+        }
+    }
+
+    </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+    <span style="color: #808080;">///</span><span style="color: #008000;"> 类
+    </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> ClassTest
+    {
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span><span style="color: #000000;"> TestString;
+        </span><span style="color: #0000ff;">public</span> ClassTest(<span style="color: #0000ff;">string</span><span style="color: #000000;"> _string)
+        {
+            TestString </span>=<span style="color: #000000;"> _string;
+        }
+    }
+    </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+    <span style="color: #808080;">///</span><span style="color: #008000;"> 深拷贝
+    </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> DeepClone : ICloneable
+    {
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span> _int = <span style="color: #800080;">1</span><span style="color: #000000;">;
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> _string = <span style="color: #800000;">"</span><span style="color: #800000;">1</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+        </span><span style="color: #0000ff;">public</span> EnumTest _enum =<span style="color: #000000;"> EnumTest.TestOne;
+        </span><span style="color: #0000ff;">public</span> StructTest _struct = <span style="color: #0000ff;">new</span> StructTest(<span style="color: #800080;">1</span><span style="color: #000000;">);
+        </span><span style="color: #0000ff;">public</span> ClassTest _class = <span style="color: #0000ff;">new</span> ClassTest(<span style="color: #800000;">"</span><span style="color: #800000;">1</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span>[] arrInt = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">int</span>[] { <span style="color: #800080;">1</span><span style="color: #000000;"> };
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span>[] arrString = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">string</span>[] { <span style="color: #800000;">"</span><span style="color: #800000;">1</span><span style="color: #800000;">"</span><span style="color: #000000;"> };
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">object</span><span style="color: #000000;"> Clone()
+        {
+            </span><span style="color: #0000ff;">var</span> NewOne = JsonConvert.SerializeObject(<span style="color: #0000ff;">this</span><span style="color: #000000;">);
+            </span><span style="color: #0000ff;">return</span> JsonConvert.DeserializeObject&lt;DeepClone&gt;<span style="color: #000000;">(NewOne);
+        } 
+    }
+    </span><span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            DeepClone simple </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> DeepClone();
+            </span><span style="color: #0000ff;">var</span> simpleTwo =<span style="color: #000000;"> (DeepClone)simple.Clone();
+            simpleTwo._int </span>= <span style="color: #800080;">2</span><span style="color: #000000;">;
+            simpleTwo._string </span>= <span style="color: #800000;">"</span><span style="color: #800000;">2</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            simpleTwo._enum </span>=<span style="color: #000000;"> EnumTest.TestTwo;
+            simpleTwo._struct.Test </span>= <span style="color: #800080;">2</span><span style="color: #000000;">;
+            simpleTwo._class.TestString </span>= <span style="color: #800000;">"</span><span style="color: #800000;">2</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            simpleTwo.arrInt[</span><span style="color: #800080;">0</span>] = <span style="color: #800080;">2</span><span style="color: #000000;">;
+            simpleTwo.arrString[</span><span style="color: #800080;">0</span>] = <span style="color: #800000;">"</span><span style="color: #800000;">2</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+
+            Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">int 类型变化     原对象：{simple._int}\t\t               备份对象:{simpleTwo._int}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">string 类型变化  原对象：{simple._string}\t\t            备份对象:{simpleTwo._string}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">enum 类型变化    原对象：{(int)simple._enum}\t\t         备份对象:{(int)simpleTwo._enum}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">struct 类型变化  原对象：{simple._struct.Test}\t\t       备份对象:{simpleTwo._struct.Test}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">class 类型变化   原对象：{simple._class.TestString}\t\t  备份对象:{simpleTwo._class.TestString}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">int数组 类型变化  原对象：{simple.arrInt[0]}\t\t         备份对象:{simpleTwo.arrInt[0]}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">string数组 类型变化   原对象：{simple.arrString[0]}\t\t  备份对象:{simpleTwo.arrString[0]}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+        } 
+    }</span></pre>
+</div>
+<p style="margin-left: 30px;"><img src="./images/C#解析深浅拷贝1.png" alt="" /></p>
+<p><span style="font-family: 微软雅黑;">　　我们通过继承</span>ICloneable接口对这些类型都进行了浅拷贝然后修改副本对象。输出原对象和副本对象进行比较。我们发现int,enum,struct、值类型以及string这个特殊的引用类型的原对象值没有被影响改变。但是class,int[],string[]这些引用类型对象原对象被影响改变了值。也就再次验证了我们前面说的。浅拷贝是将对象进行赋值到一个副本对象中去，值类型复制值，引用类型复制其引用对象。修改副本对象值，值类型和string原对象不会被影响改变，引用类型除string其原对象都会被影响改变。</p>
+<h2><strong>深拷贝</strong></h2>
+<p><span style="font-family: 微软雅黑;">　　我们上面看了浅拷贝，浅拷贝还是有一定的影响的，处理不好可能就成</span>bug。那么我们看看对应的深拷贝又是什么样的呢？这里可以先声明，深拷贝对值类型和引用类型都没有区别对待。深拷贝也是将对象中的所有字段复制到新对象中去，但是对象无论是值类型还是引用类型都将被重新创建然后复制到副本对象去。对于副本对象的修改将不会影响到原对象，无论任何类型。</p>
+<p>　　我们继续将上面的例子进行深拷贝看看：</p>
+<div class="cnblogs_code">
+<pre><code>    <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+    <span style="color: #808080;">///</span><span style="color: #008000;"> 深拷贝
+    </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> DeepClone : ICloneable
+    {
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span> _int = <span style="color: #800080;">1</span><span style="color: #000000;">;
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> _string = <span style="color: #800000;">"</span><span style="color: #800000;">1</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+        </span><span style="color: #0000ff;">public</span> EnumTest _enum =<span style="color: #000000;"> EnumTest.TestOne;
+        </span><span style="color: #0000ff;">public</span> StructTest _struct = <span style="color: #0000ff;">new</span> StructTest(<span style="color: #800080;">1</span><span style="color: #000000;">);
+        </span><span style="color: #0000ff;">public</span> ClassTest _class = <span style="color: #0000ff;">new</span> ClassTest(<span style="color: #800000;">"</span><span style="color: #800000;">1</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span>[] arrInt = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">int</span>[] { <span style="color: #800080;">1</span><span style="color: #000000;"> };
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span>[] arrString = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">string</span>[] { <span style="color: #800000;">"</span><span style="color: #800000;">1</span><span style="color: #800000;">"</span><span style="color: #000000;"> };
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">object</span><span style="color: #000000;"> Clone()
+        {
+            </span><span style="color: #0000ff;">var</span> NewOne = JsonConvert.SerializeObject(<span style="color: #0000ff;">this</span><span style="color: #000000;">);
+            </span><span style="color: #0000ff;">return</span> JsonConvert.DeserializeObject&lt;DeepClone&gt;<span style="color: #000000;">(NewOne);
+        } 
+    }
+
+    </span><span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            DeepClone simple </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> DeepClone();
+            </span><span style="color: #0000ff;">var</span> simpleTwo =<span style="color: #000000;"> (DeepClone)simple.Clone();
+            simpleTwo._int </span>= <span style="color: #800080;">2</span><span style="color: #000000;">;
+            simpleTwo._string </span>= <span style="color: #800000;">"</span><span style="color: #800000;">2</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            simpleTwo._enum </span>=<span style="color: #000000;"> EnumTest.TestTwo;
+            simpleTwo._struct.Test </span>= <span style="color: #800080;">2</span><span style="color: #000000;">;
+            simpleTwo._class.TestString </span>= <span style="color: #800000;">"</span><span style="color: #800000;">2</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            simpleTwo.arrInt[</span><span style="color: #800080;">0</span>] = <span style="color: #800080;">2</span><span style="color: #000000;">;
+            simpleTwo.arrString[</span><span style="color: #800080;">0</span>] = <span style="color: #800000;">"</span><span style="color: #800000;">2</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+
+            Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">int 类型变化     原对象：{simple._int}\t\t               备份对象:{simpleTwo._int}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">string 类型变化  原对象：{simple._string}\t\t            备份对象:{simpleTwo._string}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">enum 类型变化    原对象：{(int)simple._enum}\t\t         备份对象:{(int)simpleTwo._enum}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">struct 类型变化  原对象：{simple._struct.Test}\t\t       备份对象:{simpleTwo._struct.Test}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">class 类型变化   原对象：{simple._class.TestString}\t\t  备份对象:{simpleTwo._class.TestString}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">int数组 类型变化  原对象：{simple.arrInt[0]}\t\t         备份对象:{simpleTwo.arrInt[0]}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">string数组 类型变化   原对象：{simple.arrString[0]}\t\t  备份对象:{simpleTwo.arrString[0]}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+        } 
+    }</span></pre>
+</div>
+<p style="margin-left: 30px;"><img src="./images/C#解析深浅拷贝2.png" alt="" /></p>
+<p>这里我们看这个运行结果，无论值类型还是引用类型修改副本对象之后都没有影响原对象的值。这也就是深拷贝的特点了。</p>
+<p>&nbsp;</p>
+<h2><strong>总结</strong></h2>
+<p>　　我们看完了浅拷贝与深拷贝，我们仔细回顾下。<strong><span style="font-family: 微软雅黑;">浅拷贝将对象的字段复制到新的对象中去，但是当修改新对象的时候，值类型和</span>string类型的字段将不会影响原对象的字段，而引用类型除string类型外都将影响原对象的值。深拷贝也是将对象的字段复制到新的对象中去，但是无论是值类型还是引用类型的改变都不会影响原对象的值。因为深拷贝是将原对象重新创建然后复制到副本对象中去的。</strong></p>
+<hr />
+<p><strong>　　<span style="font-size: 15px;">人生只有走出来的美丽，没有等出来的辉煌。</span></strong></p>
+<p><strong>&nbsp; &nbsp;　欢迎大家扫描下方二维码，和我一起学习更多的知识😊</strong></p>
+<p>&nbsp;<strong><img src="./images/C#解析深浅拷贝3.png" alt="" width="278" height="278" /></strong></p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

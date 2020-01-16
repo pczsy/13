@@ -1,0 +1,136 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修[译]C# 7系列，Part 7 ref Returns ref返回结果' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>[译]C# 7系列，Part 7 ref Returns ref返回结果</center></div><div class='banquan'>原文出处:本文由博客园博主wenhx提供。<br/>
+原文连接:https://www.cnblogs.com/wenhx/p/csharp-7-series-part-7-ref-returns.html</div><br>
+    <p>原文：<a href="https://blogs.msdn.microsoft.com/mazhou/2017/12/12/c-7-series-part-7-ref-returns/">https://blogs.msdn.microsoft.com/mazhou/2017/12/12/c-7-series-part-7-ref-returns/</a></p>
+<p><span style="font-size: 18pt;">背景</span></p>
+<p>有两种方法可以将一个值传递给一个方法：</p>
+<ol>
+<li><span class="tgt" data-section="0" data-sentence="0" data-group="0-0">按值传递。<span class="tgt" data-section="0" data-sentence="1" data-group="0-1">当一个参数被传递给一个方法时，一个参数的副本(如果它是一个值类型)或一个"参数引用"的副本(如果它是一个引用类型)被传递。<span class="tgt" data-section="0" data-sentence="2" data-group="0-2">当您更改方法中的参数时，更改(单个赋值或复合赋值)会反映到参数/"参数引用"的副本，而不会反映到参数或&ldquo;参数引用&rdquo;本身。<span class="tgt" data-section="0" data-sentence="3" data-group="0-3">这是.NET语言中的默认方式(Visual Basic中的ByVal)。（译注："参数引用"其实是个指针，指向另外一个它实际代表的对象，这里指的是修改这个指针本身。）</span></span></span></span></li>
+<li><span class="tgt" data-section="0" data-sentence="0" data-group="0-0"><span class="tgt" data-section="0" data-sentence="1" data-group="0-1"><span class="tgt" data-section="0" data-sentence="2" data-group="0-2"><span class="tgt" data-section="0" data-sentence="3" data-group="0-3"><span class="tgt" data-section="0" data-sentence="0" data-group="0-0">以引用的方式传递。<span class="tgt" data-section="0" data-sentence="1" data-group="0-1">当一个参数被传递给一个方法时，要么参数本身(如果它是一个值类型)要么&ldquo;参数引用&rdquo;(如果它是一个引用类型)被直接传递。<span class="tgt" data-section="0" data-sentence="2" data-group="0-2">没有生成其他副本。<span class="tgt" data-section="0" data-sentence="3" data-group="0-3">当您更改方法中的参数时，更改(单个赋值或复合赋值)将反映到参数或&ldquo;参数引用&rdquo;本身。<span class="tgt" data-section="0" data-sentence="4" data-group="0-4">这可以通过在C#中使用ref关键字或者在Visual Basic中使用ByRef关键字来表明。</span></span></span></span></span></span></span></span></span></li>
+</ol>
+<p><span class="tgt" data-section="0" data-sentence="0" data-group="0-0"><span class="tgt" data-section="0" data-sentence="1" data-group="0-1"><span class="tgt" data-section="0" data-sentence="2" data-group="0-2"><span class="tgt" data-section="0" data-sentence="3" data-group="0-3"><span class="tgt" data-section="0" data-sentence="0" data-group="0-0"><span class="tgt" data-section="0" data-sentence="1" data-group="0-1"><span class="tgt" data-section="0" data-sentence="2" data-group="0-2"><span class="tgt" data-section="0" data-sentence="3" data-group="0-3"><span class="tgt" data-section="0" data-sentence="4" data-group="0-4"><span class="tgt" data-section="0" data-sentence="0" data-group="0-0">例如，FCL(.NET Framework Class Library)中的Array. resize()方法接受类型为Array的ref参数，该ref值在方法实现中进行了修改，以指向调整大小后的数组新空间。<span class="tgt" data-section="0" data-sentence="1" data-group="0-1">你可以继续使用该数组变量，并访问新的内存空间：</span></span></span></span></span></span></span></span></span></span></span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">byte</span>[] data = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">byte</span>[<span style="color: #800080;">10</span><span style="color: #000000;">];
+Array.Resize(</span><span style="color: #0000ff;">ref</span> data, <span style="color: #800080;">20</span><span style="color: #000000;">); //译注：上一行data指向的内存空间和这里data指向的内存空间可能变更了。
+Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">New array size is: {data.Length}</span><span style="color: #800000;">"</span>);</pre>
+</div>
+<p><span style="font-size: 18pt;">ref返回结果</span></p>
+<p><span class="tgt" data-section="0" data-sentence="0" data-group="0-0">ref返回结果是方法的引用返回值。<span class="tgt" data-section="0" data-sentence="1" data-group="0-1">与作为方法参数传递的ref值类似，调用者可以修改ref返回值，对该返回值的任何更改(赋值)都将反映到从方法中返回的原始值。</span></span></p>
+<p><span class="tgt" data-section="0" data-sentence="0" data-group="0-0"><span class="tgt" data-section="0" data-sentence="1" data-group="0-1">在C#中，你可以使用return ref关键字创建一个ref返回结果。</span></span></p>
+<p><span class="tgt" data-section="0" data-sentence="0" data-group="0-0"><span class="tgt" data-section="0" data-sentence="1" data-group="0-1">请看下面的示例：</span></span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">ref</span> T ElementAt&lt;T&gt;(<span style="color: #0000ff;">ref</span> T[] array, <span style="color: #0000ff;">int</span><span style="color: #000000;"> position)
+{
+     </span><span style="color: #0000ff;">if</span> (array == <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+     {
+         </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> ArgumentNullException(nameof(array));
+     }
+
+     </span><span style="color: #0000ff;">if</span> (position &lt; <span style="color: #800080;">0</span> || position &gt;=<span style="color: #000000;"> array.Length)
+     {
+         </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> ArgumentOutOfRangeException(nameof(position));
+     }
+
+     </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">ref</span><span style="color: #000000;"> array[position];
+}</span></pre>
+</div>
+<p><span class="tgt" data-section="0" data-sentence="0" data-group="0-0">上述方法的目的是在数组的特定位置获取对元素的引用。<span class="tgt" data-section="0" data-sentence="1" data-group="0-1">稍后你可以使用这个引用来更改该元素的值；<span class="tgt" data-section="0" data-sentence="2" data-group="0-2">因为它是一个ref值，所以更改将应用于数组中的原始值。（译注：就是数组中的原始值会被改变）</span></span></span></p>
+<p><span class="tgt" data-section="0" data-sentence="0" data-group="0-0"><span class="tgt" data-section="0" data-sentence="1" data-group="0-1"><span class="tgt" data-section="0" data-sentence="2" data-group="0-2">要使用这个方法，需要使用ref局部变量：</span></span></span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+{
+    </span><span style="color: #0000ff;">int</span>[] data = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">int</span>[<span style="color: #800080;">10</span><span style="color: #000000;">];
+    Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">Before change, element at 2 is: {data[2]}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+    </span><span style="color: #0000ff;">ref</span> <span style="color: #0000ff;">int</span> value = <span style="color: #0000ff;">ref</span> ElementAt(<span style="color: #0000ff;">ref</span> data, <span style="color: #800080;">2</span><span style="color: #000000;">);
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> Change the ref value.</span>
+    value = <span style="color: #800080;">5</span><span style="color: #000000;">;
+    Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">After change, element at 2 is: {data[2]}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+}</span></pre>
+</div>
+<p>Visual Studio智能感知表面调用的方法是一个ref返回结果方法。</p>
+<p><img src="./images/[译]C# 7系列，Part 7 ref Returns ref返回结果0.png" alt="" width="620" height="212" /></p>
+<p><span class="tgt" data-section="0" data-sentence="0" data-group="0-0">上面代码的运行输出结果如下：</span></p>
+<p><span class="tgt" data-section="0" data-sentence="0" data-group="0-0"><img src="./images/[译]C# 7系列，Part 7 ref Returns ref返回结果1.png" alt="" width="447" height="150" /></span></p>
+<p><span class="tgt" style="font-size: 18pt;" data-section="0" data-sentence="0" data-group="0-0">调用带有ref返回结果的方法</span></p>
+<p><span class="tgt" data-section="0" data-sentence="0" data-group="0-0">与前面的示例一样，要获得ref返回值的引用，你需要使用ref局部变量，并将ref关键字放在调用方法前面(ref在等式左右两边都有)。</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">ref</span> <span style="color: #0000ff;">int</span> value = <span style="color: #0000ff;">ref</span> ElementAt(<span style="color: #0000ff;">ref</span> data, <span style="color: #800080;">2</span>);</pre>
+</div>
+<p>你还可以在不使用ref关键字的情况下调用此方法，这时候返回的是值。（译注：不是引用）</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">int</span> value = ElementAt(<span style="color: #0000ff;">ref</span> data, <span style="color: #800080;">2</span>);</pre>
+</div>
+<p>在这种情况下，程序输出如下：</p>
+<p><img src="./images/[译]C# 7系列，Part 7 ref Returns ref返回结果2.png" alt="" width="445" height="153" /></p>
+<p><span class="tgt" data-section="0" data-sentence="0" data-group="0-0">但是，你需要在两边都指定ref，或者两边都没有ref；<span class="tgt" data-section="0" data-sentence="1" data-group="0-1">你不能在一边指定ref而在另一边不指定ref。</span></span></p>
+<p><span class="tgt" data-section="0" data-sentence="0" data-group="0-0"><span class="tgt" data-section="0" data-sentence="1" data-group="0-1">此外，以下代码也可以运行：</span></span></p>
+<div class="cnblogs_code">
+<pre><code>ElementAt(<span style="color: #0000ff;">ref</span> data, <span style="color: #800080;">2</span>) = <span style="color: #800080;">5</span>;</pre>
+</div>
+<p><span class="tgt" data-section="0" data-sentence="0" data-group="0-0">你将获得与第一个示例相同的输出。<span class="tgt" data-section="0" data-sentence="1" data-group="0-1">位置2的元素从0(默认值)更改为5。<span class="tgt" data-section="0" data-sentence="2" data-group="0-2">这是因为ref返回可以作为一个LValue出现。（译注：LValue被称为左值，简单地说就是出现在等号左边的值，详见"<a href="https://docs.microsoft.com/zh-cn/cpp/c-language/l-value-and-r-value-expressions?view=vs-2019" target="_blank">左值和右值表达式</a>"）</span></span></span></p>
+<p><span class="tgt" style="font-size: 18pt;" data-section="0" data-sentence="0" data-group="0-0"><span class="tgt" data-section="0" data-sentence="1" data-group="0-1"><span class="tgt" data-section="0" data-sentence="2" data-group="0-2">解决重载</span></span></span></p>
+<p><span class="tgt" data-section="0" data-sentence="0" data-group="0-0"><span class="tgt" data-section="0" data-sentence="1" data-group="0-1"><span class="tgt" data-section="0" data-sentence="2" data-group="0-2">因为返回类型不是认定一个重载的方法签名的一部分，所以下面的方法定义可能不起作用。（译注：不能同时出现在一个类中，他们被视为同样的签名，同样签名的方法在一个类中只能出现一次）</span></span></span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span> M(<span style="color: #0000ff;">int</span><span style="color: #000000;">[] value);
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">ref</span> <span style="color: #0000ff;">int</span> M(<span style="color: #0000ff;">int</span>[] value);</pre>
+</div>
+<p>但是下面的定义将会起作用，因为参数在第一个方法中有ref，在第二个方法中没有ref，是传值。（译注：参数是方法签名的一部分）</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">ref</span> <span style="color: #0000ff;">int</span> M(<span style="color: #0000ff;">ref</span> <span style="color: #0000ff;">int</span><span style="color: #000000;">[] value);
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">ref</span> <span style="color: #0000ff;">int</span> M(<span style="color: #0000ff;">int</span>[] value);</pre>
+</div>
+<p>因此，为了重载一个ref返回结果方法，你需要满足如下参数规则：</p>
+<ul>
+<li>使用不同数量的参数，或者</li>
+<li>使用不同类型的参数，或者</li>
+<li>使用不同的传值方式的参数（值或者引用）。</li>
+</ul>
+<p><span style="font-size: 18pt;">限制</span></p>
+<p>ref return有一些限制：</p>
+<ol>
+<li><span class="tgt" data-section="0" data-sentence="0" data-group="0-0">一个方法ref返回的值必须是一个ref local（译注：ref局部变量）；<span class="tgt" data-section="0" data-sentence="1" data-group="0-1">这个ref局部变量的来源可以是这个方法的一个实际的ref/out参数，或者是声明方法所在类型中的一个字段。</span></span></li>
+<li><span class="tgt" data-section="0" data-sentence="0" data-group="0-0"><span class="tgt" data-section="0" data-sentence="1" data-group="0-1">不能引用返回空类型。</span></span></li>
+<li><span class="tgt" data-section="0" data-sentence="0" data-group="0-0"><span class="tgt" data-section="0" data-sentence="1" data-group="0-1"><span class="tgt" data-section="0" data-sentence="0" data-group="0-0">不能直接引用返回null。<span class="tgt" data-section="0" data-sentence="1" data-group="0-1">但是你可以返回一个ref局部变量，它的值是null。</span></span></span></span></li>
+<li><span class="tgt" data-section="0" data-sentence="0" data-group="0-0"><span class="tgt" data-section="0" data-sentence="1" data-group="0-1"><span class="tgt" data-section="0" data-sentence="0" data-group="0-0"><span class="tgt" data-section="0" data-sentence="1" data-group="0-1">不能从异步方法ref返回，因为在异步方法返回时，返回值可能是不确定的。</span></span></span></span></li>
+<li><span class="tgt" data-section="0" data-sentence="0" data-group="0-0"><span class="tgt" data-section="0" data-sentence="1" data-group="0-1"><span class="tgt" data-section="0" data-sentence="0" data-group="0-0"><span class="tgt" data-section="0" data-sentence="1" data-group="0-1">不允许ref返回常量和枚举。</span></span></span></span></li>
+</ol>
+<p><span class="tgt" style="font-size: 18pt;" data-section="0" data-sentence="0" data-group="0-0"><span class="tgt" data-section="0" data-sentence="1" data-group="0-1"><span class="tgt" data-section="0" data-sentence="0" data-group="0-0"><span class="tgt" data-section="0" data-sentence="1" data-group="0-1">结论</span></span></span></span></p>
+<p><span class="tgt" data-section="0" data-sentence="0" data-group="0-0"><span class="tgt" data-section="0" data-sentence="1" data-group="0-1"><span class="tgt" data-section="0" data-sentence="0" data-group="0-0"><span class="tgt" data-section="0" data-sentence="1" data-group="0-1"><span class="tgt" data-section="0" data-sentence="0" data-group="0-0">ref返回结果是C#语言的扩展，它可以通过减少从方法返回中复制值的可能性来提高代码的性能。<span class="tgt" data-section="0" data-sentence="1" data-group="0-1">这对于那些低级别的编程组件很有用，比如互操作性、跨平台或资源受限的场景(移动、物联网等)。<span class="tgt" data-section="0" data-sentence="2" data-group="0-2">要使用这个特性，你需要使用C# language 7.0，升级你的Visual Studio版本到2017年或更高版本。</span></span></span></span></span></span></span></p>
+<p>&nbsp;</p>
+<p class="tgt" data-section="4"><span style="font-size: 14pt;">系列文章：</span></p>
+<ul>
+<ul>
+<li class="tgt" data-section="4"><a href="https://www.cnblogs.com/wenhx/p/csharp-7-series-part-1-value-tuples.html" target="_blank">[译]C# 7系列，Part 1: Value Tuples 值元组</a></li>
+<li class="tgt" data-section="4"><a href="https://www.cnblogs.com/wenhx/p/csharp-7-series-part-2-async-main.html" target="_blank">[译]C# 7系列，Part 2: Async Main 异步Main方法</a></li>
+<li class="tgt" data-section="4"><a href="https://www.cnblogs.com/wenhx/p/csharp-7-series-part-3-default-literals.html" target="_blank">[译]C# 7系列，Part 3: Default Literals 默认文本表达式</a></li>
+<li><a href="https://www.cnblogs.com/wenhx/p/csharp-7-series-part-4-discards.html" target="_blank">[译]C# 7系列，Part 4: Discards 弃元</a></li>
+<li><a href="https://www.cnblogs.com/wenhx/p/csharp-7-series-part-5-private-protected.html" target="_blank">[译]C# 7系列，Part 5: private protected 访问修饰符</a></li>
+<li><a href="https://www.cnblogs.com/wenhx/p/csharp-7-series-part-6-read-only-structs.html" target="_blank">[译]C# 7系列，Part 6: Read-only structs 只读结构</a></li>
+<li>&nbsp;[译]C# 7系列，Part 7: ref Returns ref返回结果 （本文）</li>
+<li><a href="https://www.cnblogs.com/wenhx/p/csharp-7-series-part-8-in-parameters.html" target="_blank">[译]C# 7系列，Part 8: in Parameters in参数</a></li>
+<li><a href="https://www.cnblogs.com/wenhx/p/csharp-7-series-part-9-ref-structs.html" target="_blank">[译]C# 7系列，Part 9: ref structs ref结构</a></li>
+<li><a href="https://www.cnblogs.com/wenhx/p/csharp-7-series-part-10-spant-and-universal-memory-management.html" target="_blank">[译]C# 7系列，Part 10: Span&lt;T&gt; and universal memory management Span&lt;T&gt;和统一内存管理</a>&nbsp;（完）</li>
+</ul>
+</ul>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

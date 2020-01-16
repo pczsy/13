@@ -1,0 +1,79 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Serilog 自定义 Enricher 来增加记录的信息' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Serilog 自定义 Enricher 来增加记录的信息</center></div><div class='banquan'>原文出处:本文由博客园博主WeihanLi提供。<br/>
+原文连接:https://www.cnblogs.com/weihanli/p/custom-serilog-enricher-to-record-more-info.html</div><br>
+    <h1 id="serilog-自定义-enricher-来增加记录的信息">Serilog 自定义 Enricher 来增加记录的信息</h1>
+<h2 id="intro">Intro</h2>
+<p>Serilog 是 .net 里面非常不错的记录日志的库，结构化日志记录，而且配置起来很方便，自定义扩展也很方便</p>
+<blockquote>
+<p>Serilog is a diagnostic logging library for .NET applications. It is easy to set up, has a clean API, and runs on all recent .NET platforms. While it's useful even in the simplest applications, Serilog's support for structured logging shines when instrumenting complex, distributed, and asynchronous applications and systems.</p>
+</blockquote>
+<p>Serilog是.NET应用程序的诊断日志库。 它易于设置，具有干净的API，并可在所有最新的.NET平台上运行。 虽然它在最简单的应用程序中也很有用，但Serilog对结构化日志记录的支持在处理复杂，分布式和异步应用程序和系统时仍然很有用。</p>
+<p>之前一直使用 log4net 来记录日志，使用 serilog 之后觉得 serilog 比 log4net 好用很多，很灵活，配置方式多种多样，支持许多不同的输出，详细参考 <a href="https://github.com/serilog/serilog/wiki/Provided-Sinks" class="uri">https://github.com/serilog/serilog/wiki/Provided-Sinks</a></p>
+<p>最近打算把之前基于 log4net 的日志迁移到 serilog， 我自定义的一套 logging 组件也增加了对 Serilog 的支持。 <a href="https://www.nuget.org/packages/WeihanLi.Common.Logging.Serilog" class="uri">https://www.nuget.org/packages/WeihanLi.Common.Logging.Serilog</a> 现在还没有发布正式版，不过我已经在用了，在等 serilog 发布 2.9.0 正式版，因为 2.8.x 版本的 netstandard2.0 版本还依赖了一个 <code>System.Collections.NonGeneric</code>，这个依赖只在 netstandard1.3 的时候需要引用，netstandard2.0 已经不需要了，详细信息可以参考PR: <a href="https://github.com/serilog/serilog/pull/1342" class="uri">https://github.com/serilog/serilog/pull/1342</a></p>
+<h2 id="自定义-enricher">自定义 Enricher</h2>
+<p>自定义 Enricher 很简单很方便，来看示例：</p>
+<pre><code><code>public class RequestInfoEnricher : ILogEventEnricher
+{
+    public void Enrich(LogEvent logEvent, ILogEventPropertyFactory propertyFactory)
+    {
+        var httpContext = DependencyResolver.Current.GetService&lt;IHttpContextAccessor&gt;()?.HttpContext;
+        if (null != httpContext)
+        {
+            logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty(&quot;RequestIP&quot;, httpContext.GetUserIP()));
+            logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty(&quot;RequestPath&quot;, httpContext.Request.Path));
+
+            logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty(&quot;Referer&quot;, httpContext.Request.Headers[&quot;Referer&quot;]));
+        }
+    }
+}</code></pre>
+<p>这个示例会尝试获取请求的 RequestIP/RequestPath/Referer 写入到日志中，这样可以方便我们的请求统计</p>
+<p>为了方便使用我们可以再定义一个扩展方法：</p>
+<pre><code><code>public static class EnricherExtensions
+{
+    public static LoggerConfiguration WithRequestInfo(this LoggerEnrichmentConfiguration enrich)
+    {
+        if (enrich == null)
+            throw new ArgumentNullException(nameof(enrich));
+
+        return enrich.With&lt;RequestInfoEnricher&gt;();
+    }
+}</code></pre>
+<p>配置 Serilog ：</p>
+<pre><code><code>loggingConfig
+    .WriteTo.Elasticsearch(Configuration.GetConnectionString(&quot;ElasticSearch&quot;), $&quot;logstash-{ApplicationHelper.ApplicationName.ToLower()}&quot;)
+    .Enrich.FromLogContext()
+    .Enrich.WithRequestInfo()</code></pre>
+<p>完整代码示例参考：<a href="https://github.com/WeihanLi/ActivityReservation/blob/e68ab090f8b7d660f0a043889f4353551c8b3dc2/ActivityReservation/SerilogEnrichers/RequestInfoEnricher.cs" class="uri">https://github.com/WeihanLi/ActivityReservation/blob/e68ab090f8b7d660f0a043889f4353551c8b3dc2/ActivityReservation/SerilogEnrichers/RequestInfoEnricher.cs</a></p>
+<h2 id="验证">验证</h2>
+<p>来看一下我们使用了我们自定义的 <code>RequestInfoEnricher</code> 之后的日志效果</p>
+<p><img src="./images/Serilog 自定义 Enricher 来增加记录的信息0.png" /></p>
+<p>可以看到我们自定义的 Enricher 中添加的请求信息已经写到日志里了，而且我们可以根据 RequestIP 去筛选，为了方便查询 IP 统计，在 kibana 中加了一个可视化面板，效果如下图所示：</p>
+<p><img src="./images/Serilog 自定义 Enricher 来增加记录的信息1.png" alt="Request IP Summary" /></p>
+<h2 id="reference">Reference</h2>
+<ul>
+<li><a href="https://github.com/serilog/serilog" class="uri">https://github.com/serilog/serilog</a></li>
+<li><a href="https://github.com/WeihanLi/ActivityReservation/blob/e68ab090f8b7d660f0a043889f4353551c8b3dc2/ActivityReservation" class="uri">https://github.com/WeihanLi/ActivityReservation/blob/e68ab090f8b7d660f0a043889f4353551c8b3dc2/ActivityReservation</a></li>
+</ul>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

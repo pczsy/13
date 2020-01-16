@@ -1,0 +1,106 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修快速响应请求浅谈' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>快速响应请求浅谈</center></div><div class='banquan'>原文出处:本文由博客园博主三人行工作室提供。<br/>
+原文连接:https://www.cnblogs.com/timeddd/p/10988790.html</div><br>
+    <blockquote>
+<p>排着前不见头后不见尾的队，内心是崩溃的，又进退两难，是一种等待。<br />
+叫号，玩手机等，是一种等待。<br />
+一句我等你，然后遥遥无期，是一种等待。<br />
+此为信物，待我长发及腰...，是一种等待。</p>
+</blockquote>
+<h3 id="关于响应">关于响应</h3>
+<p>发起请求，接收到反馈即算响应。响应的内容是想要的结果，或仅是一句安慰，在合适的场景下合适的呈现都能有好的体验，响应顾及这种反馈体验，出发点就对了。</p>
+<h3 id="快速响应方式">快速响应方式</h3>
+<p>不同的应用场景，决定快速响应的方式。</p>
+<p><strong>（1）发起型，只关心提交的数据是否到达。</strong></p>
+<p>发起型只关心提交是否成功，不关心后续处理过程，此时，应在接收数据成功后立即反馈成功，处理过程交给其它异步线程或进程处理。</p>
+<p><strong>（2）实时结果型，等着出结果。</strong></p>
+<p>提交请求数据后，如果处理时间较短（如3秒以内），则可处理完成之后反馈结果。否则，可先反馈数据接收成功，提示处理中，然后异步标记处理状态供前端查询或是通知前端进度，此时前端已经收到反馈，然后以一种非阻塞的方式呈现处理进度。</p>
+<p>前端也可以是收到反馈之后，直接引导用户进入下一步，进入下一步后，如果已经处理完了则皆大欢喜，未处理完，仍然可以通过状态信息，给用户反馈当前处理情况。</p>
+<p><strong>（3）信息查询型</strong></p>
+<p>信息查询，通常可以先加载页面，再异步加载查询结果。而数据部分，可以通过使用缓存减少数据库查询，当缓存中存在相关信息时，直接使用缓存中的数据返回。缓存需要适当的刷新策略，简单方式，如无缓存则查询数据库，有则检测是否超过刷新时间决定是否刷新。通常可以使用成熟的缓存框架。</p>
+<h3 id="快速响应方法">快速响应方法</h3>
+<p>基本原则：<strong>尽早反馈</strong></p>
+<p>基本方法：<strong>先返回，异步处理，再通知</strong></p>
+<p><strong>（1）线程化</strong></p>
+<p>接收到请求数据后，处理过程以线程方式进行，请求直接返回。如下 c# 代码，假设处理过程耗时 3 秒，则使用以下方式，耗时接近 0 秒。</p>
+<pre><code><code>Stopwatch sw = new Stopwatch();
+sw.Start(); -- 计时开始
+
+var thread = new Thread(new ThreadStart(() =&gt; {
+    // 处理过程
+    Thread.Sleep(3000);
+}));
+
+thread.Start();            
+
+--  显示耗时
+return sw.ElapsedMilliseconds.ToString(); </code></pre>
+<p>这种方式的主要问题在于，当处理时长偏长而请求数较多时，线程数据会急剧增加可能耗尽所有资源，而使得应用不可用。</p>
+<p><strong>（2）线程池</strong></p>
+<p>使用线程池能降低反复创建销毁线程的损耗，并对资源的使用加以控制！在 C# 中，我们可以通过以下线程池的方法达到线程化的效果。</p>
+<pre><code><code>ThreadPool.QueueUserWorkItem((state) =&gt; {
+    // 处理过程
+    Thread.Sleep(3000);
+    Debug.Write(&quot;处理完毕！&quot;);
+});  </code></pre>
+<p><strong>（3）队列化</strong></p>
+<p>任务请求不均衡，高峰期特别集中，而应用处理能力有限，此时可以建立一种排队机制，来的任务加入队列，不紧不慢的去执行，可以充分发挥机器性能又不至于超过其处理能力。任务的执行主体简要形式如以下 C# 示例。</p>
+<pre><code><code>/// &lt;summary&gt;
+/// 任务执行线程主体
+/// &lt;/summary&gt;
+private void TaskRunning()
+{
+    while (_Working)
+    {
+        QueueTask&lt;T&gt; task = null;
+        lock (_RunLocker)   
+        {
+            if (_TaskRunQueue.Count &gt; 0)
+            {
+                task = _TaskRunQueue.Dequeue();  
+            }
+        }
+        // 还存在任务执行其任务过程
+        if (task != null)
+        {
+            task.Callback(task.ObjectKey, task.Context);
+        }
+        else
+        {
+            // 等待新任务通知
+            _WaitHandle.WaitOne();
+        }
+    }
+} </code></pre>
+<p><strong>（4）中间件</strong></p>
+<p>使用中间件，能有效进行应用间的解藕，并使得应用极具扩展性与伸缩性，相关数据丢给中间件，中间件负责分发任务给相关工作进程，并管理好其状态。如 RabbitMQ，通过它可以在不同应用进程中进行通信与任务管理。</p>
+<h3 id="任务处理方式">任务处理方式</h3>
+<p><strong>（1）发布订阅方式</strong></p>
+<p>确定一个主题，需要该主题相关的数据的应用订阅该主题即可，当数据方发布该主题时，订阅方会收到相应的消息然后触发业务处理。当同一数据（消息）多方应用依据其进行处理时，发布订阅方式非常合适。</p>
+<p><strong>（2）生产者消费者方式</strong></p>
+<p>当很多耗时任务到达时，可以开启多个工作进程来并行处理这些任务。发起任务方是生产者，工作进程就是消费者，生产一个，空闲工作进程马上接手一个（即消费一个）。仍然处理不过来了，可以继续增加工作进程。</p>
+<h3 id="容错处理">容错处理</h3>
+<p>容错处理主要针对任务执行失败的情形，如何确保任务一定有结果的执行。其一，需要确保在任务派发后，其工作进程执行失败时，能自动重新委派给其它工作进程。其二，当分配者自身中断后能恢复任务队列。实现这些，需要有相应的处理机制，如任务执行结果 ACK 通知、持久化消息等。而这些，都有较为成熟的解决方案，如 RabbitMQ 等。</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

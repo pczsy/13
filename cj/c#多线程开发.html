@@ -1,0 +1,177 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修c#多线程开发' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>c#多线程开发</center></div><div class='banquan'>原文出处:本文由博客园博主哈根达斯提供。<br/>
+原文连接:https://www.cnblogs.com/DSC1991/p/12018316.html</div><br>
+    <div class="cnblogs_code">
+<pre><code><span style="color: #008080;">  1</span></pre>
+<pre><code>        //要执行的业务是从阿里云上下载将近40000条的音频到本地，单条下载忒慢，就想采用多线程，分配了二十个线程同时下载，省了很大部分的时间</pre>
+<pre><code><span style="color: #0000ff;">          class</span><span style="color: #000000;"> Program
+</span><span style="color: #008080;">  2</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;">  3</span>        
+<span style="color: #008080;">  4</span>         <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args) {
+</span><span style="color: #008080;">  5</span>             <span style="color: #0000ff;">string</span> sql = <span style="color: #800000;">"</span><span style="color: #800000;">select en_audio,us_audio from t_audio LIMIT 198 </span><span style="color: #800000;">"</span><span style="color: #000000;">;
+</span><span style="color: #008080;">  6</span>             MySqlDataReader mySqlDataReader =<span style="color: #000000;"> DBHelper.ExecuteReader(sql);         
+</span><span style="color: #008080;">  7</span>             List&lt;String&gt; sList = <span style="color: #0000ff;">new</span> List&lt;String&gt;<span style="color: #000000;">();
+</span><span style="color: #008080;">  8</span>             sList.Add(<span style="color: #800000;">"</span><span style="color: #800000;">https://qutifen-qudao.oss-cn-beijing.aliyuncs.com/mfg/audio/v3/1abacus_en.ogg</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">  9</span>             sList.Add(<span style="color: #800000;">"</span><span style="color: #800000;">https://qutifen-qudao.oss-cn-beijing.aliyuncs.com/mfg/audio/v3/2abacus_en.ogg</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 10</span>             <span style="color: #0000ff;">if</span><span style="color: #000000;"> (mySqlDataReader.HasRows)
+</span><span style="color: #008080;"> 11</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 12</span>                 <span style="color: #0000ff;">while</span><span style="color: #000000;"> (mySqlDataReader.Read())
+</span><span style="color: #008080;"> 13</span> <span style="color: #000000;">                {                 
+</span><span style="color: #008080;"> 14</span>                     sList.Add(mySqlDataReader.GetString(<span style="color: #800080;">0</span><span style="color: #000000;">));
+</span><span style="color: #008080;"> 15</span>                     <span style="color: #008000;">sList.Add(mySqlDataReader.GetString(1));</span>
+<span style="color: #008080;"> 16</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;"> 17</span> <span style="color: #000000;">            }              
+</span><span style="color: #008080;"> 18</span> <span style="color: #000000;">            Console.WriteLine(sList.Count);
+</span><span style="color: #008080;"> 19</span>             Stopwatch stopwatch = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Stopwatch();
+</span><span style="color: #008080;"> 20</span> <span style="color: #000000;">            stopwatch.Start();
+</span><span style="color: #008080;"> 21</span> <span style="color: #000000;">            ThreadStart(sList);
+</span><span style="color: #008080;"> 22</span>             WaitHandle.WaitAll(waits);  <span style="color: #008000;">//</span><span style="color: #008000;">监听wait里面的所有的线程都已经set了 才执行下面的代码，否则一直在这里等待</span>
+<span style="color: #008080;"> 23</span> <span style="color: #000000;">            stopwatch.Stop();
+</span><span style="color: #008080;"> 24</span>             Console.WriteLine($<span style="color: #800000;">"</span><span style="color: #800000;">耗时{stopwatch.ElapsedMilliseconds}毫秒</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 25</span> <span style="color: #000000;">            Console.ReadKey();
+</span><span style="color: #008080;"> 26</span> 
+<span style="color: #008080;"> 27</span> 
+<span style="color: #008080;"> 28</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 29</span>        <span style="color: #0000ff;">static</span>  Thread[] threads = <span style="color: #0000ff;">new</span> Thread[<span style="color: #800080;">20</span><span style="color: #000000;">];
+</span><span style="color: #008080;"> 30</span>         <span style="color: #0000ff;">static</span> WaitHandle[] waits = <span style="color: #0000ff;">new</span> WaitHandle[<span style="color: #800080;">20</span><span style="color: #000000;">];
+</span><span style="color: #008080;"> 31</span>         <span style="color: #0000ff;">public</span>  <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> ThreadStart(List&lt;String&gt;<span style="color: #000000;"> nums) {<br />                  //分配线程
+</span><span style="color: #008080;"> 32</span>             <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i=<span style="color: #800080;">0</span>;i&lt;<span style="color: #800080;">20</span>;i++<span style="color: #000000;">) {
+</span><span style="color: #008080;"> 33</span>                 threads[i] = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Thread(DownLoadFile);
+</span><span style="color: #008080;"> 34</span>                 waits[i] = <span style="color: #0000ff;">new</span> AutoResetEvent(<span style="color: #0000ff;">false</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 35</span> 
+<span style="color: #008080;"> 36</span> <span style="color: #000000;">            }<br />                 //为每个线程分配要执行的数据并开始执行
+</span><span style="color: #008080;"> 37</span>             <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; <span style="color: #800080;">20</span>; i++<span style="color: #000000;">)
+</span><span style="color: #008080;"> 38</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 39</span>                 <span style="color: #0000ff;">if</span> (i== threads.Length-<span style="color: #800080;">1</span><span style="color: #000000;">) {
+</span><span style="color: #008080;"> 40</span>                     <span style="color: #0000ff;">var</span> retult = nums.Skip(nums.Count / <span style="color: #800080;">20</span> * i).Take(nums.Count- nums.Count / <span style="color: #800080;">20</span>*<span style="color: #000000;">i).ToList();
+</span><span style="color: #008080;"> 41</span>                     threads[i].Start(<span style="color: #0000ff;">new</span><span style="color: #000000;"> Objpt()
+</span><span style="color: #008080;"> 42</span> <span style="color: #000000;">                    {
+</span><span style="color: #008080;"> 43</span>                         sList =<span style="color: #000000;"> retult,
+</span><span style="color: #008080;"> 44</span>                         WaitHandle =<span style="color: #000000;"> waits[i],
+</span><span style="color: #008080;"> 45</span>                         ThreadIndex =<span style="color: #000000;"> i
+</span><span style="color: #008080;"> 46</span> <span style="color: #000000;">                    });
+</span><span style="color: #008080;"> 47</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;"> 48</span>                 <span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+</span><span style="color: #008080;"> 49</span>                   <span style="color: #0000ff;">var</span> retult= nums.Skip(nums.Count / <span style="color: #800080;">20</span> * i).Take(nums.Count / <span style="color: #800080;">20</span><span style="color: #000000;">).ToList();
+</span><span style="color: #008080;"> 50</span>                     threads[i].Start(<span style="color: #0000ff;">new</span><span style="color: #000000;"> Objpt() { 
+</span><span style="color: #008080;"> 51</span>                      sList=<span style="color: #000000;"> retult,
+</span><span style="color: #008080;"> 52</span>                      WaitHandle=<span style="color: #000000;">waits[i],
+</span><span style="color: #008080;"> 53</span>                      ThreadIndex=<span style="color: #000000;">i
+</span><span style="color: #008080;"> 54</span> <span style="color: #000000;">                    });
+</span><span style="color: #008080;"> 55</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;"> 56</span>                
+<span style="color: #008080;"> 57</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 58</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 59</span> 
+<span style="color: #008080;"> 60</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> DownLoadFile(Object obj)
+</span><span style="color: #008080;"> 61</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 62</span>             <span style="color: #0000ff;">int</span> count = <span style="color: #800080;">0</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 63</span>             Objpt optObj = (obj <span style="color: #0000ff;">as</span><span style="color: #000000;"> Objpt);
+</span><span style="color: #008080;"> 64</span>             <span style="color: #0000ff;">var</span> sList =<span style="color: #000000;"> optObj.sList;
+</span><span style="color: #008080;"> 65</span>             Console.WriteLine($<span style="color: #800000;">"</span><span style="color: #800000;">线程{optObj.ThreadIndex}开始了</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 66</span>             <span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">var</span> url <span style="color: #0000ff;">in</span><span style="color: #000000;"> sList)
+</span><span style="color: #008080;"> 67</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 68</span>                 <span style="color: #0000ff;">try</span>
+<span style="color: #008080;"> 69</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;"> 70</span>                     count++<span style="color: #000000;">;
+</span><span style="color: #008080;"> 71</span>                     <span style="color: #0000ff;">var</span> arrs = url.Split(<span style="color: #800000;">'</span><span style="color: #800000;">/</span><span style="color: #800000;">'</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 72</span>                     WebRequest request =<span style="color: #000000;"> WebRequest.Create(url);
+</span><span style="color: #008080;"> 73</span>                     HttpWebResponse res =<span style="color: #000000;"> (HttpWebResponse)request.GetResponse();
+</span><span style="color: #008080;"> 74</span>                     WebResponse response =<span style="color: #000000;"> request.GetResponse();           
+</span><span style="color: #008080;"> 75</span>                     <span style="color: #0000ff;">if</span> (res.StatusCode.ToString() == <span style="color: #800000;">"</span><span style="color: #800000;">OK</span><span style="color: #800000;">"</span><span style="color: #000000;">)
+</span><span style="color: #008080;"> 76</span> <span style="color: #000000;">                    {
+</span><span style="color: #008080;"> 77</span>                         Stream responseStream =<span style="color: #000000;"> response.GetResponseStream();
+</span><span style="color: #008080;"> 78</span>                         <span style="color: #0000ff;">using</span> (FileStream fsWrite = <span style="color: #0000ff;">new</span> FileStream($<span style="color: #800000;">"</span><span style="color: #800000;">F:/Audio/v4/{arrs[arrs.Length - 2]}/{arrs[arrs.Length - 1]}</span><span style="color: #800000;">"</span><span style="color: #000000;">, FileMode.OpenOrCreate, FileAccess.Write))
+</span><span style="color: #008080;"> 79</span> <span style="color: #000000;">                        {
+</span><span style="color: #008080;"> 80</span>                             <span style="color: #0000ff;">byte</span>[] buffer = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">byte</span><span style="color: #000000;">[response.ContentLength];
+</span><span style="color: #008080;"> 81</span>                             <span style="color: #0000ff;">while</span> (<span style="color: #0000ff;">true</span><span style="color: #000000;">)
+</span><span style="color: #008080;"> 82</span> <span style="color: #000000;">                            {
+</span><span style="color: #008080;"> 83</span>                                 <span style="color: #808080;">///</span><span style="color: #008000;">/返回本次实际读取到的字节数</span>
+<span style="color: #008080;"> 84</span>                                 <span style="color: #0000ff;">int</span> r = responseStream.Read(buffer, <span style="color: #800080;">0</span><span style="color: #000000;">, buffer.Length);
+</span><span style="color: #008080;"> 85</span>                                 <span style="color: #0000ff;">if</span> (r == <span style="color: #800080;">0</span><span style="color: #000000;">)
+</span><span style="color: #008080;"> 86</span> <span style="color: #000000;">                                {
+</span><span style="color: #008080;"> 87</span>                                     <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 88</span> <span style="color: #000000;">                                }
+</span><span style="color: #008080;"> 89</span>                                 fsWrite.Write(buffer, <span style="color: #800080;">0</span>, r);<span style="color: #808080;">///</span><span style="color: #008000;">写入</span>
+<span style="color: #008080;"> 90</span> 
+<span style="color: #008080;"> 91</span> <span style="color: #000000;">                            }
+</span><span style="color: #008080;"> 92</span> <span style="color: #000000;">                        }
+</span><span style="color: #008080;"> 93</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;"> 94</span>                     <span style="color: #008000;">//</span><span style="color: #008000;">if (count % 20 == 0 || count == sList.Count)
+</span><span style="color: #008080;"> 95</span>                     <span style="color: #008000;">//</span><span style="color: #008000;">{
+</span><span style="color: #008080;"> 96</span>                     <span style="color: #008000;">//</span><span style="color: #008000;">    Console.WriteLine($"线程{optObj.ThreadIndex}已处理个数：{count}");
+</span><span style="color: #008080;"> 97</span>                     <span style="color: #008000;">//</span><span style="color: #008000;">}</span>
+<span style="color: #008080;"> 98</span> 
+<span style="color: #008080;"> 99</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">100</span>                 <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception ex)
+</span><span style="color: #008080;">101</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">102</span>                     <span style="color: #0000ff;">string</span> strErrorLogFile = System.AppDomain.CurrentDomain.BaseDirectory + $<span style="color: #800000;">"</span><span style="color: #800000;">\\{optObj.ThreadIndex}ErrorLog.log</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+</span><span style="color: #008080;">103</span>                     <span style="color: #0000ff;">if</span> (!<span style="color: #000000;">System.IO.File.Exists(strErrorLogFile))
+</span><span style="color: #008080;">104</span>                         System.IO.File.WriteAllText(strErrorLogFile, <span style="color: #800000;">"</span><span style="color: #800000;">//系统错误日志记录文件\r\n</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">105</span>                     <span style="color: #0000ff;">object</span> objSql =<span style="color: #800000;">"</span><span style="color: #800000;">线程</span><span style="color: #800000;">"</span>+ optObj.ThreadIndex.ToString()+<span style="color: #000000;"> ex.Message;
+</span><span style="color: #008080;">106</span>                     System.IO.File.AppendAllText(strErrorLogFile, DateTime.Now.ToString(<span style="color: #800000;">"</span><span style="color: #800000;">yyyy-MM-dd HH:mm:ss</span><span style="color: #800000;">"</span>) + <span style="color: #800000;">"</span><span style="color: #800000;">\t</span><span style="color: #800000;">"</span> + objSql.ToString() + url + <span style="color: #800000;">"</span><span style="color: #800000;">\r\n</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">107</span> 
+<span style="color: #008080;">108</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">109</span> 
+<span style="color: #008080;">110</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">111</span>             Console.WriteLine($<span style="color: #800000;">"</span><span style="color: #800000;">线程{optObj.ThreadIndex}结束</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">112</span>             (optObj.WaitHandle <span style="color: #0000ff;">as</span> AutoResetEvent).Set();  <span style="color: #008000;">//</span><span style="color: #008000;">set方法是当某个线程结束起做个标记的作用</span>
+<span style="color: #008080;">113</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">114</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">115</span> 
+<span style="color: #008080;">116</span>      <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Objpt {
+</span><span style="color: #008080;">117</span>         <span style="color: #0000ff;">public</span> List&lt;String&gt; sList { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+</span><span style="color: #008080;">118</span>         <span style="color: #0000ff;">public</span> WaitHandle WaitHandle { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+</span><span style="color: #008080;">119</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span> ThreadIndex { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+</span><span style="color: #008080;">120</span> 
+<span style="color: #008080;">121</span>     }</pre>
+</div>
+<p>&nbsp;</p>
+<div class="cnblogs_code">
+<pre><code></pre>
+<p> private static AutoResetEvent myAutoRetEvent = new AutoResetEvent(false);<br />        // true:设置终止状态（不阻塞）。相当于调用了Set(),即首次不会被WaitOne()阻塞，下次执行WaitOne()才会被阻塞<br />        //false:设置非终止状态（阻塞）。遇到WaitOne()立即阻塞所在的一个或多个线程</p>
+<p>        //public bool Set();&nbsp;&nbsp;//将事件状态设置为终止状态，从而允许继续执行一个或多个等待线程。<br />        //public bool Reset();//将事件状态设置为非终止，从而导致线程受阻。</p>
+<p><br />        static void Main(string[] args)<br />        {<br />            //来了一个顾客1<br />            Thread myThread1 = new Thread(new ThreadStart(Run_1));<br />            myThread1.Start();<br />            //来了一个顾客2<br />            Thread myThread2 = new Thread(new ThreadStart(Run_2));<br />            myThread2.Start();</p>
+<pre><code></pre>
+<p> //厨师做饭做3000ms<br />            Thread.Sleep(3000);<br />            //厨师做好饭了，通知看谁能吃上饭<br />            myAutoRetEvent.Set();  //Run_2不会被执行，只有Run_1执行<br />            Console.ReadKey();<br />        }</p>
+<pre><code></pre>
+<p> private static void Run_1()<br />        {<br />            //顾客1过来了，要吃饭，等厨师做好饭<br />            myAutoRetEvent.WaitOne();<br />            Console.WriteLine("我是顾客1开始吃饭...");<br />          <br />        }</p>
+<pre><code></pre>
+<p> private static void Run_2()<br />        {<br />            //顾客2过来了，要吃饭，等厨师做好饭<br />            myAutoRetEvent.WaitOne();<br />            Console.WriteLine("我是顾客2开始吃饭...");<br />        }</p>
+<p>&nbsp;</p>
+<p>等待3秒后，弹出&ldquo;我是顾客1开始吃饭...&rdquo;，如果把构造函数中的false改为true，单击按钮后，立即弹出&ldquo;我是顾客1开始吃饭...&rdquo;。</p>
+<pre><code><span style="color: #000000;">.ManualResetEvent&nbsp;调用一次Set()后将允许恢复所有被阻塞线程,即Run_1，Run_2都会被执行；<br />.AutoResetEvent,调用一次Set()只能继续被阻塞的一个线程，</span>即<span>Run_2不会被执行，只有Run_1执行，多次调用Set()才行 </span></pre>
+<pre><code><span style="color: #000000;">&nbsp;</span></pre>
+</div>
+<p>AutoResetEvent和ManualResetEvent实例化，如果为 true，则将初始状态设置为终止（不阻塞）；如果为 false，则将初始状态设置为非终止（阻塞）。</p>
+<p><br />        //将事件状态设置为终止状态，从而允许继续执行一个或多个等待线程。<br />        //public bool Set();<br />        //将事件状态设置为非终止，从而导致线程受阻。<br />        //public bool Reset();</p>
+<p><a href="http://blog.sina.com.cn/s/blog_6f19490b0102x4c4.html">http://blog.sina.com.cn/s/blog_6f19490b0102x4c4.html</a></p>
+<p>WaitOne：在一个线程MainThread中开启一个新的线程NewThread，在完成初始化并启动NewThread的操作后，调用WaitOne，则MainThread堵塞，直到在NewThread中调用Set，MainThread才继续执行。</p>
+<p>&nbsp;</p>
+<p>AutoResetEvent 允许线程通过发信号互相通信。通常，此通信涉及线程需要独占访问的资源。</p>
+<p>线程通过调用 AutoResetEvent 上的 WaitOne 来等待信号。如果 AutoResetEvent 处于非终止状态，则该线程阻塞，并等待当前控制资源的线程通过调用 Set 发出资源可用的信号。</p>
+<p>调用 Set 向 AutoResetEvent 发信号以释放等待线程。AutoResetEvent 将保持终止状态，直到一个正在等待的线程被释放，然后自动返回非终止状态。如果没有任何线程在等待，则状态将无限期地保持为终止状态。</p>
+<p>可以通过将一个布尔值传递给构造函数来控制 AutoResetEvent 的初始状态，如果初始状态为终止状态，则为 true；否则为 false。</p>
+<p>通俗的来讲只有等myResetEven.Set()成功运行后,myResetEven.WaitOne()才能够获得运行机会;Set是发信号，WaitOne是等待信号，只有发了信号，等待的才会执行。如果不发的话，WaitOne后面的程序就永远不会执行。<br /><br /></p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

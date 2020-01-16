@@ -1,0 +1,135 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C# - 为引用类型重定义相等性' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C# - 为引用类型重定义相等性</center></div><div class='banquan'>原文出处:本文由博客园博主solenovex提供。<br/>
+原文连接:https://www.cnblogs.com/cgzl/p/10725700.html</div><br>
+    <p>通常情况下引用类型的相等性是不应该被重定义/重写的。</p>
+<p>例如两个引用类型的变量 x 和 y，如果这样写：if(x == y) {...}，那么大家都明白，这个比较的是引用的相等性。</p>
+<p>但是有少数情况下，也可以为引用类型重写相等性。</p>
+<p>例如这个类：</p>
+<p><img src="./images/C# - 为引用类型重定义相等性0.png" alt="" /></p>
+<p>这个类里面只有两个string类型的属性和字段，那么对它的相等性来说，更合理的是去比较值，而不是引用。</p>
+<p>&nbsp;</p>
+<p>还有一种情况，就是表示数学的引用类型。</p>
+<p>例如有一个类表示矩阵 Matrix，那么这样写 if(matrix1 == matrix2) {...} 更适合表示它们两个的值相等。</p>
+<p>&nbsp;</p>
+<p>上述的这两个例子其实也不是十分的必要。所以想为引用类型重写相等性的时候还是应该先想好，重写后是否能够更加的直观，使理解便得更简单了。</p>
+<p>实际上如果想比较两个应用类型里面的值是否相等，你不必非得去重写那些相等性的方法，你可以通过实现IEqualityComparer&lt;T&gt;接口来写一个单独的相等性比较器。但是这样的话不能使用==操作符，需要这样写：if(eqComparer.Equals(x, y)) {...}</p>
+<p>&nbsp;</p>
+<h1>为引用类型重写相等性</h1>
+<p>一个类：</p>
+<p><img src="./images/C# - 为引用类型重定义相等性1.png" alt="" /></p>
+<p>首先重写object.Equals()方法：</p>
+<p><img src="./images/C# - 为引用类型重定义相等性2.png" alt="" /></p>
+<p>这个逻辑比较简单，就是判断null，引用和类型，然后再判断各个属性（字段）的值是否相等。</p>
+<p>&nbsp;</p>
+<p>然后还需要重写object.GetHashCode()方法:</p>
+<p><img src="./images/C# - 为引用类型重定义相等性3.png" alt="" /></p>
+<p>这个采用了Resharper生成的方法，以前说过，就不再介绍了。</p>
+<p>&nbsp;</p>
+<p>最佳实践还要求重写C#的==操作符：</p>
+<p><img src="./images/C# - 为引用类型重定义相等性4.png" alt="" /></p>
+<p>当然配套的!=也必须重写。</p>
+<p>&nbsp;</p>
+<p>在之前重写值类型相等性的文章里，我还为值类型实现了IEquatable&lt;T&gt;接口，而对于引用类型来说，就没有必要去实现该接口了，可以把相等性判断逻辑放在object.Equals()方法里。</p>
+<p>&nbsp;</p>
+<h1>派生类</h1>
+<p>这是上面Citizen类的一个子类：</p>
+<p><img src="./images/C# - 为引用类型重定义相等性5.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>下面我重写object.Equals() 方法：</p>
+<p><img src="./images/C# - 为引用类型重定义相等性6.png" alt="" /></p>
+<p>大部分逻辑都在base.Equals()方法里了，首先如果父类的Equals()方法返回false，那么下面也就不用做啥了。但是如果父类Equals()认为这两个实例是相等的，这就意味着父类里所有的相等性检查都通过了，然后我们仍然需要检查派生类里面的独有字段（属性），而这个例子里只有一个字段（属性）。</p>
+<p>然后别忘了实现GetHashCode()方法：</p>
+<p><img src="./images/C# - 为引用类型重定义相等性7.png" alt="" /></p>
+<p>（resharper生成的代码）</p>
+<p>这个方法里使用了父类的GetHashCode()方法，把它按位异或IdCard的GetHashCode()的结果。</p>
+<p>&nbsp;</p>
+<p>然后实现==和!=操作符：</p>
+<p><img src="./images/C# - 为引用类型重定义相等性8.png" alt="" /></p>
+<p>好，现在我们来测试一下：</p>
+<p><img src="./images/C# - 为引用类型重定义相等性9.png" alt="" /></p>
+<p>其结果如下：</p>
+<p><img src="./images/C# - 为引用类型重定义相等性10.png" alt="" /></p>
+<p>这个结果还都是对值进行比较的，符合预期。</p>
+<p>&nbsp;</p>
+<p>然后你可能以为这样实现没有问题了。。。。</p>
+<h1>陷阱&nbsp;</h1>
+<p>现在我在Citizen这个父类里修改一下==的实现，我想让它更有效率：</p>
+<p><img src="./images/C# - 为引用类型重定义相等性11.png" alt="" /></p>
+<p>然后我再执行和上面同样的测试代码，其结果输入是：</p>
+<p>&nbsp;<img src="./images/C# - 为引用类型重定义相等性12.png" alt="" /></p>
+<p>😱，全都相等了。。。。肯定不对。。</p>
+<p>&nbsp;</p>
+<p>那在父类里的==方法设一下断点看看：</p>
+<p><img src="./images/C# - 为引用类型重定义相等性13.png" alt="" /></p>
+<p>这里面x和y其实都是BeijingCitizen的实例，但是现在所处的位置是其父类Citizen的==方法里，所以相等性检查会在这里发生，所以这个相等性检查只会检查父类里面的字段，Citizen这个类无法知道其它继承于它的类型，所以这里也无法比较派生类独有的字段，在这里就是IdCard。而所有这些实例的不同值就去别再IdCard这个派生类的字段上面了，所以所有检查的结果都是相等的，因为只比较了父类的那两个字段。</p>
+<p>为什么会调用Citizen父类的==方法呢？因为该方法是静态的，也就不是virtual的。而我的测试代码：</p>
+<p><img src="./images/C# - 为引用类型重定义相等性14.png" alt="" /></p>
+<p>其参数类型是父类Citizen，所以a==b这句话会在编译时就决定采取哪个版本的==实现，而编译器在这个方法里会看到a和b的类型都是Citizen，所以它会调用Citizen版本的==实现。</p>
+<p>&nbsp;</p>
+<p>所以这确实是一个陷阱。</p>
+<p>&nbsp;</p>
+<p>但是为什么原来的写法就没有问题呢？</p>
+<p><img src="./images/C# - 为引用类型重定义相等性15.png" alt="" /></p>
+<p>原来的写法里，在Citizen这个父类里，==的实现调用了 object的静态Equals()方法，而在这个静态Equals方法里：</p>
+<p><img src="./images/C# - 为引用类型重定义相等性16.png" alt="" /></p>
+<p>又调用了object的virtual Equals()方法，而如果实际类型是BeijingCitizen的话，那么就会调用override的Equals()方法，我们单独看这个比较：</p>
+<p><img src="./images/C# - 为引用类型重定义相等性17.png" alt="" /></p>
+<p>在BeijingCitizen里设一个断点：</p>
+<p><img src="./images/C# - 为引用类型重定义相等性18.png" alt="" /></p>
+<p>可以看到会击中该断点。也可以看一下CallStack：</p>
+<p><img src="./images/C# - 为引用类型重定义相等性19.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>现在再次运行所有测试，其结果：</p>
+<p><img src="./images/C# - 为引用类型重定义相等性20.png" alt="" /></p>
+<p>就是正确的了。</p>
+<p>&nbsp;</p>
+<p>所以说，<span style="color: #ff0000;"><strong>相等性检查的逻辑需要放在virtual的方法里</strong></span>。</p>
+<p>&nbsp;</p>
+<p>如果再往上一级，把参数都变成object类型：</p>
+<p><img src="./images/C# - 为引用类型重定义相等性21.png" alt="" /></p>
+<p>输出结果是：</p>
+<p><img src="./images/C# - 为引用类型重定义相等性22.png" alt="" /></p>
+<p>这是因为==的实现不是virtual的，在object类型上使用==就是判断引用的相等性。而你也无法在重载操作符来防止上述事情的发生，因为这段代码永远不会调用到你的操作符重载方法。</p>
+<p>&nbsp;</p>
+<p>那么结论就是，<span style="color: #ff0000;"><strong>在操作符重载方法里调用vitual的方法，就可以应付继承相关的相等性判断，但是至少也得输入你定义的父类的类型（Citizen），好让你定义的操作符重载方法可以被最先调用</strong></span>。<span style="color: #ff0000;"><strong>如果要满足继承、相等性这两方面的要求，那么就需要牺牲类型安全:</strong></span></p>
+<p><span style="color: #ff0000;"><strong><img src="./images/C# - 为引用类型重定义相等性23.png" alt="" /></strong></span></p>
+<p>所以==操作符重载，可以看作一种方便的语法糖法，同时也把类型不安全的Equals()方法包装了起来。</p>
+<p>&nbsp;</p>
+<h1>为什么不实现IEquatable&lt;T&gt;&nbsp;</h1>
+<p>如果我在Citizen类里面实现了该接口：</p>
+<p><img src="./images/C# - 为引用类型重定义相等性24.png" alt="" /></p>
+<p>那么方法里的调用也还是调用virtual的Equals()，否则的话还是一样的bug。那么这样看的话，实现该接口几乎没有什么新鲜的作用，虽然说该方法可以做到一定程度的类型安全，但是性能上，比直接调用object.Equals()更慢了。</p>
+<p>所以针对引用类型，不建议实现IEquatable&lt;T&gt;接口。</p>
+<p>&nbsp;</p>
+<h2>非得实现的话建议sealed</h2>
+<p>例如：</p>
+<p><img src="./images/C# - 为引用类型重定义相等性25.png" alt="" /></p>
+<p>这样的话，我们就可以把判断相等的逻辑写在该方法里了，因为这个类是sealed，所以能传递到这个方法里的变量一定是该类型的，没有继承的存在，我们就可以同时拥有类型安全和相等性了。</p>
+<p>&nbsp;</p>
+<p>为sealed的class实现IEquatable&lt;T&gt;接口肯定是可行的，但是否值得呢？</p>
+<p>优点：能得到微小的性能提升，string就是个例子。</p>
+<p>缺点：class本身就更复杂了，你需要记住3种实现相等性判断的方式。。。</p>
+<p><strong>综上个人建议是针对引用类型不去实现IEquatable&lt;T&gt;接口</strong>。</p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

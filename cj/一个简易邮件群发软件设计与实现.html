@@ -1,0 +1,317 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修一个简易邮件群发软件设计与实现' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>一个简易邮件群发软件设计与实现</center></div><div class='banquan'>原文出处:本文由博客园博主三人行工作室提供。<br/>
+原文连接:https://www.cnblogs.com/timeddd/p/11283183.html</div><br>
+    <h3 id="需求概述">1 需求概述</h3>
+<p>指定一批邮箱地址，使用指定的邮箱发送指定的内容。</p>
+<h3 id="功能需求">2 功能需求</h3>
+<ul>
+<li>配置文件配置用于发送的邮箱信息</li>
+<li>邮件发送功能</li>
+<li>日志窗口输出显示</li>
+</ul>
+<h3 id="界面接口">3 界面接口</h3>
+<ul>
+<li>邮件列表框</li>
+<li>标题内容输入框</li>
+<li>发送按钮</li>
+<li>日志输出框</li>
+</ul>
+<h3 id="技术选型">4 技术选型</h3>
+<p>.Net 4.0 C# Winform</p>
+<h3 id="实现">5 实现</h3>
+<h4 id="新建项目">5.1 新建项目</h4>
+<ul>
+<li>项目命名为 SimpleEmailSender<br />
+<img src="./images/一个简易邮件群发软件设计与实现0.png" /></li>
+</ul>
+<h4 id="在项目中添加配置文件">5.2 在项目中添加配置文件</h4>
+<p><img src="./images/一个简易邮件群发软件设计与实现1.png" /></p>
+<ul>
+<li>配置发件邮箱信息</li>
+</ul>
+<pre><code><code>&lt;configuration&gt;
+  &lt;appSettings&gt;
+    &lt;add key=&quot;email_stmp&quot; value=&quot;smtp.****.com&quot;/&gt;
+    &lt;add key=&quot;send_user_email&quot; value=&quot;****@****&quot;/&gt;
+    &lt;add key=&quot;send_user_pass&quot; value=&quot;密码&quot;/&gt;
+    &lt;add key=&quot;send_user_disp&quot; value=&quot;发件人昵称&quot; /&gt;
+  &lt;/appSettings&gt;
+&lt;/configuration&gt;</code></pre>
+<h4 id="制作界面">5.3 制作界面</h4>
+<p>根据界面接口需求，界面布局如下：<br />
+<img src="./images/一个简易邮件群发软件设计与实现2.png" /></p>
+<h4 id="邮件发送辅助类">5.4 邮件发送辅助类</h4>
+<p>首先完成辅助类开发，最后再跟界面对接完成流程。<br />
+因为读取了配置文件，需要添加 System.Configuration 程序集的引用。<br />
+<img src="./images/一个简易邮件群发软件设计与实现3.png" /></p>
+<p>定义 MailHelper 辅助类，读取配置参数，向外提供发送邮件功能方法 SendMail。</p>
+<pre><code><code>using System;
+using System.Collections.Generic;
+using System.Configuration;
+using System.Linq;
+using System.Net.Mail;
+using System.Text;
+
+namespace SimpleEmailSender
+{
+    public class MailHelper
+    {
+        public static String EMAIL_USERNAME = ConfigurationManager.AppSettings[&quot;send_user_email&quot;];
+        public static String EMAIL_DISPNAME = ConfigurationManager.AppSettings[&quot;send_user_disp&quot;];
+        public static String EMAIL_PASSWORD = ConfigurationManager.AppSettings[&quot;send_user_pass&quot;];
+        public static String EMAIL_SMTP = ConfigurationManager.AppSettings[&quot;email_stmp&quot;];
+        public static ValidateResult SendMail(string email, string name, string content)
+        {
+            return SendMail(&quot;系统消息&quot;, email, name, content);
+        }
+
+        /// &lt;summary&gt;
+        /// 发送邮件
+        /// &lt;/summary&gt;
+        /// &lt;param name=&quot;title&quot;&gt;邮件标题&lt;/param&gt;
+        /// &lt;param name=&quot;email&quot;&gt;收件人地址&lt;/param&gt;
+        /// &lt;param name=&quot;name&quot;&gt;收件人名称&lt;/param&gt;
+        /// &lt;param name=&quot;content&quot;&gt;邮件内容&lt;/param&gt;
+        public static ValidateResult SendMail(string title, string email, string name, string content)
+        {
+            MailAddress from = new MailAddress(EMAIL_USERNAME, EMAIL_DISPNAME); //邮件的发件人
+            MailMessage mail = new MailMessage();
+            //设置邮件的标题
+            mail.Subject = title;
+
+            //设置邮件的发件人
+            //Pass:如果不想显示自己的邮箱地址，这里可以填符合mail格式的任意名称，真正发mail的用户不在这里设定，这个仅仅只做显示用
+            mail.From = from;
+
+            //设置邮件的收件人
+            mail.To.Add(new MailAddress(email, name));
+
+            //设置邮件的内容
+            mail.Body = content;
+
+            //设置邮件的格式
+            mail.BodyEncoding = System.Text.Encoding.UTF8;
+            mail.IsBodyHtml = true;
+            //设置邮件的发送级别
+            mail.Priority = MailPriority.Normal;
+
+            mail.DeliveryNotificationOptions = DeliveryNotificationOptions.OnSuccess;
+
+            SmtpClient client = new SmtpClient();
+            //设置用于 SMTP 事务的主机的名称，填IP地址也可以了
+            client.Host = EMAIL_SMTP; 
+            //设置用于 SMTP 事务的端口，默认的是 25
+            client.Port = 25;
+            client.UseDefaultCredentials = false;
+            //这里才是真正的邮箱登陆名和密码
+            client.Credentials = new System.Net.NetworkCredential(EMAIL_USERNAME, EMAIL_PASSWORD);
+            client.DeliveryMethod = SmtpDeliveryMethod.Network;
+            //都定义完了，正式发送了，很是简单吧！
+
+
+            ValidateResult vr = new ValidateResult(true, &quot;发送成功！&quot;);
+            try
+            {
+                client.Send(mail);
+                return vr;
+            }
+            catch (Exception e)
+            {
+                vr.IsValid = false;
+                vr.Message = e.Message;
+                return vr;
+            }
+        }
+    }
+
+    public class ValidateResult
+    {
+        public bool IsValid { get; set; }
+        public string Message { get; set; }
+
+        public ValidateResult() {  
+        }
+
+        public ValidateResult(bool v, string m)
+        {
+            IsValid = v;
+            Message = m;
+        }
+    }
+}
+</code></pre>
+<h4 id="清单解析">5.5 清单解析</h4>
+<p>对于邮箱列表，使用正则表达式从文本框中匹配邮箱形成 List<string> emailList 给后续执行。这样，对邮箱列表文本框中输入的格式就没什么要求，从其它地方复制粘贴进来，由程序完成格式化显示即可。</p>
+<pre><code><code>        /// &lt;summary&gt;
+        /// 提取邮件列表
+        /// &lt;/summary&gt;
+        /// &lt;param name=&quot;mails&quot;&gt;&lt;/param&gt;
+        /// &lt;returns&gt;&lt;/returns&gt;
+        private List&lt;string&gt; ParseEmailList(string mails)
+        {
+            List&lt;string&gt; list = new List&lt;string&gt;();
+            var mc = Regex.Matches(mails, @&quot;\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+&quot;, RegexOptions.IgnoreCase);
+
+            foreach (Match c in mc)
+            {
+                list.Add(c.Value);
+            }
+            return list;
+        }</code></pre>
+<h4 id="日志输出方法准备">5.6 日志输出方法准备</h4>
+<p>在日志框中输出内容，为了能在线程中调用，使用了 Invoke 方式执行。</p>
+<pre><code><code>/// &lt;summary&gt;
+/// 日志输出支持线程中执行
+/// &lt;/summary&gt;
+/// &lt;param name=&quot;message&quot;&gt;&lt;/param&gt;
+private void Log(string message)
+{
+    Invoke(new MethodInvoker(delegate
+    {
+        txtLog.AppendText(message + &quot;\r\n&quot;);
+    }));
+}</code></pre>
+<h4 id="线程发送">5.7 线程发送</h4>
+<ul>
+<li>发送方案设计</li>
+</ul>
+<p>基本描述：给定邮箱列表，标题与内容，以线程方式执行发送，给出执行统计与状态。<br />
+具体实现：使用线程池，但一组做为一个任务，全部完成才接收下一个任务，通过完成数量与邮箱列表长度的比较来判断是否全部完成，信息通过日志输出的方式查看，形式上通过回调将日志信息传递给调用者。</p>
+<p>为此，这里专门定义一个发送器，在应用中，定义一个实例来发起任务。尽管只定义一个实例，但这里并不需要定义为设计模式中的单例模式，事实上，它是可以多实例运行。具体代码说话！</p>
+<pre><code><code>using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading;
+
+namespace SimpleEmailSender
+{
+    public class EmailSender
+    {
+        #region 运行时数据
+        // 邮箱列表
+        private List&lt;string&gt; _EmailList = new List&lt;string&gt;();
+        // 完成数量
+        private volatile int _OverCount = 0;
+        // 邮件标题
+        private string _Title;
+        // 邮件内容
+        private string _Content;
+        // 完成回调（主要是为了写日志）
+        private Action&lt;string&gt; _Callback;
+        #endregion
+
+        /// &lt;summary&gt;
+        /// 是否全部完成
+        /// &lt;/summary&gt;
+        /// &lt;returns&gt;&lt;/returns&gt;
+        public bool IsOver()
+        {
+            return _OverCount == _EmailList.Count;
+        }
+
+        /// &lt;summary&gt;
+        /// 发起任务（如果不符合发起条件，则返回 false）
+        /// &lt;/summary&gt;
+        /// &lt;param name=&quot;emails&quot;&gt;&lt;/param&gt;
+        /// &lt;param name=&quot;title&quot;&gt;&lt;/param&gt;
+        /// &lt;param name=&quot;content&quot;&gt;&lt;/param&gt;
+        /// &lt;param name=&quot;callback&quot;&gt;&lt;/param&gt;
+        /// &lt;returns&gt;&lt;/returns&gt;
+        public bool Send(List&lt;string&gt; emails, string title, string content, Action&lt;string&gt; callback)
+        {
+            if (!IsOver())
+            {
+                return false;
+            }
+
+            _EmailList = emails;
+            _OverCount = 0;
+            _Title = title;
+            _Content = content;
+            _Callback = callback;
+
+            Start();
+            return true;
+        }
+
+        /// &lt;summary&gt;
+        /// 启动任务
+        /// 
+        /// 以线程池方式运行，每个邮箱不论成败完成数加1，并回调通知。
+        /// &lt;/summary&gt;
+        private void Start()
+        {
+            foreach (string email in _EmailList)
+            {
+                var _email = email;
+                ThreadPool.QueueUserWorkItem(t =&gt;
+                {
+                    var vr = MailHelper.SendMail(_Title, _email, &quot;&quot;, _Content);
+                    _OverCount++;
+                    _Callback(String.Format(&quot;进度[{3}/{4}] {0} 发送 {1}，返回：{2}&quot;, _email, vr.IsValid ? &quot;成功&quot; : &quot;失败&quot;, vr.Message, _OverCount, _EmailList.Count));
+                });
+            }
+        }
+
+
+    }
+}
+</code></pre>
+<h4 id="按钮事件">5.8 按钮事件</h4>
+<p>发送按钮执行的流程为：如果之前的任务尚未完成，则等待。否则，首先提取邮箱列表，并格式化显示，然后发起任务，观察日志即可。</p>
+<pre><code><code>        private EmailSender _Sender = new EmailSender(); 
+
+        // 发送按钮
+        private void btnSend_Click(object sender, EventArgs e)
+        {
+            if (!_Sender.IsOver())
+            {
+                Log(&quot;之前的任务尚未完成，请等待完成！&quot;);
+                return;
+            }
+
+            // 1. 提取邮件列表并格式化显示
+            string mails = txtEmailList.Text.Trim();
+            var list = ParseEmailList(mails);
+            // 2. 格式化显示一下
+            txtEmailList.Clear();
+            foreach (var mail in list)
+            {
+                txtEmailList.AppendText(mail + &quot;\r\n&quot;);
+            }
+            // 3. 发起任务
+            var b = _Sender.Send(list, txtTitle.Text.Trim(), txtContent.Text, Log);
+            Log(b ? &quot;发起成功&quot; : &quot;发起失败&quot;);
+        }</code></pre>
+<h3 id="运行结果">6 运行结果</h3>
+<h4 id="配置信息错误时">6.1 配置信息错误时</h4>
+<p><img src="./images/一个简易邮件群发软件设计与实现4.png" /></p>
+<h4 id="配置信息正确时">6.2 配置信息正确时</h4>
+<p><img src="./images/一个简易邮件群发软件设计与实现5.png" /></p>
+<h3 id="项目源代码">7 项目源代码</h3>
+<p><a href="https://github.com/triplestudio/SimpleEmailSender" class="uri">https://github.com/triplestudio/SimpleEmailSender</a></p>
+<p><a href="https://www.cnblogs.com/timeddd/p/11250317.html">欢迎访问</a></p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

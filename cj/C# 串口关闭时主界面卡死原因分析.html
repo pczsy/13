@@ -1,0 +1,166 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C# 串口关闭时主界面卡死原因分析' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C# 串口关闭时主界面卡死原因分析</center></div><div class='banquan'>原文出处:本文由博客园博主time-flies提供。<br/>
+原文连接:https://www.cnblogs.com/timefiles/p/CsharpSerialPortDeadlockOnClose.html</div><br>
+    <h1 id="问题描述">问题描述</h1>
+<p>前几天用SerialPort类写一个串口的测试程序，关闭串口的时候会让界面卡死。<br />
+参考博客<a href="https://blog.csdn.net/xufei4987/article/details/81174963">windows程序界面卡死的原因</a>，得出界面卡死原因：<strong>主线程和其他的线程由于资源或者锁争夺，出现了死锁。</strong></p>
+<p>参考知乎文章<a href="https://www.zhihu.com/question/274949644">WinForm界面假死，如何判断其卡在代码中的哪一步？</a>，通过<strong>点击调试暂停，查看ui线程函数栈，直接定位阻塞代码的行数</strong>，确定问题出现在SerialPort类的Close()方法。</p>
+<p>参考文章<a href="https://blog.csdn.net/wuyazhe/article/details/5606276">C# 串口操作系列(2) -- 入门篇，为什么我的串口程序在关闭串口时候会死锁 ？</a>文章的解决方法和网上的大部分解决方法类似：<strong>定义2个bool类型的标记Listening和Closing，关闭串口和接受数据前先判断一下</strong>。我个人并不太接受这种方法，感觉还有更好的方式，而且文章讲述的也并不太清楚。</p>
+<h1 id="查找原因">查找原因</h1>
+<p>基于刨根问底的原则，我继续查找问题发生的原因。<br />
+先看看导致界面卡死的代码：</p>
+<pre><code><code>void comm_DataReceived(object sender, SerialDataReceivedEventArgs e)   
+{   
+    //获取串口读取的字节数
+    int n = comm.BytesToRead;    
+    //读取缓冲数据  
+    comm.Read(buf, 0, n);       
+    //因为要访问ui资源，所以需要使用invoke方式同步ui。   
+    this.Invoke(new Action(() =&gt;{...界面更新，略})); 
+}   
+  
+private void buttonOpenClose_Click(object sender, EventArgs e)   
+{   
+    //根据当前串口对象，来判断操作   
+    if (comm.IsOpen)   
+    {   
+        //打开时点击，则关闭串口   
+        comm.Close();//界面卡死的原因
+    }   
+    else  
+    {...}  
+}</code></pre>
+<p>问题就出现在上面的代码中，原理目前还不明确，我只能参考.NET源码来查找问题。</p>
+<h2 id="serialport类open方法">SerialPort类Open()方法</h2>
+<p>SerialPort类Close()方法的源码如下：</p>
+<pre><code><code>        public void Open()
+        {
+           //省略部分代码...
+            internalSerialStream = new SerialStream(portName, baudRate, parity, dataBits, stopBits, readTimeout,
+                writeTimeout, handshake, dtrEnable, rtsEnable, discardNull, parityReplace);
+ 
+            internalSerialStream.SetBufferSizes(readBufferSize, writeBufferSize); 
+            internalSerialStream.ErrorReceived += new SerialErrorReceivedEventHandler(CatchErrorEvents);
+            internalSerialStream.PinChanged += new SerialPinChangedEventHandler(CatchPinChangedEvents);
+            internalSerialStream.DataReceived += new SerialDataReceivedEventHandler(CatchReceivedEvents);
+        } </code></pre>
+<p>每次执行SerialPort类Open()方法都会出现实例化一个SerialStream类型的对象，并将CatchReceivedEvents事件处理程序绑定到SerialStream实例的DataReceived事件。</p>
+<p>SerialStream类CatchReceivedEvents方法的源码如下：</p>
+<pre><code><code>        private void CatchReceivedEvents(object src, SerialDataReceivedEventArgs e)
+        {
+            SerialDataReceivedEventHandler eventHandler = DataReceived;
+            SerialStream stream = internalSerialStream;
+ 
+            if ((eventHandler != null) &amp;&amp; (stream != null)){
+                lock (stream) {
+                    bool raiseEvent = false;
+                    try {
+                        raiseEvent = stream.IsOpen &amp;&amp; (SerialData.Eof == e.EventType || BytesToRead &gt;= receivedBytesThreshold);    
+                    }
+                    catch {
+                        // Ignore and continue. SerialPort might have been closed already! 
+                    }
+                    finally {
+                        if (raiseEvent)
+                            eventHandler(this, e);  // here, do your reading, etc. 
+                    }
+                }
+            }
+        }
+ </code></pre>
+<p>可以看到SerialStream类CatchReceivedEvents方法触发自身的DataReceived事件，这个DataReceived事件就是我们处理串口接收数据的用到的事件。</p>
+<p><strong>DataReceived事件处理程序是在lock (stream) {...}块中执行的，ErrorReceived 、PinChanged 也类似。</strong></p>
+<h2 id="serialport类close方法">SerialPort类Close()方法</h2>
+<p>SerialPort类Close()方法的源码如下：</p>
+<pre><code><code>        // Calls internal Serial Stream&#39;s Close() method on the internal Serial Stream.
+        public void Close()
+        {
+            Dispose();
+        }
+        
+        public void Dispose() {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+        protected override void Dispose( bool disposing )
+        {
+            if( disposing ) {
+                if (IsOpen) {
+                    internalSerialStream.Flush();
+                    internalSerialStream.Close();
+                    internalSerialStream = null;
+                }
+            }
+            base.Dispose( disposing );
+        }        </code></pre>
+<p>可以看到，执行Close()方法最终会调用Dispose( bool disposing )方法。<br />
+微软SerialPort类对父类的Dispose( bool disposing )方法进行了重写，在执行base.Dispose( disposing )前会执行internalSerialStream.Close()方法，也就是说<strong>SerialPort实例执行Close()方法时会先关闭SerialPort实例内部的SerialStream实例，再执行父类的Close()操作</strong>。</p>
+<p>base.Dispose( disposing )方法不作为重点，我们再看internalSerialStream.Close()方法。</p>
+<p>SerialStream类源码没有找到Close()方法，说明没有重写父类的Close方法，直接看父类的Close()方法，源码如下：</p>
+<pre><code><code>        public virtual void Close()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }        </code></pre>
+<p>SerialStream父类的Close方法调用了Dispose(true)，不过SerialStream类重写了父类的Dispose(bool disposing)方法，源码如下：</p>
+<pre><code><code>        protected override void Dispose(bool disposing)
+        {
+            if (_handle != null &amp;&amp; !_handle.IsInvalid) {
+                try {
+                //省略一部分代码
+                }
+                finally {
+                    // If we are disposing synchronize closing with raising SerialPort events
+                    if (disposing) {
+                        lock (this) {
+                            _handle.Close();
+                            _handle = null;
+                        }
+                    }
+                    else {
+                        _handle.Close();
+                        _handle = null;
+                    }
+                    base.Dispose(disposing);
+                }
+            }
+        }</code></pre>
+<p>SerialStream父类的Close方法调用了Dispose(true)，上面的代码一定会执行到lock (this) 语句，也就是说<strong>SerialStream实例执行Close()方法时会lock自身</strong>。</p>
+<h1 id="死锁原因">死锁原因</h1>
+<p>把我们前面源码分析的结果总结一下：</p>
+<ul>
+<li><strong>DataReceived事件处理程序是在lock (stream) {...}块中执行的</strong></li>
+<li><strong>SerialPort实例执行Close()方法时会先关闭SerialPort实例内部的SerialStream实例</strong></li>
+<li><strong>SerialStream实例执行Close()方法时会lock实例自身</strong></li>
+</ul>
+<p>当辅助线程调用DataReceived事件处理程序处理串口数据但还未更新界面时，点击界面“关闭”按钮调用SerialPort实例的Close()方法，UI线程会在lock(stream)处一直等待辅助线程释放stream的线程锁。<br />
+当辅助线程处理完数据准备更新界面时问题来了，DataReceived事件处理程序中的this.Invoke()一直会等待UI线程来执行委托，但此时UI线程还停在SerialPort实例的Close()方法处等待DataReceived事件处理程序执行完成。<br />
+此时，线程死锁发生，两边都执行不下去了。</p>
+<h1 id="解决死锁">解决死锁</h1>
+<p>网上大多数方法都是定义2个bool类型的标记Listening和Closing，关闭串口和接受数据前先判断一下。<br />
+我的方法是<strong>DataReceived事件处理程序用this.BeginInvoke()更新界面，不等待UI线程执行完委托就返回</strong>，stream的线程锁会很快释放，SerialPort实例的Close()方法也无需等待。</p>
+<h1 id="总结">总结</h1>
+<p>问题最终的答案其实很简单，但我在查阅.NET源码查找问题源头的过程中收获了很多。这是我第一次这么深入的查看.NET源码，发现这种解决问题的方法还是很有用处的。<strong>结果不重要，解决问题的方法是最重要的。</strong></p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

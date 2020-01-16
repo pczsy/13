@@ -1,0 +1,148 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C＃中谁最快：结构还是类？' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C＃中谁最快：结构还是类？</center></div><div class='banquan'>原文出处:本文由博客园博主androllen提供。<br/>
+原文连接:https://www.cnblogs.com/luquanmingren/p/11263161.html</div><br>
+    <p><img src="./images/C＃中谁最快：结构还是类？0.png" /></p>
+<h3 id="前言">前言</h3>
+<p>在内存当道的日子里，无论什么时候都要考虑这些代码是否会影响程序性能呢？<br />
+在现在的世界里，几乎不会去考虑用了几百毫秒，可是在特别的场景了，往往这几百毫米确影响了整个项目的快慢。<br />
+通过了解这两者之间的性能差异，希望帮助大家在合适的场景里选择正确的编码。</p>
+<h3 id="实例">实例</h3>
+<pre><code><code>public class PointClass
+{
+    public int X { get; set; }
+    public int Y { get; set; }
+    public PointClass(int x, int y)
+    {
+        X = x;
+        Y = y;
+    }
+}
+
+public class PointClassFinalized : PointClass
+{
+    public PointClassFinalized(int x, int y) : base(x, y)
+    {
+    }
+    ~PointClassFinalized()
+    {
+        // added a finalizer to slow down the GC
+
+    }
+}
+
+public struct PointStruct
+{
+    public int X { get; set; }
+    public int Y { get; set; }
+    public PointStruct(int x, int y)
+    {
+        X = x;
+        Y = y;
+    }
+}
+
+public class StructsTest : PerformanceTest
+{
+    protected override bool MeasureTestA()
+    {
+        // access array elements
+        var list = new PointClassFinalized[Iterations];
+        for (int i = 0; i &lt; Iterations; i++)
+        {
+            list[i] = new PointClassFinalized(i, i);
+        }
+        return true;
+    }
+
+    protected override bool MeasureTestB()
+    {
+        // access array elements
+        var list = new PointClass[Iterations];
+        for (int i = 0; i &lt; Iterations; i++)
+        {
+            list[i] = new PointClass(i, i);
+        }
+        return true;
+    }
+
+    protected override bool MeasureTestC()
+    {
+        // access array elements
+        var list = new PointStruct[Iterations];
+        for (int i = 0; i &lt; Iterations; i++)
+        {
+            list[i] = new PointStruct(i, i);
+        }
+        return true;
+    }
+}</code></pre>
+<p>有一个<code>PointClass</code>和一个 <code>PointStruct</code><br />
+，这两者用于存放X 和Y 两个变量，而且还有一个 <code>PointClassFinalized</code>。</p>
+<p>方法 <code>MeasureTestA</code> 创建了100万个 <code>PointClassFinalized</code> 实例</p>
+<p>方法 <code>MeasureTestB</code> 创建了100万个 <code>PointClass</code> 实例</p>
+<p>方法 <code>MeasureTestC</code> 创建了100万个 <code>PointStruct</code> 实例</p>
+<p>您认为哪种方法最快？</p>
+<p><img src="./images/C＃中谁最快：结构还是类？1.png" /></p>
+<p><code>MeasureTestB</code> 和 <code>MeasureTestC</code> 这两个方法的唯一不同在于一个是创建类 一个是创建结构。</p>
+<p><code>MeasureTestC</code> 仅在17毫秒内完成分配并运行，比 <code>MeasureTestB</code> 方法快8.6倍！</p>
+<p>为什么会出现这样的事情，这里发生了什么？</p>
+<p>不同的在于结构和类如何存储在内存中。</p>
+<p>下面是 <code>PointClass</code> 实例 内存布局：</p>
+<p><img src="./images/C＃中谁最快：结构还是类？2.png" /></p>
+<p>该列表是一个局部变量，存放在堆栈中。引用堆上的一组 <code>PointClass</code>实例</p>
+<p><code>PointClass</code> 是一个引用类型，存放在堆上。</p>
+<p>该列表仅维护一个数组，指向存储在堆上 <code>PointClass</code> 实例。</p>
+<p>观察到上图的黄色箭头，在堆上引用了很多实例。</p>
+<p>数组是一组相同的对象，<code>MeasureTestB</code> 这个方法是将一组相同的对象存放在数组中。</p>
+<p>当访问指定数组元素时，.NET运行时需要检索对象引用，然后“跟随”引用以获取<code>PointClass</code>实例。</p>
+<p>当数组元素超出范围时，.NET垃圾收集器就会开始回收<code>PointClass</code>对象内存，在 <code>MeasureTestA</code> 方法中 的<code>PointClassFinalized</code>类 其实增加了额外时间。</p>
+<p>.NET Framework在单个线程上运行所有终结器，线程必须在垃圾回收器可以回收内存之前依次处理1,000,000个对象。</p>
+<p>可以看到<code>MeasureTestA</code>比<code>MeasureTestB</code>慢1.7倍。</p>
+<p>我们来看看 <code>PointStruct</code> 的内存布局：</p>
+<p><img src="./images/C＃中谁最快：结构还是类？3.png" /></p>
+<p>结构是值类型，所有 <code>PointStruct</code> 实例都存储在数组本身中。堆上只有一个对象。</p>
+<p>初始化数组，.NET运行库可以将X和Y值直接写入数组里。无需在堆上创建新对象，也不需要引用它。</p>
+<p>当访问指定数组元素时,.NET运行时可以直接检索结构。</p>
+<p>当超出范围时，.NET垃圾回收器只需要处理单个对象。</p>
+<h3 id="总结">总结</h3>
+<p>我们总要使用结构吗？要分情况看：</p>
+<ul>
+<li>当您存储超过30-40个字节的数据时，请使用类。<br />
+</li>
+<li>存储引用类型时，请使用类。<br />
+</li>
+<li>当您存储多于几千个实例时，请使用类。<br />
+</li>
+<li>如果列表是长的生命周期的，请使用类。<br />
+</li>
+<li>在所有其他情况下，使用结构。</li>
+</ul>
+<h3 id="相关链接">相关链接：</h3>
+<ul>
+<li><a href="https://docs.microsoft.com/en-us/dotnet/csharp/programming-guide/classes-and-structs/destructors">destructors</a></li>
+<li><a href="https://docs.microsoft.com/en-us/dotnet/csharp/programming-guide/classes-and-structs/">classes-and-structs</a></li>
+<li><a href="https://medium.com/@mdfarragher/whats-faster-in-c-a-struct-or-a-class-99e4761a7b76">medium</a></li>
+</ul>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

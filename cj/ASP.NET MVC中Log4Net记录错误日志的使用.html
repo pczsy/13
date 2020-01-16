@@ -1,0 +1,58 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修ASP.NET MVC中Log4Net记录错误日志的使用' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>ASP.NET MVC中Log4Net记录错误日志的使用</center></div><div class='banquan'>原文出处:本文由博客园博主朽木刻雕提供。<br/>
+原文连接:https://www.cnblogs.com/xmkd/p/10984437.html</div><br>
+    <p>第一、在管理NuGet程序包 =》下载 Log4Net&nbsp;<span style="font-size: 1.5em;"><br /></span></p>
+<p><img src="./images/ASP.NET MVC中Log4Net记录错误日志的使用0.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>第二、在web.config配置Log4Net</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;1：在&lt;configuration&gt;节点下&nbsp;&lt;configSections&gt;节点中 配置log4Net节点引用。</p>
+<p> &lt;!--log4net日志记录--&gt;<br />    &lt;section name="log4net" type="log4net.Config.Log4NetConfigurationSectionHandler, log4net"/&gt;</p>
+<p><img src="./images/ASP.NET MVC中Log4Net记录错误日志的使用1.png" alt="" /></p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;</p>
+<p>&nbsp;</p>
+<p>2：在&lt;configSections&gt;下后面 配置log4Net&nbsp;日志记录组件</p>
+<p> &lt;!--log4net 日志记录组建配置--&gt;<br />  &lt;log4net&gt;<br />    &lt;!--定义输出到文件中--&gt;<br />    &lt;appender name="RollingFileTracer" type="log4net.Appender.RollingFileAppender"&gt;<br />      &lt;!--定义文件存放位置--&gt;<br />      &lt;file value="App_Data\\LogError\\"/&gt;<br />      &lt;appendToFile value="true"/&gt;<br />      &lt;rollingStyle value="Date"/&gt;<br />      &lt;datePattern value="yyyy\\yyyyMM\\yyyyMMdd'.txt'"/&gt;<br />      &lt;staticLogFileName value="false"/&gt;<br />      &lt;param name="MaxSizeRollBackups" value="100"/&gt;<br />      &lt;layout type="log4net.Layout.PatternLayout"&gt;<br />        &lt;!--每条日志末尾的文字说明--&gt;<br />        &lt;!--输出格式--&gt;<br />        &lt;!--样例：2008-03-26 13:42:32,111 [10] INFO  Log4NetDemo.MainClass [(null)] - info--&gt;<br />        &lt;conversionPattern value="%n记录时间：%date %n线程ID:[%thread] %n日志级别：  %-5level %n出错类：%logger property: [%property{NDC}] - %n错误描述：%message%newline %n"/&gt;<br />      &lt;/layout&gt;<br />      &lt;filter type="log4net.Filter.LevelRangeFilter"&gt;<br />        &lt;levelMin value="ERROR" /&gt;<br />        &lt;levelMax value="FATAL" /&gt;<br />      &lt;/filter&gt;<br />    &lt;/appender&gt;</p>
+<p>    &lt;root&gt;<br />      &lt;level value="ALL"/&gt;<br />      &lt;!--文件形式记录日志--&gt;<br />      &lt;appender-ref ref="RollingLogFileAppender"/&gt;<br />      &lt;appender-ref ref="RollingFileTracer"/&gt;<br />    &lt;/root&gt;<br />  &lt;/log4net&gt;</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;<img src="./images/ASP.NET MVC中Log4Net记录错误日志的使用2.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>第三：在properties=&gt;Assembyinfo.cs中添加以下代码，来读取配置文件</p>
+<p>//为项目注册Log4Net.config配置文件<br />[assembly: log4net.Config.XmlConfigurator(ConfigFile = @"Web.config", Watch = true)]</p>
+<p><img src="./images/ASP.NET MVC中Log4Net记录错误日志的使用3.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>第四：自定义一个ExceptionControl类，继承 HandleErrorAttribute类 ，重写OnException方法</p>
+<p> /// &lt;summary&gt;<br />        /// 异常处理过滤器，使用log4net记录日志，并跳转至错误页面<br />        /// &lt;/summary&gt;<br />       [AttributeUsage(AttributeTargets.Method | AttributeTargets.Class, Inherited = true, AllowMultiple = true)]<br />        public class ExceptionControl : HandleErrorAttribute<br />        {<br />            ILog log = LogManager.GetLogger(typeof(ExceptionControl));</p>
+<p>            public override void OnException(ExceptionContext filterContext)<br />            {<br />                if (!filterContext.ExceptionHandled)<br />                {<br />                    string message = string.Format("消息类型：{0}\r\n消息内容：{1}\r\n引发异常的方法：{2}\r\n引发异常源：{3}"<br />                        , filterContext.Exception.GetType().Name<br />                        , filterContext.Exception.Message<br />                        , filterContext.Exception.TargetSite<br />                        , filterContext.Exception.Source + filterContext.Exception.StackTrace<br />                    );</p>
+<p>                    //记录日志<br />                    log.Error(message);<br />                    //转向<br />                    filterContext.ExceptionHandled = true;<br />                    filterContext.Result = new RedirectResult("~/PageView/error/404.html");//跳转错误页，地址根据自己的改<br />                }<br />                base.OnException(filterContext);<br />            }</p>
+<p>    }</p>
+<p><img src="./images/ASP.NET MVC中Log4Net记录错误日志的使用4.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>第五：在App_Start文件夹下的FilterConfig.cs修改代码。&nbsp;Global.asax文件就不用修改了</p>
+<p><img src="./images/ASP.NET MVC中Log4Net记录错误日志的使用5.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>to：经过以上5步就实现了asp.net mvc中使用log4Net记录错误日志</p>
+<p>&nbsp;</p>
+<p><img src="./images/ASP.NET MVC中Log4Net记录错误日志的使用6.png" alt="" /></p>
+<p><img src="./images/ASP.NET MVC中Log4Net记录错误日志的使用7.png" alt="" /></p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

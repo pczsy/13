@@ -1,0 +1,86 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修.net core web api 添加对session跨域实现' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>.net core web api 添加对session跨域实现</center></div><div class='banquan'>原文出处:本文由博客园博主殷慈航提供。<br/>
+原文连接:https://www.cnblogs.com/jiyuwu/p/11769530.html</div><br>
+    <p><strong><span style="font-family: 宋体; font-size: 18px;">1.配置Startup</span></strong></p>
+<div class="cnblogs_code">
+<pre><code>/<span style="color: #000000;">ConfigureServices添加：
+
+services.AddSession(options </span>=&gt;<span style="color: #000000;">
+            {
+                options.Cookie.Name </span>= <span style="color: #800000;">"</span><span style="color: #800000;">.AdventureWorks.Session</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+                options.IdleTimeout </span>= System.TimeSpan.FromSeconds(<span style="color: #800080;">120</span>);<span style="color: #008000;">//</span><span style="color: #008000;">设置session的过期时间</span>
+                options.Cookie.HttpOnly = <span style="color: #0000ff;">true</span>;<span style="color: #008000;">//</span><span style="color: #008000;">设置在浏览器不能通过js获得该cookie的值</span>
+<span style="color: #000000;">            });
+            services.TryAddSingleton</span>&lt;IHttpContextAccessor, HttpContextAccessor&gt;<span style="color: #000000;">();
+            services.AddHttpContextAccessor();
+            </span><span style="color: #0000ff;">#region</span> 跨域<span style="color: #000000;">
+            services.AddCors(options </span>=&gt;<span style="color: #000000;">
+            options.AddPolicy(</span><span style="color: #800000;">"</span><span style="color: #800000;">AllowSameDomain</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+            builder </span>=&gt;<span style="color: #000000;"> builder.WithOrigins().AllowAnyMethod().AllowAnyHeader().AllowAnyOrigin().AllowCredentials()));
+            </span><span style="color: #0000ff;">#endregion</span></pre>
+</div>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;">Configure添加：</span>
+<span style="color: #000000;">app.UseCookiePolicy();
+app.UseSession();</span></pre>
+</div>
+<p><span style="font-family: 宋体; font-size: 18px;"><strong>2.控制器启用</strong></span></p>
+<div class="cnblogs_code">
+<pre><code>[EnableCors(<span style="color: #800000;">"</span><span style="color: #800000;">AllowSameDomain</span><span style="color: #800000;">"</span>)]</pre>
+</div>
+<p><strong><span style="font-family: 宋体; font-size: 18px;">3.Ajax异步跨域调用</span></strong></p>
+<div class="cnblogs_code">
+<pre><code>&lt;html xmlns=<span style="color: #800000;">"</span><span style="color: #800000;">http://www.w3.org/1999/xhtml</span><span style="color: #800000;">"</span>&gt;
+&lt;head&gt;
+&lt;meta http-equiv=<span style="color: #800000;">"</span><span style="color: #800000;">Content-Type</span><span style="color: #800000;">"</span> content=<span style="color: #800000;">"</span><span style="color: #800000;">text/html; charset=utf-8</span><span style="color: #800000;">"</span>/&gt;
+    &lt;title&gt;&lt;/title&gt;
+    &lt;script type=<span style="color: #800000;">"</span><span style="color: #800000;">text/javascript</span><span style="color: #800000;">"</span> src=<span style="color: #800000;">"</span><span style="color: #800000;">http://apps.bdimg.com/libs/jquery/1.8.3/jquery.min.js</span><span style="color: #800000;">"</span>&gt;&lt;/script&gt;
+    &lt;script src=<span style="color: #800000;">"</span><span style="color: #800000;">https://cdn.jsdelivr.net/npm/vue@2.5.17/dist/vue.js</span><span style="color: #800000;">"</span>&gt;&lt;/script&gt;
+    &lt;script type=<span style="color: #800000;">"</span><span style="color: #800000;">text/javascript</span><span style="color: #800000;">"</span>&gt;<span style="color: #000000;">
+        $.ajax({  </span><span style="color: #008000;">//</span><span style="color: #008000;">ajax post方式调用webapi</span>
+            type: <span style="color: #800000;">"</span><span style="color: #800000;">Post</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+            contentType: </span><span style="color: #800000;">'</span><span style="color: #800000;">application/json</span><span style="color: #800000;">'</span><span style="color: #000000;">,
+            url: </span><span style="color: #800000;">'</span><span style="color: #800000;">http://192.168.84.170:9005/api/AdminManager/Login</span><span style="color: #800000;">'</span><span style="color: #000000;">,
+            data:JSON.stringify({ account: </span><span style="color: #800000;">"</span><span style="color: #800000;">admin</span><span style="color: #800000;">"</span>, passwd: <span style="color: #800000;">"</span><span style="color: #800000;">e10adc3949ba59abbe56e057f20f883e</span><span style="color: #800000;">"</span><span style="color: #000000;"> }),
+            dataType: </span><span style="color: #800000;">'</span><span style="color: #800000;">json</span><span style="color: #800000;">'</span><span style="color: #000000;">,
+        xhrFields: { withCredentials: </span><span style="color: #0000ff;">true</span><span style="color: #000000;"> },
+            success: function (data) {
+                alert(data.msg);
+                console.log(data);
+            },
+            error: function (xhr) {
+                console.log(xhr.responseText);
+            }
+        })
+    </span>&lt;/script&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;/body&gt;
+&lt;/html&gt;</pre>
+</div>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<div class="line number1 index0 alt2">&nbsp;</div>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

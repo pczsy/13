@@ -1,0 +1,46 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修.net core mvc启动顺序以及主要部件1' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>.net core mvc启动顺序以及主要部件1</center></div><div class='banquan'>原文出处:本文由博客园博主村长lv提供。<br/>
+原文连接:https://www.cnblogs.com/lvshunbin/p/11072225.html</div><br>
+    <p>&nbsp; &nbsp;写这些东西也是为了增加记忆其次如果能够帮助到其它童鞋就更好了，有不对的地方请多多指教。</p>
+<p>首先创建一个web空项目，里面会包含一个Program.cs和Startup.cs文件，打开<span style="color: #993300;">Program.cs</span>文件，看到在有个<span style="color: #993300;">CrateWebHostBuilder<span style="color: #000000;">方法它有个<span style="color: #993300;">args</span>的字符串数组参数，这个参数的主要作用是可以在用cmd启动网站程序的时候在后面传递一些参数例如:</span></span></p>
+<div class="cnblogs_code">
+<pre><code>c:\Users&gt;E:\dotnetcore\demo\\bin\Debug\netcoreapp2.2\RazorMvcDemo1.dll connectionstring=<span style="color: #800000;">"</span><span style="color: #800000;">server=.;database=test;uid=sa;pwd=123456</span><span style="color: #800000;">"</span></pre>
+</div>
+<p>这个时候我们是可以注入IConfiguration这个实例拿到connectionstring的值，例如：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span><span style="color: #000000;"> Startup(IConfiguration configuration)
+{
+     Console.WriteLine(configuration[</span><span style="color: #800000;">"</span><span style="color: #800000;">connectionstring</span><span style="color: #800000;">"</span><span style="color: #000000;">]);
+ }</span></pre>
+</div>
+<p>CrateWebHostBuilder参数继续看下去，<span style="color: #993300;">CrateWebHostBuilder</span>方法中有个<span style="color: #993300;">WebHost.CreateDefaultBuilder(args)</span>，首先说说<span style="color: #993300;">CreateDefaultBuilder</span>是干什么的，其实这个方法主要就是<span style="color: #993300;">IConfiguration</span>的构建，转到源代码可以看见 第一行代码创建了<span style="color: #993300;">WebHostBuilder<span style="color: #000000;">这个对象是贯穿整个<span style="color: #993300;">CreateDefaultBuilder</span>方法的核心，<span style="color: #993300;">WebHostBuilder</span>构建了<span style="color: #993300;">IConfiguration</span>实例以及基础环境配置，请看下图</span></span></p>
+<p><img src="./images/.net core mvc启动顺序以及主要部件10.png" alt="" width="520" height="132" /></p>
+<p><img src="./images/.net core mvc启动顺序以及主要部件11.png" alt="" width="522" height="187" /></p>
+<p><span style="color: #993300;"><span style="color: #000000;">&nbsp;然后继续往下，下面的if中是对<span style="color: #993300;">WebHostBuilder</span>环境配置的补充，然后继续就看见我们前面所提到的cmd配置的实现，在接下来是我们.net core 作为Kestrel启动的配置请看下图！<br /><img src="./images/.net core mvc启动顺序以及主要部件12.png" alt="" width="564" height="194" /></span></span></p>
+<p>然后再下来是我们的主要配置部分，也就是appsettings.json文件的配置，appsettings.json文件分为两个部分，1、直接就是appsettings.json文件。2、按照环境不同分别配置不同的appsettings.json配置，例如：我们的开发环境可以是这样appsettings.Development.json,生成环境可以是appsettings.Production.json，预演环境也是同理，具体请看下图：<br /><img src="./images/.net core mvc启动顺序以及主要部件13.png" alt="" width="569" height="237" /></p>
+<p>再继续往下看，接下来是我们的默认日记记录配置，也就是我们平时在启动.netcore mvc会看到在控制台和我们vs中的输出以及调试窗口中会打印一些启动信息和异常信息，其实就是我们接下来看到的日志记录，请看下图:</p>
+<p><span style="color: #993300;"><span style="color: #000000;">&nbsp;<img src="./images/.net core mvc启动顺序以及主要部件14.png" alt="" width="560" height="104" /></span></span></p>
+<p>最后就是我们的依赖注入容器和IIS配置；最后返回最开始创建的<span style="color: #993300;">WebHostBuilder</span>实例，请看下图：<br /><img src="./images/.net core mvc启动顺序以及主要部件15.png" alt="" width="577" height="90" /></p>
+<p>好了，暂时写到这里，后面再继续分享<span style="color: #993300;">Startup</span></p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

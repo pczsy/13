@@ -1,0 +1,375 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修[转]三分钟学会.NET Core Jwt 策略授权认证' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>[转]三分钟学会.NET Core Jwt 策略授权认证</center></div><div class='banquan'>原文出处:本文由博客园博主StudyCSharp提供。<br/>
+原文连接:https://www.cnblogs.com/Study-Csharp/p/12114263.html</div><br>
+    <h1 id="转三分钟学会.net-core-jwt-策略授权认证"><a href="https://www.cnblogs.com/ZaraNet/p/12105688.html">[转]三分钟学会.NET Core Jwt 策略授权认证</a></h1>
+<h2 id="一.前言">一.前言<a href="https://www.cnblogs.com/ZaraNet/p/12105688.html#4112395794">#</a></h2>
+<p>　　大家好我又回来了，前几天讲过一个关于Jwt的身份验证最简单的案例，但是功能还是不够强大，不适用于真正的项目，是的，在真正面对复杂而又苛刻的客户中，我们会不知所措，就现在需要将认证授权这一块也变的复杂而又实用起来，那在专业术语中就叫做自定义策略的API认证，本次案例运行在.NET Core 3.0中，最后我们将在swagger中进行浏览，来尝试项目是否正常，对于.NET Core 2.x 版本，这篇文章有些代码不适用，但我会在文中说明。</p>
+<h2 id="二.在.net-core中尝试">二.在.NET Core中尝试<a href="https://www.cnblogs.com/ZaraNet/p/12105688.html#3055150705">#</a></h2>
+<p>　　我们都知道Jwt是为了认证，微软给我们提供了进城打鬼子的城门，那就是 AuthorizationHandle。</p>
+<p>　　我们首先要实现它，并且我们还可以根据依赖注入的 AuthorizationHandlerContext 来获取上下文，就这样我们就更可以做一些权限的手脚</p>
+<p><a><img src="./images/[转]三分钟学会.NET Core Jwt 策略授权认证0.png" alt="复制代码" /></a></p>
+<pre><code><code>public class PolicyHandler : AuthorizationHandler&lt;PolicyRequirement&gt;
+    {
+        protected override Task HandleRequirementAsync(AuthorizationHandlerContext context, PolicyRequirement requirement)
+        {
+            var http = (context.Resource as Microsoft.AspNetCore.Routing.RouteEndpoint);
+            var questUrl = &quot;/&quot;+http.RoutePattern.RawText; 
+            //赋值用户权限
+            var userPermissions = requirement.UserPermissions;
+            //是否经过验证
+            var isAuthenticated = context.User.Identity.IsAuthenticated;
+            if (isAuthenticated)
+            {
+                if (userPermissions.Any(u=&gt;u.Url == questUrl))
+                {
+                    //用户名
+                    var userName = context.User.Claims.SingleOrDefault(s =&gt; s.Type == ClaimTypes.NameIdentifier).Value;
+                    if (userPermissions.Any(w =&gt; w.UserName == userName))
+                    {
+                        context.Succeed(requirement);
+                    }
+                }
+            }
+            return Task.CompletedTask;
+        }
+    }</code></pre>
+<p><a><img src="./images/[转]三分钟学会.NET Core Jwt 策略授权认证0.png" alt="复制代码" /></a></p>
+<p>　　首先，我们重写了 HandleRequirementAsync 方法，如果你看过AspNetCore的源码你一定知道，它是Jwt身份认证的开端，也就是说你重写了它，原来那一套就不会走了，我们观察一下源码，我贴在下面，可以看到这就是一个最基本的授权，通过 context.Succeed(requirement 完成了最后的认证动作！</p>
+<p><a><img src="./images/[转]三分钟学会.NET Core Jwt 策略授权认证0.png" alt="复制代码" /></a></p>
+<pre><code><code>public class DenyAnonymousAuthorizationRequirement : AuthorizationHandler&lt;DenyAnonymousAuthorizationRequirement&gt;, IAuthorizationRequirement
+    {
+        /// &lt;summary&gt;
+        /// Makes a decision if authorization is allowed based on a specific requirement.
+        /// &lt;/summary&gt;
+        /// &lt;param name=&quot;context&quot;&gt;The authorization context.&lt;/param&gt;
+        /// &lt;param name=&quot;requirement&quot;&gt;The requirement to evaluate.&lt;/param&gt;
+        protected override Task HandleRequirementAsync(AuthorizationHandlerContext context, DenyAnonymousAuthorizationRequirement requirement)
+        {
+            var user = context.User;
+            var userIsAnonymous =
+                user?.Identity == null ||
+                !user.Identities.Any(i =&gt; i.IsAuthenticated);
+            if (!userIsAnonymous)
+            {
+                context.Succeed(requirement);
+            }
+            return Task.CompletedTask;
+        }
+    }</code></pre>
+<p><a><img src="./images/[转]三分钟学会.NET Core Jwt 策略授权认证0.png" alt="复制代码" /></a></p>
+<p>那么 Succeed 是一个什么呢？它是一个在 AuthorizationHandlerContext的定义动作，包括Fail() ，也是如此，当然具体实现我们不在细谈，其内部还是挺复杂的，不过我们需要的是 DenyAnonymousAuthorizationRequirement 被当作了抽象的一部分。</p>
+<pre><code><code>public abstract class AuthorizationHandler&lt;TRequirement&gt; : IAuthorizationHandler
+            where TRequirement : IAuthorizationRequirement
+    {}</code></pre>
+<p>好吧，言归正传（看源码挺刺激的），我们刚刚在 PolicyHandler实现了自定义认证策略，上面还说到了两个方法。现在我们在项目中配置并启动它，并且我在代码中也是用了Swagger用于后面的演示。</p>
+<p>在 AddJwtBearer中我们添加了jwt验证包括了验证参数以及几个事件处理，这个很基本，不在解释。不过在Swagger中添加jwt的一些功能是在 AddSecurityDefinition 中写入的。</p>
+<p><a><img src="./images/[转]三分钟学会.NET Core Jwt 策略授权认证0.png" alt="复制代码" /></a></p>
+<pre><code><code>public void ConfigureServices(IServiceCollection services)
+        {
+            //添加策略鉴权模式
+            services.AddAuthorization(options =&gt;
+            {
+                options.AddPolicy(&quot;Permission&quot;, policy =&gt; policy.Requirements.Add(new PolicyRequirement()));
+            })
+            .AddAuthentication(s =&gt;
+            {
+                //添加JWT Scheme
+                s.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                s.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+                s.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            })
+            //添加jwt验证：
+            .AddJwtBearer(options =&gt;
+            {
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateLifetime = true,//是否验证失效时间
+                    ClockSkew = TimeSpan.FromSeconds(30),
+
+                    ValidateAudience = true,//是否验证Audience
+                    //ValidAudience = Const.GetValidudience(),//Audience
+                    //这里采用动态验证的方式，在重新登陆时，刷新token，旧token就强制失效了
+                    AudienceValidator = (m, n, z) =&gt;
+                    {
+                        return m != null &amp;&amp; m.FirstOrDefault().Equals(Const.ValidAudience);
+                    },
+                    ValidateIssuer = true,//是否验证Issuer
+                    ValidIssuer = Const.Domain,//Issuer，这两项和前面签发jwt的设置一致
+
+                    ValidateIssuerSigningKey = true,//是否验证SecurityKey
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Const.SecurityKey))//拿到SecurityKey
+                };
+                options.Events = new JwtBearerEvents
+                {
+                    OnAuthenticationFailed = context =&gt;
+                    {
+                        //Token expired
+                        if (context.Exception.GetType() == typeof(SecurityTokenExpiredException))
+                        {
+                            context.Response.Headers.Add(&quot;Token-Expired&quot;, &quot;true&quot;);
+                        }
+                        return Task.CompletedTask;
+                    }
+                };
+            }); 
+            services.AddSwaggerGen(c =&gt;
+            {
+                c.SwaggerDoc(&quot;v1&quot;, new OpenApiInfo
+                {
+                    Version = &quot;v1&quot;,
+                    Title = &quot;HaoZi JWT&quot;,
+                    Description = &quot;基于.NET Core 3.0 的JWT 身份验证&quot;,
+                    Contact = new OpenApiContact
+                    {
+                        Name = &quot;zaranet&quot;,
+                        Email = &quot;zaranet@163.com&quot;,
+                        Url = new Uri(&quot;http://cnblogs.com/zaranet&quot;),
+                    },
+                });
+                c.AddSecurityDefinition(&quot;Bearer&quot;, new OpenApiSecurityScheme()
+                {
+                    Description = &quot;在下框中输入请求头中需要添加Jwt授权Token：Bearer Token&quot;,
+                    Name = &quot;Authorization&quot;,
+                    In = ParameterLocation.Header,
+                    Type = SecuritySchemeType.ApiKey,
+                    BearerFormat = &quot;JWT&quot;,
+                    Scheme = &quot;Bearer&quot;
+                });
+                c.AddSecurityRequirement(new OpenApiSecurityRequirement
+                {
+                    {
+                        new OpenApiSecurityScheme
+                        {
+                            Reference = new OpenApiReference {
+                                Type = ReferenceType.SecurityScheme,
+                                Id = &quot;Bearer&quot;
+                            }
+                        },
+                        new string[] { }
+                    }
+                });
+            });
+            //认证服务
+            services.AddSingleton&lt;IAuthorizationHandler, PolicyHandler&gt;();
+            services.AddControllers();
+        }</code></pre>
+<p><a><img src="./images/[转]三分钟学会.NET Core Jwt 策略授权认证0.png" alt="复制代码" /></a></p>
+<p>在以上代码中，我们通过鉴权模式添加了认证规则，一个名叫 PolicyRequirement 的类，它实现了 IAuthorizationRequirement 接口，其中我们需要定义一些规则，通过构造函数我们可以添加我们要识别的权限规则。那个UserName就是 Attribute 。</p>
+<p><a><img src="./images/[转]三分钟学会.NET Core Jwt 策略授权认证0.png" alt="复制代码" /></a></p>
+<pre><code><code>public class PolicyRequirement : IAuthorizationRequirement
+    {/// &lt;summary&gt;
+     /// User rights collection
+     /// &lt;/summary&gt;
+        public List&lt;UserPermission&gt; UserPermissions { get; private set; }
+        /// &lt;summary&gt;
+        /// No permission action
+        /// &lt;/summary&gt;
+        public string DeniedAction { get; set; }
+        /// &lt;summary&gt;
+        /// structure
+        /// &lt;/summary&gt;
+        public PolicyRequirement()
+        {
+            //Jump to this route without permission
+            DeniedAction = new PathString(&quot;/api/nopermission&quot;);
+            //Route configuration that users have access to, of course you can read it from the database, you can also put it in Redis for persistence
+            UserPermissions = new List&lt;UserPermission&gt; {
+                              new UserPermission {  Url=&quot;/api/value3&quot;, UserName=&quot;admin&quot;},
+                          };
+        }
+    }
+    public class UserPermission
+    {
+        public string UserName { get; set; }
+        public string Url { get; set; }
+    }</code></pre>
+<p><a><img src="./images/[转]三分钟学会.NET Core Jwt 策略授权认证0.png" alt="复制代码" /></a></p>
+<p>随后我们应当启动我们的服务，在.NET Core 3.0 中身份验证的中间件位置需要在路由和端点配置的中间。</p>
+<p><a><img src="./images/[转]三分钟学会.NET Core Jwt 策略授权认证0.png" alt="复制代码" /></a></p>
+<pre><code><code>public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+        {
+            if (env.IsDevelopment())
+            {
+                app.UseDeveloperExceptionPage();
+            }
+            app.UseSwagger();
+            app.UseSwaggerUI(c =&gt;
+            {
+                c.SwaggerEndpoint(&quot;/swagger/v1/swagger.json&quot;, &quot;My API V1&quot;);
+            });
+            app.UseRouting();
+            app.UseAuthentication();
+            app.UseAuthorization();
+            app.UseEndpoints(endpoints =&gt;
+            {
+                endpoints.MapControllers();
+            });
+        }</code></pre>
+<p><a><img src="./images/[转]三分钟学会.NET Core Jwt 策略授权认证0.png" alt="复制代码" /></a></p>
+<p>　　我们通常会有一个获取token的API，用于让Jwt通过 JwtSecurityTokenHandler().WriteToken(token) 用于生成我们的token，虽然jwt是没有状态的，但你应该也明白，如果你的jwt生成了随后你重启了你的网站，你的jwt会失效，这个是因为你的密钥进行了改变，如果你的密钥一直写死，那么这个jwt将不会再过期，这个还是有安全风险的，这个我不在这里解释，gettoken定义如下：</p>
+<p><a><img src="./images/[转]三分钟学会.NET Core Jwt 策略授权认证0.png" alt="复制代码" /></a></p>
+<pre><code><code>　　[ApiController]
+    public class AuthController : ControllerBase
+    {
+        [AllowAnonymous]
+        [HttpGet]
+        [Route(&quot;api/nopermission&quot;)]
+        public IActionResult NoPermission()
+        {
+            return Forbid(&quot;No Permission!&quot;);
+        }
+        /// &lt;summary&gt;
+        /// login
+        /// &lt;/summary&gt;
+        [AllowAnonymous]
+        [HttpGet]
+        [Route(&quot;api/auth&quot;)]
+        public IActionResult Get(string userName, string pwd)
+        {
+            if (CheckAccount(userName, pwd, out string role))
+            {
+                Const.ValidAudience = userName + pwd + DateTime.Now.ToString();
+                // push the user’s name into a claim, so we can identify the user later on.
+                //这里可以随意加入自定义的参数，key可以自己随便起
+                var claims = new[]
+                {
+                    new Claim(JwtRegisteredClaimNames.Nbf,$&quot;{new DateTimeOffset(DateTime.Now).ToUnixTimeSeconds()}&quot;) ,
+                    new Claim (JwtRegisteredClaimNames.Exp,$&quot;{new DateTimeOffset(DateTime.Now.AddMinutes(30)).ToUnixTimeSeconds()}&quot;),
+                    new Claim(ClaimTypes.NameIdentifier, userName),
+                    new Claim(&quot;Role&quot;, role)
+                };
+                //sign the token using a secret key.This secret will be shared between your API and anything that needs to check that the token is legit.
+                var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Const.SecurityKey));
+                var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+                //.NET Core’s JwtSecurityToken class takes on the heavy lifting and actually creates the token.
+                var token = new JwtSecurityToken(
+                    issuer: Const.Domain, //颁发者
+                    audience: Const.ValidAudience,//过期时间
+                    expires: DateTime.Now.AddMinutes(30),// 签名证书
+                    signingCredentials: creds, //自定义参数
+                    claims: claims );
+                return Ok(new
+                {
+                    token = new JwtSecurityTokenHandler().WriteToken(token)
+                });
+            }
+            else
+            {
+                return BadRequest(new { message = &quot;username or password is incorrect.&quot; });
+            }
+        }
+        /// &lt;summary&gt;
+        /// 模拟登陆校验
+        /// &lt;/summary&gt;
+        private bool CheckAccount(string userName, string pwd, out string role)
+        {
+            role = &quot;user&quot;;
+            if (string.IsNullOrEmpty(userName))
+                return false;
+            if (userName.Equals(&quot;admin&quot;))
+                role = &quot;admin&quot;;
+            return true;
+        }</code></pre>
+<p><a><img src="./images/[转]三分钟学会.NET Core Jwt 策略授权认证0.png" alt="复制代码" /></a></p>
+<p>　　可能比较特别的是 AllowAnonymous ，这个看我文章的同学可能头一次见，其实怎么说好呢，这个可无可有，没有硬性的要求，我看到好几个知名博主加上了，我也加上了~...最后我们创建了几个资源控制器，它们是受保护的。</p>
+<p>　　在你添加策略权限的时候例如政策名称是XXX，那么在对应的api表头就应该是XXX，随后到了 PolicyHandler我们解析了 Claims 处理了它是否有权限。</p>
+<p><a><img src="./images/[转]三分钟学会.NET Core Jwt 策略授权认证0.png" alt="复制代码" /></a></p>
+<pre><code><code>// GET api/values1
+        [HttpGet]
+        [Route(&quot;api/value1&quot;)]
+        public ActionResult&lt;IEnumerable&lt;string&gt;&gt; Get()
+        {
+            return new string[] { &quot;value1&quot;, &quot;value1&quot; };
+        }
+        // GET api/values2
+        /**
+         * 该接口用Authorize特性做了权限校验，如果没有通过权限校验，则http返回状态码为401
+         */
+        [HttpGet]
+        [Route(&quot;api/value2&quot;)]
+        [Authorize]
+        public ActionResult&lt;IEnumerable&lt;string&gt;&gt; Get2()
+        {
+            var auth = HttpContext.AuthenticateAsync().Result.Principal.Claims;
+            var userName = auth.FirstOrDefault(t =&gt; t.Type.Equals(ClaimTypes.NameIdentifier))?.Value;
+            return new string[] { &quot;这个接口登陆过的都能访问&quot;, $&quot;userName={userName}&quot; };
+        }
+        /**
+         * 这个接口必须用admin
+         **/
+        [HttpGet]
+        [Route(&quot;api/value3&quot;)]
+        [Authorize(&quot;Permission&quot;)]
+        public ActionResult&lt;IEnumerable&lt;string&gt;&gt; Get3()
+        {
+            //这是获取自定义参数的方法
+            var auth = HttpContext.AuthenticateAsync().Result.Principal.Claims;
+            var userName = auth.FirstOrDefault(t =&gt; t.Type.Equals(ClaimTypes.NameIdentifier))?.Value;
+            var role = auth.FirstOrDefault(t =&gt; t.Type.Equals(&quot;Role&quot;))?.Value;
+            return new string[] { &quot;这个接口有管理员权限才可以访问&quot;, $&quot;userName={userName}&quot;, $&quot;Role={role}&quot; };
+        }</code></pre>
+<p><a><img src="./images/[转]三分钟学会.NET Core Jwt 策略授权认证0.png" alt="复制代码" /></a></p>
+<h2 id="三.效果图">三.效果图<a href="https://www.cnblogs.com/ZaraNet/p/12105688.html#3479847093">#</a></h2>
+<p><a href="./images/[转]三分钟学会.NET Core Jwt 策略授权认证14.png"><img src="./images/[转]三分钟学会.NET Core Jwt 策略授权认证14.png" alt="img" /></a></p>
+<h2 id="四.栗子源代码和以往版本">四.栗子源代码和以往版本<a href="https://www.cnblogs.com/ZaraNet/p/12105688.html#938770907">#</a></h2>
+<p>　　看到很多前辈彩的坑，原来的 (context.Resource as Microsoft.AspNetCore.Routing.RouteEndpoint); 实际上在.NET Core 3.0 已经不能用了，原因是.NET Core 3.0 启用 EndpointRouting 后，权限filter不再添加到 ActionDescriptor ，而将权限直接作为中间件运行，同时所有filter都会添加到 endpoint.Metadata ，如果在.NET Core 2.1 &amp; 2.2 版本中你通常Handler可以这么写：</p>
+<p><a><img src="./images/[转]三分钟学会.NET Core Jwt 策略授权认证0.png" alt="复制代码" /></a></p>
+<pre><code><code>public class PolicyHandler : AuthorizationHandler&lt;PolicyRequirement&gt;
+    {
+        protected override Task HandleRequirementAsync(AuthorizationHandlerContext context, PolicyRequirement requirement)
+        {
+            //赋值用户权限
+            var userPermissions = requirement.UserPermissions;
+            //从AuthorizationHandlerContext转成HttpContext，以便取出表求信息
+            var httpContext = (context.Resource as Microsoft.AspNetCore.Mvc.Filters.AuthorizationFilterContext).HttpContext;
+            //请求Url
+            var questUrl = httpContext.Request.Path.Value.ToUpperInvariant();
+            //是否经过验证
+            var isAuthenticated = httpContext.User.Identity.IsAuthenticated;
+            if (isAuthenticated)
+            {
+                if (userPermissions.GroupBy(g =&gt; g.Url).Any(w =&gt; w.Key.ToUpperInvariant() == questUrl))
+                {
+                    //用户名
+                    var userName = httpContext.User.Claims.SingleOrDefault(s =&gt; s.Type == ClaimTypes.NameIdentifier).Value;
+                    if (userPermissions.Any(w =&gt; w.UserName == userName &amp;&amp; w.Url.ToUpperInvariant() == questUrl))
+                    {
+                        context.Succeed(requirement);
+                    }
+                    else
+                    {
+                        //无权限跳转到拒绝页面
+                        httpContext.Response.Redirect(requirement.DeniedAction);
+                    }
+                }
+                else
+                    context.Succeed(requirement);
+            }
+            return Task.CompletedTask;
+        }
+    }</code></pre>
+<p><a><img src="./images/[转]三分钟学会.NET Core Jwt 策略授权认证0.png" alt="复制代码" /></a></p>
+<p>　　该案例源代码在我的Github上：https://github.com/zaranetCore/aspNetCore_JsonwebToken/tree/master/Jwt_Policy_Demo 谢谢大家😄😄😄~~！！！</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

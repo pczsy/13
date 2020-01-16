@@ -1,0 +1,316 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Winform组合ComboBox和TreeView实现ComboTreeView' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Winform组合ComboBox和TreeView实现ComboTreeView</center></div><div class='banquan'>原文出处:本文由博客园博主飞&#183;羽提供。<br/>
+原文连接:https://www.cnblogs.com/yitouniu/p/11589266.html</div><br>
+    <p>最近做Winform项目需要用到类似ComboBox的TreeView控件。</p>
+<p>虽然各种第三方控件很多，但是存在各种版本不兼容问题。所以自己写了个简单的ComboTreeView控件。</p>
+<p>下图是实现效果：</p>
+<p><img src="./images/Winform组合ComboBox和TreeView实现ComboTreeView0.png" alt="" /></p>
+<p>目前实现的比较简单，能满足我项目中的需求。</p>
+<p>此处是项目中的代码简化后的版本，供大家参考。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">  1</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System;
+</span><span style="color: #008080;">  2</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Collections.Generic;
+</span><span style="color: #008080;">  3</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Windows.Forms;
+</span><span style="color: #008080;">  4</span> 
+<span style="color: #008080;">  5</span> <span style="color: #0000ff;">namespace</span><span style="color: #000000;"> CustomControl.Tree
+</span><span style="color: #008080;">  6</span> <span style="color: #000000;">{
+</span><span style="color: #008080;">  7</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">abstract</span> <span style="color: #0000ff;">class</span> ComboTreeView&lt;T&gt; : ComboBox <span style="color: #0000ff;">where</span> T : <span style="color: #0000ff;">class</span>
+<span style="color: #008080;">  8</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;">  9</span>         <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">int</span> WM_LBUTTONDOWN = <span style="color: #800080;">0x0201</span>, WM_LBUTTONDBLCLK = <span style="color: #800080;">0x0203</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 10</span> 
+<span style="color: #008080;"> 11</span>         <span style="color: #0000ff;">protected</span><span style="color: #000000;"> TreeView treeView;
+</span><span style="color: #008080;"> 12</span>         <span style="color: #0000ff;">protected</span><span style="color: #000000;"> ToolStripControlHost treeViewHost;
+</span><span style="color: #008080;"> 13</span>         <span style="color: #0000ff;">protected</span><span style="color: #000000;"> ToolStripDropDown dropDown;
+</span><span style="color: #008080;"> 14</span>         <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">bool</span> dropDownOpen = <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 15</span>         <span style="color: #0000ff;">protected</span><span style="color: #000000;"> TreeNode selectedNode;
+</span><span style="color: #008080;"> 16</span>         <span style="color: #0000ff;">protected</span><span style="color: #000000;"> T toBeSelected;
+</span><span style="color: #008080;"> 17</span> 
+<span style="color: #008080;"> 18</span>         <span style="color: #0000ff;">public</span><span style="color: #000000;"> ComboTreeView(TreeView internalTreeView)
+</span><span style="color: #008080;"> 19</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 20</span>             <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">null</span> ==<span style="color: #000000;"> internalTreeView)
+</span><span style="color: #008080;"> 21</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 22</span>                 <span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> ArgumentNullException(<span style="color: #800000;">"</span><span style="color: #800000;">internalTreeView</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 23</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 24</span>             <span style="color: #0000ff;">this</span><span style="color: #000000;">.InitializeControls(internalTreeView);
+</span><span style="color: #008080;"> 25</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 26</span> 
+<span style="color: #008080;"> 27</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">event</span><span style="color: #000000;"> TreeNodeChangedEventHandler TreeNodeChanged;
+</span><span style="color: #008080;"> 28</span> 
+<span style="color: #008080;"> 29</span>         <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">virtual</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> InitializeControls(TreeView internalTreeView)
+</span><span style="color: #008080;"> 30</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 31</span>             <span style="color: #0000ff;">this</span>.treeView =<span style="color: #000000;"> internalTreeView;
+</span><span style="color: #008080;"> 32</span>             <span style="color: #0000ff;">this</span>.treeView.BorderStyle =<span style="color: #000000;"> BorderStyle.FixedSingle;
+</span><span style="color: #008080;"> 33</span>             <span style="color: #0000ff;">this</span>.treeView.Margin = <span style="color: #0000ff;">new</span> Padding(<span style="color: #800080;">0</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 34</span>             <span style="color: #0000ff;">this</span>.treeView.Padding = <span style="color: #0000ff;">new</span> Padding(<span style="color: #800080;">0</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 35</span>             <span style="color: #0000ff;">this</span>.treeView.AfterExpand += <span style="color: #0000ff;">new</span> TreeViewEventHandler(<span style="color: #0000ff;">this</span><span style="color: #000000;">.WhenAfterExpand);
+</span><span style="color: #008080;"> 36</span> 
+<span style="color: #008080;"> 37</span>             <span style="color: #0000ff;">this</span>.treeViewHost = <span style="color: #0000ff;">new</span> ToolStripControlHost(<span style="color: #0000ff;">this</span><span style="color: #000000;">.treeView);
+</span><span style="color: #008080;"> 38</span>             <span style="color: #0000ff;">this</span>.treeViewHost.Margin = <span style="color: #0000ff;">new</span> Padding(<span style="color: #800080;">0</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 39</span>             <span style="color: #0000ff;">this</span>.treeViewHost.Padding = <span style="color: #0000ff;">new</span> Padding(<span style="color: #800080;">0</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 40</span>             <span style="color: #0000ff;">this</span>.treeViewHost.AutoSize = <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 41</span> 
+<span style="color: #008080;"> 42</span>             <span style="color: #0000ff;">this</span>.dropDown = <span style="color: #0000ff;">new</span><span style="color: #000000;"> ToolStripDropDown();
+</span><span style="color: #008080;"> 43</span>             <span style="color: #0000ff;">this</span>.dropDown.Margin = <span style="color: #0000ff;">new</span> Padding(<span style="color: #800080;">0</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 44</span>             <span style="color: #0000ff;">this</span>.dropDown.Padding = <span style="color: #0000ff;">new</span> Padding(<span style="color: #800080;">0</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 45</span>             <span style="color: #0000ff;">this</span>.dropDown.AutoSize = <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 46</span>             <span style="color: #0000ff;">this</span>.dropDown.DropShadowEnabled = <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 47</span>             <span style="color: #0000ff;">this</span>.dropDown.Items.Add(<span style="color: #0000ff;">this</span><span style="color: #000000;">.treeViewHost);
+</span><span style="color: #008080;"> 48</span>             <span style="color: #0000ff;">this</span>.dropDown.Closed += <span style="color: #0000ff;">new</span> ToolStripDropDownClosedEventHandler(<span style="color: #0000ff;">this</span><span style="color: #000000;">.OnDropDownClosed);
+</span><span style="color: #008080;"> 49</span> 
+<span style="color: #008080;"> 50</span>             <span style="color: #0000ff;">this</span>.DropDownWidth = <span style="color: #0000ff;">this</span><span style="color: #000000;">.Width;
+</span><span style="color: #008080;"> 51</span>             <span style="color: #0000ff;">base</span>.DropDownStyle =<span style="color: #000000;"> ComboBoxStyle.DropDownList;
+</span><span style="color: #008080;"> 52</span>             <span style="color: #0000ff;">base</span>.SizeChanged += <span style="color: #0000ff;">new</span> EventHandler(<span style="color: #0000ff;">this</span><span style="color: #000000;">.WhenComboboxSizeChanged);
+</span><span style="color: #008080;"> 53</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 54</span> 
+<span style="color: #008080;"> 55</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> ComboBoxStyle DropDownStyle
+</span><span style="color: #008080;"> 56</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 57</span>             <span style="color: #0000ff;">get</span> { <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">base</span><span style="color: #000000;">.DropDownStyle; }
+</span><span style="color: #008080;"> 58</span>             <span style="color: #0000ff;">set</span> { <span style="color: #0000ff;">base</span>.DropDownStyle =<span style="color: #000000;"> ComboBoxStyle.DropDownList; }
+</span><span style="color: #008080;"> 59</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 60</span> 
+<span style="color: #008080;"> 61</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">virtual</span><span style="color: #000000;"> TreeNode SelectedNode
+</span><span style="color: #008080;"> 62</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 63</span>             <span style="color: #0000ff;">get</span> { <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">.selectedNode; }
+</span><span style="color: #008080;"> 64</span>             <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">set</span> { <span style="color: #0000ff;">this</span>.treeView.SelectedNode =<span style="color: #000000;"> value; }
+</span><span style="color: #008080;"> 65</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 66</span> 
+<span style="color: #008080;"> 67</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">virtual</span><span style="color: #000000;"> T SelectedNodeData
+</span><span style="color: #008080;"> 68</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 69</span>             <span style="color: #0000ff;">get</span> { <span style="color: #0000ff;">return</span> (T)<span style="color: #0000ff;">base</span><span style="color: #000000;">.SelectedItem; }
+</span><span style="color: #008080;"> 70</span>             <span style="color: #0000ff;">set</span>
+<span style="color: #008080;"> 71</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 72</span>                 <span style="color: #0000ff;">this</span>.toBeSelected =<span style="color: #000000;"> value;
+</span><span style="color: #008080;"> 73</span>                 <span style="color: #0000ff;">this</span><span style="color: #000000;">.UpdateComboBox(value);
+</span><span style="color: #008080;"> 74</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 75</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 76</span> 
+<span style="color: #008080;"> 77</span>         <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> SelectedIndex
+</span><span style="color: #008080;"> 78</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 79</span>             <span style="color: #0000ff;">get</span> { <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">base</span><span style="color: #000000;">.SelectedIndex; }
+</span><span style="color: #008080;"> 80</span>             <span style="color: #0000ff;">set</span> { <span style="color: #0000ff;">base</span>.SelectedIndex =<span style="color: #000000;"> value; }
+</span><span style="color: #008080;"> 81</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 82</span> 
+<span style="color: #008080;"> 83</span>         <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">object</span><span style="color: #000000;"> SelectedItem
+</span><span style="color: #008080;"> 84</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 85</span>             <span style="color: #0000ff;">get</span> { <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">base</span><span style="color: #000000;">.SelectedItem; }
+</span><span style="color: #008080;"> 86</span>             <span style="color: #0000ff;">set</span> { <span style="color: #0000ff;">base</span>.SelectedItem =<span style="color: #000000;"> value; }
+</span><span style="color: #008080;"> 87</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 88</span> 
+<span style="color: #008080;"> 89</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">virtual</span> <span style="color: #0000ff;">string</span> DisplayMember { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span>; } = <span style="color: #800000;">"</span><span style="color: #800000;">Name</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 90</span> 
+<span style="color: #008080;"> 91</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span><span style="color: #008000;">Gets the internal TreeView control.</span><span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;"> 92</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">virtual</span> TreeView TreeView =&gt; <span style="color: #0000ff;">this</span><span style="color: #000000;">.treeView;
+</span><span style="color: #008080;"> 93</span> 
+<span style="color: #008080;"> 94</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span><span style="color: #008000;">Gets the collection of tree nodes that are assigned to the tree view control.</span><span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;"> 95</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;</span><span style="color: #008000;">A </span><span style="color: #808080;">&lt;see cref="T:System.Windows.Forms.TreeNodeCollection" /&gt;</span><span style="color: #008000;"> that represents the tree nodes assigned to the tree view control.</span><span style="color: #808080;">&lt;/returns&gt;</span>
+<span style="color: #008080;"> 96</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">virtual</span> TreeNodeCollection Nodes =&gt; <span style="color: #0000ff;">this</span><span style="color: #000000;">.treeView.Nodes;
+</span><span style="color: #008080;"> 97</span> 
+<span style="color: #008080;"> 98</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">int</span> DropDownHeight { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span>; } = <span style="color: #800080;">100</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 99</span> 
+<span style="color: #008080;">100</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">int</span> DropDownWidth { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span>; } = <span style="color: #800080;">100</span><span style="color: #000000;">;
+</span><span style="color: #008080;">101</span> 
+<span style="color: #008080;">102</span>         <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">virtual</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> ShowDropDown()
+</span><span style="color: #008080;">103</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">104</span>             <span style="color: #0000ff;">this</span>.dropDown.Width = <span style="color: #0000ff;">this</span><span style="color: #000000;">.Width;
+</span><span style="color: #008080;">105</span>             <span style="color: #0000ff;">this</span>.dropDown.Height = <span style="color: #0000ff;">this</span><span style="color: #000000;">.DropDownHeight;
+</span><span style="color: #008080;">106</span>             <span style="color: #0000ff;">this</span>.treeViewHost.Width = <span style="color: #0000ff;">this</span><span style="color: #000000;">.Width;
+</span><span style="color: #008080;">107</span>             <span style="color: #0000ff;">this</span>.treeViewHost.Height = <span style="color: #0000ff;">this</span><span style="color: #000000;">.DropDownHeight;
+</span><span style="color: #008080;">108</span>             <span style="color: #0000ff;">this</span>.treeView.Font = <span style="color: #0000ff;">this</span><span style="color: #000000;">.Font;
+</span><span style="color: #008080;">109</span>             <span style="color: #0000ff;">this</span><span style="color: #000000;">.dropDown.Focus();
+</span><span style="color: #008080;">110</span>             <span style="color: #0000ff;">this</span>.dropDownOpen = <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+</span><span style="color: #008080;">111</span>             <span style="color: #0000ff;">this</span>.dropDown.Show(<span style="color: #0000ff;">this</span>, <span style="color: #800080;">0</span>, <span style="color: #0000ff;">base</span><span style="color: #000000;">.Height);
+</span><span style="color: #008080;">112</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">113</span> 
+<span style="color: #008080;">114</span>         <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">virtual</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> HideDropDown()
+</span><span style="color: #008080;">115</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">116</span>             <span style="color: #0000ff;">this</span><span style="color: #000000;">.dropDown.Hide();
+</span><span style="color: #008080;">117</span>             <span style="color: #0000ff;">this</span>.dropDownOpen = <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+</span><span style="color: #008080;">118</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">119</span> 
+<span style="color: #008080;">120</span>         <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">virtual</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> ToggleDropDown()
+</span><span style="color: #008080;">121</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">122</span>             <span style="color: #0000ff;">if</span> (!<span style="color: #0000ff;">this</span><span style="color: #000000;">.dropDownOpen)
+</span><span style="color: #008080;">123</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">124</span>                 <span style="color: #0000ff;">this</span><span style="color: #000000;">.ShowDropDown();
+</span><span style="color: #008080;">125</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">126</span>             <span style="color: #0000ff;">else</span>
+<span style="color: #008080;">127</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">128</span>                 <span style="color: #0000ff;">this</span><span style="color: #000000;">.HideDropDown();
+</span><span style="color: #008080;">129</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">130</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">131</span> 
+<span style="color: #008080;">132</span>         <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">override</span> <span style="color: #0000ff;">void</span> WndProc(<span style="color: #0000ff;">ref</span><span style="color: #000000;"> Message m)
+</span><span style="color: #008080;">133</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">134</span>             <span style="color: #0000ff;">if</span> ((WM_LBUTTONDOWN == m.Msg) || (WM_LBUTTONDBLCLK ==<span style="color: #000000;"> m.Msg))
+</span><span style="color: #008080;">135</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">136</span>                 <span style="color: #0000ff;">if</span> (!<span style="color: #0000ff;">this</span><span style="color: #000000;">.Focused)
+</span><span style="color: #008080;">137</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">138</span>                     <span style="color: #0000ff;">this</span><span style="color: #000000;">.Focus();
+</span><span style="color: #008080;">139</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">140</span>                 <span style="color: #0000ff;">this</span><span style="color: #000000;">.ToggleDropDown();
+</span><span style="color: #008080;">141</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">142</span>             <span style="color: #0000ff;">else</span>
+<span style="color: #008080;">143</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">144</span>                 <span style="color: #0000ff;">base</span>.WndProc(<span style="color: #0000ff;">ref</span><span style="color: #000000;"> m);
+</span><span style="color: #008080;">145</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">146</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">147</span> 
+<span style="color: #008080;">148</span>         <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">override</span> <span style="color: #0000ff;">void</span> Dispose(<span style="color: #0000ff;">bool</span><span style="color: #000000;"> disposing)
+</span><span style="color: #008080;">149</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">150</span>             <span style="color: #0000ff;">if</span><span style="color: #000000;"> (disposing)
+</span><span style="color: #008080;">151</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">152</span>                 <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span>.dropDown != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+</span><span style="color: #008080;">153</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">154</span>                     <span style="color: #0000ff;">this</span><span style="color: #000000;">.dropDown.Dispose();
+</span><span style="color: #008080;">155</span>                     <span style="color: #0000ff;">this</span>.dropDown = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+</span><span style="color: #008080;">156</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">157</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">158</span>             <span style="color: #0000ff;">base</span><span style="color: #000000;">.Dispose(disposing);
+</span><span style="color: #008080;">159</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">160</span> 
+<span style="color: #008080;">161</span>         <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">virtual</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> WhenTreeNodeChanged(TreeNode newValue)
+</span><span style="color: #008080;">162</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">163</span>             <span style="color: #0000ff;">if</span> ((<span style="color: #0000ff;">null</span> != <span style="color: #0000ff;">this</span>.selectedNode) || (<span style="color: #0000ff;">null</span> !=<span style="color: #000000;"> newValue))
+</span><span style="color: #008080;">164</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">165</span>                 <span style="color: #0000ff;">bool</span><span style="color: #000000;"> changed;
+</span><span style="color: #008080;">166</span>                 <span style="color: #0000ff;">if</span> ((<span style="color: #0000ff;">null</span> != <span style="color: #0000ff;">this</span>.selectedNode) &amp;&amp; (<span style="color: #0000ff;">null</span> !=<span style="color: #000000;"> newValue))
+</span><span style="color: #008080;">167</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">168</span>                     changed = (<span style="color: #0000ff;">this</span>.selectedNode.GetHashCode() !=<span style="color: #000000;"> newValue.GetHashCode());
+</span><span style="color: #008080;">169</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">170</span>                 <span style="color: #0000ff;">else</span>
+<span style="color: #008080;">171</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">172</span>                     changed = <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+</span><span style="color: #008080;">173</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">174</span> 
+<span style="color: #008080;">175</span>                 <span style="color: #0000ff;">if</span><span style="color: #000000;"> (changed)
+</span><span style="color: #008080;">176</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">177</span>                     <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">null</span> != <span style="color: #0000ff;">this</span><span style="color: #000000;">.TreeNodeChanged)
+</span><span style="color: #008080;">178</span> <span style="color: #000000;">                    {
+</span><span style="color: #008080;">179</span>                         <span style="color: #0000ff;">try</span>
+<span style="color: #008080;">180</span> <span style="color: #000000;">                        {
+</span><span style="color: #008080;">181</span>                             <span style="color: #0000ff;">this</span>.TreeNodeChanged.Invoke(<span style="color: #0000ff;">this</span>, <span style="color: #0000ff;">new</span> TreeNodeChangedEventArgs(<span style="color: #0000ff;">this</span><span style="color: #000000;">.selectedNode, newValue));
+</span><span style="color: #008080;">182</span> <span style="color: #000000;">                        }
+</span><span style="color: #008080;">183</span>                         <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception)
+</span><span style="color: #008080;">184</span> <span style="color: #000000;">                        {
+</span><span style="color: #008080;">185</span>                             <span style="color: #008000;">//</span><span style="color: #008000;"> do nothing</span>
+<span style="color: #008080;">186</span> <span style="color: #000000;">                        }
+</span><span style="color: #008080;">187</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">188</span> 
+<span style="color: #008080;">189</span>                     <span style="color: #0000ff;">this</span>.selectedNode =<span style="color: #000000;"> newValue;
+</span><span style="color: #008080;">190</span>                     <span style="color: #0000ff;">this</span>.UpdateComboBox(<span style="color: #0000ff;">this</span><span style="color: #000000;">.GetTreeNodeData(newValue));
+</span><span style="color: #008080;">191</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">192</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">193</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">194</span> 
+<span style="color: #008080;">195</span>         <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">virtual</span> <span style="color: #0000ff;">void</span> OnDropDownClosed(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, ToolStripDropDownClosedEventArgs e)
+</span><span style="color: #008080;">196</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">197</span>             <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">null</span> == <span style="color: #0000ff;">this</span><span style="color: #000000;">.toBeSelected)
+</span><span style="color: #008080;">198</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">199</span>                 <span style="color: #0000ff;">var</span> selectedNode = <span style="color: #0000ff;">this</span><span style="color: #000000;">.treeView.SelectedNode;
+</span><span style="color: #008080;">200</span>                 <span style="color: #0000ff;">this</span><span style="color: #000000;">.WhenTreeNodeChanged(selectedNode);
+</span><span style="color: #008080;">201</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">202</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">203</span> 
+<span style="color: #008080;">204</span>         <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">virtual</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> UpdateComboBox(T data)
+</span><span style="color: #008080;">205</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">206</span>             <span style="color: #0000ff;">base</span>.DisplayMember = <span style="color: #0000ff;">this</span>.DisplayMember; <span style="color: #008000;">//</span><span style="color: #008000;"> update DisplayMember</span>
+<span style="color: #008080;">207</span>             <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">null</span> !=<span style="color: #000000;"> data)
+</span><span style="color: #008080;">208</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">209</span>                 <span style="color: #0000ff;">this</span>.DataSource = <span style="color: #0000ff;">new</span> List&lt;T&gt;<span style="color: #000000;">() { data };
+</span><span style="color: #008080;">210</span>                 <span style="color: #0000ff;">this</span>.SelectedIndex = <span style="color: #800080;">0</span><span style="color: #000000;">;
+</span><span style="color: #008080;">211</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">212</span>             <span style="color: #0000ff;">else</span>
+<span style="color: #008080;">213</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">214</span>                 <span style="color: #0000ff;">this</span>.DataSource = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+</span><span style="color: #008080;">215</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">216</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">217</span> 
+<span style="color: #008080;">218</span>         <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">virtual</span> <span style="color: #0000ff;">void</span> WhenAfterExpand(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, TreeViewEventArgs e)
+</span><span style="color: #008080;">219</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">220</span>             <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">null</span> != <span style="color: #0000ff;">this</span><span style="color: #000000;">.toBeSelected)
+</span><span style="color: #008080;">221</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">222</span>                 <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span>.SelectChildNode(e.Node.Nodes, <span style="color: #0000ff;">this</span><span style="color: #000000;">.toBeSelected))
+</span><span style="color: #008080;">223</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">224</span>                     <span style="color: #0000ff;">this</span>.toBeSelected = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+</span><span style="color: #008080;">225</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">226</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">227</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">228</span> 
+<span style="color: #008080;">229</span>         <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">virtual</span> <span style="color: #0000ff;">void</span> WhenComboboxSizeChanged(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)
+</span><span style="color: #008080;">230</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">231</span>             <span style="color: #0000ff;">this</span>.DropDownWidth = <span style="color: #0000ff;">base</span><span style="color: #000000;">.Width;
+</span><span style="color: #008080;">232</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">233</span> 
+<span style="color: #008080;">234</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">virtual</span> <span style="color: #0000ff;">bool</span><span style="color: #000000;"> SelectChildNode(TreeNodeCollection nodes, T data)
+</span><span style="color: #008080;">235</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">236</span>             <span style="color: #0000ff;">var</span> node = <span style="color: #0000ff;">this</span><span style="color: #000000;">.FindChildNode(nodes, data);
+</span><span style="color: #008080;">237</span>             <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">null</span> !=<span style="color: #000000;"> node)
+</span><span style="color: #008080;">238</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">239</span>                 <span style="color: #0000ff;">this</span><span style="color: #000000;">.DoSelectTreeNode(node);
+</span><span style="color: #008080;">240</span>                 <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+</span><span style="color: #008080;">241</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">242</span>             <span style="color: #0000ff;">else</span>
+<span style="color: #008080;">243</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">244</span>                 <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+</span><span style="color: #008080;">245</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">246</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">247</span> 
+<span style="color: #008080;">248</span>         <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">abstract</span> <span style="color: #0000ff;">bool</span><span style="color: #000000;"> Identical(T x, T y);
+</span><span style="color: #008080;">249</span> 
+<span style="color: #008080;">250</span>         <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">virtual</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> DoSelectTreeNode(TreeNode node)
+</span><span style="color: #008080;">251</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">252</span>             <span style="color: #0000ff;">this</span>.SelectedNode =<span style="color: #000000;"> node;
+</span><span style="color: #008080;">253</span>             <span style="color: #0000ff;">this</span><span style="color: #000000;">.ExpandTreeNode(node.Parent);
+</span><span style="color: #008080;">254</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">255</span> 
+<span style="color: #008080;">256</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">virtual</span><span style="color: #000000;"> TreeNode FindChildNode(TreeNodeCollection nodes, T data)
+</span><span style="color: #008080;">257</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">258</span>             <span style="color: #0000ff;">foreach</span> (TreeNode node <span style="color: #0000ff;">in</span><span style="color: #000000;"> nodes)
+</span><span style="color: #008080;">259</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">260</span>                 <span style="color: #0000ff;">var</span> nodeData = <span style="color: #0000ff;">this</span><span style="color: #000000;">.GetTreeNodeData(node);
+</span><span style="color: #008080;">261</span>                 <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span><span style="color: #000000;">.Identical(nodeData, data))
+</span><span style="color: #008080;">262</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">263</span>                     <span style="color: #0000ff;">return</span><span style="color: #000000;"> node;
+</span><span style="color: #008080;">264</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">265</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">266</span> 
+<span style="color: #008080;">267</span>             <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+</span><span style="color: #008080;">268</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">269</span> 
+<span style="color: #008080;">270</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">virtual</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> ExpandTreeNode(TreeNode node)
+</span><span style="color: #008080;">271</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">272</span>             <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">null</span> !=<span style="color: #000000;"> node)
+</span><span style="color: #008080;">273</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">274</span> <span style="color: #000000;">                node.Expand();
+</span><span style="color: #008080;">275</span>                 <span style="color: #0000ff;">this</span><span style="color: #000000;">.ExpandTreeNode(node.Parent);
+</span><span style="color: #008080;">276</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">277</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">278</span> 
+<span style="color: #008080;">279</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">abstract</span><span style="color: #000000;"> T GetTreeNodeData(TreeNode node);
+</span><span style="color: #008080;">280</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">281</span> }</pre>
+</div>
+<p>&nbsp;</p>
+<p><a href="https://files.cnblogs.com/files/yitouniu/ComboTreeView.zip" target="_blank"><strong><span style="color: #ff0000;">完整项目下载</span></strong></a></p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

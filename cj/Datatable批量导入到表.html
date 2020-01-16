@@ -1,0 +1,106 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Datatable批量导入到表' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Datatable批量导入到表</center></div><div class='banquan'>原文出处:本文由博客园博主皑上雪提供。<br/>
+原文连接:https://www.cnblogs.com/songconglai/p/11355838.html</div><br>
+    <p>&nbsp;</p>
+<p>封装批量提交数据到表，用于数据同步作业</p>
+<div class="cnblogs_Highlighter">
+<pre><code>private string GetSelectFieldNames(DataTable dataTable, string tableName = "", string strwhere = "")
+{
+if (dataTable == null || dataTable.Columns.Count == 0)
+{
+return "";
+}
+if (tableName.NotHasValue())
+{
+tableName = dataTable.TableName;
+}
+var columns = (from DataColumn column in dataTable.Columns select column.ColumnName).ToList();
+
+string strColumns = string.Join(",", columns);
+string strSql = string.Format("select {0} from {1} {2}", strColumns, tableName, strwhere);
+return strSql;
+}
+
+/// &lt;summary&gt;
+/// 批量全表数据同步
+/// 该种方式可以支持报错情况下详细的字段错误信息
+/// &lt;/summary&gt;
+/// &lt;param name="dataTable"&gt;&lt;/param&gt;
+/// &lt;param name="toTableName"&gt;&lt;/param&gt;
+/// &lt;returns&gt;&lt;/returns&gt;
+public bool BulkCopyToDataTable(DataTable dataTable, string toTableName = "")
+{
+if (dataTable == null || dataTable.Rows.Count == 0)
+{
+Tools.Debug("提交的表为空");
+return true;
+}
+if (toTableName.NotHasValue())
+{
+toTableName = dataTable.TableName;
+}
+Tools.Debug("一共提交" + dataTable.Rows.Count + "条数据到" + toTableName);
+
+using (var connection = new SqlConnection(DbConnectionString))
+{
+
+string strSelectSql = GetSelectFieldNames(dataTable, toTableName, "where 1=2");
+SqlTransaction tran =null;
+try
+{
+connection.Open();
+var newDatatable = new DataTable();
+using (var myDataAdapter = new SqlDataAdapter(strSelectSql, connection)) 
+{ 
+
+myDataAdapter.Fill(newDatatable);
+for (int j = 0; j &lt; dataTable.Rows.Count; j++)
+{
+newDatatable.Rows.Add(dataTable.Rows[j].ItemArray);
+}
+
+using (var sqlcommanBuilder = new SqlCommandBuilder(myDataAdapter))
+{
+tran = connection.BeginTransaction();
+myDataAdapter.SelectCommand.Transaction = tran;
+myDataAdapter.Update(newDatatable);
+tran.Commit();
+}
+myDataAdapter.Dispose();
+}
+}
+catch (SqlException ex)
+{
+if (tran != null) tran.Rollback();
+Tools.Debug(String.Format("同步平台表：{0} ,执行数据库：{1} ,报错： {2}", toTableName, DbConnectionString, ex.Message));
+Tools.Error(ex);
+return false;
+}
+}
+return true;
+}
+</pre>
+</div>
+<p>　　</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

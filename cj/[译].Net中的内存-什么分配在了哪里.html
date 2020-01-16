@@ -1,0 +1,109 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修[译].Net中的内存-什么分配在了哪里' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>[译].Net中的内存-什么分配在了哪里</center></div><div class='banquan'>原文出处:本文由博客园博主Minotauros提供。<br/>
+原文连接:https://www.cnblogs.com/minotauros/p/11254159.html</div><br>
+    <p>原文链接：<a href="https://jonskeet.uk/csharp/memory.html" target="_blank">https://jonskeet.uk/csharp/memory.html</a></p>
+<p>　　人们在理解值类型和引用类型之间的差异时因为&ldquo;值类型在栈上分配，引用类型在堆上分配&rdquo;这句话造成了很多混乱。这完全是不对的，本文试图澄清这个问题。</p>
+<p><strong><span style="font-size: 16px;">变量中有什么？</span></strong></p>
+<p>　　理解.NET中内存工作方式的关键是理解变量是什么，以及它的值是什么。在最基本的层面上，变量是变量名和内存之间的关联。变量的值是与之关联的内存中的内容。该值占用内存空间的大小和值的解释取决于变量的类型 - 这正是值类型和引用类型之间的差异所在。</p>
+<p>　　引用类型变量的值始终是引用或<code>null</code>。如果是引用，则它必须是与其变量类型兼容的对象的引用。例如，以Stream s声明的变量s的值是null或Stream类型（或其兼容类型）实例的引用。引用类型变量所占内存空间的大小是引用的大小，引用的大小在32位模式下固定为4个字节，在64位模式下固定为8个字节。</p>
+<p>　　值类型变量的值始终是其对象本身的值。例如，对于给定的结构：</p>
+<div>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">struct</span><span style="color: #000000;"> PairOfInts
+{
+    </span><span style="color: #0000ff;">public</span>  <span style="color: #0000ff;">int</span><span style="color: #000000;"> a;
+    </span><span style="color: #0000ff;">public</span>  <span style="color: #0000ff;">int</span><span style="color: #000000;"> b;
+}</span></pre>
+</div>
+<p>&nbsp;　　以PairOfInts pair声明的变量pair的值是整数对本身，而不是对一对整数的引用。其所占内存空间则是两个整数的大小，即8个字节。请注意，值类型变量永远不能赋值为null - 因为这没有任何意义，值类型变量不是一个引用。</p>
+</div>
+<p><strong><span style="font-size: 16px;">那么东西存放在哪里？</span></strong>　　</p>
+<p>　　变量的分配位置取决于声明它的上下文：</p>
+<ul>
+<li>局部变量在栈上分配。这包括引用类型变量 - 变量本身位于栈上，其引用的值分配在堆上。方法参数也计为局部变量，但如果使用ref、out、in修饰符修饰它们，则它们不再是原始类型，而是转换为托管指针类型（Type &amp;），此时传递的是原变量的指针，不再是变量本身。</li>
+<li>引用类型的对象始终在堆上分配。</li>
+<li>值类型的对象始终内联分配。即在方法中声明的值类型变量在栈上分配，而作为类的实例字段的值类型变量将在堆上分配。</li>
+<li>静态变量在堆上分配，包括引用类型和值类型中声明的静态变量。无论创建多少个实例，静态变量都共享一个内存空间。</li>
+</ul>
+<p>　　上述规则有几个例外：在使用匿名方法时的外部变量和迭代器中的局部变量会由编译器优化为其它类型的实例字段，这些变量会转移到堆中分配。</p>
+<p><strong><span style="font-size: 16px;">举个例子</span></strong></p>
+<p>　　上述文字描述可能听起来有点复杂，但一个完整的例子可以让事情更清楚一些：</p>
+<div>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">using</span><span style="color: #000000;"> System;
+
+</span><span style="color: #0000ff;">struct</span><span style="color: #000000;"> PairOfInts
+{
+    </span><span style="color: #0000ff;">static</span>  <span style="color: #0000ff;">int</span> counter = <span style="color: #800080;">0</span><span style="color: #000000;">;
+    
+    </span><span style="color: #0000ff;">public</span>  <span style="color: #0000ff;">int</span><span style="color: #000000;"> a;
+    </span><span style="color: #0000ff;">public</span>  <span style="color: #0000ff;">int</span><span style="color: #000000;"> b;
+    
+    </span><span style="color: #0000ff;">internal</span> PairOfInts(<span style="color: #0000ff;">int</span> x, <span style="color: #0000ff;">int</span><span style="color: #000000;"> y)
+    {
+        A </span>=<span style="color: #000000;"> x;
+        B </span>=<span style="color: #000000;"> y;
+        counter</span>++<span style="color: #000000;">;
+    }
+}
+
+</span><span style="color: #0000ff;">class</span><span style="color: #000000;"> Test
+{
+    PairOfInts pair;
+    </span><span style="color: #0000ff;">string</span><span style="color: #000000;"> name;
+    
+    Test(PairOfInts p, </span><span style="color: #0000ff;">string</span> s, <span style="color: #0000ff;">int</span><span style="color: #000000;"> x)
+    {
+        pair </span>=<span style="color: #000000;"> p;
+        name </span>=<span style="color: #000000;"> s;
+        pair.a </span>+ =<span style="color: #000000;"> x;
+    }
+    
+    </span><span style="color: #0000ff;">static</span>  <span style="color: #0000ff;">void</span><span style="color: #000000;"> Main()
+    {
+        PairOfInts z </span>= <span style="color: #0000ff;">new</span> PairOfInts(<span style="color: #800080;">1</span>, <span style="color: #800080;">2</span><span style="color: #000000;">);
+        Test t1 </span>= <span style="color: #0000ff;">new</span> Test(z, <span style="color: #800000;">"</span><span style="color: #800000;">first</span><span style="color: #800000;">"</span>, <span style="color: #800080;">1</span><span style="color: #000000;">);
+        Test t2 </span>= <span style="color: #0000ff;">new</span> Test(z, <span style="color: #800000;">"</span><span style="color: #800000;">second</span><span style="color: #800000;">"</span>, <span style="color: #800080;">2</span><span style="color: #000000;">);
+        Test t3 </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+        Test t4 </span>=<span style="color: #000000;"> t1;
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">XXX</span>
+<span style="color: #000000;">    }
+}</span></pre>
+</div>
+</div>
+<p>&nbsp;<code>　　</code>让我们看一下标记&ldquo;XXX&rdquo;位置时内存中的内容。</p>
+<ul>
+<li>在栈上分配一个PairOfInts类型的对象，对应变量z。</li>
+<li>在堆上分配一个Test类型的对象，在栈上分配一个引用指向该对象，对应变量t1。以32位模式举例，该对象在堆中占用20个字节：8个字节的头信息（所有堆对象都有），8个字节用于存储PairOfInts实例，4个字节用于存储字符串引用。</li>
+<li>在堆上分配一个Test类型的对象，在栈上分配一个引用指向该对象，对应变量t2。该对象与上面的对象非常相似。</li>
+<li>在栈上分配一个引用，对应变量t3。这个引用是null - 它没有引用任何对象。</li>
+<li>在栈上分配一个引用，对应变量t4，并赋值t1引用的对象，此时t1和t4引用堆内存中的同一个对象。</li>
+<li>最后，在堆内存中有一个静态变量PairOfInts.counter。</li>
+</ul>
+<p>&nbsp;</p>
+<hr />
+<p>如果您觉得阅读本文对您有帮助，请点一下&ldquo;推荐&rdquo;按钮，您的认可是我写作的最大动力！</p>
+<p>作者：<a title="Minotauros" href="https://www.cnblogs.com/minotauros/" target="_blank">Minotauros</a><br />出处：<a title="https://www.cnblogs.com/minotauros/" href="https://www.cnblogs.com/minotauros/" target="_blank">https://www.cnblogs.com/minotauros/</a></p>
+<p>本文版权归作者和博客园共有，欢迎转载，但未经作者同意必须保留此段声明，且在文章页面明显位置给出原文连接，否则保留追究法律责任的权利。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

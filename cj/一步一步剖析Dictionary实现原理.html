@@ -1,0 +1,416 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修一步一步剖析Dictionary实现原理' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>一步一步剖析Dictionary实现原理</center></div><div class='banquan'>原文出处:本文由博客园博主hbatjzyb提供。<br/>
+原文连接:https://www.cnblogs.com/hbatjzyb/p/11649754.html</div><br>
+    <p><span style="font-family: 'Microsoft YaHei';"><span style="font-size: 15px;">目录</span></span></p>
+<ul>
+<li><span style="font-family: 'Microsoft YaHei';"><span style="font-size: 15px;"><strong>关键的字段和Entry结构</strong></span></span></li>
+<li><span style="font-family: 'Microsoft YaHei';"><span style="font-size: 15px;"><strong><strong>添加键值（Add）</strong></strong></span></span></li>
+<li><span style="font-family: 'Microsoft YaHei';"><span style="font-size: 15px;"><strong><strong><strong>取键值（Find）</strong></strong></strong></span></span></li>
+<li><span style="font-family: 'Microsoft YaHei';"><span style="font-size: 15px;"><strong><strong><strong><strong>移除键值（Remove）</strong></strong></strong></strong></span></span></li>
+<li><span style="font-family: 'Microsoft YaHei';"><span style="font-size: 15px;"><strong><strong><strong><strong><strong><strong>再插入键值</strong></strong></strong></strong></strong></strong></span></span></li>
+</ul>
+<p><span style="font-family: 'Microsoft YaHei';"><span style="font-size: 15px;">　　本文是对c#中Dictionary内部实现原理进行简单的剖析。如有表述错误，欢迎指正。</span></span></p>
+<p><span style="font-family: 'Microsoft YaHei';">　　主要对照源码来解析，目前对照源码的版本是<strong>.Net Framwork 4.8，</strong><a href="https://referencesource.microsoft.com/#mscorlib/system/collections/generic/dictionary.cs,d3599058f8d79be0" target="_blank">源码地址</a>。</span></p>
+<p><strong><span style="font-family: 'Microsoft YaHei'; font-size: 16px;">1. 关键的字段和Entry结构</span></strong></p>
+<div class="cnblogs_code">
+<pre><code>        <span style="color: #0000ff;">struct</span><span style="color: #000000;"> Entry
+        {
+            </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span> hashCode;    <span style="color: #008000;">//</span><span style="color: #008000;"> key的hashCode &amp; 0x7FFFFFFF</span>
+            <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span> next;            <span style="color: #008000;">//</span><span style="color: #008000;"> 指向链表下一个元素的地址（实际就是entries的索引），最后一个元素为-1</span>
+            <span style="color: #0000ff;">public</span><span style="color: #000000;"> TKey key;
+            </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> TValue value;
+        }
+        Entry[] entries;        </span><span style="color: #008000;">//</span><span style="color: #008000;">存放键值</span>
+        <span style="color: #0000ff;">int</span>[] buckets;          <span style="color: #008000;">//</span><span style="color: #008000;">存储entries最新元素的索引,其存储位置由取模结果决定。例：假设键值存储在entries的第1元素的位置上，且hashCode和长度的取模结果为2，那么buckets[2] = 1</span>
+        <span style="color: #0000ff;">int</span> count = <span style="color: #800080;">0</span>;         <span style="color: #008000;">//</span><span style="color: #008000;">已存储键值的个数</span>
+        <span style="color: #0000ff;">int</span> version;             <span style="color: #008000;">//</span><span style="color: #008000;">记录版本，防止迭代过程中集合被更改</span>
+        IEqualityComparer&lt;TKey&gt;<span style="color: #000000;"> _comparer;    
+        </span><span style="color: #0000ff;">int</span> freeList;             <span style="color: #008000;">//</span><span style="color: #008000;">entries中最新空元素的索引</span>
+        <span style="color: #0000ff;">int</span> freeCount;         <span style="color: #008000;">//</span><span style="color: #008000;">entries中空元素的个数</span></pre>
+</div>
+<p><strong><span style="font-family: 'Microsoft YaHei'; font-size: 16px;">2. 添加键值（Add）</span></strong></p>
+<div class="cnblogs_code">
+<pre><code>        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> Add(TKey key, TValue value) {
+            Insert(key, value, </span><span style="color: #0000ff;">true</span><span style="color: #000000;">);
+        }
+
+
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> Insert(TKey key, TValue value, <span style="color: #0000ff;">bool</span><span style="color: #000000;"> add) {
+        
+            </span><span style="color: #0000ff;">if</span>( key == <span style="color: #0000ff;">null</span><span style="color: #000000;"> ) {
+                ThrowHelper.ThrowArgumentNullException(ExceptionArgument.key);
+            }
+            </span><span style="color: #0000ff;">if</span> (buckets == <span style="color: #0000ff;">null</span>) Initialize(<span style="color: #800080;">0</span><span style="color: #000000;">);
+            </span><span style="color: #0000ff;">int</span> hashCode = comparer.GetHashCode(key) &amp; <span style="color: #800080;">0x7FFFFFFF</span><span style="color: #000000;">;
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">取模</span>
+            <span style="color: #0000ff;">int</span> targetBucket = hashCode %<span style="color: #000000;"> buckets.Length;
+</span><span style="color: #0000ff;">#if</span> FEATURE_RANDOMIZED_STRING_HASHING
+            <span style="color: #0000ff;">int</span> collisionCount = <span style="color: #800080;">0</span><span style="color: #000000;">;
+</span><span style="color: #0000ff;">#endif</span>
+            <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = buckets[targetBucket]; i &gt;= <span style="color: #800080;">0</span>; i =<span style="color: #000000;"> entries[i].next) {
+                </span><span style="color: #0000ff;">if</span> (entries[i].hashCode == hashCode &amp;&amp;<span style="color: #000000;">  comparer.Equals(entries[i].key, key)) {
+                    </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (add) {
+                         ThrowHelper.ThrowArgumentException(ExceptionResource.Argument_AddingDuplicate);
+                    }
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">对于已存在的Key重新赋值</span>
+                    entries[i].value =<span style="color: #000000;"> value;
+                    version</span>++<span style="color: #000000;">;
+                    </span><span style="color: #0000ff;">return</span><span style="color: #000000;">;
+                }
+</span><span style="color: #0000ff;">#if</span> FEATURE_RANDOMIZED_STRING_HASHING<span style="color: #000000;">
+                collisionCount</span>++<span style="color: #000000;">;
+</span><span style="color: #0000ff;">#endif</span><span style="color: #000000;">
+            }
+            </span><span style="color: #0000ff;">int</span><span style="color: #000000;"> index;
+            </span><span style="color: #0000ff;">if</span> (freeCount &gt; <span style="color: #800080;">0</span><span style="color: #000000;">) {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">存在entries中存在空元素</span>
+                index =<span style="color: #000000;"> freeList;
+                freeList </span>=<span style="color: #000000;"> entries[index].next;
+                freeCount</span>--<span style="color: #000000;">;
+            }
+            </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+                </span><span style="color: #0000ff;">if</span> (count ==<span style="color: #000000;"> entries.Length)
+                {
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">扩容：取大于count * 2的最小素数作为entries和bucket的新容量（即数组长度.Length）</span>
+<span style="color: #000000;">                    Resize();
+                    targetBucket </span>= hashCode %<span style="color: #000000;"> buckets.Length;
+                }
+                index </span>=<span style="color: #000000;"> count;
+                count</span>++<span style="color: #000000;">;
+            }
+            entries[index].hashCode </span>=<span style="color: #000000;"> hashCode;
+            entries[index].next </span>=<span style="color: #000000;"> buckets[targetBucket];
+            entries[index].key </span>=<span style="color: #000000;"> key;
+            entries[index].value </span>=<span style="color: #000000;"> value;
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">存取链表的头元素的索引（即entries最后存入的元素的在enties中的索引）
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">便于取Key的时每次从链表的头元素开始遍历，详细见FindEntry(TKey key)函数</span>
+            buckets[targetBucket] =<span style="color: #000000;"> index;
+            version</span>++<span style="color: #000000;">;
+</span><span style="color: #0000ff;">#if</span> FEATURE_RANDOMIZED_STRING_HASHING
+<span style="color: #0000ff;">#if</span> FEATURE_CORECLR
+            <span style="color: #008000;">//</span><span style="color: #008000;"> In case we hit the collision threshold we'll need to switch to the  comparer which is using randomized string hashing
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> in this case will be EqualityComparer&lt;string&gt;.Default.
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> Note, randomized string hashing is turned on by default on coreclr so  EqualityComparer&lt;string&gt;.Default will
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> be using randomized string hashing</span>
+            <span style="color: #0000ff;">if</span> (collisionCount &gt; HashHelpers.HashCollisionThreshold &amp;&amp; comparer ==<span style="color: #000000;">  NonRandomizedStringEqualityComparer.Default)
+            {
+                comparer </span>= (IEqualityComparer&lt;TKey&gt;)  EqualityComparer&lt;<span style="color: #0000ff;">string</span>&gt;<span style="color: #000000;">.Default;
+                Resize(entries.Length, </span><span style="color: #0000ff;">true</span><span style="color: #000000;">);
+            }
+</span><span style="color: #0000ff;">#else</span>
+            <span style="color: #0000ff;">if</span>(collisionCount &gt; HashHelpers.HashCollisionThreshold &amp;&amp;<span style="color: #000000;">  HashHelpers.IsWellKnownEqualityComparer(comparer))
+            {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">如果碰撞次数（单链表长度）大于设置的最大碰撞阈值，需要扩容</span>
+                comparer = (IEqualityComparer&lt;TKey&gt;<span style="color: #000000;">)  HashHelpers.GetRandomizedEqualityComparer(comparer);
+                Resize(entries.Length, </span><span style="color: #0000ff;">true</span><span style="color: #000000;">);
+            }
+</span><span style="color: #0000ff;">#endif</span> <span style="color: #008000;">//</span><span style="color: #008000;"> FEATURE_CORECLR</span>
+<span style="color: #0000ff;">#endif</span><span style="color: #000000;">
+        }
+
+</span>******************************************************************************************************************************************
+        <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> Foo()
+        {
+            </span><span style="color: #0000ff;">var</span> dicData = <span style="color: #0000ff;">new</span> Dictionary&lt;<span style="color: #0000ff;">int</span>, <span style="color: #0000ff;">int</span>&gt;<span style="color: #000000;">();
+      </span><span style="color: #008000;">//</span><span style="color: #008000;">添加键值</span>
+            <span style="color: #0000ff;">new</span> List&lt;<span style="color: #0000ff;">int</span>&gt; { <span style="color: #800080;">1</span>, <span style="color: #800080;">2</span>, <span style="color: #800080;">4</span> }.ForEach(item =&gt;<span style="color: #000000;"> Add(item, dicData));
+            </span><span style="color: #0000ff;">new</span> List&lt;<span style="color: #0000ff;">int</span>&gt; { <span style="color: #800080;">22</span>, <span style="color: #800080;">29</span>, <span style="color: #800080;">36</span>, <span style="color: #800080;">20</span> }.ForEach(item =&gt;<span style="color: #000000;"> Add(item, dicData));
+        }
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Add(<span style="color: #0000ff;">int</span> key, Dictionary&lt;<span style="color: #0000ff;">int</span>, <span style="color: #0000ff;">int</span>&gt;<span style="color: #000000;"> dicData)
+        {
+            dicData.Add(key, key);
+        }</span></pre>
+</div>
+<p><span style="font-family: 'Microsoft YaHei';">2.1 数组entries和buckets初始化</span></p>
+<div class="cnblogs_code">
+<pre><code>      <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> Initialize(<span style="color: #0000ff;">int</span><span style="color: #000000;"> capacity) {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">取大于capacity的最小质数（素数）</span>
+            <span style="color: #0000ff;">int</span> size =<span style="color: #000000;"> HashHelpers.GetPrime(capacity);
+            buckets </span>= <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">int</span><span style="color: #000000;">[size];
+            </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; buckets.Length; i++) buckets[i] = -<span style="color: #800080;">1</span><span style="color: #000000;">;
+            entries </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Entry[size];
+            freeList </span>= -<span style="color: #800080;">1</span><span style="color: #000000;">;
+        }
+    </span>****************************************************
+    <span style="color: #0000ff;">internal</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> HashHelpers
+    {
+        ......
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">int</span> HashCollisionThreshold = <span style="color: #800080;">100</span>;       <span style="color: #008000;">//</span><span style="color: #008000;">碰撞阈值</span>
+<span style="color: #000000;">        ......
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">readonly</span> <span style="color: #0000ff;">int</span>[] primes =<span style="color: #000000;"> {
+            </span><span style="color: #800080;">3</span>, <span style="color: #800080;">7</span>, <span style="color: #800080;">11</span>, <span style="color: #800080;">17</span>, <span style="color: #800080;">23</span>, <span style="color: #800080;">29</span>, <span style="color: #800080;">37</span>, <span style="color: #800080;">47</span>, <span style="color: #800080;">59</span>, <span style="color: #800080;">71</span>, <span style="color: #800080;">89</span>, <span style="color: #800080;">107</span>, <span style="color: #800080;">131</span>, <span style="color: #800080;">163</span>, <span style="color: #800080;">197</span>, <span style="color: #800080;">239</span>, <span style="color: #800080;">293</span>,  <span style="color: #800080;">353</span>, <span style="color: #800080;">431</span>, <span style="color: #800080;">521</span>, <span style="color: #800080;">631</span>, <span style="color: #800080;">761</span>, <span style="color: #800080;">919</span><span style="color: #000000;">,
+            </span><span style="color: #800080;">1103</span>, <span style="color: #800080;">1327</span>, <span style="color: #800080;">1597</span>, <span style="color: #800080;">1931</span>, <span style="color: #800080;">2333</span>, <span style="color: #800080;">2801</span>, <span style="color: #800080;">3371</span>, <span style="color: #800080;">4049</span>, <span style="color: #800080;">4861</span>, <span style="color: #800080;">5839</span>, <span style="color: #800080;">7013</span>, <span style="color: #800080;">8419</span>,  <span style="color: #800080;">10103</span>, <span style="color: #800080;">12143</span>, <span style="color: #800080;">14591</span><span style="color: #000000;">,
+            </span><span style="color: #800080;">17519</span>, <span style="color: #800080;">21023</span>, <span style="color: #800080;">25229</span>, <span style="color: #800080;">30293</span>, <span style="color: #800080;">36353</span>, <span style="color: #800080;">43627</span>, <span style="color: #800080;">52361</span>, <span style="color: #800080;">62851</span>, <span style="color: #800080;">75431</span>, <span style="color: #800080;">90523</span>,  <span style="color: #800080;">108631</span>, <span style="color: #800080;">130363</span>, <span style="color: #800080;">156437</span><span style="color: #000000;">,
+            </span><span style="color: #800080;">187751</span>, <span style="color: #800080;">225307</span>, <span style="color: #800080;">270371</span>, <span style="color: #800080;">324449</span>, <span style="color: #800080;">389357</span>, <span style="color: #800080;">467237</span>, <span style="color: #800080;">560689</span>, <span style="color: #800080;">672827</span>, <span style="color: #800080;">807403</span>,  <span style="color: #800080;">968897</span>, <span style="color: #800080;">1162687</span>, <span style="color: #800080;">1395263</span><span style="color: #000000;">,
+            </span><span style="color: #800080;">1674319</span>, <span style="color: #800080;">2009191</span>, <span style="color: #800080;">2411033</span>, <span style="color: #800080;">2893249</span>, <span style="color: #800080;">3471899</span>, <span style="color: #800080;">4166287</span>, <span style="color: #800080;">4999559</span>, <span style="color: #800080;">5999471</span>,  <span style="color: #800080;">7199369</span>};            <span style="color: #008000;">//</span><span style="color: #008000;">质数（素数）组</span>
+<span style="color: #000000;">        ......
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">int</span> GetPrime(<span style="color: #0000ff;">int</span><span style="color: #000000;"> min)
+        {
+            </span><span style="color: #0000ff;">if</span> (min &lt; <span style="color: #800080;">0</span><span style="color: #000000;">)
+                </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span>  ArgumentException(Environment.GetResourceString(<span style="color: #800000;">"</span><span style="color: #800000;">Arg_HTCapacityOverflow</span><span style="color: #800000;">"</span><span style="color: #000000;">));
+            Contract.EndContractBlock();
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">查找primes是否有满足的质数（素数）</span>
+            <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; primes.Length; i++<span style="color: #000000;">)
+            {
+                </span><span style="color: #0000ff;">int</span> prime =<span style="color: #000000;"> primes[i];
+                </span><span style="color: #0000ff;">if</span> (prime &gt;= min) <span style="color: #0000ff;">return</span><span style="color: #000000;"> prime;
+            }
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">outside of our predefined table.
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">compute the hard way.
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">primes没有查找到满足的质数（素数），自行计算</span>
+            <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = (min | <span style="color: #800080;">1</span>); i &lt; Int32.MaxValue;i+=<span style="color: #800080;">2</span><span style="color: #000000;">)
+            {
+                </span><span style="color: #0000ff;">if</span> (IsPrime(i) &amp;&amp; ((i - <span style="color: #800080;">1</span>) % Hashtable.HashPrime != <span style="color: #800080;">0</span><span style="color: #000000;">))
+                    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> i;
+            }
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> min;
+        }
+    }</span></pre>
+</div>
+<p><span style="font-family: 'Microsoft YaHei';">&nbsp;<img src="./images/一步一步剖析Dictionary实现原理0.png" alt="" /></span></p>
+<p><span style="font-family: 'Microsoft YaHei';">&nbsp;2.2&nbsp;添加键值{1，1}，则</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="font-family: 'Microsoft YaHei';">    hashCode = <span style="color: #800080;">1</span><span style="color: #000000;">;
+  targetBucket </span>= hasCode % buckets.Length;         <span style="color: #008000;">//</span><span style="color: #008000;">targetBucket = 1</span>
+    next = buckets[targetBucket];                               <span style="color: #008000;">//</span><span style="color: #008000;">next = -1</span>
+    buckets[targetBucket] = index;                             <span style="color: #008000;">//</span><span style="color: #008000;">buckets[1] = 0 </span></span></pre>
+</div>
+<p><span style="font-family: 'Microsoft YaHei';"><img src="./images/一步一步剖析Dictionary实现原理1.png" alt="" /></span></p>
+<p><span style="font-family: 'Microsoft YaHei';">&nbsp;2.3 添加键值{2，2}，则</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="font-family: 'Microsoft YaHei';">    hashCode = <span style="color: #800080;">2</span><span style="color: #000000;">;
+  targetBucket </span>= hasCode % buckets.Length;         <span style="color: #008000;">//</span><span style="color: #008000;">targetBucket = 2</span>
+    next = buckets[targetBucket];                               <span style="color: #008000;">//</span><span style="color: #008000;">next = -1</span>
+    buckets[targetBucket] = index;                              <span style="color: #008000;">//</span><span style="color: #008000;">buckets[2] = 1</span></span></pre>
+</div>
+<p><span style="font-family: 'Microsoft YaHei';"><img src="./images/一步一步剖析Dictionary实现原理2.png" alt="" /></span></p>
+<p><span style="font-family: 'Microsoft YaHei';">&nbsp;2.4&nbsp;添加键值{4，4}，则</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="font-family: 'Microsoft YaHei';">    hashCode = <span style="color: #800080;">4</span><span style="color: #000000;">;
+    targetBucket </span>= hasCode % buckets.Length;         <span style="color: #008000;">//</span><span style="color: #008000;">targetBucket = 1</span>
+    next = buckets[targetBucket];                               <span style="color: #008000;">//</span><span style="color: #008000;">next = 0</span>
+    buckets[targetBucket] = index;                              <span style="color: #008000;">//</span><span style="color: #008000;">buckets[1] = 2</span></span></pre>
+</div>
+<p><span style="font-family: 'Microsoft YaHei';"><img src="./images/一步一步剖析Dictionary实现原理3.png" alt="" /></span></p>
+<p><span style="font-family: 'Microsoft YaHei';">接下来将entries数组以单链表的形式呈现(即enteries数组横向)；</span></p>
+<p><span style="font-family: 'Microsoft YaHei';"><img src="./images/一步一步剖析Dictionary实现原理4.png" alt="" /></span></p>
+<p>&nbsp;2.5&nbsp;在继续添加键值之前，需要扩容操作，因为entries数组长度为3且都已有元素。扩容后需要对buckets和entries每个元素的Next需要重新赋值；</p>
+<div class="cnblogs_code">
+<pre><code>       <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> Resize() {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">扩容的大小：取大于（当前容量*2）的最小素数
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">例：</span>
+            Resize(HashHelpers.ExpandPrime(count), <span style="color: #0000ff;">false</span><span style="color: #000000;">);
+        }
+       </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> Resize(<span style="color: #0000ff;">int</span> newSize, <span style="color: #0000ff;">bool</span><span style="color: #000000;"> forceNewHashCodes) {
+            Contract.Assert(newSize </span>&gt;=<span style="color: #000000;"> entries.Length);
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">实例化buckets，并将每个元素置为-1</span>
+            <span style="color: #0000ff;">int</span>[] newBuckets = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">int</span><span style="color: #000000;">[newSize];
+            </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; newBuckets.Length; i++) newBuckets[i] = -<span style="color: #800080;">1</span><span style="color: #000000;">;
+            Entry[] newEntries </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Entry[newSize];
+            Array.Copy(entries, </span><span style="color: #800080;">0</span>, newEntries, <span style="color: #800080;">0</span><span style="color: #000000;">, count);
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">如果是Hash碰撞扩容，使用新HashCode函数重新计算Hash值</span>
+            <span style="color: #0000ff;">if</span><span style="color: #000000;">(forceNewHashCodes) {
+                </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; count; i++<span style="color: #000000;">) {
+                    </span><span style="color: #0000ff;">if</span>(newEntries[i].hashCode != -<span style="color: #800080;">1</span><span style="color: #000000;">) {
+                        newEntries[i].hashCode </span>=  (comparer.GetHashCode(newEntries[i].key) &amp; <span style="color: #800080;">0x7FFFFFFF</span><span style="color: #000000;">);
+                    }
+                }
+            }
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">重建单链表</span>
+            <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; count; i++<span style="color: #000000;">) {
+                </span><span style="color: #0000ff;">if</span> (newEntries[i].hashCode &gt;= <span style="color: #800080;">0</span><span style="color: #000000;">) {
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">取模重新设置next值和buckets</span>
+                    <span style="color: #0000ff;">int</span> bucket = newEntries[i].hashCode %<span style="color: #000000;"> newSize;
+                    newEntries[i].next </span>=<span style="color: #000000;"> newBuckets[bucket];
+                    newBuckets[bucket] </span>=<span style="color: #000000;"> i;
+                }
+            }
+            buckets </span>=<span style="color: #000000;"> newBuckets;
+            entries </span>=<span style="color: #000000;"> newEntries;
+        }
+</span>*******************************************************************
+    <span style="color: #0000ff;">internal</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> HashHelpers
+    {
+        ......
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">readonly</span> <span style="color: #0000ff;">int</span>[] primes =<span style="color: #000000;"> {
+            </span><span style="color: #800080;">3</span>, <span style="color: #800080;">7</span>, <span style="color: #800080;">11</span>, <span style="color: #800080;">17</span>, <span style="color: #800080;">23</span>, <span style="color: #800080;">29</span>, <span style="color: #800080;">37</span>, <span style="color: #800080;">47</span>, <span style="color: #800080;">59</span>, <span style="color: #800080;">71</span>, <span style="color: #800080;">89</span>, <span style="color: #800080;">107</span>, <span style="color: #800080;">131</span>, <span style="color: #800080;">163</span>, <span style="color: #800080;">197</span>, <span style="color: #800080;">239</span>, <span style="color: #800080;">293</span>,  <span style="color: #800080;">353</span>, <span style="color: #800080;">431</span>, <span style="color: #800080;">521</span>, <span style="color: #800080;">631</span>, <span style="color: #800080;">761</span>, <span style="color: #800080;">919</span><span style="color: #000000;">,
+            </span><span style="color: #800080;">1103</span>, <span style="color: #800080;">1327</span>, <span style="color: #800080;">1597</span>, <span style="color: #800080;">1931</span>, <span style="color: #800080;">2333</span>, <span style="color: #800080;">2801</span>, <span style="color: #800080;">3371</span>, <span style="color: #800080;">4049</span>, <span style="color: #800080;">4861</span>, <span style="color: #800080;">5839</span>, <span style="color: #800080;">7013</span>, <span style="color: #800080;">8419</span>,  <span style="color: #800080;">10103</span>, <span style="color: #800080;">12143</span>, <span style="color: #800080;">14591</span><span style="color: #000000;">,
+            </span><span style="color: #800080;">17519</span>, <span style="color: #800080;">21023</span>, <span style="color: #800080;">25229</span>, <span style="color: #800080;">30293</span>, <span style="color: #800080;">36353</span>, <span style="color: #800080;">43627</span>, <span style="color: #800080;">52361</span>, <span style="color: #800080;">62851</span>, <span style="color: #800080;">75431</span>, <span style="color: #800080;">90523</span>,  <span style="color: #800080;">108631</span>, <span style="color: #800080;">130363</span>, <span style="color: #800080;">156437</span><span style="color: #000000;">,
+            </span><span style="color: #800080;">187751</span>, <span style="color: #800080;">225307</span>, <span style="color: #800080;">270371</span>, <span style="color: #800080;">324449</span>, <span style="color: #800080;">389357</span>, <span style="color: #800080;">467237</span>, <span style="color: #800080;">560689</span>, <span style="color: #800080;">672827</span>, <span style="color: #800080;">807403</span>,  <span style="color: #800080;">968897</span>, <span style="color: #800080;">1162687</span>, <span style="color: #800080;">1395263</span><span style="color: #000000;">,
+            </span><span style="color: #800080;">1674319</span>, <span style="color: #800080;">2009191</span>, <span style="color: #800080;">2411033</span>, <span style="color: #800080;">2893249</span>, <span style="color: #800080;">3471899</span>, <span style="color: #800080;">4166287</span>, <span style="color: #800080;">4999559</span>, <span style="color: #800080;">5999471</span>,  <span style="color: #800080;">7199369</span>};            <span style="color: #008000;">//</span><span style="color: #008000;">质数（素数）组</span>
+<span style="color: #000000;">        
+        ......
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> This is the maximum prime smaller than Array.MaxArrayLength</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">int</span> MaxPrimeArrayLength = <span style="color: #800080;">0x7FEFFFFD</span>;         <span style="color: #008000;">//</span><span style="color: #008000;">数组最大长度的最小质数</span>
+
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">int</span> ExpandPrime(<span style="color: #0000ff;">int</span><span style="color: #000000;"> oldSize)
+        {    
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">翻倍</span>
+            <span style="color: #0000ff;">int</span> newSize = <span style="color: #800080;">2</span> *<span style="color: #000000;"> oldSize;
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> Allow the hashtables to grow to maximum possible size (~2G elements)  before encoutering capacity overflow.
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> Note that this check works even when _items.Length overflowed thanks  to the (uint) cast
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">翻倍的大小不能超过【数组最大长度的最小质数】</span>
+            <span style="color: #0000ff;">if</span> ((<span style="color: #0000ff;">uint</span>)newSize &gt; MaxPrimeArrayLength &amp;&amp; MaxPrimeArrayLength &gt;<span style="color: #000000;">  oldSize)
+            {
+                Contract.Assert( MaxPrimeArrayLength </span>==  GetPrime(MaxPrimeArrayLength), <span style="color: #800000;">"</span><span style="color: #800000;">Invalid MaxPrimeArrayLength</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> MaxPrimeArrayLength;
+            }
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">取最小的质数（素数）</span>
+            <span style="color: #0000ff;">return</span><span style="color: #000000;"> GetPrime(newSize);
+        }
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">int</span> GetPrime(<span style="color: #0000ff;">int</span><span style="color: #000000;"> min)
+        {
+            </span><span style="color: #0000ff;">if</span> (min &lt; <span style="color: #800080;">0</span><span style="color: #000000;">)
+                </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span>  ArgumentException(Environment.GetResourceString(<span style="color: #800000;">"</span><span style="color: #800000;">Arg_HTCapacityOverflow</span><span style="color: #800000;">"</span><span style="color: #000000;">));
+            Contract.EndContractBlock();
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">查找primes是否有满足的质数（素数）</span>
+            <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; primes.Length; i++<span style="color: #000000;">)
+            {
+                </span><span style="color: #0000ff;">int</span> prime =<span style="color: #000000;"> primes[i];
+                </span><span style="color: #0000ff;">if</span> (prime &gt;= min) <span style="color: #0000ff;">return</span><span style="color: #000000;"> prime;
+            }
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">outside of our predefined table.
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">compute the hard way.
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">primes没有查找到满足的质数（素数），自行计算</span>
+            <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = (min | <span style="color: #800080;">1</span>); i &lt; Int32.MaxValue;i+=<span style="color: #800080;">2</span><span style="color: #000000;">)
+            {
+                </span><span style="color: #0000ff;">if</span> (IsPrime(i) &amp;&amp; ((i - <span style="color: #800080;">1</span>) % Hashtable.HashPrime != <span style="color: #800080;">0</span><span style="color: #000000;">))
+                    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> i;
+            }
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> min;
+        }
+    }</span></pre>
+</div>
+<p><img src="./images/一步一步剖析Dictionary实现原理5.png" alt="" /></p>
+<p>&nbsp;2.6 继续添加键值{22，22}，{29，29}，{36，36}，{40，40}，添加完后其内部存储结果如下</p>
+<p><span style="font-family: 'Microsoft YaHei';"><img src="./images/一步一步剖析Dictionary实现原理6.png" alt="" /></span></p>
+<p><strong><span style="font-size: 16px;">&nbsp;3. 取键值（Find）</span></strong></p>
+<div class="cnblogs_code">
+<pre><code>     <span style="color: #0000ff;">public</span> TValue <span style="color: #0000ff;">this</span><span style="color: #000000;">[TKey key] {
+            </span><span style="color: #0000ff;">get</span><span style="color: #000000;"> {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">取Key对应值在entries的索引</span>
+                <span style="color: #0000ff;">int</span> i =<span style="color: #000000;"> FindEntry(key);
+                </span><span style="color: #0000ff;">if</span> (i &gt;= <span style="color: #800080;">0</span>) <span style="color: #0000ff;">return</span><span style="color: #000000;"> entries[i].value;
+                ThrowHelper.ThrowKeyNotFoundException();
+                </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">default</span><span style="color: #000000;">(TValue);
+            }
+            </span><span style="color: #0000ff;">set</span><span style="color: #000000;"> {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">更新Key对应的值</span>
+                Insert(key, value, <span style="color: #0000ff;">false</span><span style="color: #000000;">);
+            }
+        }
+
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> FindEntry(TKey key) {
+            </span><span style="color: #0000ff;">if</span>( key == <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+                ThrowHelper.ThrowArgumentNullException(ExceptionArgument.key);
+            }
+            </span><span style="color: #0000ff;">if</span> (buckets != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+                </span><span style="color: #0000ff;">int</span> hashCode = comparer.GetHashCode(key) &amp; <span style="color: #800080;">0x7FFFFFFF</span><span style="color: #000000;">;
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">遍历单链表</span>
+                <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = buckets[hashCode % buckets.Length]; i &gt;= <span style="color: #800080;">0</span>; i =<span style="color: #000000;">  entries[i].next) {
+                    </span><span style="color: #0000ff;">if</span> (entries[i].hashCode == hashCode &amp;&amp;  comparer.Equals(entries[i].key, key)) <span style="color: #0000ff;">return</span><span style="color: #000000;"> i;
+                }
+            }
+            </span><span style="color: #0000ff;">return</span> -<span style="color: #800080;">1</span><span style="color: #000000;">;
+        }
+</span>*********************************************************************************************
+        <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> Foo()
+        {
+            ......
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">取Key=22</span>
+            <span style="color: #0000ff;">var</span> val =dicData[<span style="color: #800080;">22</span><span style="color: #000000;">];<br />        }</span></pre>
+</div>
+<p>简化取Key对应值的代码</p>
+<div class="cnblogs_code">
+<pre><code>    <span style="color: #0000ff;">var</span> hashCode =comparer.GetHashCode(key) &amp; <span style="color: #800080;">0x7FFFFFFF</span>;   <span style="color: #008000;">//</span><span style="color: #008000;"> 22</span>
+    <span style="color: #0000ff;">var</span> targetBuget = hashCode % buckets.Length;            <span style="color: #008000;">//</span><span style="color: #008000;">取模运算 1  </span>
+    <span style="color: #0000ff;">var</span> i = bucket[targetBuget];                            <span style="color: #008000;">//</span><span style="color: #008000;">链表头元素的索引 bucket[1] = 5
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">遍历单链表</span>
+    <span style="color: #0000ff;">for</span> (; i &gt;= <span style="color: #800080;">0</span>; i =<span style="color: #000000;">  entries[i].next) {
+        </span><span style="color: #0000ff;">if</span> (entries[i].hashCode == hashCode &amp;&amp;  comparer.Equals(entries[i].key, key)) <span style="color: #0000ff;">return</span><span style="color: #000000;"> i;
+    }</span></pre>
+</div>
+<p><img src="./images/一步一步剖析Dictionary实现原理7.png" alt="" /></p>
+<p><strong><span style="font-size: 16px;">&nbsp;4. 移除键值（Remove）</span></strong></p>
+<div class="cnblogs_code">
+<pre><code> 　　　　　　 <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">bool</span><span style="color: #000000;"> Remove(TKey key) {
+            </span><span style="color: #0000ff;">if</span>(key == <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+                ThrowHelper.ThrowArgumentNullException(ExceptionArgument.key);
+            }
+            </span><span style="color: #0000ff;">if</span> (buckets != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+                </span><span style="color: #0000ff;">int</span> hashCode = comparer.GetHashCode(key) &amp; <span style="color: #800080;">0x7FFFFFFF</span><span style="color: #000000;">;
+                </span><span style="color: #0000ff;">int</span> bucket = hashCode %<span style="color: #000000;"> buckets.Length;
+                </span><span style="color: #0000ff;">int</span> last = -<span style="color: #800080;">1</span><span style="color: #000000;">;
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">其原理先取出键值，然后记录entries空闲的索引（freeList）和空闲个数（freeCount）</span>
+                <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = buckets[bucket]; i &gt;= <span style="color: #800080;">0</span>; last = i, i =<span style="color: #000000;"> entries[i].next)  {
+                    </span><span style="color: #0000ff;">if</span> (entries[i].hashCode == hashCode &amp;&amp;<span style="color: #000000;">  comparer.Equals(entries[i].key, key)) {
+                        </span><span style="color: #0000ff;">if</span> (last &lt; <span style="color: #800080;">0</span><span style="color: #000000;">) {
+                            buckets[bucket] </span>=<span style="color: #000000;"> entries[i].next;
+                        }
+                        </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+                            entries[last].next </span>=<span style="color: #000000;"> entries[i].next;
+                        }
+                        entries[i].hashCode </span>= -<span style="color: #800080;">1</span><span style="color: #000000;">;
+                        </span><span style="color: #008000;">//</span><span style="color: #008000;">建立空闲链表</span>
+                        entries[i].next =<span style="color: #000000;"> freeList;
+                        entries[i].key </span>= <span style="color: #0000ff;">default</span><span style="color: #000000;">(TKey);
+                        entries[i].value </span>= <span style="color: #0000ff;">default</span><span style="color: #000000;">(TValue);
+                        </span><span style="color: #008000;">//</span><span style="color: #008000;">保存entryies中空元素的索引
+                        </span><span style="color: #008000;">//</span><span style="color: #008000;">便于插入新键值时，放在当前索引的位置，减少entryies空间上的浪费</span>
+                        freeList =<span style="color: #000000;"> i;
+                        </span><span style="color: #008000;">//</span><span style="color: #008000;">空元素的个数加1</span>
+                        freeCount++<span style="color: #000000;">;
+                        version</span>++<span style="color: #000000;">;
+                        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+                    }
+                }
+            }
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+        }
+</span>*******************************************************************
+        <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> Foo()
+        {
+            ......
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">移除</span>
+            <span style="color: #0000ff;">new</span> List&lt;<span style="color: #0000ff;">int</span>&gt; { <span style="color: #800080;">22</span>, <span style="color: #800080;">29</span> }.ForEach(item =&gt;<span style="color: #000000;"> dicData.Remove(item));
+        } </span></pre>
+</div>
+<p>4.1 移除Key=22后，freeList = 3,&nbsp;freeCount = 1,</p>
+<p><img src="./images/一步一步剖析Dictionary实现原理8.png" alt="" /></p>
+<p>&nbsp;4.2 移除Key=36后，freeList = 5,&nbsp;freeCount = 2,&nbsp;</p>
+<p><img src="./images/一步一步剖析Dictionary实现原理9.png" alt="" /></p>
+<p><strong><span style="font-size: 16px;">&nbsp;5. 再插入键值</span></strong></p>
+<div>如上图，当移除掉{36，36}后，会发现又诞生一个含有两个元素的&ldquo;新链表&rdquo;（上图灰色框）。这个作用就是为了插入新键值时，按照&ldquo;新链表&rdquo;记录的索引顺序插入到entries数组中。</div>
+<div>例：添加键值{22，22}，{25，25}，此时freeList = 5，freeCount = 2;</div>
+<ol>
+<li>
+<div>给entries[5]赋值，freeList = 3, freeCount = 1；</div>
+</li>
+<li>给entries[3]赋值，freeList = -1, freeCount = 0；</li>
+</ol>
+<p><img src="./images/一步一步剖析Dictionary实现原理10.png" alt="" />&nbsp;</p>
+<p>&nbsp;希望此文能够让你对于Dictionary内部实现有所认识。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

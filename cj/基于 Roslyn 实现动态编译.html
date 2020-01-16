@@ -1,0 +1,122 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修基于 Roslyn 实现动态编译' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>基于 Roslyn 实现动态编译</center></div><div class='banquan'>原文出处:本文由博客园博主WeihanLi提供。<br/>
+原文连接:https://www.cnblogs.com/weihanli/p/dynamic-compile-via-roslyn.html</div><br>
+    <h1 id="基于-roslyn-实现动态编译">基于 Roslyn 实现动态编译</h1>
+<h2 id="intro">Intro</h2>
+<p>之前做的一个数据库小工具可以支持根据 Model 代码文件生成创建表的 sql 语句，原来是基于 CodeDom 实现的，最近改成使用基于 Roslyn 去做了。实现的原理在于编译选择的Model 文件生成一个程序集，再从这个程序集中拿到 Model （数据库表）信息以及属性信息（数据库表字段信息），拿到数据库表以及表字段信息之后就根据数据库类型生成大致的创建表的 sql 语句。</p>
+<p>CodeFirst 效果如下图所示：<br />
+<img src="./images/基于 Roslyn 实现动态编译0.png" alt="Code First" /></p>
+<p>如果你还不知道这个数据库小工具，欢迎访问这个项目了解更多<a href="https://github.com/WeihanLi/DbTool" class="uri">https://github.com/WeihanLi/DbTool</a></p>
+<h2 id="迁移原因">迁移原因</h2>
+<p>最初的 CodeDom 也是可以用的，但是有一些比较新的 C# 语法不支持，比如 C#6 中的指定属性初始值 <code>public int Number {get;set;} = 1;</code>，最初我是迁移到了 <a href="https://www.nuget.org/packages/Microsoft.CodeDom.Providers.DotNetCompilerPlatform">Microsoft.CodeDom.Providers.DotNetCompilerPlatform</a><br />
+这个是一个 CodeDom 过渡到 Roslyn 的实现，他提供了和 CodeDom 差不多的语法，支持 C#6 的语法。但是还是有个问题，我的项目使用了新的项目文件格式，在 VS 中可以编译通过，但是 dotnet cli 编译不通过，详见 issue <a href="https://github.com/aspnet/RoslynCodeDomProvider/issues/51" class="uri">https://github.com/aspnet/RoslynCodeDomProvider/issues/51</a></p>
+<p>这个问题已经过去一年了仍未解决，最终决定迁移到 Roslyn，直接使用 Roslyn 实现动态编译。</p>
+<p>对 CodeDom 感兴趣的童鞋可以看 <a href="https://github.com/WeihanLi/DbTool">DbTool</a> 之前的 commit 记录，在此不多叙述。</p>
+<h2 id="使用-roslyn-实现动态编译">使用 Roslyn 实现动态编译</h2>
+<p>Roslyn 好像没有直接根据几个文件去编译(可能有只是我没发现），我就使用了一个比较笨的办法，把几个文件的内容都读出来，合并在一起（命名空间需要去重），然后去编译，<a href="https://github.com/WeihanLi/DbTool/blob/wfdev/src/DbTool/Utils.cs#L27">完整源代码地址</a><br />
+，实现代码如下：</p>
+<pre><code><code>/// &lt;summary&gt;
+/// 从 源代码 中获取表信息
+/// &lt;/summary&gt;
+/// &lt;param name=&quot;sourceFilePaths&quot;&gt;sourceCodeFiles&lt;/param&gt;
+/// &lt;returns&gt;&lt;/returns&gt;
+public static List&lt;TableEntity&gt; GeTableEntityFromSourceCode(params string[] sourceFilePaths)
+{
+    if (sourceFilePaths == null || sourceFilePaths.Length &lt;= 0)
+    {
+        return null;
+    }
+    var usingList = new List&lt;string&gt;();
+
+    var sourceCodeTextBuilder = new StringBuilder();
+
+    foreach (var path in sourceFilePaths)
+    {
+        foreach (var line in File.ReadAllLines(path))
+        {
+            if (line.StartsWith(&quot;using &quot;) &amp;&amp; line.EndsWith(&quot;;&quot;))
+            {
+                //
+                usingList.AddIfNotContains(line);
+            }
+            else
+            {
+                sourceCodeTextBuilder.AppendLine(line);
+            }
+        }
+    }
+
+    var sourceCodeText =
+        $&quot;{usingList.StringJoin(Environment.NewLine)}{Environment.NewLine}{sourceCodeTextBuilder}&quot;; // 获取完整的代码
+
+    var systemReference = MetadataReference.CreateFromFile(typeof(object).Assembly.Location);
+    var annotationReference = MetadataReference.CreateFromFile(typeof(TableAttribute).Assembly.Location);
+    var weihanliCommonReference = MetadataReference.CreateFromFile(typeof(IDependencyResolver).Assembly.Location);
+
+    var syntaxTree = CSharpSyntaxTree.ParseText(sourceCodeText, new CSharpParseOptions(LanguageVersion.Latest)); // 获取代码分析得到的语法树
+
+    var assemblyName = $&quot;DbTool.DynamicGenerated.{ObjectIdGenerator.Instance.NewId()}&quot;;
+
+    // 创建编译任务
+    var compilation = CSharpCompilation.Create(assemblyName) //指定程序集名称
+        .WithOptions(new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary))//输出为 dll 程序集
+        .AddReferences(systemReference, annotationReference, weihanliCommonReference) //添加程序集引用
+        .AddSyntaxTrees(syntaxTree) // 添加上面代码分析得到的语法树
+        ;
+    var assemblyPath = ApplicationHelper.MapPath($&quot;{assemblyName}.dll&quot;);
+    var compilationResult = compilation.Emit(assemblyPath); // 执行编译任务，并输出编译后的程序集
+    if (compilationResult.Success)
+    {
+        // 编译成功，获取编译后的程序集并从中获取数据库表信息以及字段信息
+        try
+        {
+            byte[] assemblyBytes;
+            using (var fs = File.OpenRead(assemblyPath))
+            {
+                assemblyBytes = fs.ToByteArray();
+            }
+            return GeTableEntityFromAssembly(Assembly.Load(assemblyBytes));
+        }
+        finally
+        {
+            File.Delete(assemblyPath); // 清理资源
+        }
+    }
+
+    var error = new StringBuilder(compilationResult.Diagnostics.Length * 1024);
+    foreach (var t in compilationResult.Diagnostics)
+    {
+        error.AppendLine($&quot;{t.GetMessage()}&quot;);
+    }
+    // 获取编译错误
+    throw new ArgumentException($&quot;所选文件编译有错误{Environment.NewLine}{error}&quot;);
+}</code></pre>
+<h2 id="reference">Reference</h2>
+<ul>
+<li><a href="https://github.com/WeihanLi/DbTool/blob/wfdev/src/DbTool/Utils.cs#L27" class="uri">https://github.com/WeihanLi/DbTool/blob/wfdev/src/DbTool/Utils.cs#L27</a></li>
+<li><a href="https://github.com/WeihanLi/DbTool" class="uri">https://github.com/WeihanLi/DbTool</a></li>
+<li><a href="https://msdn.microsoft.com/en-us/magazine/mt808499.aspx" class="uri">https://msdn.microsoft.com/en-us/magazine/mt808499.aspx</a></li>
+</ul>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

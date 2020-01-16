@@ -1,0 +1,329 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Newtonsoft.Json 序列化踩坑之 IEnumerable' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Newtonsoft.Json 序列化踩坑之 IEnumerable</center></div><div class='banquan'>原文出处:本文由博客园博主WeihanLi提供。<br/>
+原文连接:https://www.cnblogs.com/weihanli/p/11081483.html</div><br>
+    <h1 id="newtonsoft.json-序列化踩坑之-ienumerable"><code>Newtonsoft.Json</code> 序列化踩坑之 <code>IEnumerable</code></h1>
+<h2 id="intro">Intro</h2>
+<p><code>Newtonsoft.Json</code> 是 .NET 下最受欢迎 JSON 操作库，使用起来也是非常方便，有时候也可能会不小心就踩坑了，这次就踩了一个，坑是这样的，如果要序列化的对象实现了 <code>IEnumerable</code> 接口，<code>Newtonsoft.Json</code> 就会认为这个对象是一个数组。。然后遍历这个对象，输出其中的值，如果是一个自定义的类型而且还有其他属性，其他属性就会被忽略，序列化之后就会发生数据丢失。</p>
+<h2 id="问题代码">问题代码</h2>
+<p>在我的公用类库 <a href="https://github.com/WeihanLi/WeihanLi.Common">WeihanLi.Common</a> 有一个分页列表的Model：</p>
+<p>在 1.0.21及之前版本是这样定义的 <a href="https://github.com/WeihanLi/WeihanLi.Common/blob/85bdd88c435a8d396cc2c715d2920d86f30dad89/src/WeihanLi.Common/Models/PagedListModel.cs">源码</a></p>
+<pre><code><code>using System;
+using System.Collections;
+using System.Collections.Generic;
+
+namespace WeihanLi.Common.Models
+{
+    /// &lt;summary&gt;
+    /// IPagedListModel
+    /// &lt;/summary&gt;
+    /// &lt;typeparam name=&quot;T&quot;&gt;Type&lt;/typeparam&gt;
+    public interface IPagedListModel&lt;out T&gt; : IReadOnlyList&lt;T&gt;
+    {
+        /// &lt;summary&gt;
+        /// Data
+        /// &lt;/summary&gt;
+        IReadOnlyList&lt;T&gt; Data { get; }
+
+        /// &lt;summary&gt;
+        /// PageNumber
+        /// &lt;/summary&gt;
+        int PageNumber { get; }
+
+        /// &lt;summary&gt;
+        /// PageSize
+        /// &lt;/summary&gt;
+        int PageSize { get; }
+
+        /// &lt;summary&gt;
+        /// TotalDataCount
+        /// &lt;/summary&gt;
+        int TotalCount { get; set; }
+    }
+
+    /// &lt;inheritdoc /&gt;
+    /// &lt;summary&gt;
+    /// 分页Model
+    /// &lt;/summary&gt;
+    /// &lt;typeparam name=&quot;T&quot;&gt;Type&lt;/typeparam&gt;
+    [Serializable]
+    public class PagedListModel&lt;T&gt; : IPagedListModel&lt;T&gt;
+    {
+        public IReadOnlyList&lt;T&gt; Data { get; set; }
+
+        private int _pageNumber = 1;
+
+        public int PageNumber
+        {
+            get =&gt; _pageNumber;
+            set
+            {
+                if (value &gt; 0)
+                {
+                    _pageNumber = value;
+                }
+            }
+        }
+
+        private int _pageSize = 10;
+
+        public int PageSize
+        {
+            get =&gt; _pageSize;
+            set
+            {
+                if (value &gt; 0)
+                {
+                    _pageSize = value;
+                }
+            }
+        }
+
+        private int _totalCount;
+
+        public int TotalCount
+        {
+            get =&gt; _totalCount;
+            set
+            {
+                if (value &gt; 0)
+                {
+                    _totalCount = value;
+                }
+            }
+        }
+
+        public int PageCount =&gt; Convert.ToInt32(Math.Ceiling(_totalCount * 1.0 / _pageSize));
+
+        public IEnumerator&lt;T&gt; GetEnumerator()
+        {
+            return Data.GetEnumerator();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return Data.GetEnumerator();
+        }
+
+        public T this[int index] =&gt; Data[index];
+
+        public int Count =&gt; Data.Count;
+    }
+}</code></pre>
+<p>上面的这种定义相当于实现了 IEnumerable 接口，之所以实现这个接口，是因为可以直接遍历这个对象，不需要遍历这个对象的Data 属性上遍历，但是这样序列化的时候就会有问题， PageNumber/PageSize/TotalPage 之类的信息序列化时就会丢失</p>
+<h2 id="solution">Solution</h2>
+<p>不要实现 <code>IEnumerable</code> 接口就可以了，<a href="https://github.com/WeihanLi/WeihanLi.Common/blob/ec5147724a22f7041c3b8e9995fef17de2736390/src/WeihanLi.Common/Models/PagedListModel.cs">修改后的代码</a>如下所示：</p>
+<pre><code><code>using System;
+using System.Collections.Generic;
+
+namespace WeihanLi.Common.Models
+{
+    /// &lt;summary&gt;
+    /// IPagedListModel
+    /// &lt;/summary&gt;
+    /// &lt;typeparam name=&quot;T&quot;&gt;Type&lt;/typeparam&gt;
+    public interface IPagedListModel&lt;out T&gt;
+    {
+        /// &lt;summary&gt;
+        /// Data
+        /// &lt;/summary&gt;
+        IReadOnlyList&lt;T&gt; Data { get; }
+
+        /// &lt;summary&gt;
+        /// PageNumber
+        /// &lt;/summary&gt;
+        int PageNumber { get; }
+
+        /// &lt;summary&gt;
+        /// PageSize
+        /// &lt;/summary&gt;
+        int PageSize { get; }
+
+        /// &lt;summary&gt;
+        /// TotalDataCount
+        /// &lt;/summary&gt;
+        int TotalCount { get; set; }
+    }
+
+    /// &lt;inheritdoc /&gt;
+    /// &lt;summary&gt;
+    /// 分页Model
+    /// &lt;/summary&gt;
+    /// &lt;typeparam name=&quot;T&quot;&gt;Type&lt;/typeparam&gt;
+    [Serializable]
+    public class PagedListModel&lt;T&gt; : IPagedListModel&lt;T&gt;
+    {
+        public IReadOnlyList&lt;T&gt; Data { get; set; }
+
+        private int _pageNumber = 1;
+
+        public int PageNumber
+        {
+            get =&gt; _pageNumber;
+            set
+            {
+                if (value &gt; 0)
+                {
+                    _pageNumber = value;
+                }
+            }
+        }
+
+        private int _pageSize = 10;
+
+        public int PageSize
+        {
+            get =&gt; _pageSize;
+            set
+            {
+                if (value &gt; 0)
+                {
+                    _pageSize = value;
+                }
+            }
+        }
+
+        private int _totalCount;
+
+        public int TotalCount
+        {
+            get =&gt; _totalCount;
+            set
+            {
+                if (value &gt; 0)
+                {
+                    _totalCount = value;
+                }
+            }
+        }
+
+        public int PageCount =&gt; Convert.ToInt32(Math.Ceiling(_totalCount * 1.0 / _pageSize));
+
+        public T this[int index] =&gt; Data[index];
+
+        public int Count =&gt; Data.Count;
+    }
+}</code></pre>
+<h2 id="test">Test</h2>
+<p>写个示例测试一下，原来的代码类型改为 PagedListModel1 ,测试代码如下：</p>
+<p>PagedListModel1:</p>
+<pre><code><code>using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Text;
+
+namespace DotNetCoreSample.Test
+{
+    public class PagedListModel1&lt;T&gt; : IEnumerable&lt;T&gt;
+    {
+        public IReadOnlyList&lt;T&gt; Data { get; set; }
+
+        private int _pageNumber = 1;
+
+        public int PageNumber
+        {
+            get =&gt; _pageNumber;
+            set
+            {
+                if (value &gt; 0)
+                {
+                    _pageNumber = value;
+                }
+            }
+        }
+
+        private int _pageSize = 10;
+
+        public int PageSize
+        {
+            get =&gt; _pageSize;
+            set
+            {
+                if (value &gt; 0)
+                {
+                    _pageSize = value;
+                }
+            }
+        }
+
+        private int _totalCount;
+
+        public int TotalCount
+        {
+            get =&gt; _totalCount;
+            set
+            {
+                if (value &gt; 0)
+                {
+                    _totalCount = value;
+                }
+            }
+        }
+
+        public int PageCount =&gt; Convert.ToInt32(Math.Ceiling(_totalCount * 1.0 / _pageSize));
+
+        public T this[int index] =&gt; Data[index];
+
+        public int Count =&gt; Data.Count;
+
+        public IEnumerator&lt;T&gt; GetEnumerator()
+        {
+            return Data.GetEnumerator();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return Data.GetEnumerator();
+        }
+    }
+}
+</code></pre>
+<p>测试代码：</p>
+<pre><code><code>var pagedListModel = new PagedListModel&lt;int&gt;()
+            {
+                PageNumber = 2, PageSize = 2, TotalCount = 6, Data = new int[] {1, 2},
+            };
+var pagedListModel1 = new PagedListModel1&lt;int&gt;()
+            {
+                PageNumber = 2,
+                PageSize = 2,
+                TotalCount = 6,
+                Data = new int[] { 1, 2 },
+            };
+Console.WriteLine($&quot;pagedListModel:{JsonConvert.SerializeObject(pagedListModel)}, pagedListModel1:{JsonConvert.SerializeObject(pagedListModel1)}&quot;);</code></pre>
+<p>output:</p>
+<pre><code><code>pagedListModel:{&quot;Data&quot;:[1,2],&quot;PageNumber&quot;:2,&quot;PageSize&quot;:2,&quot;TotalCount&quot;:6,&quot;PageCount&quot;:3,&quot;Count&quot;:2}, pagedListModel1:[1,2]</code></pre>
+<p>可以看到实现了 IEnumerable 接口的那个类序列化之后一些属性丢失了</p>
+<h2 id="research">Research</h2>
+<p>查看 <code>Newtonsoft.Json</code> 源码 <a href="https://github.com/JamesNK/Newtonsoft.Json" class="uri">https://github.com/JamesNK/Newtonsoft.Json</a><br />
+，找到为什么实现了 <code>IEnumerable</code> 接口就会有问题，最后找到了这里 <a href="https://github.com/JamesNK/Newtonsoft.Json/blob/master/Src/Newtonsoft.Json/Serialization/DefaultContractResolver.cs#L1218" class="uri">https://github.com/JamesNK/Newtonsoft.Json/blob/master/Src/Newtonsoft.Json/Serialization/DefaultContractResolver.cs#L1218</a></p>
+<p><img src="./images/Newtonsoft.Json 序列化踩坑之 IEnumerable0.png" alt="ContractResolver.CreateContract" /></p>
+<p>可以看到只要实现了 <code>IEnumerable</code> 接口，就会被当作是一个Json 数组，foreach 遍历其中的元素，其他属性就会被忽略掉了，这就是为什么上面我们实现了 <code>IEnumerable</code> 接口的对象序列化之后发生属性丢失的原因。</p>
+<h2 id="reference">Reference</h2>
+<ul>
+<li><a href="https://github.com/JamesNK/Newtonsoft.Json" class="uri">https://github.com/JamesNK/Newtonsoft.Json</a></li>
+<li><a href="https://github.com/JamesNK/Newtonsoft.Json/blob/master/Src/Newtonsoft.Json/Serialization/DefaultContractResolver.cs#L1218" class="uri">https://github.com/JamesNK/Newtonsoft.Json/blob/master/Src/Newtonsoft.Json/Serialization/DefaultContractResolver.cs#L1218</a></li>
+<li><a href="https://github.com/WeihanLi/WeihanLi.Common/blob/dev/samples/DotNetCoreSample/Program.cs" class="uri">https://github.com/WeihanLi/WeihanLi.Common/blob/dev/samples/DotNetCoreSample/Program.cs</a></li>
+</ul>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

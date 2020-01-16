@@ -1,0 +1,532 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修capserjs-prototype(上)' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>capserjs-prototype(上)</center></div><div class='banquan'>原文出处:本文由博客园博主luyuqiang提供。<br/>
+原文连接:https://www.cnblogs.com/luyuqiang/p/capserjs-prototype-part1.html</div><br>
+    <h1 id="casper-prototyp">Casper prototyp</h1>
+<h3 id="back">back()</h3>
+<p>具体样式: back()</p>
+<p>Moves back a step in browser’s history:</p>
+<p>在浏览器历史中回退一步:</p>
+<pre><code><code>casper.start(&#39;http://foo.bar/1&#39;)
+casper.thenOpen(&#39;http://foo.bar/2&#39;);
+casper.thenOpen(&#39;http://foo.bar/3&#39;);
+casper.back();
+casper.run(function() {
+    console.log(this.getCurrentUrl()); // &#39;http://foo.bar/2&#39;
+});
+Also have a look at forward().</code></pre>
+<p>同样看一眼<a href="http://docs.casperjs.org/en/latest/modules/casper.html#forward">forward()</a>方法</p>
+<h3 id="base64encode">base64encode()</h3>
+<p>具体样式: base64encode(String url [, String method, Object data])</p>
+<p>Encodes a resource using the base64 algorithm synchronously using client-side XMLHttpRequest.</p>
+<p>使用客户端XMLHttpRequest对象的base64算法编码资源</p>
+<p>Note:We cannot use window.btoa() because it fails miserably in the version of WebKit shipping with PhantomJS.</p>
+<p>笔记:我们不能使用 window.btoa() ,因为该操作在装载PhantomJS的WebKit版本中失败.</p>
+<p>Example: retrieving google logo image encoded in base64:</p>
+<p>例如:使用base64编码获取谷歌logo图:</p>
+<pre><code><code>var base64logo = null;
+casper.start(&#39;http://www.google.fr/&#39;, function() {
+    base64logo = this.base64encode(&#39;http://www.google.fr/images/srpr/logo3w.png&#39;);
+});
+
+casper.run(function() {
+    this.echo(base64logo).exit();
+});
+
+// You can also perform an HTTP POST request to retrieve the contents to encode:  
+
+// 你也可以使用HTTP的Post请求去得到一个内容去编码:  
+
+var base64contents = null;
+casper.start(&#39;http://domain.tld/download.html&#39;, function() {
+    base64contents = this.base64encode(&#39;http://domain.tld/&#39;, &#39;POST&#39;, {
+        param1: &#39;foo&#39;,
+        param2: &#39;bar&#39;
+    });
+});
+
+casper.run(function() {
+    this.echo(base64contents).exit();
+});</code></pre>
+<h3 id="bypass">bypass()</h3>
+<p>New in version 1.1.</p>
+<p>具体样式: bypass(Numbr nb)</p>
+<p>Bypasses a given number of defined navigation steps:</p>
+<p>绕过一个定义好的浏览步骤:</p>
+<pre><code><code>casper.start();
+casper.then(function() {
+    // This step will be executed
+    //这步将会执行
+});
+casper.then(function() {
+    this.bypass(2);
+});
+casper.then(function() {
+    // This test won&#39;t be executed
+    //这步将不会执行
+});
+casper.then(function() {
+    // Nor this one
+    // 这个仍不会执行
+});
+casper.run();</code></pre>
+<h3 id="click">click()</h3>
+<p>具体样式: click(String selector, [Number|String X, Number|String Y])</p>
+<p>Performs a click on the element matching the provided selector expression. The method tries two strategies sequentially:</p>
+<p>执行一个点击在匹配的给定表达式的元素上.这个方法尝试连续2个步骤:</p>
+<p>trying to trigger a MouseEvent in Javascript</p>
+<p>1.试着去在javascript中触发一个鼠标事件</p>
+<ol>
+<li>using native QtWebKit event if the previous attempt failed</li>
+</ol>
+<p>2.如果先前的尝试失败,则会使用原生的QtWebKit事件</p>
+<p>Example:</p>
+<p>例如:</p>
+<pre><code><code>casper.start(&#39;http://google.fr/&#39;);
+casper.thenEvaluate(function(term) {
+    document.querySelector(&#39;input[name=&quot;q&quot;]&#39;).setAttribute(&#39;value&#39;, term);
+    document.querySelector(&#39;form[name=&quot;f&quot;]&#39;).submit();
+}, &#39;CasperJS&#39;);
+casper.then(function() {
+    // Click on 1st result link
+    //在第一个结果链接上点击
+    this.click(&#39;h3.r a&#39;);
+});
+casper.then(function() {
+    // Click on 1st result link
+    //在第一个结果链接上点击
+    this.click(&#39;h3.r a&#39;,10,10);
+});
+casper.then(function() {
+    // Click on 1st result link
+    //在第一个结果链接上点击
+    this.click(&#39;h3.r a&#39;,&quot;50%&quot;,&quot;50%&quot;);
+});
+casper.then(function() {
+    console.log(&#39;clicked ok, new location is &#39; + this.getCurrentUrl());
+});
+casper.run();</code></pre>
+<h3 id="clicklabel">clickLabel()</h3>
+<p>New in version 0.6.1.</p>
+<p>具体样式: clickLabel(String label[, String tag])</p>
+<p>Clicks on the first DOM element found containing label text. Optionally ensures that the element node name is tag:</p>
+<p>在第一个包含的的标签文本的DOM节点点击.可以选择确认元素节点是个标签:</p>
+<pre><code><code>// My link is beautiful
+casper.then(function() {
+    this.clickLabel(&#39;My link is beautiful&#39;, &#39;a&#39;);
+});
+
+// But my button is sexier
+casper.then(function() {
+    this.clickLabel(&#39;But my button is sexier&#39;, &#39;button&#39;);
+});</code></pre>
+<h3 id="capture">capture()</h3>
+<p>具体样式: capture(String targetFilepath, [Object clipRect, Object imgOptions])</p>
+<p>Proxy method for PhantomJS’ WebPage#render. Adds a clipRect parameter for automatically setting page clipRect setting and reverts it back once done:</p>
+<p>PhantomJS的WebPage的render的代理方法.为自动设置页面剪裁矩阵,添加了一个剪裁矩阵参数并且一旦完成,就恢复:</p>
+<pre><code><code>casper.start(&#39;http://www.google.fr/&#39;, function() {
+    this.capture(&#39;google.png&#39;, {
+        top: 100,
+        left: 100,
+        width: 500,
+        height: 400
+    });
+});
+
+casper.run();</code></pre>
+<p>New in version 1.1.</p>
+<p>The imgOptions object allows to specify two options:</p>
+<p>图片选项对象允许指定两个参数:</p>
+<p>format to set the image format manually, avoiding relying on the filename</p>
+<p>人工设定后缀,避免依赖文件名</p>
+<p>quality to set the image quality, from 1 to 100</p>
+<p>设置图片质量,从1-100</p>
+<p>Example:</p>
+<p>例如:</p>
+<pre><code><code>casper.start(&#39;http://foo&#39;, function() {
+    this.capture(&#39;foo&#39;, undefined, {
+        format: &#39;jpg&#39;,
+        quality: 75
+    });
+});</code></pre>
+<h3 id="capturebase64">captureBase64()</h3>
+<p>具体样式: captureBase64(String format[, Mixed area])</p>
+<p>New in version 0.6.5.</p>
+<p>Computes the Base64 representation of a binary image capture of the current page, or an area within the page, in a given format.</p>
+<p>计算当前页面的二进制图片的截图,或者页面内的一个区域,给出的格式.</p>
+<p>Supported image formats are bmp, jpg, jpeg, png, ppm, tiff, xbm and xpm.</p>
+<p>支持图片格式是...</p>
+<p>The area argument can be either of the following types:</p>
+<p>区域的变量可以是如下类型:</p>
+<p>String: area is a CSS3 selector string, eg. div#plop form[name='form'] input[type='submit']</p>
+<p>区域可以是一个css选择器,例如...</p>
+<p>clipRect: area is a clipRect object, eg. {'top':0,'left':0,'width':320,'height':200}</p>
+<p>可以是一个剪裁矩阵,例如...</p>
+<p>Object: area is a selector object, eg. an XPath selector</p>
+<p>区域可以是一个对象,例如...</p>
+<p>Example:</p>
+<p>例如:</p>
+<pre><code><code>casper.start(&#39;http://google.com&#39;, function() {
+    // selector capture
+    console.log(this.captureBase64(&#39;png&#39;, &#39;#lga&#39;));
+    // clipRect capture
+    console.log(this.captureBase64(&#39;png&#39;, {
+        top: 0,
+        left: 0,
+        width: 320,
+        height: 200
+    }));
+    // whole page capture
+    console.log(this.captureBase64(&#39;png&#39;));
+});
+casper.run();</code></pre>
+<h3 id="captureselector">captureSelector()</h3>
+<p>具体样式: captureSelector(String targetFile, String selector [, Object imgOptions])</p>
+<p>Captures the page area containing the provided selector and saves it to targetFile:</p>
+<p>对一个选择器页面区域截图并且保存目标文件:</p>
+<pre><code><code>casper.start(&#39;http://www.weather.com/&#39;, function() {
+    this.captureSelector(&#39;weather.png&#39;, &#39;#wx-main&#39;);
+});
+casper.run();</code></pre>
+<p>New in version 1.1.</p>
+<p>The imgOptions object allows to specify two options:</p>
+<p>图片选项对象允许指定两个选项:</p>
+<p>format to set the image format manually, avoiding relying on the target filename</p>
+<p>人工设定后缀,避免依赖文件名</p>
+<p>quality to set the image quality, from 1 to 100</p>
+<p>设置图片质量,从1-100</p>
+<h3 id="clear">clear()</h3>
+<p>具体样式: clear()</p>
+<p>New in version 0.6.5.</p>
+<p>Clears the current page execution environment context. Useful to avoid having previously loaded DOM contents being still active.</p>
+<p>清除当前页面执行的环境变量.对于避免之前引入的DOM内容仍是有效的.</p>
+<p>Think of it as a way to stop javascript execution within the remote DOM environment:</p>
+<p>想想这是一个方式在远程DOM环境避免JavaScript执行:</p>
+<pre><code><code>casper.start(&#39;http://www.google.fr/&#39;, function() {
+    this.clear(); 
+    // javascript execution in this page has been stopped
+    //在这个页面javascript已经停止
+});
+casper.then(function() {
+    // ...
+});
+casper.run();</code></pre>
+<h3 id="debughtml">debugHTML()</h3>
+<p>具体样式: debugHTML([String selector, Boolean outer])</p>
+<p>Outputs the results of getHTML() directly to the console. It takes the same arguments as getHTML().</p>
+<p>直接输出getHTML()方法的结果到控制台.跟getHtml参数一样.</p>
+<h3 id="debugpage">debugPage()</h3>
+<p>具体样式: debugPage()</p>
+<p>Logs the textual contents of the current page directly to the standard output, for debugging purpose:</p>
+<p>为了调试,直接记录当前页面的文本内容到标准输出:</p>
+<pre><code><code>casper.start(&#39;http://www.google.fr/&#39;, function() {
+    this.debugPage();
+});
+casper.run();</code></pre>
+<h3 id="die">die()</h3>
+<p>标准输出: die(String message[, int status])</p>
+<p>Exits phantom with a logged error message and an optional exit status code:</p>
+<p>使用记录错误信息和可选的退出状态码退出phantom:</p>
+<pre><code><code>casper.start(&#39;http://www.google.fr/&#39;, function() {
+    this.die(&quot;Fail.&quot;, 1);
+});
+casper.run();</code></pre>
+<h3 id="download">download()</h3>
+<p>具体样式: download(String url, String target[, String method, Object data])</p>
+<p>Saves a remote resource onto the filesystem. You can optionally set the HTTP method using the method argument, and pass request arguments through the data object (see base64encode()):</p>
+<p>保存一个远程资源到文件系统.你能够用可选的参数去设置HTTP方法,并且传入data对象的request变量(详看base64encode()):</p>
+<pre><code><code>casper.start(&#39;http://www.google.fr/&#39;, function() {
+    var url = &#39;http://www.google.fr/intl/fr/about/corporate/company/&#39;;
+    this.download(url, &#39;google_company.html&#39;);
+});
+
+casper.run(function() {
+    this.echo(&#39;Done.&#39;).exit();
+});</code></pre>
+<p>Note:If you have some troubles downloading files, try to disable web security.</p>
+<p>笔记:如果你在下载文件遇到一些问题,试着去禁用网页安全</p>
+<h3 id="each">each()</h3>
+<p>具体样式: each(Array array, Function fn)</p>
+<p>Iterates over provided array items and execute a callback:</p>
+<p>给定数组迭代并且执行一个回调:</p>
+<pre><code><code>var links = [
+    &#39;http://google.com/&#39;,
+    &#39;http://yahoo.com/&#39;,
+    &#39;http://bing.com/&#39;
+];
+casper.start().each(links, function(self, link) {
+    self.thenOpen(link, function() {
+        this.echo(this.getTitle());
+    });
+});
+casper.run();</code></pre>
+<p>Hint:Have a look at the googlematch.js sample script for a concrete use case.</p>
+<p>提示:看一下Googlematch.js的例子作为一个综合的使用案例.</p>
+<h3 id="eachthen">eachThen()</h3>
+<p>具体样式: eachThen(Array array, Function then)</p>
+<p>New in version 1.1.</p>
+<p>Iterates over provided array items and adds a step to the stack with current data attached to it:</p>
+<p>给定数组迭代并且并且向堆栈添加附加到当前数据的步骤:</p>
+<pre><code><code>casper.start().eachThen([1, 2, 3], function(response) {
+    this.echo(response.data);
+}).run();
+
+//Here’s an example for opening an array of urls:
+//这是一个打开url数组的例子
+var casper = require(&#39;casper&#39;).create();
+var urls = [&#39;http://google.com/&#39;, &#39;http://yahoo.com/&#39;];
+
+casper.start().eachThen(urls, function(response) {
+  this.thenOpen(response.data, function(response) {
+    console.log(&#39;Opened&#39;, response.url);
+  });
+});
+
+casper.run();</code></pre>
+<p>Note:Current item will be stored in the response.data property.</p>
+<p>笔记:当前项目将会保存在response.data属性中</p>
+<h3 id="echo">echo()</h3>
+<p>具体样式: echo(String message[, String style])</p>
+<p>Prints something to stdout, optionally with some fancy color (see the colorizer module for more information):</p>
+<p>打印一些东西到标准输出,可用一些花哨的颜色(去看colorizer模块去获取更多信息):</p>
+<pre><code><code>casper.start(&#39;http://www.google.fr/&#39;, function() {
+    this.echo(&#39;Page title is: &#39; + this.evaluate(function() {
+        return document.title;
+    }), &#39;INFO&#39;); // Will be printed in green on the console
+});
+casper.run();</code></pre>
+<h3 id="evaluate">evaluate()</h3>
+<p>具体样式: evaluate(Function fn[, arg1[, arg2[, …]]])</p>
+<p>Basically PhantomJS’ WebPage#evaluate equivalent. Evaluates an expression in the current page DOM context:</p>
+<p>基础的PhantomJS的WebPage的evaluate的标配.计算一个表达式在当前DOM:</p>
+<pre><code><code>casper.evaluate(function(username, password) {
+    document.querySelector(&#39;#username&#39;).value = username;
+    document.querySelector(&#39;#password&#39;).value = password;
+    document.querySelector(&#39;#submit&#39;).click();
+}, &#39;sheldon.cooper&#39;, &#39;b4z1ng4&#39;);
+</code></pre>
+<p>Understanding evaluate():</p>
+<p>The concept behind this method is probably the most difficult to understand when discovering CasperJS. As a reminder, think of the evaluate() method as a gate between the CasperJS environment and the one of the page you have opened; everytime you pass a closure to evaluate(), you’re entering the page and execute code as if you were using the browser console.</p>
+<p>理解 evaluate():</p>
+<p>在学习casperjs的时候,这个方法的概念很有可能是最困难的.作为提醒,思考evaluate()方法作为一个在casperjs环境和一个你打开页面的敲门砖.每次当你传入一个表达式到evaluate()时,你进入到页面,仿佛你正在使用浏览器控制台执行代码.</p>
+<p>Here’s a quickly drafted diagram trying to basically explain the separation of concerns:</p>
+<p>这是快速起草的图表尝试去基础的解释关系的分类:</p>
+<p><img src="./images/capserjs-prototype(上)0.png" /></p>
+<h3 id="evaluateordie">evaluateOrDie()</h3>
+<p>具体样式: evaluateOrDie(Function fn[, String message, int status])</p>
+<p>Evaluates an expression within the current page DOM and die() if it returns anything but true:</p>
+<p>在当前页面DOM执行一个表达式,并且如果没有返回ture,就die掉:</p>
+<pre><code><code>casper.start(&#39;http://foo.bar/home&#39;, function() {
+    this.evaluateOrDie(function() {
+        return /logged in/.match(document.title);
+    }, &#39;not authenticated&#39;);
+});
+casper.run();</code></pre>
+<h3 id="exit">exit()</h3>
+<p>具体样式: exit([int status])</p>
+<p>Exits PhantomJS with an optional exit status code.</p>
+<p>用一个可选的退出状态码退出PhantomJS.</p>
+<p>Note: You can not rely on the fact that your script will be turned off immediately, because this method works asynchronously. It means that your script may continue to be executed after the call of this method. More info here.</p>
+<p>笔记:你不能依靠你脚本会立即退出的事实,因为这个方法是异步执行的.意味着你的脚本在调用这个方法后仍会执行.更多信息</p>
+<h3 id="exists">exists()</h3>
+<p>具体样式: exists(String selector)</p>
+<p>Checks if any element within remote DOM matches the provided selector:</p>
+<p>检测是否给定选择器在远程DOM中匹配:</p>
+<pre><code><code>casper.start(&#39;http://foo.bar/home&#39;, function() {
+    if (this.exists(&#39;#my_super_id&#39;)) {
+        this.echo(&#39;found #my_super_id&#39;, &#39;INFO&#39;);
+    } else {
+        this.echo(&#39;#my_super_id not found&#39;, &#39;ERROR&#39;);
+    }
+});
+casper.run();</code></pre>
+<h3 id="fetchtext">fetchText()</h3>
+<p>具体样式: fetchText(String selector)</p>
+<p>Retrieves text contents matching a given selector expression. If you provide one matching more than one element, their textual contents will be concatenated:</p>
+<p>检索一个给的选择器表达式的文本内容.如果你提供了的一个表达式匹配了不止一个元素,他们将会被多行索引:</p>
+<pre><code><code>casper.start(&#39;http://google.com/search?q=foo&#39;, function() {
+    this.echo(this.fetchText(&#39;h3&#39;));
+}).run();</code></pre>
+<h3 id="forward">forward()</h3>
+<p>具体样式: forward()</p>
+<p>Moves a step forward in browser’s history:</p>
+<p>从浏览器历史中前移一步:</p>
+<pre><code><code>casper.start(&#39;http://foo.bar/1&#39;)
+casper.thenOpen(&#39;http://foo.bar/2&#39;);
+casper.thenOpen(&#39;http://foo.bar/3&#39;);
+casper.back();    // http://foo.bar/2
+casper.back();    // http://foo.bar/1
+casper.forward(); // http://foo.bar/2
+casper.run();</code></pre>
+<p>Also have a look at back().</p>
+<p>看一眼<a href="http://docs.casperjs.org/en/latest/modules/casper.html#forward">forward</a>方法.</p>
+<h3 id="log">log()</h3>
+<p>具体样式: log(String message[, String level, String space])</p>
+<p>Logs a message with an optional level in an optional space. Available levels are debug, info, warning and error. A space is a kind of namespace you can set for filtering your logs. By default, Casper logs messages in two distinct spaces: phantom and remote, to distinguish what happens in the PhantomJS environment from the remote one:</p>
+<p>在一个可选位置,使用一个可选的等级记录一个信息.可选等级为debug, info, warning和 error.space变量是你能为你过滤你的日志设置的.默认情况下,casper日志文件在两个独立的空间:phantom和remote,去辨别从远程的PhantomJS环境发生了什么:</p>
+<pre><code><code>casper.start(&#39;http://www.google.fr/&#39;, function() {
+    this.log(&quot;I&#39;m logging an error&quot;, &quot;error&quot;);
+});
+casper.run();</code></pre>
+<h3 id="fill">fill()</h3>
+<p>具体样式: fill(String selector, Object values[, Boolean submit])</p>
+<p>Fills the fields of a form with given values and optionally submits it. Fields are referenced by their name attribute.</p>
+<p>使用values变量填入字段到一个表格,并且可选是否提交.字段参考他们的name属性.</p>
+<p>Changed in version 1.1:</p>
+<p>To use CSS3 or XPath selectors instead, check the fillSelectors() and fillXPath() methods.Example with this sample html form:</p>
+<p>使用CSS3或者XPath选择器替代,查看<a href="">fillSelectors()</a>和<a href="">fillXPath()</a>方法.用这个html表格样例做例子:</p>
+<pre class="html"><code>&lt;form action=&quot;/contact&quot; id=&quot;contact-form&quot; enctype=&quot;multipart/form-data&quot;&gt;
+    &lt;input type=&quot;text&quot; name=&quot;subject&quot;&gt;
+    &lt;textearea name=&quot;content&quot;&gt;&lt;/textearea&gt;
+    &lt;input type=&quot;radio&quot; name=&quot;civility&quot; value=&quot;Mr&quot;&gt; Mr
+    &lt;input type=&quot;radio&quot; name=&quot;civility&quot; value=&quot;Mrs&quot;&gt; Mrs
+    &lt;input type=&quot;text&quot; name=&quot;name&quot;&gt;
+    &lt;input type=&quot;email&quot; name=&quot;email&quot;&gt;
+    &lt;input type=&quot;file&quot; name=&quot;attachment&quot;&gt;
+    &lt;input type=&quot;checkbox&quot; name=&quot;cc&quot;&gt; Receive a copy
+    &lt;input type=&quot;submit&quot;&gt;
+&lt;/form&gt;
+</code></pre>
+<p>A script to fill and submit this form:</p>
+<p>脚本将会填入并且提交表单:</p>
+<pre><code><code>casper.start(&#39;http://some.tld/contact.form&#39;, function() {
+    this.fill(&#39;form#contact-form&#39;, {
+        &#39;subject&#39;:    &#39;I am watching you&#39;,
+        &#39;content&#39;:    &#39;So be careful.&#39;,
+        &#39;civility&#39;:   &#39;Mr&#39;,
+        &#39;name&#39;:       &#39;Chuck Norris&#39;,
+        &#39;email&#39;:      &#39;chuck@norris.com&#39;,
+        &#39;cc&#39;:         true,
+        &#39;attachment&#39;: &#39;/Users/chuck/roundhousekick.doc&#39;
+    }, true);
+});
+casper.then(function() {
+    this.evaluateOrDie(function() {
+        return /message sent/.test(document.body.innerText);
+    }, &#39;sending message failed&#39;);
+});
+casper.run(function() {
+    this.echo(&#39;message sent&#39;).exit();
+});</code></pre>
+<p>The fill() method supports single selects in the same way as text input. For multiple selects, supply an array of values to match against:</p>
+<p>fill方法支持单个select的操作.对于复合select,提供一个数组去匹配:</p>
+<p><code>&lt;select multiple=&quot;&quot; name=&quot;category&quot;&gt; &lt;option value=&quot;0&quot;&gt;Friends&lt;option&gt; &lt;option value=&quot;1&quot;&gt;Family&lt;/option&gt; &lt;option value=&quot;2&quot;&gt;Acquitances&lt;/option&gt; &lt;option value=&quot;3&quot;&gt;Colleagues&lt;option&gt; &lt;/select&gt;</code></p>
+<p>A script to select multiple options for category in this form:</p>
+<p>表格中复合文本框分类选项:</p>
+<pre><code><code>casper.then(function() {
+   this.fill(&#39;form#contact-form&#39;, {
+       &#39;categories&#39;: [&#39;0&#39;, &#39;1&#39;] 
+        // Friends and Family
+   });
+});</code></pre>
+<p>Warning<br />
+The fill() method currently can’t fill file fields using XPath selectors; PhantomJS natively only allows the use of CSS3 selectors in its uploadFile() method, hence this limitation.<br />
+Please Don’t use CasperJS nor PhantomJS to send spam, or I’ll be calling the Chuck. More seriously, please just don’t.</p>
+<p>警告<br />
+fill方法目前不能使用Xpath选择器填入file的文本.原生PhantomJS只允许在uploadFile方法中使用css选择器,<br />
+所以有这个限制.<br />
+请既不要使用casperjs,也不要使用phantomjs去发送垃圾,否则我们将会给Chuck打电话.很严肃的,别这么做<br />
+.</p>
+<h3 id="fillselectors">fillSelectors()</h3>
+<p>具体样式: fillSelectors(String selector, Object values[, Boolean submit])</p>
+<p>New in version 1.1.</p>
+<p>Fills form fields with given values and optionally submits it. Fields are referenced by CSS3 selectors:</p>
+<p>使用values变量填入字段到一个表格,并且可选是否提交.字段参考他们的name属性.</p>
+<pre><code><code>casper.start(&#39;http://some.tld/contact.form&#39;, function() {
+    this.fillSelectors(&#39;form#contact-form&#39;, {
+        &#39;input[name=&quot;subject&quot;]&#39;:    &#39;I am watching you&#39;,
+        &#39;input[name=&quot;content&quot;]&#39;:    &#39;So be careful.&#39;,
+        &#39;input[name=&quot;civility&quot;]&#39;:   &#39;Mr&#39;,
+        &#39;input[name=&quot;name&quot;]&#39;:       &#39;Chuck Norris&#39;,
+        &#39;input[name=&quot;email&quot;]&#39;:      &#39;chuck@norris.com&#39;,
+        &#39;input[name=&quot;cc&quot;]&#39;:         true,
+        &#39;input[name=&quot;attachment&quot;]&#39;: &#39;/Users/chuck/roundhousekick.doc&#39;
+    }, true);
+});</code></pre>
+<h3 id="filllabels">fillLabels()</h3>
+<p>具体样式: fillLabels(String selector, Object values[, Boolean submit])</p>
+<p>New in version 1.1.</p>
+<p>Fills a form with provided field values using associated label text Fields are referenced by label content values:</p>
+<p>使用values变量填入字段到一个表格使用关联的标签文本框参考标签内容的值:</p>
+<pre><code><code>casper.start(&#39;http://some.tld/contact.form&#39;, function() {
+    this.fillLabels(&#39;form#contact-form&#39;, {
+        Email:         &#39;chuck@norris.com&#39;,
+        Password:      &#39;chuck&#39;,
+        Content:       &#39;Am watching thou&#39;,
+        Check:         true,
+        No:            true,
+        Topic:         &#39;bar&#39;,
+        Multitopic:    [&#39;bar&#39;, &#39;car&#39;],
+        File:          fpath,
+        &quot;1&quot;:           true,
+        &quot;3&quot;:           true,
+        Strange:       &quot;very&quot;
+    }, true);
+});
+fillXPath()</code></pre>
+<p>具体样式: fillXPath(String selector, Object values[, Boolean submit])</p>
+<p>New in version 1.1.</p>
+<p>Fills form fields with given values and optionally submits it. While the form element is always referenced by a CSS3 selector, fields are referenced by XPath selectors:</p>
+<p>用values变量填写到表格并且可选择是否提交.然而表格元元素经常和css3关联,字段经常跟xPath选择器关联:</p>
+<pre><code><code>casper.start(&#39;http://some.tld/contact.form&#39;, function() {
+    this.fillXPath(&#39;form#contact-form&#39;, {
+        &#39;//input[@name=&quot;subject&quot;]&#39;:    &#39;I am watching you&#39;,
+        &#39;//input[@name=&quot;content&quot;]&#39;:    &#39;So be careful.&#39;,
+        &#39;//input[@name=&quot;civility&quot;]&#39;:   &#39;Mr&#39;,
+        &#39;//input[@name=&quot;name&quot;]&#39;:       &#39;Chuck Norris&#39;,
+        &#39;//input[@name=&quot;email&quot;]&#39;:      &#39;chuck@norris.com&#39;,
+        &#39;//input[@name=&quot;cc&quot;]&#39;:         true,
+    }, true);
+});</code></pre>
+<p>Warning:The fillXPath() method currently can’t fill file fields using XPath selectors; PhantomJS natively only allows the use of CSS3 selectors in its uploadFile() method, hence this limitation.</p>
+<p>警告:fillXPath方法目前不能使用Xpath选择器填入file的文本.原生PhantomJS只允许在uploadFile方法中使用css选择器,所以有这个限制.</p>
+<h3 id="getcurrenturl">getCurrentUrl()</h3>
+<p>具体样式: getCurrentUrl()</p>
+<p>Retrieves current page URL. Note that the url will be url-decoded:</p>
+<p>获取当前网页的URL.注意URL将会是url-decoded过的:</p>
+<pre><code><code>casper.start(&#39;http://www.google.fr/&#39;, function() {
+    this.echo(this.getCurrentUrl()); // &quot;http://www.google.fr/&quot;
+});
+casper.run();</code></pre>
+<h3 id="getelementattribute">getElementAttribute()</h3>
+<p>具体样式: getElementAttribute(String selector, String attribute)</p>
+<p>New in version 1.0.</p>
+<p>Retrieves the value of an attribute on the first element matching the provided selector:</p>
+<p>获取给定的选择器的第一个元素的属性值:</p>
+<pre><code><code>var casper = require(&#39;casper&#39;).create();
+casper.start(&#39;http://www.google.fr/&#39;, function() {
+    require(&#39;utils&#39;).dump(this.getElementAttribute(&#39;div[title=&quot;Google&quot;]&#39;, &#39;title&#39;)); // &quot;Google&quot;
+});
+casper.run();</code></pre>
+<h3 id="getelementsattribute">getElementsAttribute()</h3>
+<p>具体样式: getElementsAttribute(String selector, String attribute)</p>
+<p>New in version 1.1.</p>
+<p>Retrieves the values of an attribute on each element matching the provided selector:</p>
+<p>获取给的选择器所有的元素的属性值:</p>
+<pre><code><code>var casper = require(&#39;casper&#39;).create();
+casper.start(&#39;http://www.google.fr/&#39;, function() {
+    require(&#39;utils&#39;).dump(this.getElementsAttribute(&#39;div[title=&quot;Google&quot;]&#39;, &#39;title&#39;)); // &quot;[&#39;Google&#39;]&quot;
+});
+casper.run();</code></pre>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

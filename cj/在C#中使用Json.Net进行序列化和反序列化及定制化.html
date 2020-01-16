@@ -1,0 +1,151 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修在C#中使用Json.Net进行序列化和反序列化及定制化' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>在C#中使用Json.Net进行序列化和反序列化及定制化</center></div><div class='banquan'>原文出处:本文由博客园博主Minotauros提供。<br/>
+原文连接:https://www.cnblogs.com/minotauros/p/10918772.html</div><br>
+    <p>　　序列化（Serialize）是将对象转换成字节流，并将其用于存储或传输的过程，主要用途是保存对象的状态，以便在需要时重新创建该对象；反序列化（Deserialize）则是将上面的字节流转换为相应对象的过程；在.Net阵营中，Json.Net是由官方推荐的高性能开源序列化/反序列化工具，其官方网站：<a title="https://www.newtonsoft.com/json" href="https://www.newtonsoft.com/json" target="_blank">https://www.newtonsoft.com/json</a>；</p>
+<p>　　一、将对象序列化为Json格式字符串</p>
+<p>　　首先是正常的序列化操作，对于给定的类：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> MyClass
+{
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span> MyNum<span style="color: #000000;">;
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> MyStr<span style="color: #000000;">;
+}</span></pre>
+</div>
+<p>　　将该类的实例序列化为Json格式字符串，首先引用命名空间Newtonsoft.Json：</p>
+<div class="cnblogs_code">
+<pre><code>MyClass myClass = new MyClass { MyNum = 10, MyStr = "Hello World" };<span style="color: #000000;">
+Console.WriteLine(JsonConvert.SerializeObject(myClass));</span></pre>
+</div>
+<p>　　其打印结果：</p>
+<div class="cnblogs_code">
+<pre><code>{<span style="color: #800000;">"</span><span style="color: #800000;">MyNum</span><span style="color: #800000;">"</span>:<span style="color: #800080;">10</span>,<span style="color: #800000;">"</span><span style="color: #800000;">MyStr</span><span style="color: #800000;">"</span>:<span style="color: #800000;">"</span><span style="color: #800000;">Hello World</span><span style="color: #800000;">"</span>}</pre>
+</div>
+<p>　　在打印到本地Log文件以供自己查看使用时，可以选择转换为带有缩进的Json格式字符串：</p>
+<div class="cnblogs_code">
+<pre><code>Console.WriteLine(JsonConvert.SerializeObject(myClass, Formatting.Indented));</pre>
+</div>
+<p>　　此时打印结果为：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">{
+  </span><span style="color: #800000;">"</span><span style="color: #800000;">MyNum</span><span style="color: #800000;">"</span>: <span style="color: #800080;">10</span><span style="color: #000000;">,
+  </span><span style="color: #800000;">"</span><span style="color: #800000;">MyStr</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">Hello World</span><span style="color: #800000;">"</span><span style="color: #000000;">
+}</span></pre>
+</div>
+<p>　　二、将Json格式字符串反序列化为对象</p>
+<p>　　对于给定的字符串：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">string</span> jsonStr = @"{""MyNum"": 10,""MyStr"": ""Hello World""}";</pre>
+</div>
+<p>　　将其反序列化为MyClass类型的对象：</p>
+<div class="cnblogs_code">
+<pre><code>MyClass myClass = JsonConvert.DeserializeObject&lt;MyClass&gt;(jsonStr);<br />Console.WriteLine(myClass.MyStr);  //Hello World</pre>
+</div>
+<p>　　三、使用JObject动态序列化/反序列化</p>
+<p>　　以上例子都是使用强类型进行序列化和反序列操作，但有时也会用到不指定类型而直接操作Json格式数据的情况，此时就需要用位于命名空间ewtonsoft.Json.Linq中的JObject类型的对象：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">string</span> jsonStr = <span style="color: #800000;">@"</span><span style="color: #800000;">{""MyNum"": 10,""MyStr"": ""Hello World""}</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+JObject jObject </span>=<span style="color: #000000;"> JObject.Parse(jsonStr);
+Console.WriteLine(jObject.ToString(Formatting.None));  //{"MyNum":10,"MyStr":"Hello World"}
+//打印一条属性的值
+Console.WriteLine(jObject[</span><span style="color: #800000;">"</span><span style="color: #800000;">MyStr</span><span style="color: #800000;">"</span>].Value&lt;<span style="color: #0000ff;">string</span>&gt;<span style="color: #000000;">());  //</span>Hello World<br />//添加一条属性<br /><span>jObject.Add(</span><span style="color: #800000;">"</span><span style="color: #800000;">MyStr2</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">HaHa</span><span style="color: #800000;">"</span><span>);<br />//打印当前Json字符串<br /></span>Console.WriteLine(jObject.ToString(Formatting.None));  //{"MyNum":10,"MyStr":"Hello World","MyStr2":"HaHa"}</pre>
+</div>
+<p>　　四、定制化序列化/反序列过程</p>
+<p>　　1.在C#中，定制化的配置通常使用特性来完成，这里也不例外，例如简单的，在序列化/反序列时忽略某个字段/属性：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> MyClass
+{
+    [JsonIgnore]
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> MyNum;
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span><span style="color: #000000;"> MyStr;
+}</span></pre>
+</div>
+<p>　　此时，无论序列化还是反序化时，字段MyNum都不再参与这些过程；</p>
+<p>　　2.自定义某个字段/属性的序列化/反序列化规则：</p>
+<p>　　当接收到的Json格式字符串与本地已有类型不统一时，需要进行自定义的反序列化过程，反之亦然，例如Json字符串中以字符串"TRUE"表示布尔类型true（不自定义，这个过程依然走的通，只是以此举例），以字符串"FALSE"表示布尔类型false时，需要自定义如下：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #808080;">///</span><span style="color: #008000;"> 自定义布尔类型数据转换规则
+</span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> MyBoolConverter : JsonConverter
+{
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">string</span> TrueStr = <span style="color: #800000;">"</span><span style="color: #800000;">TRUE</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">string</span> FalseStr = <span style="color: #800000;">"</span><span style="color: #800000;">FALSE</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">override</span> <span style="color: #0000ff;">bool</span> CanConvert(Type objectType) =&gt; <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">反序列化</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">override</span> <span style="color: #0000ff;">object</span> ReadJson(JsonReader reader, Type objectType, <span style="color: #0000ff;">object</span><span style="color: #000000;"> existingValue, JsonSerializer serializer)
+    {
+        </span><span style="color: #0000ff;">if</span> (reader.ValueType == <span style="color: #0000ff;">typeof</span>(<span style="color: #0000ff;">string</span><span style="color: #000000;">))
+        {
+            </span><span style="color: #0000ff;">if</span> ((<span style="color: #0000ff;">string</span>)reader.Value ==<span style="color: #000000;"> TrueStr)
+            {
+                </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+            }
+            </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+            {
+                </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+            }
+        }
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+    }
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">序列化</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">override</span> <span style="color: #0000ff;">void</span> WriteJson(JsonWriter writer, <span style="color: #0000ff;">object</span><span style="color: #000000;"> value, JsonSerializer serializer)
+    {
+        </span><span style="color: #0000ff;">if</span> (value.GetType() == <span style="color: #0000ff;">typeof</span>(<span style="color: #0000ff;">bool</span><span style="color: #000000;">))
+        {
+            </span><span style="color: #0000ff;">bool</span> result = (<span style="color: #0000ff;">bool</span><span style="color: #000000;">)value;
+            </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (result)
+            {
+                writer.WriteValue(TrueStr);
+            }
+            </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+            {
+                writer.WriteValue(FalseStr);
+            }
+        }
+    }
+}</span></pre>
+</div>
+<p>　　然后，在需要操作的类型定义中的字段/属性中加入该特性：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> MyClass
+{
+    [JsonConverter(</span><span style="color: #0000ff;">typeof</span><span style="color: #000000;">(MyBoolConverter))]
+    </span><span style="color: #0000ff;">public</span> bool<span style="color: #000000;"> MyBool;
+}</span></pre>
+</div>
+<p>　　此时：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">string</span> jsonStr = <span style="color: #800000;">@"</span><span style="color: #800000;">{""MyBool"": ""TRUE""}</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+MyClass1 myClass </span>= JsonConvert.DeserializeObject&lt;MyClass1&gt;<span style="color: #000000;">(jsonStr);
+Console.WriteLine(myClass.MyBool);  //True
+Console.WriteLine(JsonConvert.SerializeObject(myClass));  //{"MyBool":"TRUE"}</span></pre>
+</div>
+<p>&nbsp;</p>
+<hr />
+<p>如果您觉得阅读本文对您有帮助，请点一下&ldquo;推荐&rdquo;按钮，您的认可是我写作的最大动力！</p>
+<p>作者：<a title="Minotauros" href="https://www.cnblogs.com/minotauros/" target="_blank">Minotauros</a><br />出处：<a title="https://www.cnblogs.com/minotauros/" href="https://www.cnblogs.com/minotauros/" target="_blank">https://www.cnblogs.com/minotauros/</a></p>
+<p>本文版权归作者和博客园共有，欢迎转载，但未经作者同意必须保留此段声明，且在文章页面明显位置给出原文连接，否则保留追究法律责任的权利。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,105 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修如何判断当前修改过的datatable的某一列值是否为int型或double类型' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>如何判断当前修改过的datatable的某一列值是否为int型或double类型</center></div><div class='banquan'>原文出处:本文由博客园博主ubantu提供。<br/>
+原文连接:https://www.cnblogs.com/ubantu/p/11326461.html</div><br>
+    <h3 id="如何判断当前修改过的datatable的某一列值是否为int型或double类型">如何判断当前修改过的datatable的某一列值是否为int型或double类型</h3>
+<p>今天在做datatable数据验证时碰到要对datatable的列数据进行数据类型校验，因此记录一下本人校验的方法，如果还有更简单的校验方式，欢迎大家踊跃分享，不胜感激。</p>
+<pre><code><code>/*
+取得改变过的datatable，注意不能把原有的datatable执行AcceptChanges()方法，先执行Copy()新得到一个
+当前经过修改后datatable
+*/
+DataTable dtTemp = ((DataTable)gridControl1.DataSource).Copy();
+ dtTemp.AcceptChanges();
+//判断datatable是否为空
+if (dtTemp.Rows.Count == 0)
+{
+   if(CommonFunction.ShowMsgBox(&quot;检测到复称列表为空，是否直接保存&quot;, MessageBoxButtons.YesNo, 0) == DialogResult.No)
+   {
+      return false;
+   }
+}
+//以下是判断当前经过修改后datatable是否有空值并若为空值则校验不通过，若不为空值再进行数据类型的校验
+if (dtTemp.Rows.Count &gt; 0)
+{
+   foreach (DataRow dr in ((DataTable)gridControl1.DataSource).Rows)
+   {
+      if (CommonFunction.Trim(Convert.ToString(dr[&quot;序号&quot;]))==&quot;&quot;)
+      {
+         CommonFunction.ShowMsgBox(&quot;检测到复称列表有未填项&quot;);
+        return false;
+       }
+       /*
+       通过int.TryParse(string s out Int32 result)进行整数类型的校验
+       该方法传入两个参数，第一个是字符串类型，第二个是转化成功后输出的整型变量
+       如果转化成功则该方法返回true并输出转化后的结果，该结果可进一步被使用来判断数值范围 
+       如果转化失败则该方法返回false，即该datatable的该单元格中的内容不数据类型错误    
+       */
+      int iRecordSeq;          
+      if(int.TryParse(Convert.ToString(dr[&quot;序号&quot;]),out iRecordSeq) == false || iRecordSeq &lt; 1)
+      {
+         CommonFunction.ShowMsgBox(&quot;复称列表序号必须为大于0的整数&quot;);
+         return false;
+       }
+       if (CommonFunction.Trim(Convert.ToString(dr[&quot;桶皮&quot;])) == &quot;&quot;)
+        {
+          CommonFunction.ShowMsgBox(&quot;检测到复称列表有未填项&quot;);
+          return false;
+        }
+        double dTaerWeight;
+        if (double.TryParse(Convert.ToString(dr[&quot;桶皮&quot;]), out dTaerWeight) == false || dTaerWeight &lt; 1)
+         {
+            CommonFunction.ShowMsgBox(&quot;复称列表桶皮必须为大于0的数字&quot;);
+           return false;
+         }
+         if (CommonFunction.Trim(Convert.ToString(dr[&quot;毛重&quot;])) == &quot;&quot;)
+         {
+            CommonFunction.ShowMsgBox(&quot;检测到复称列表有未填项&quot;);
+            return false;
+         }
+         double dGrossWeight;
+         if (double.TryParse(Convert.ToString(dr[&quot;毛重&quot;]), out dGrossWeight) == false || dGrossWeight &lt; 1)
+         {
+            CommonFunction.ShowMsgBox(&quot;复称列表毛重必须为大于0的数字&quot;);
+          return false;
+         }
+         if (CommonFunction.Trim(Convert.ToString(dr[&quot;单位&quot;])) == &quot;&quot;)
+         {
+            CommonFunction.ShowMsgBox(&quot;检测到复称列表有未填项&quot;);
+            return false;
+         }                 
+     }
+}    
+//遍历当前修改过后的datatable，看序号这一列是否存在重复的值
+foreach (DataRow dr in dtTemp.Rows)
+{
+  int iRecordSeq=Convert.ToInt32(dr[&quot;序号&quot;]);
+  if (dtTemp.Select(&quot;序号=&quot; + iRecordSeq).Count() &gt; 1)
+  {
+     CommonFunction.ShowMsgBox(&quot;检测到复称列表有重复的序号，请检查无误后操作&quot;);
+     return false;
+   }            
+}
+return true;</code></pre>
+<p>至此，校验完成。</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

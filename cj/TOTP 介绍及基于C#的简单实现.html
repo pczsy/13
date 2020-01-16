@@ -1,0 +1,182 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修TOTP 介绍及基于C#的简单实现' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>TOTP 介绍及基于C#的简单实现</center></div><div class='banquan'>原文出处:本文由博客园博主WeihanLi提供。<br/>
+原文连接:https://www.cnblogs.com/weihanli/p/simple-implement-on-totp-via-csharp.html</div><br>
+    <h1 id="totp-介绍及基于c的简单实现">TOTP 介绍及基于C#的简单实现</h1>
+<h2 id="intro">Intro</h2>
+<p>TOTP 是基于时间的一次性密码生成算法，它由 <a href="https://tools.ietf.org/html/rfc6238">RFC 6238</a> 定义。和基于事件的一次性密码生成算法不同 <a href="https://tools.ietf.org/html/rfc4226">HOTP</a>，TOTP 是基于时间的，它和 HOTP 具有如下关系：</p>
+<pre><code><code>TOTP = HOTP(K, T)
+HOTP(K,C) = Truncate(HMAC-SHA-1(K,C))</code></pre>
+<p>其中：</p>
+<ul>
+<li>T：T = (Current Unix time - T0) / X， T0 = 0，X = 30</li>
+<li>K：客户端和服务端的共享密钥，不同的客户端的密钥各不相同。</li>
+<li>HOTP：该算法请参考 <a href="https://tools.ietf.org/html/rfc4226">RFC</a>，也可参考 <a href="https://www.jianshu.com/p/5f97bdebd232">理解 HMAC-Based One-Time Password Algorithm</a></li>
+</ul>
+<p>TOTP 算法是基于 HOTP 的，对于 HOTP 算法来说，HOTP 的输入一致时始终输出相同的值，而 TOTP 是基于时间来算出来的一个值，可以在一段时间内（官方推荐是30s）保证这个值是固定以实现，在一段时间内始终是同一个值，以此来达到基于时间的一次性密码生成算法，使用下来整体还不错，有个小问题，如果需要实现一个密码只能验证一次需要自己在业务逻辑里实现，只能自己实现，TOTP 只负责生成和验证。</p>
+<h2 id="c-实现-totp">C# 实现 TOTP</h2>
+<p><a href="https://github.com/WeihanLi/SamplesInPractice/blob/master/TotpSamples/WeihanLi.Totp/Otp.cs">实现代码</a></p>
+<pre class="csharp"><code>using System;
+using System.Security.Cryptography;
+using System.Text;
+
+namespace WeihanLi.Totp
+{
+    public class Totp
+    {
+        private readonly OtpHashAlgorithm _hashAlgorithm;
+        private readonly int _codeSize;
+
+        public Totp() : this(OtpHashAlgorithm.SHA1, 6)
+        {
+        }
+
+        public Totp(OtpHashAlgorithm otpHashAlgorithm, int codeSize)
+        {
+            _hashAlgorithm = otpHashAlgorithm;
+
+            // valid input parameter
+            if (codeSize &lt;= 0 || codeSize &gt; 10)
+            {
+                throw new ArgumentOutOfRangeException(nameof(codeSize), codeSize, &quot;length must between 1 and 9&quot;);
+            }
+            _codeSize = codeSize;
+        }
+
+        private static readonly Encoding Encoding = new UTF8Encoding(false, true);
+
+        public virtual string Compute(string securityToken) =&gt; Compute(Encoding.GetBytes(securityToken));
+
+        public virtual string Compute(byte[] securityToken) =&gt; Compute(securityToken, GetCurrentTimeStepNumber());
+
+        private string Compute(byte[] securityToken, long counter)
+        {
+            HMAC hmac;
+            switch (_hashAlgorithm)
+            {
+                case OtpHashAlgorithm.SHA1:
+                    hmac = new HMACSHA1(securityToken);
+                    break;
+
+                case OtpHashAlgorithm.SHA256:
+                    hmac = new HMACSHA256(securityToken);
+                    break;
+
+                case OtpHashAlgorithm.SHA512:
+                    hmac = new HMACSHA512(securityToken);
+                    break;
+
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(_hashAlgorithm), _hashAlgorithm, null);
+            }
+
+            using (hmac)
+            {
+                var stepBytes = BitConverter.GetBytes(counter);
+                if (BitConverter.IsLittleEndian)
+                {
+                    Array.Reverse(stepBytes); // need BigEndian
+                }
+                // See https://tools.ietf.org/html/rfc4226
+                var hashResult = hmac.ComputeHash(stepBytes);
+
+                var offset = hashResult[hashResult.Length - 1] &amp; 0xf;
+                var p = &quot;&quot;;
+                for (var i = 0; i &lt; 4; i++)
+                {
+                    p += hashResult[offset + i].ToString(&quot;X2&quot;);
+                }
+                var num = Convert.ToInt64(p, 16) &amp; 0x7FFFFFFF;
+
+                //var binaryCode = (hashResult[offset] &amp; 0x7f) &lt;&lt; 24
+                //                 | (hashResult[offset + 1] &amp; 0xff) &lt;&lt; 16
+                //                 | (hashResult[offset + 2] &amp; 0xff) &lt;&lt; 8
+                //                 | (hashResult[offset + 3] &amp; 0xff);
+
+                return (num % (int)Math.Pow(10, _codeSize)).ToString();
+            }
+        }
+
+        public virtual bool Verify(string securityToken, string code) =&gt; Verify(Encoding.GetBytes(securityToken), code);
+
+        public virtual bool Verify(string securityToken, string code, TimeSpan timeToleration) =&gt; Verify(Encoding.GetBytes(securityToken), code, timeToleration);
+
+        public virtual bool Verify(byte[] securityToken, string code) =&gt; Verify(securityToken, code, TimeSpan.Zero);
+
+        public virtual bool Verify(byte[] securityToken, string code, TimeSpan timeToleration)
+        {
+            var futureStep = (int)(timeToleration.TotalSeconds / 30);
+            var step = GetCurrentTimeStepNumber();
+            for (int i = -futureStep; i &lt;= futureStep; i++)
+            {
+                if (step + i &lt; 0)
+                {
+                    continue;
+                }
+                var totp = Compute(securityToken, step + i);
+                if (totp == code)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private static readonly DateTime _unixEpoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+        /// &lt;summary&gt;
+        /// timestep
+        /// 30s(Recommend)
+        /// &lt;/summary&gt;
+        private static readonly long _timeStepTicks = TimeSpan.TicksPerSecond * 30;
+
+        // More info: https://tools.ietf.org/html/rfc6238#section-4
+        private static long GetCurrentTimeStepNumber()
+        {
+            var delta = DateTime.UtcNow - _unixEpoch;
+            return delta.Ticks / _timeStepTicks;
+        }
+    }
+}</code></pre>
+<p>使用方式：</p>
+<pre class="csharp"><code>    var otp = new Totp(OtpHashAlgorithm.SHA1, 4); // 使用 SHA1算法，输出4位
+    var secretKey = &quot;12345678901234567890&quot;;
+    var output = otp.Compute(secretKey);
+    Console.WriteLine($&quot;output: {output}&quot;);
+    Thread.Sleep(1000 * 30);
+    var verifyResult = otp.Verify(secretKey, output); // 使用默认的验证方式，30s内有效
+    Console.WriteLine($&quot;Verify result: {verifyResult}&quot;);
+    verifyResult = otp.Verify(secretKey, output, TimeSpan.FromSeconds(60)); // 指定可容忍的时间差，60s内有效
+    Console.WriteLine($&quot;Verify result: {verifyResult}&quot;);</code></pre>
+<p>输出示例：</p>
+<p><img src="./images/TOTP 介绍及基于C#的简单实现0.png" /></p>
+<h2 id="reference">Reference</h2>
+<ul>
+<li><a href="https://tools.ietf.org/html/rfc4226" class="uri">https://tools.ietf.org/html/rfc4226</a></li>
+<li><a href="https://tools.ietf.org/html/rfc6238" class="uri">https://tools.ietf.org/html/rfc6238</a></li>
+<li><a href="http://wsfdl.com/algorithm/2016/04/05/%E7%90%86%E8%A7%A3HOTP.html">http://wsfdl.com/algorithm/2016/04/05/%E7%90%86%E8%A7%A3HOTP.html</a></li>
+<li><a href="http://wsfdl.com/algorithm/2016/04/14/%E7%90%86%E8%A7%A3TOTP.html">http://wsfdl.com/algorithm/2016/04/14/%E7%90%86%E8%A7%A3TOTP.html</a></li>
+<li><a href="https://www.cnblogs.com/voipman/p/6216328.html" class="uri">https://www.cnblogs.com/voipman/p/6216328.html</a></li>
+</ul>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

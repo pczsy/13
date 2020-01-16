@@ -1,0 +1,440 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C#线程学习笔记一：线程基础' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C#线程学习笔记一：线程基础</center></div><div class='banquan'>原文出处:本文由博客园博主缥缈的尘埃提供。<br/>
+原文连接:https://www.cnblogs.com/atomy/p/11946506.html</div><br>
+    <p>&nbsp; &nbsp; 本笔记摘抄自：<a href="https://www.cnblogs.com/zhili/archive/2012/07/18/Thread.html">https://www.cnblogs.com/zhili/archive/2012/07/18/Thread.html</a>，记录一下学习过程以备后续查用。</p>
+<p>&nbsp; &nbsp;&nbsp;<strong>一、线程的介绍</strong></p>
+<p>&nbsp; &nbsp; 进程(Process)是应用程序的实例要使用的资源的一个集合，每个应用程序都在各自的进程中运行来确保应用程序不受其他应用程序的影响。</p>
+<p>&nbsp; &nbsp; 线程是进程中基本执行单元， 一个进程中可以包含多个线程。在进程入口执行的第一个线程是一个进程的主线程，在.NET应用程序中，都是以Main()方法</p>
+<p>作为程序的入口（线程是进程的执行单元，进程是线程的一个容器）。</p>
+<p>&nbsp; &nbsp;&nbsp;<strong>二、线程调度和优先级</strong>&nbsp;&nbsp;</p>
+<p>&nbsp; &nbsp; Windows之所以被称为抢占式多线程操作系统，是因为线程可以在任意时间被抢占，并调度另一个线程。</p>
+<p>&nbsp; &nbsp; 每个线程都分配了从0~31的一个优先级，系统首先把高优先级的线程分配给CPU执行。</p>
+<p>&nbsp; &nbsp; Windows 支持7个相对线程优先级：Idle、Lowest、Below Normal、Normal、Above Normal、Highest和Time-Critical。Normal是默认的线程优先级，</p>
+<p>然而在程序中可以通过设置Thread的Priority属性来改变线程的优先级，它的类型为ThreadPriority枚举类型：Lowest、BelowNormal、Normal、AboveNormal</p>
+<p>和Highest，CLR为自己保留了 Idle和Time-Critical优先级。</p>
+<p>&nbsp; &nbsp; 枚举值列表如下：</p>
+<table border="0">
+<tbody>
+<tr>
+<td>成员名称</td>
+<td>说明</td>
+</tr>
+<tr>
+<td>Lowest</td>
+<td>可以将Thread置于其他优先级线程之后。</td>
+</tr>
+<tr>
+<td>BelowNormal</td>
+<td>可以将Thread置于<span class="input">Normal优先级线程之后<span class="input">Lowest优先级线程之前。</span></span></td>
+</tr>
+<tr>
+<td>Normal</td>
+<td>
+<p>可以将Thread置于<span class="input">AboveNormal优先级线程之后<span class="input">BelowNormal优先级线程之前。</span></span></p>
+<p>默认情况下，线程置于<span class="input">Normal优先级。</span></p>
+</td>
+</tr>
+<tr>
+<td>AboveNormal</td>
+<td>可以将Thread置于<span class="input">Highest优先级线程之后<span class="input">Normal优先级线程之前。</span></span></td>
+</tr>
+<tr>
+<td>Highest</td>
+<td>可以将Thread置于其他优先级线程之前。</td>
+</tr>
+</tbody>
+</table>
+<p>&nbsp; &nbsp;&nbsp;<strong>三、前台线程和后台线程</strong></p>
+<p>&nbsp; &nbsp; 在.NET中线程分为前台线程和后台线程：</p>
+<p>&nbsp; &nbsp; 1、主线程是程序开始时就执行的，如果你需要再创建线程，那么创建的线程就是这个主线程的子线程，它是前台线程。&nbsp;</p>
+<p>&nbsp; &nbsp; 2、子线程可以是前台线程也可以是后台线程。</p>
+<p>&nbsp; &nbsp; 3、前台线程必须全部执行完，即使主线程关闭掉，这时进程仍然存活。</p>
+<p>&nbsp; &nbsp; 4、当所有前台线程停止运行时，CLR会强制结束仍在运行的任何后台线程，这些后台线程直接被终止，不会抛出异常。</p>
+<p>&nbsp; &nbsp; 5、前台线程与后台线程唯一的区别是后台线程不会阻止进程终止，可以在任何时候将前台线程修改为后台线程。</p>
+<div class="cnblogs_code">
+<pre><code>        <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            ThreadType();
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 前台线程与后台线程
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> ThreadType()
+        {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">创建一个新线程(默认为前台线程)</span>
+            Thread backThread = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Thread(Worker)
+            {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">将线程更改为后台线程</span>
+                IsBackground = <span style="color: #0000ff;">true</span><span style="color: #000000;">
+            };
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">通过Start方法启动线程</span>
+<span style="color: #000000;">            backThread.Start();
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">如果backThread是前台线程，则应用程序5秒后才终止。
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">如果backThread是后台线程，则应用程序立即终止。</span>
+            Console.WriteLine(<span style="color: #800000;">"</span><span style="color: #800000;">It's from main thread.</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">Console.Read();</span>
+<span style="color: #000000;">        }
+
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> Worker()
+        {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">休息5秒</span>
+            Thread.Sleep(<span style="color: #800080;">5000</span><span style="color: #000000;">);
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">It's from worker thread.</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+        }</span></pre>
+</div>
+<p>&nbsp; &nbsp; 假如保留IsBackground =&nbsp;true;但又想继续执行Worker()方法的话，可以调用Thread.Join()方法来实现。Join()方法能保证主线程（前台线程）在异步线程</p>
+<p>Thread（后台线程）运行结束后才会运行。</p>
+<p>&nbsp; &nbsp; 注1：一个线程在执行的过程中，可能调用另一个线程，前者可以称为调用线程，后者成为被调用线程。</p>
+<p>&nbsp; &nbsp; 注2：Thread.Join()方法的使用场景：调用线程挂起，等待被调用线程执行完毕后，继续执行。</p>
+<p>&nbsp; &nbsp; 注3：被调用线程执行Join方法，告诉调用线程，你先暂停，我执行完了，你再执行。从而保证了先后关系。</p>
+<div class="cnblogs_code">
+<pre><code>        <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            ThreadStatusChange();
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 线程状态之间的转换
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> ThreadStatusChange()
+        {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">创建一个新线程(默认为前台线程)</span>
+            Thread backThread = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Thread(Worker)
+            {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">将线程更改为后台线程</span>
+                IsBackground = <span style="color: #0000ff;">true</span><span style="color: #000000;">
+            };
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">通过Start方法启动线程</span>
+<span style="color: #000000;">            backThread.Start();
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">Join()方法能保证主线程（前台线程）在异步线程Thread（后台线程）运行结束后才会运行</span>
+<span style="color: #000000;">            backThread.Join();
+
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">It's from main thread.</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            Console.Read();
+        }
+
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> Worker()
+        {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">休息5秒</span>
+            Thread.Sleep(<span style="color: #800080;">5000</span><span style="color: #000000;">);
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">It's from worker thread.</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+        }</span></pre>
+</div>
+<p>&nbsp; &nbsp; 运行结果如下：</p>
+<p><img src="./images/C#线程学习笔记一：线程基础0.png" alt="" /></p>
+<p>&nbsp; &nbsp; <strong>四、&nbsp;Suspend和Resume方法</strong></p>
+<p>&nbsp; &nbsp; 这两个方法在.NET Framework 1.0的时候就支持的方法，他们分别可以挂起线程及恢复挂起的线程，但在.NET Framework 2.0以后的版本中这两个方法都过时了。</p>
+<p>&nbsp; &nbsp; MSDN的解释是这样：</p>
+<p>&nbsp; &nbsp; 警告：</p>
+<p><span id="mt4" class="sentence" data-source="Do not use the &lt;span class=&quot;mtpsTagOuterHtml&quot; &gt;Suspend and &lt;span class=&quot;selflink&quot;&gt;Resume methods to synchronize the activities of threads." data-guid="ff8e76fddd4f9d11989c7d25f5e342d1">&nbsp; &nbsp; 不要使用Suspend和<span class="selflink">Resume方法来同步线程的活动。<span id="mt5" class="sentence" data-source="You have no way of knowing what code a thread is executing when you suspend it." data-guid="7257ce5ef3b1a1493bf43d5af2e05dc7">您无法知道挂起线程时它正在执行什么代码。<span id="mt6" class="sentence" data-source="If you suspend a thread while it holds locks during a security permission evaluation, other threads in the &lt;span class=&quot;mtpsTagOuterHtml&quot; &gt;AppDomain might be blocked." data-guid="7c4587074f4e52d11eadc59e58a09a57">如果您在安全权限评估期间挂起持有锁的线程，</span></span></span></span></p>
+<p><span id="mt4" class="sentence" data-source="Do not use the &lt;span class=&quot;mtpsTagOuterHtml&quot; &gt;Suspend and &lt;span class=&quot;selflink&quot;&gt;Resume methods to synchronize the activities of threads." data-guid="ff8e76fddd4f9d11989c7d25f5e342d1"><span class="selflink"><span id="mt5" class="sentence" data-source="You have no way of knowing what code a thread is executing when you suspend it." data-guid="7257ce5ef3b1a1493bf43d5af2e05dc7"><span id="mt6" class="sentence" data-source="If you suspend a thread while it holds locks during a security permission evaluation, other threads in the &lt;span class=&quot;mtpsTagOuterHtml&quot; &gt;AppDomain might be blocked." data-guid="7c4587074f4e52d11eadc59e58a09a57">则AppDomain</span></span></span></span><span id="mt4" class="sentence" data-source="Do not use the &lt;span class=&quot;mtpsTagOuterHtml&quot; &gt;Suspend and &lt;span class=&quot;selflink&quot;&gt;Resume methods to synchronize the activities of threads." data-guid="ff8e76fddd4f9d11989c7d25f5e342d1"><span class="selflink"><span id="mt5" class="sentence" data-source="You have no way of knowing what code a thread is executing when you suspend it." data-guid="7257ce5ef3b1a1493bf43d5af2e05dc7"><span id="mt6" class="sentence" data-source="If you suspend a thread while it holds locks during a security permission evaluation, other threads in the &lt;span class=&quot;mtpsTagOuterHtml&quot; &gt;AppDomain might be blocked." data-guid="7c4587074f4e52d11eadc59e58a09a57">中的</span></span></span></span><span id="mt4" class="sentence" data-source="Do not use the &lt;span class=&quot;mtpsTagOuterHtml&quot; &gt;Suspend and &lt;span class=&quot;selflink&quot;&gt;Resume methods to synchronize the activities of threads." data-guid="ff8e76fddd4f9d11989c7d25f5e342d1"><span class="selflink"><span id="mt5" class="sentence" data-source="You have no way of knowing what code a thread is executing when you suspend it." data-guid="7257ce5ef3b1a1493bf43d5af2e05dc7"><span id="mt6" class="sentence" data-source="If you suspend a thread while it holds locks during a security permission evaluation, other threads in the &lt;span class=&quot;mtpsTagOuterHtml&quot; &gt;AppDomain might be blocked." data-guid="7c4587074f4e52d11eadc59e58a09a57">其他线程可能被阻</span></span></span></span><span class="sentence" data-source="Do not use the &lt;span class=&quot;mtpsTagOuterHtml&quot; &gt;Suspend and &lt;span class=&quot;selflink&quot;&gt;Resume methods to synchronize the activities of threads." data-guid="ff8e76fddd4f9d11989c7d25f5e342d1"><span class="selflink"><span class="sentence" data-source="You have no way of knowing what code a thread is executing when you suspend it." data-guid="7257ce5ef3b1a1493bf43d5af2e05dc7"><span class="sentence" data-source="If you suspend a thread while it holds locks during a security permission evaluation, other threads in the &lt;span class=&quot;mtpsTagOuterHtml&quot; &gt;AppDomain might be blocked." data-guid="7c4587074f4e52d11eadc59e58a09a57">止。<span id="mt7" class="sentence" data-source="If you suspend a thread while it is executing a class constructor, other threads in the &lt;span class=&quot;mtpsTagOuterHtml&quot; &gt;AppDomain that attempt to use that class are blocked." data-guid="f164549efd95a0a94479d4d1c0d1ceec">如果您在线程正在执行类构造函数时挂起它，则 AppDomain中尝试使用该类的其他线程将被阻止。<span id="mt8" class="sentence" data-source="Deadlocks can occur very easily." data-guid="d4dfdebbfea2334386ff03b34a6880d4">这样很容易发生死锁。</span></span></span></span></span></span></p>
+<div class="cnblogs_code">
+<pre><code>        <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            ThreadResume();
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 线程恢复
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> ThreadResume()
+        {
+            Thread thread </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Thread(ThreadSuspend)
+            {
+                Name </span>= <span style="color: #800000;">"</span><span style="color: #800000;">Thread1</span><span style="color: #800000;">"</span><span style="color: #000000;">
+            };
+            thread.Start();
+            Thread.Sleep(</span><span style="color: #800080;">2000</span><span style="color: #000000;">);
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Main Thread is running.</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">线程恢复</span>
+<span style="color: #000000;">            thread.Resume();
+            Console.Read();
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 线程挂起
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> ThreadSuspend()
+        {
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Thread: {0} has been suspended.</span><span style="color: #800000;">"</span><span style="color: #000000;">, Thread.CurrentThread.Name);
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">将当前线程挂起</span>
+<span style="color: #000000;">            Thread.CurrentThread.Suspend();
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Thread: {0} has been resumed.</span><span style="color: #800000;">"</span><span style="color: #000000;">, Thread.CurrentThread.Name);
+        }</span></pre>
+</div>
+<p><span class="sentence" data-source="Deadlocks can occur very easily." data-guid="d4dfdebbfea2334386ff03b34a6880d4">&nbsp; &nbsp; 在上面这段代码中Thread1线程是在主线程中恢复的，但当主线程发生异常时，这时候Thread1就会一直处于挂起状态，</span><span class="sentence" data-source="Deadlocks can occur very easily." data-guid="d4dfdebbfea2334386ff03b34a6880d4">此时Thread1所使用的资源就不能</span><span class="sentence" data-source="Deadlocks can occur very easily." data-guid="d4dfdebbfea2334386ff03b34a6880d4">释放</span></p>
+<p><span class="sentence" data-source="Deadlocks can occur very easily." data-guid="d4dfdebbfea2334386ff03b34a6880d4">（除非强制终止进程），当</span><span class="sentence" data-source="Deadlocks can occur very easily." data-guid="d4dfdebbfea2334386ff03b34a6880d4">其它的线程需要使用这快资源的时候， 很有可能就会发生死锁现象。</span></p>
+<p><span class="sentence" data-source="Deadlocks can occur very easily." data-guid="d4dfdebbfea2334386ff03b34a6880d4">&nbsp; &nbsp; 上面一段代码还存在一个隐患，假如把</span>Thread.Sleep(2000);这段代码注释一下：</p>
+<div class="cnblogs_code">
+<pre><code>        <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            ThreadResume();
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 线程恢复
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> ThreadResume()
+        {
+            Thread thread </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Thread(ThreadSuspend)
+            {
+                Name </span>= <span style="color: #800000;">"</span><span style="color: #800000;">Thread1</span><span style="color: #800000;">"</span><span style="color: #000000;">
+            };
+            thread.Start();
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">Thread.Sleep(2000);</span>
+            Console.WriteLine(<span style="color: #800000;">"</span><span style="color: #800000;">Main Thread is running.</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">线程恢复</span>
+<span style="color: #000000;">            thread.Resume();
+            Console.Read();
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 线程挂起
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> ThreadSuspend()
+        {
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Thread: {0} has been suspended.</span><span style="color: #800000;">"</span><span style="color: #000000;">, Thread.CurrentThread.Name);
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">将当前线程挂起</span>
+<span style="color: #000000;">            Thread.CurrentThread.Suspend();
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Thread: {0} has been resumed.</span><span style="color: #800000;">"</span><span style="color: #000000;">, Thread.CurrentThread.Name);
+        }</span></pre>
+</div>
+<p>&nbsp; &nbsp; 这个时候，主线程因为跑（运行）得太快，做完自己的事情去唤醒Thread1时，此时Thread1还没有挂起，而此时唤醒Thread1就会出现异常了。</p>
+<p><strong>&nbsp; &nbsp; 五、Abort和Interrupt方法</strong></p>
+<p>&nbsp; &nbsp; Abort方法和Interrupt都是用来终止线程的，但是两者还是有区别的：</p>
+<p>&nbsp; &nbsp; 1、它们抛出的异常不一样：Abort 方法抛出的异常是ThreadAbortException，Interrupt抛出的异常为ThreadInterruptedException。</p>
+<p>&nbsp; &nbsp; 2、调用Interrupt方法的线程之后可以被唤醒，然而调用Abort方法的线程就直接被终止不能被唤醒了。</p>
+<p>&nbsp; &nbsp; 下面演示Abort方法的使用：</p>
+<div class="cnblogs_code">
+<pre><code>        <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">ThreadType();
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">ThreadStatusChange();
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">ThreadResume();</span>
+<span style="color: #000000;">            ThreadAbort();
+        }        
+        
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 线程中断(不可再唤醒)
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> ThreadAbort()
+        {
+            Thread threadAbort </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Thread(AbortMethod)
+            {
+                Name </span>= <span style="color: #800000;">"</span><span style="color: #800000;">ThreadAbort</span><span style="color: #800000;">"</span><span style="color: #000000;">
+            };
+            threadAbort.Start();
+            Thread.Sleep(</span><span style="color: #800080;">1000</span><span style="color: #000000;">);
+            </span><span style="color: #0000ff;">try</span><span style="color: #000000;">
+            {
+                threadAbort.Abort();
+            }
+            </span><span style="color: #0000ff;">catch</span><span style="color: #000000;">
+            {
+                Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">1-&gt; {0} exception happen in main thread.</span><span style="color: #800000;">"</span><span style="color: #000000;">, Thread.CurrentThread.Name);
+                Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">2-&gt; {0} status is:{1} in main thread.</span><span style="color: #800000;">"</span><span style="color: #000000;">, Thread.CurrentThread.Name, Thread.CurrentThread.ThreadState);
+            }
+            </span><span style="color: #0000ff;">finally</span><span style="color: #000000;">
+            {
+                Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">3-&gt; {0} status is:{1} in main thread.</span><span style="color: #800000;">"</span><span style="color: #000000;">, threadAbort.Name, threadAbort.ThreadState);
+            }
+            threadAbort.Join();
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">4-&gt; {0} status is:{1}</span><span style="color: #800000;">"</span><span style="color: #000000;">, threadAbort.Name, threadAbort.ThreadState);
+            Console.Read();
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> Abort方法
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> AbortMethod()
+        {
+            </span><span style="color: #0000ff;">try</span><span style="color: #000000;">
+            {
+                Thread.Sleep(</span><span style="color: #800080;">5000</span><span style="color: #000000;">);
+            }
+            </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception e)
+            {
+                Console.WriteLine(e.GetType().Name);
+                Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">5-&gt; {0} exception happen in abort thread.</span><span style="color: #800000;">"</span><span style="color: #000000;">, Thread.CurrentThread.Name);
+                Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">6-&gt; {0} status is:{1} in abort thread.</span><span style="color: #800000;">"</span><span style="color: #000000;">, Thread.CurrentThread.Name, Thread.CurrentThread.ThreadState);
+            }
+            </span><span style="color: #0000ff;">finally</span><span style="color: #000000;">
+            {
+                Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">7-&gt; {0} status is:{1} in abort thread.</span><span style="color: #800000;">"</span><span style="color: #000000;">, Thread.CurrentThread.Name, Thread.CurrentThread.ThreadState);
+            }
+        }</span></pre>
+</div>
+<p>&nbsp; &nbsp; 运行结果如下：</p>
+<p><img src="./images/C#线程学习笔记一：线程基础1.png" alt="" /></p>
+<p>&nbsp; &nbsp; 从运行结果可以看出，调用Abort方法的线程引发的异常类型为ThreadAbortException，另外异常只会在调用Abort方法的线程中发生，而不会在主线程中抛出，</p>
+<p>其次调用Abort方法后线程的状态不是立即改变为Aborted状态，而是从AbortRequested-&gt;Aborted。&nbsp;</p>
+<p>&nbsp; &nbsp;&nbsp;下面演示Interrupt方法的使用：</p>
+<div class="cnblogs_code">
+<pre><code>        <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            ThreadInterrupt();
+        }
+        
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 线程中断(可再唤醒)
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> ThreadInterrupt()
+        {
+            Thread threadInterrupt </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Thread(InterruptMethod)
+            {
+                Name </span>= <span style="color: #800000;">"</span><span style="color: #800000;">ThreadInterrupt</span><span style="color: #800000;">"</span><span style="color: #000000;">
+            };
+            threadInterrupt.Start();
+            threadInterrupt.Interrupt();
+            threadInterrupt.Join();
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">1-&gt; {0} status is:{1} </span><span style="color: #800000;">"</span><span style="color: #000000;">, threadInterrupt.Name, threadInterrupt.ThreadState);
+            Console.Read();
+        }
+
+　　　　　
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> Interrupt方法
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> InterruptMethod()
+        {
+            </span><span style="color: #0000ff;">try</span><span style="color: #000000;">
+            {
+                Thread.Sleep(</span><span style="color: #800080;">5000</span><span style="color: #000000;">);
+            }
+            </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception e)
+            {
+                Console.WriteLine(e.GetType().Name);
+                Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">2-&gt; {0} exception happen in interrupt thread.</span><span style="color: #800000;">"</span><span style="color: #000000;">, Thread.CurrentThread.Name);
+                Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">3-&gt; {0} status is:{1} in interrupt thread.</span><span style="color: #800000;">"</span><span style="color: #000000;">, Thread.CurrentThread.Name, Thread.CurrentThread.ThreadState);
+            }
+            </span><span style="color: #0000ff;">finally</span><span style="color: #000000;">
+            {
+                Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">4-&gt; {0} status is:{1} in interrupt thread.</span><span style="color: #800000;">"</span><span style="color: #000000;">, Thread.CurrentThread.Name, Thread.CurrentThread.ThreadState);
+            }
+        }</span></pre>
+</div>
+<p>&nbsp; &nbsp; 运行结果如下：</p>
+<p><img src="./images/C#线程学习笔记一：线程基础2.png" alt="" /></p>
+<p>&nbsp; &nbsp; 从结果中可以得到，调用Interrupt方法抛出的异常为：ThreadInterruptException，&nbsp;另外当调用Interrupt方法后线程的状态应该是中断的，但是从运行结果看，</p>
+<p>此时的线程因为Join、Sleep方法而唤醒了线程。</p>
+<p>&nbsp; &nbsp; 为了进一步解释调用Interrupt方法的线程可以被唤醒， 我们可以在线程执行的方法中运用循环，如果线程可以唤醒，则输出结果中就一定会有循环的部分，</p>
+<p>而调用Abort方法的线程则不会有循环的部分。</p>
+<p>&nbsp; &nbsp;&nbsp;下面代码相信大家看后肯定会更加理解两个方法的区别：</p>
+<div class="cnblogs_code">
+<pre><code>        <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">ThreadType();
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">ThreadStatusChange();
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">ThreadResume();
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">ThreadAbort();
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">ThreadInterrupt();</span>
+<span style="color: #000000;">            ThreadWake();
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 线程唤醒
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> ThreadWake()
+        {
+            Thread threadWake </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Thread(WakeMethod);
+            threadWake.Start();
+            Thread.Sleep(</span><span style="color: #800080;">100</span><span style="color: #000000;">);
+
+            threadWake.Interrupt();
+            Thread.Sleep(</span><span style="color: #800080;">3000</span><span style="color: #000000;">);
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">1-&gt; After finally block,the threadWake status is:{0}</span><span style="color: #800000;">"</span><span style="color: #000000;">, threadWake.ThreadState);
+            Console.Read();
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> Wake方法
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> WakeMethod()
+        {
+            </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; <span style="color: #800080;">4</span>; i++<span style="color: #000000;">)
+            {
+                </span><span style="color: #0000ff;">try</span><span style="color: #000000;">
+                {
+                    Thread.Sleep(</span><span style="color: #800080;">2000</span><span style="color: #000000;">);
+                    Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">2-&gt; Thread is Running.</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                }
+                </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception ex)
+                {
+                    </span><span style="color: #0000ff;">if</span> (ex != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+                    {
+                        Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">3-&gt; Exception {0} throw.</span><span style="color: #800000;">"</span><span style="color: #000000;">, ex.GetType().Name);
+                    }
+                }
+                </span><span style="color: #0000ff;">finally</span><span style="color: #000000;">
+                {
+                    Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">4-&gt; Current thread status is:{0}</span><span style="color: #800000;">"</span><span style="color: #000000;">, Thread.CurrentThread.ThreadState);
+                }
+            }
+        }</span></pre>
+</div>
+<p>&nbsp; &nbsp; 运行结果如下：</p>
+<p><img src="./images/C#线程学习笔记一：线程基础3.png" alt="" /></p>
+<p>&nbsp; &nbsp; 如果把上面的threadWake.Interrupt();改为threadWake.Abort(); 运行结果为：</p>
+<p><img src="./images/C#线程学习笔记一：线程基础4.png" alt="" /></p>
+<p><strong>&nbsp; &nbsp; 六、简单线程的使用</strong></p>
+<p>&nbsp; &nbsp; 其实在上面介绍前台线程和后台线程的时候已经通过ThreadStart委托创建一个线程了，此时已经实现了一个多线程的一个过程。</p>
+<p>&nbsp; &nbsp; 下面通过<strong>ParameterizedThreadStart</strong>委托的方式来实现多线程：</p>
+<div class="cnblogs_code">
+<pre><code>        <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {</span>
+<span style="color: #000000;">            ThreadTypeUseParameterized();
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 前台线程与后台线程(使用ParameterizedThreadStart委托的方式来实现多线程)
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> ThreadTypeUseParameterized()
+        {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">创建一个新线程(默认为前台线程)</span>
+            Thread backThread = <span style="color: #0000ff;">new</span> Thread(<span style="color: #0000ff;">new</span><span style="color: #000000;"> ParameterizedThreadStart(Worker1));
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">通过Start方法启动线程</span>
+            backThread.Start(<span style="color: #800080;">123</span><span style="color: #000000;">);
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">如果backThread是前台线程，则应用程序5秒后才终止。
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">如果backThread是后台线程，则应用程序立即终止。</span>
+            Console.WriteLine(<span style="color: #800000;">"</span><span style="color: #800000;">It's from main thread.</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+        }
+
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Worker1(<span style="color: #0000ff;">object</span><span style="color: #000000;"> parameter)
+        {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">休息5秒</span>
+            Thread.Sleep(<span style="color: #800080;">5000</span><span style="color: #000000;">);
+            Console.WriteLine(parameter</span>+<span style="color: #800000;">"</span><span style="color: #800000;"> is from worker1 thread.</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            Console.Read();
+        }</span></pre>
+</div>
+<p>&nbsp; &nbsp; 运行结果如下：</p>
+<p><img src="./images/C#线程学习笔记一：线程基础5.png" alt="" />&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

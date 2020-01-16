@@ -1,0 +1,405 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C#原生Socket服务器与客户端的实现' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C#原生Socket服务器与客户端的实现</center></div><div class='banquan'>原文出处:本文由博客园博主Pater.Pan提供。<br/>
+原文连接:https://www.cnblogs.com/pandefu/p/10766629.html</div><br>
+    <p>　　上个项目中用到了Socket通讯,项目中直接借助SuperSocket实现,但是我觉得这毕竟是一个我没接触过的东西,所以也顺便学习了一下原生socket的使用,做了一个socket服务器与客户端的开发.本人菜鸟一枚,只做了一个简单的实现,希望有看到我博客的大佬不吝指点,抱拳!</p>
+<p>　　socket通讯的相关知识的话，在博客园中的大佬们总结的贴子已经非常多，也很详细，忘记了就在去看。</p>
+<p>　　这里总结一下原生的Socket和SuperSocket的使用（官方定义:SuperSocket 是一个轻量级, 跨平台而且可扩展的 .Net/Mono Socket 服务器程序框架。你无须了解如何使用 Socket, 如何维护 Socket 连接和 Socket 如何工作，但是你却可以使用 SuperSocket 很容易的开发出一款 Socket 服务器端软件，例如游戏服务器，GPS 服务器, 工业控制服务和数据采集服务器等等。）</p>
+<p>下边是一个Socket测试工具 十分好用!</p>
+<p>链接：<a title="SocketTool   提取码：m2nk" href="https://pan.baidu.com/s/1ykEofUIZKE2yhe3mMyRbJw" target="_blank">https://pan.baidu.com/s/1ykEofUIZKE2yhe3mMyRbJw </a><br />提取码：m2nk</p>
+<p><span lang="EN-US"> 　　先从服务器端说起。服务器端先初始化<span lang="EN-US">Socket，然后与端口绑定<span lang="EN-US">(bind)，对端口进行监听<span lang="EN-US">(listen)，调用<span lang="EN-US">accept阻塞，等待客户端连接。在这时如果有个客户端初始化一个<span lang="EN-US">Socket，然后连接服务器<span lang="EN-US">(connect)，如果连接成功，这时客户端与服务器端的连接就建立了。客户端发送数据请求，服务器端接收请求并处理请求，然后把回应数据发送给客户端，客户端读取数据，最后关闭连接，一次交互结束。</span></span></span></span></span></span></span></p>
+<p>&nbsp;原生Socket实现SocketServer:</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('93f10e14-2ae1-43ef-b63e-8b633366e12a')"><img id="code_img_closed_93f10e14-2ae1-43ef-b63e-8b633366e12a" class="code_img_closed" src="./images/C#原生Socket服务器与客户端的实现0.png" alt="" /><img id="code_img_opened_93f10e14-2ae1-43ef-b63e-8b633366e12a" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('93f10e14-2ae1-43ef-b63e-8b633366e12a',event)" src="./images/C#原生Socket服务器与客户端的实现1.png" alt="" />
+<div id="cnblogs_code_open_93f10e14-2ae1-43ef-b63e-8b633366e12a" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;">  1</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System;
+</span><span style="color: #008080;">  2</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Collections.Generic;
+</span><span style="color: #008080;">  3</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.ComponentModel;
+</span><span style="color: #008080;">  4</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Data;
+</span><span style="color: #008080;">  5</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Drawing;
+</span><span style="color: #008080;">  6</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Linq;
+</span><span style="color: #008080;">  7</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Text;
+</span><span style="color: #008080;">  8</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Threading.Tasks;
+</span><span style="color: #008080;">  9</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Windows.Forms;
+</span><span style="color: #008080;"> 10</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Net.Sockets;
+</span><span style="color: #008080;"> 11</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Net;
+</span><span style="color: #008080;"> 12</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Threading;
+</span><span style="color: #008080;"> 13</span> 
+<span style="color: #008080;"> 14</span> <span style="color: #0000ff;">namespace</span><span style="color: #000000;"> DotnetSockets
+</span><span style="color: #008080;"> 15</span> <span style="color: #000000;">{
+</span><span style="color: #008080;"> 16</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">partial</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> DotnetSocketServer : Form
+</span><span style="color: #008080;"> 17</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;"> 18</span>         <span style="color: #0000ff;">public</span><span style="color: #000000;"> DotnetSocketServer()
+</span><span style="color: #008080;"> 19</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 20</span> <span style="color: #000000;">            InitializeComponent();
+</span><span style="color: #008080;"> 21</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 22</span> 
+<span style="color: #008080;"> 23</span>         <span style="color: #008000;">//</span><span style="color: #008000;">存储已连接的客户端的泛型集合</span>
+<span style="color: #008080;"> 24</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> Dictionary&lt;<span style="color: #0000ff;">string</span>, Socket&gt; socketList = <span style="color: #0000ff;">new</span> Dictionary&lt;<span style="color: #0000ff;">string</span>, Socket&gt;<span style="color: #000000;">();
+</span><span style="color: #008080;"> 25</span> 
+<span style="color: #008080;"> 26</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;"> 27</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 接收连接
+</span><span style="color: #008080;"> 28</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;"> 29</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="obj"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;"> 30</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> StartServer(<span style="color: #0000ff;">object</span><span style="color: #000000;"> obj)
+</span><span style="color: #008080;"> 31</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 32</span>             <span style="color: #0000ff;">string</span><span style="color: #000000;"> str;
+</span><span style="color: #008080;"> 33</span>             <span style="color: #0000ff;">while</span> (<span style="color: #0000ff;">true</span><span style="color: #000000;">)
+</span><span style="color: #008080;"> 34</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 35</span>                 <span style="color: #008000;">//</span><span style="color: #008000;">等待接收客户端连接 Accept方法返回一个用于和该客户端通信的Socket</span>
+<span style="color: #008080;"> 36</span>                 Socket recviceSocket =<span style="color: #000000;"> ((Socket)obj).Accept();
+</span><span style="color: #008080;"> 37</span>                 <span style="color: #008000;">//</span><span style="color: #008000;">获取客户端ip和端口号</span>
+<span style="color: #008080;"> 38</span>                 str =<span style="color: #000000;"> recviceSocket.RemoteEndPoint.ToString();
+</span><span style="color: #008080;"> 39</span> <span style="color: #000000;">                socketList.Add(str, recviceSocket);
+</span><span style="color: #008080;"> 40</span>                 <span style="color: #008000;">//</span><span style="color: #008000;">控件调用invoke方法 解决"从不是创建控件的线程访问它"的异常</span>
+<span style="color: #008080;"> 41</span>                 cmb_socketlist.Invoke(<span style="color: #0000ff;">new</span> Action(() =&gt;<span style="color: #000000;"> { cmb_socketlist.Items.Add(str); }));
+</span><span style="color: #008080;"> 42</span>                 richTextBox1.Invoke(<span style="color: #0000ff;">new</span> Action(() =&gt; { richTextBox1.AppendText(str + <span style="color: #800000;">"</span><span style="color: #800000;">已连接</span><span style="color: #800000;">"</span> + <span style="color: #800000;">"</span><span style="color: #800000;">\r\n</span><span style="color: #800000;">"</span><span style="color: #000000;">); }));
+</span><span style="color: #008080;"> 43</span> 
+<span style="color: #008080;"> 44</span>                 <span style="color: #008000;">//</span><span style="color: #008000;">Accept()执行过后 当前线程会阻塞 只有在有客户端连接时才会继续执行
+</span><span style="color: #008080;"> 45</span>                 <span style="color: #008000;">//</span><span style="color: #008000;">创建新线程,监控接收新客户端的请求数据</span>
+<span style="color: #008080;"> 46</span>                 Thread thread = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Thread(startRecive);
+</span><span style="color: #008080;"> 47</span>                 thread.IsBackground = <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 48</span> <span style="color: #000000;">                thread.Start(recviceSocket);
+</span><span style="color: #008080;"> 49</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 50</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 51</span> 
+<span style="color: #008080;"> 52</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;"> 53</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 接收消息
+</span><span style="color: #008080;"> 54</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;"> 55</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="obj"&gt;</span><span style="color: #008000;">客户端socket</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;"> 56</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> startRecive(<span style="color: #0000ff;">object</span><span style="color: #000000;"> obj)
+</span><span style="color: #008080;"> 57</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 58</span>             <span style="color: #0000ff;">string</span><span style="color: #000000;"> str;
+</span><span style="color: #008080;"> 59</span>             <span style="color: #0000ff;">string</span><span style="color: #000000;"> ip;
+</span><span style="color: #008080;"> 60</span>             <span style="color: #0000ff;">while</span> (<span style="color: #0000ff;">true</span><span style="color: #000000;">)
+</span><span style="color: #008080;"> 61</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 62</span> 
+<span style="color: #008080;"> 63</span>                 <span style="color: #0000ff;">byte</span>[] buffer = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">byte</span>[<span style="color: #800080;">2048</span><span style="color: #000000;">];
+</span><span style="color: #008080;"> 64</span>                 <span style="color: #0000ff;">int</span><span style="color: #000000;"> count;
+</span><span style="color: #008080;"> 65</span>                 <span style="color: #0000ff;">try</span>
+<span style="color: #008080;"> 66</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;"> 67</span>                     <span style="color: #008000;">//</span><span style="color: #008000;">Receive(Byte[]) 从绑定的 Socket 套接字接收数据，将数据存入接收缓冲区。
+</span><span style="color: #008080;"> 68</span>                     <span style="color: #008000;">//</span><span style="color: #008000;">该方法执行过后同Accept()方法一样  当前线程会阻塞 等到客户端下一次发来数据时继续执行</span>
+<span style="color: #008080;"> 69</span>                     count =<span style="color: #000000;"> ((Socket)obj).Receive(buffer);
+</span><span style="color: #008080;"> 70</span>                     ip =<span style="color: #000000;"> ((Socket)obj).RemoteEndPoint.ToString();
+</span><span style="color: #008080;"> 71</span>                     <span style="color: #0000ff;">if</span> (count == <span style="color: #800080;">0</span><span style="color: #000000;">)
+</span><span style="color: #008080;"> 72</span> <span style="color: #000000;">                    {
+</span><span style="color: #008080;"> 73</span>                         cmb_socketlist.Invoke(<span style="color: #0000ff;">new</span> Action(() =&gt;<span style="color: #000000;"> { cmb_socketlist.Items.Remove(ip); }));
+</span><span style="color: #008080;"> 74</span>                         richTextBox1.Invoke(<span style="color: #0000ff;">new</span> Action(() =&gt; { richTextBox1.AppendText(ip + <span style="color: #800000;">"</span><span style="color: #800000;">已断开连接</span><span style="color: #800000;">"</span> + <span style="color: #800000;">"</span><span style="color: #800000;">\r\n</span><span style="color: #800000;">"</span><span style="color: #000000;">); }));
+</span><span style="color: #008080;"> 75</span>                         <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 76</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;"> 77</span>                     <span style="color: #0000ff;">else</span>
+<span style="color: #008080;"> 78</span> <span style="color: #000000;">                    {
+</span><span style="color: #008080;"> 79</span>                         str = Encoding.Default.GetString(buffer, <span style="color: #800080;">0</span><span style="color: #000000;">, count);
+</span><span style="color: #008080;"> 80</span>                         richTextBox1.Invoke(<span style="color: #0000ff;">new</span> Action(() =&gt; { richTextBox1.AppendText(<span style="color: #800000;">"</span><span style="color: #800000;">收到</span><span style="color: #800000;">"</span>+ip+<span style="color: #800000;">"</span><span style="color: #800000;">数据  </span><span style="color: #800000;">"</span> + str + <span style="color: #800000;">"</span><span style="color: #800000;">\r\n</span><span style="color: #800000;">"</span><span style="color: #000000;">); }));
+</span><span style="color: #008080;"> 81</span> 
+<span style="color: #008080;"> 82</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;"> 83</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;"> 84</span>                 <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception)
+</span><span style="color: #008080;"> 85</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;"> 86</span> 
+<span style="color: #008080;"> 87</span>                    
+<span style="color: #008080;"> 88</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;"> 89</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 90</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 91</span> 
+<span style="color: #008080;"> 92</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;"> 93</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 开启服务器监听
+</span><span style="color: #008080;"> 94</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;"> 95</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="sender"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;"> 96</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="e"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;"> 97</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> btn_StartListen_Click(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)
+</span><span style="color: #008080;"> 98</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 99</span>             <span style="color: #008000;">//</span><span style="color: #008000;">实例化一个Socket对象，确定网络类型、Socket类型、协议类型</span>
+<span style="color: #008080;">100</span>             Socket socket = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+</span><span style="color: #008080;">101</span> 
+<span style="color: #008080;">102</span>             IPEndPoint IEP = <span style="color: #0000ff;">new</span> IPEndPoint(IPAddress.Parse(txt_ip.Text), <span style="color: #0000ff;">int</span><span style="color: #000000;">.Parse(txt_port.Text));
+</span><span style="color: #008080;">103</span>             <span style="color: #008000;">//</span><span style="color: #008000;">绑定ip和端口</span>
+<span style="color: #008080;">104</span> <span style="color: #000000;">            socket.Bind(IEP);
+</span><span style="color: #008080;">105</span>             <span style="color: #008000;">//</span><span style="color: #008000;">开启监听</span>
+<span style="color: #008080;">106</span>             socket.Listen(<span style="color: #800080;">10</span><span style="color: #000000;">);
+</span><span style="color: #008080;">107</span> 
+<span style="color: #008080;">108</span>             richTextBox1.Invoke(<span style="color: #0000ff;">new</span> Action(() =&gt; { richTextBox1.AppendText(<span style="color: #800000;">"</span><span style="color: #800000;">开始监听</span><span style="color: #800000;">"</span> + <span style="color: #800000;">"</span><span style="color: #800000;">\r\n</span><span style="color: #800000;">"</span><span style="color: #000000;">); }));
+</span><span style="color: #008080;">109</span> 
+<span style="color: #008080;">110</span>             Thread thread = <span style="color: #0000ff;">new</span> Thread(<span style="color: #0000ff;">new</span><span style="color: #000000;"> ParameterizedThreadStart(StartServer));
+</span><span style="color: #008080;">111</span>             thread.IsBackground = <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+</span><span style="color: #008080;">112</span> <span style="color: #000000;">            thread.Start(socket);
+</span><span style="color: #008080;">113</span> 
+<span style="color: #008080;">114</span> 
+<span style="color: #008080;">115</span>             <span style="color: #0000ff;">#region</span> 该部分实现只适用一个服务器只对应一个客户端
+<span style="color: #008080;">116</span> 
+<span style="color: #008080;">117</span>             <span style="color: #008000;">//</span><span style="color: #008000;">Task.Run(() =&gt; {
+</span><span style="color: #008080;">118</span> 
+<span style="color: #008080;">119</span>             <span style="color: #008000;">//</span><span style="color: #008000;">        string str;
+</span><span style="color: #008080;">120</span> 
+<span style="color: #008080;">121</span>             <span style="color: #008000;">//</span><span style="color: #008000;">        while (true)
+</span><span style="color: #008080;">122</span>             <span style="color: #008000;">//</span><span style="color: #008000;">        {
+</span><span style="color: #008080;">123</span>             <span style="color: #008000;">//</span>            <span style="color: #008000;">//</span><span style="color: #008000;">等待接收客户端连接 Accept返回一个用于和该客户端通信的Socket
+</span><span style="color: #008080;">124</span>             <span style="color: #008000;">//</span><span style="color: #008000;">           Socket recviceSocket = socket.Accept();
+</span><span style="color: #008080;">125</span> 
+<span style="color: #008080;">126</span>             <span style="color: #008000;">//</span>            <span style="color: #008000;">//</span><span style="color: #008000;">Accept()执行过后 当前线程会暂时挂起 只有在有客户端连接时才会继续执行
+</span><span style="color: #008080;">127</span>             <span style="color: #008000;">//</span><span style="color: #008000;">            richTextBox1.Invoke(new Action(() =&gt; { richTextBox1.AppendText(recviceSocket.RemoteEndPoint.ToString() + "已连接" + "\r\n"); }));
+</span><span style="color: #008080;">128</span> 
+<span style="color: #008080;">129</span>             <span style="color: #008000;">//</span>            <span style="color: #008000;">//</span><span style="color: #008000;">开启接收数据的任务
+</span><span style="color: #008080;">130</span>             <span style="color: #008000;">//</span><span style="color: #008000;">            Task.Run(() =&gt; {
+</span><span style="color: #008080;">131</span>             <span style="color: #008000;">//</span><span style="color: #008000;">                while (true)
+</span><span style="color: #008080;">132</span>             <span style="color: #008000;">//</span><span style="color: #008000;">                {
+</span><span style="color: #008080;">133</span>             <span style="color: #008000;">//</span><span style="color: #008000;">                    byte[] buffer = new byte[2048];
+</span><span style="color: #008080;">134</span>             <span style="color: #008000;">//</span><span style="color: #008000;">                    int count;
+</span><span style="color: #008080;">135</span>             <span style="color: #008000;">//</span>                     <span style="color: #008000;">//</span><span style="color: #008000;">Receive(Byte[]) 从绑定的 Socket 套接字接收数据，将数据存入接收缓冲区。
+</span><span style="color: #008080;">136</span>             <span style="color: #008000;">//</span>                    <span style="color: #008000;">//</span><span style="color: #008000;">该方法执行过后同上  当前线程会暂时挂起 等到客户端下一次发来数据时继续执行
+</span><span style="color: #008080;">137</span>             <span style="color: #008000;">//</span><span style="color: #008000;">                    count = recviceSocket.Receive(buffer);
+</span><span style="color: #008080;">138</span>             <span style="color: #008000;">//</span><span style="color: #008000;">                    if (count == 0)
+</span><span style="color: #008080;">139</span>             <span style="color: #008000;">//</span><span style="color: #008000;">                    {
+</span><span style="color: #008080;">140</span>             <span style="color: #008000;">//</span><span style="color: #008000;">                        richTextBox1.Invoke(new Action(() =&gt; { richTextBox1.AppendText(recviceSocket.RemoteEndPoint.ToString() + "已断开连接" + "\r\n"); }));
+</span><span style="color: #008080;">141</span> 
+<span style="color: #008080;">142</span>             <span style="color: #008000;">//</span><span style="color: #008000;">                        break;
+</span><span style="color: #008080;">143</span>             <span style="color: #008000;">//</span><span style="color: #008000;">                    }
+</span><span style="color: #008080;">144</span>             <span style="color: #008000;">//</span><span style="color: #008000;">                    else
+</span><span style="color: #008080;">145</span>             <span style="color: #008000;">//</span><span style="color: #008000;">                    {
+</span><span style="color: #008080;">146</span>             <span style="color: #008000;">//</span><span style="color: #008000;">                        str = Encoding.Default.GetString(buffer, 0, count);
+</span><span style="color: #008080;">147</span>             <span style="color: #008000;">//</span><span style="color: #008000;">                        richTextBox1.Invoke(new Action(() =&gt; { richTextBox1.AppendText("收到"+recviceSocket.RemoteEndPoint.ToString()+"数据:" + str + "\r\n"); }));
+</span><span style="color: #008080;">148</span> 
+<span style="color: #008080;">149</span>             <span style="color: #008000;">//</span><span style="color: #008000;">                    }
+</span><span style="color: #008080;">150</span>             <span style="color: #008000;">//</span><span style="color: #008000;">                }
+</span><span style="color: #008080;">151</span> 
+<span style="color: #008080;">152</span> 
+<span style="color: #008080;">153</span>             <span style="color: #008000;">//</span><span style="color: #008000;">            });
+</span><span style="color: #008080;">154</span> 
+<span style="color: #008080;">155</span> 
+<span style="color: #008080;">156</span>             <span style="color: #008000;">//</span><span style="color: #008000;">        }
+</span><span style="color: #008080;">157</span>             <span style="color: #008000;">//</span><span style="color: #008000;">});</span>
+<span style="color: #008080;">158</span>             <span style="color: #0000ff;">#endregion</span>
+<span style="color: #008080;">159</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">160</span> 
+<span style="color: #008080;">161</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">162</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 向对应客户端发送数据
+</span><span style="color: #008080;">163</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">164</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="sender"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;">165</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="e"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;">166</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> btn_send_Click(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)
+</span><span style="color: #008080;">167</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">168</span>             <span style="color: #0000ff;">string</span> str =<span style="color: #000000;"> txt_send.Text;
+</span><span style="color: #008080;">169</span>             <span style="color: #0000ff;">byte</span>[] bytes = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">byte</span>[<span style="color: #800080;">2048</span><span style="color: #000000;">];
+</span><span style="color: #008080;">170</span>             bytes =<span style="color: #000000;"> Encoding.Default.GetBytes(str);
+</span><span style="color: #008080;">171</span>             <span style="color: #008000;">//</span><span style="color: #008000;">获取combobox的值 从泛型集合中获取对应的客户端socket 然后发送数据</span>
+<span style="color: #008080;">172</span>             <span style="color: #0000ff;">if</span> (cmb_socketlist.Items.Count != <span style="color: #800080;">0</span><span style="color: #000000;">)
+</span><span style="color: #008080;">173</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">174</span>                 <span style="color: #0000ff;">if</span> (cmb_socketlist.SelectedItem == <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+</span><span style="color: #008080;">175</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">176</span>                     MessageBox.Show(<span style="color: #800000;">"</span><span style="color: #800000;">请选择一个客户端发送数据!</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">177</span>                     <span style="color: #0000ff;">return</span><span style="color: #000000;">;
+</span><span style="color: #008080;">178</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">179</span>                 <span style="color: #0000ff;">else</span>
+<span style="color: #008080;">180</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">181</span> <span style="color: #000000;">                    socketList[cmb_socketlist.SelectedItem.ToString()].Send(bytes);
+</span><span style="color: #008080;">182</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">183</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">184</span>             <span style="color: #0000ff;">else</span>
+<span style="color: #008080;">185</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">186</span>                 richTextBox1.Invoke(<span style="color: #0000ff;">new</span> Action(() =&gt; { richTextBox1.AppendText(<span style="color: #800000;">"</span><span style="color: #800000;">当前无连接的客户端</span><span style="color: #800000;">"</span> + <span style="color: #800000;">"</span><span style="color: #800000;">\r\n</span><span style="color: #800000;">"</span><span style="color: #000000;">); }));
+</span><span style="color: #008080;">187</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">188</span> <span style="color: #000000;">            txt_send.Clear();
+</span><span style="color: #008080;">189</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">190</span> 
+<span style="color: #008080;">191</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> DotnetSocketServer_FormClosed(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, FormClosedEventArgs e)
+</span><span style="color: #008080;">192</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">193</span>             System.Environment.Exit(<span style="color: #800080;">0</span><span style="color: #000000;">);
+</span><span style="color: #008080;">194</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">195</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">196</span> }</pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>接下来实现SocketClient</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('f17b71dd-0085-49c4-af32-47b7f2eb2f65')"><img id="code_img_closed_f17b71dd-0085-49c4-af32-47b7f2eb2f65" class="code_img_closed" src="./images/C#原生Socket服务器与客户端的实现0.png" alt="" /><img id="code_img_opened_f17b71dd-0085-49c4-af32-47b7f2eb2f65" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('f17b71dd-0085-49c4-af32-47b7f2eb2f65',event)" src="./images/C#原生Socket服务器与客户端的实现1.png" alt="" />
+<div id="cnblogs_code_open_f17b71dd-0085-49c4-af32-47b7f2eb2f65" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;">  1</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System;
+</span><span style="color: #008080;">  2</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Collections.Generic;
+</span><span style="color: #008080;">  3</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.ComponentModel;
+</span><span style="color: #008080;">  4</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Data;
+</span><span style="color: #008080;">  5</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Drawing;
+</span><span style="color: #008080;">  6</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Linq;
+</span><span style="color: #008080;">  7</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Text;
+</span><span style="color: #008080;">  8</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Threading.Tasks;
+</span><span style="color: #008080;">  9</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Windows.Forms;
+</span><span style="color: #008080;"> 10</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Net;
+</span><span style="color: #008080;"> 11</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Net.Sockets;
+</span><span style="color: #008080;"> 12</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Threading;
+</span><span style="color: #008080;"> 13</span> 
+<span style="color: #008080;"> 14</span> <span style="color: #0000ff;">namespace</span><span style="color: #000000;"> DotnetSocketClient
+</span><span style="color: #008080;"> 15</span> <span style="color: #000000;">{
+</span><span style="color: #008080;"> 16</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">partial</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> DotnetSocketClient : Form
+</span><span style="color: #008080;"> 17</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;"> 18</span>         <span style="color: #0000ff;">public</span><span style="color: #000000;"> DotnetSocketClient()
+</span><span style="color: #008080;"> 19</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 20</span> <span style="color: #000000;">            InitializeComponent();
+</span><span style="color: #008080;"> 21</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 22</span>         <span style="color: #0000ff;">byte</span>[] buffer = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">byte</span>[<span style="color: #800080;">2048</span><span style="color: #000000;">];
+</span><span style="color: #008080;"> 23</span> <span style="color: #000000;">        Socket socket;
+</span><span style="color: #008080;"> 24</span> <span style="color: #000000;">        Thread thread;
+</span><span style="color: #008080;"> 25</span> 
+<span style="color: #008080;"> 26</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;"> 27</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 连接服务器
+</span><span style="color: #008080;"> 28</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;"> 29</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="sender"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;"> 30</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="e"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;"> 31</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> btn_start_Click(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)
+</span><span style="color: #008080;"> 32</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 33</span>             <span style="color: #0000ff;">try</span>
+<span style="color: #008080;"> 34</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 35</span>                 <span style="color: #008000;">//</span><span style="color: #008000;">实例化socket</span>
+<span style="color: #008080;"> 36</span>                 socket = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+</span><span style="color: #008080;"> 37</span>                 <span style="color: #008000;">//</span><span style="color: #008000;">连接服务器</span>
+<span style="color: #008080;"> 38</span>                 socket.Connect(<span style="color: #0000ff;">new</span> IPEndPoint(IPAddress.Parse(txt_ip.Text), <span style="color: #0000ff;">int</span><span style="color: #000000;">.Parse(txt_port.Text)));
+</span><span style="color: #008080;"> 39</span> 
+<span style="color: #008080;"> 40</span>                 thread = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Thread(StartReceive);
+</span><span style="color: #008080;"> 41</span>                 thread.IsBackground = <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 42</span> <span style="color: #000000;">                thread.Start(socket);
+</span><span style="color: #008080;"> 43</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 44</span>             <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception ex)
+</span><span style="color: #008080;"> 45</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 46</span>                 SetMessage(<span style="color: #800000;">"</span><span style="color: #800000;">服务器异常:</span><span style="color: #800000;">"</span> +<span style="color: #000000;"> ex.Message);
+</span><span style="color: #008080;"> 47</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 48</span> 
+<span style="color: #008080;"> 49</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 50</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;"> 51</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 开启接收
+</span><span style="color: #008080;"> 52</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;"> 53</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="obj"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;"> 54</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> StartReceive(<span style="color: #0000ff;">object</span><span style="color: #000000;"> obj)
+</span><span style="color: #008080;"> 55</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 56</span>             <span style="color: #0000ff;">string</span><span style="color: #000000;"> str;
+</span><span style="color: #008080;"> 57</span>             <span style="color: #0000ff;">while</span> (<span style="color: #0000ff;">true</span><span style="color: #000000;">)
+</span><span style="color: #008080;"> 58</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 59</span>                 Socket receiveSocket = obj <span style="color: #0000ff;">as</span><span style="color: #000000;"> Socket;
+</span><span style="color: #008080;"> 60</span>                 <span style="color: #0000ff;">try</span>
+<span style="color: #008080;"> 61</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;"> 62</span>                     <span style="color: #0000ff;">int</span> result =<span style="color: #000000;"> receiveSocket.Receive(buffer);
+</span><span style="color: #008080;"> 63</span>                     <span style="color: #0000ff;">if</span> (result == <span style="color: #800080;">0</span><span style="color: #000000;">)
+</span><span style="color: #008080;"> 64</span> <span style="color: #000000;">                    {
+</span><span style="color: #008080;"> 65</span>                         <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 66</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;"> 67</span>                     <span style="color: #0000ff;">else</span>
+<span style="color: #008080;"> 68</span> <span style="color: #000000;">                    {
+</span><span style="color: #008080;"> 69</span>                         str =<span style="color: #000000;"> Encoding.Default.GetString(buffer);
+</span><span style="color: #008080;"> 70</span>                         SetMessage(<span style="color: #800000;">"</span><span style="color: #800000;">接收到服务器数据: </span><span style="color: #800000;">"</span> +<span style="color: #000000;"> str);
+</span><span style="color: #008080;"> 71</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;"> 72</span> 
+<span style="color: #008080;"> 73</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;"> 74</span>                 <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception ex)
+</span><span style="color: #008080;"> 75</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;"> 76</span>                     SetMessage(<span style="color: #800000;">"</span><span style="color: #800000;">服务器异常:</span><span style="color: #800000;">"</span> +<span style="color: #000000;"> ex.Message);
+</span><span style="color: #008080;"> 77</span> 
+<span style="color: #008080;"> 78</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;"> 79</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 80</span> 
+<span style="color: #008080;"> 81</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 82</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;"> 83</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 关闭连接
+</span><span style="color: #008080;"> 84</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;"> 85</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="sender"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;"> 86</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="e"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;"> 87</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> btn_close_Click(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)
+</span><span style="color: #008080;"> 88</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 89</span>             <span style="color: #0000ff;">try</span>
+<span style="color: #008080;"> 90</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 91</span> <span style="color: #000000;">                socket.Shutdown(SocketShutdown.Both);
+</span><span style="color: #008080;"> 92</span> <span style="color: #000000;">                socket.Close();
+</span><span style="color: #008080;"> 93</span> <span style="color: #000000;">                thread.Abort();
+</span><span style="color: #008080;"> 94</span>                 SetMessage(<span style="color: #800000;">"</span><span style="color: #800000;">关闭与远程服务器的连接!</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 95</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 96</span>             <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception ex)
+</span><span style="color: #008080;"> 97</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 98</span>                 SetMessage(<span style="color: #800000;">"</span><span style="color: #800000;">异常</span><span style="color: #800000;">"</span> +<span style="color: #000000;"> ex.Message);
+</span><span style="color: #008080;"> 99</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">100</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">101</span> 
+<span style="color: #008080;">102</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> button1_Click(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)
+</span><span style="color: #008080;">103</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">104</span> <span style="color: #000000;">            socket.Send(Encoding.Default.GetBytes(txt_send.Text));
+</span><span style="color: #008080;">105</span> <span style="color: #000000;">            txt_send.Clear();
+</span><span style="color: #008080;">106</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">107</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">108</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 添加信息
+</span><span style="color: #008080;">109</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">110</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="msg"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;">111</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> SetMessage(<span style="color: #0000ff;">string</span><span style="color: #000000;"> msg)
+</span><span style="color: #008080;">112</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">113</span>             richTextBox1.Invoke(<span style="color: #0000ff;">new</span> Action(() =&gt; { richTextBox1.AppendText(msg+<span style="color: #800000;">"</span><span style="color: #800000;">\r\n</span><span style="color: #800000;">"</span><span style="color: #000000;">); }));
+</span><span style="color: #008080;">114</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">115</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">116</span> }</pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>接下来测试</p>
+<p>　　因为我们在本地测试,所以<span style="color: #000000;">使用回环地址为服务的监听地址(127.0.0.1),端口号范围(0~65535)但不能和正在使用的端口号冲突,所以尽量设置大一些的值,本次测试使用端口号 3333,</span></p>
+<p><span style="color: #000000;">　　这里总结一个查看正在使用的端口号的方法:&nbsp; </span></p>
+<p><span style="color: #000000;">　　win+R打开命令提示符,然后输入 netstat -a -n 回车,会列出当前正在使用的协议,内部地址,外部地址和状态</span></p>
+<p><span style="color: #000000;"><img src="./images/C#原生Socket服务器与客户端的实现4.png" alt="" /></span></p>
+<p><span style="color: #000000;">服务器端 输入ip ,输入端口,开启监听 ,客户端输入服务器ip和端口, 点击开始连接</span></p>
+<p><span style="color: #000000;"><img src="./images/C#原生Socket服务器与客户端的实现5.png" alt="" /></span></p>
+<p>客户端</p>
+<p><span style="color: #000000;"><img src="./images/C#原生Socket服务器与客户端的实现6.png" alt="" /></span></p>
+<p>可以看到,客户端点击连接以后服务器已收到客户端的连接,并作出提示,并且将来访客户端的ip和端口号记录</p>
+<p>接下来测试 互相发送数据</p>
+<p><span style="color: #ff0000;">服务器给客户端发送数据</span>:</p>
+<p>从客户端列选择对应客户端ip,然后从下边textbox 输入要发送的数据,点击发送</p>
+<p>服务器:</p>
+<p><img src="./images/C#原生Socket服务器与客户端的实现7.png" alt="" /></p>
+<p>客户端:</p>
+<p><img src="./images/C#原生Socket服务器与客户端的实现8.png" alt="" /></p>
+<p><span style="color: #ff0000;">客户端给服务器发送数据:</span></p>
+<p><span style="color: #000000;">从客户端的textbox中输入要发送的数据,点击发送</span></p>
+<p><span style="color: #000000;">服务器:</span></p>
+<p><span style="color: #000000;"><img src="./images/C#原生Socket服务器与客户端的实现9.png" alt="" /></span></p>
+<p>&nbsp;</p>
+<p>客户端</p>
+<p><img src="./images/C#原生Socket服务器与客户端的实现10.png" alt="" /></p>
+<p><span style="color: #000000;">　　一般情况下,都不会是服务器与客户端一对一的数据交互,接下来 我们借助上边推荐的工具,测试一下多个客户端访问服务器</span></p>
+<p><span style="color: #000000;">　　首先在SocketTool上创建多个客户端,我们可以清楚的看到虽然创建多个客户端,但是端口号都不一样.</span></p>
+<p><span style="color: #000000;"><img src="./images/C#原生Socket服务器与客户端的实现11.png" alt="" /></span></p>
+<p><img src="./images/C#原生Socket服务器与客户端的实现12.png" alt="" /></p>
+<p>然后将这三个客户端全部连接服务器</p>
+<p><img src="./images/C#原生Socket服务器与客户端的实现13.png" alt="" /></p>
+<p><span style="color: #ff0000;">接下来测试数据交互</span></p>
+<p>三个客户端分别给服务器端发送111,222,333</p>
+<p>服务器</p>
+<p><img src="./images/C#原生Socket服务器与客户端的实现14.png" alt="" /></p>
+<p>服务器选择端口号为7156的客户端发送数据aaaa</p>
+<p>服务器</p>
+<p><img src="./images/C#原生Socket服务器与客户端的实现15.png" alt="" /></p>
+<p>客户端</p>
+<p><img src="./images/C#原生Socket服务器与客户端的实现16.png" alt="" /></p>
+<p>经过上面测试,简直完美(斜眼笑),果然,每做完一个东西所产生的成就感还是令人心情舒畅啊</p>
+<p>原生socket开发实现暂时结束,如果有遗忘的,后续更新补充,</p>
+<p>&nbsp;</p>
+<p>感谢各位客官阅读,拜谢(抱拳~)</p>
+<p>&nbsp;</p>
+<p><span style="color: #ff0000;"><span style="color: #000000;">接下来还要再写一篇</span> 使用Socket服务器程序框架实现SuperSocket实现服务器</span></p>
+<p>socket通讯的学习,这几篇博客对我帮助很大,书面感谢,我也在此记录一下,说不定以后忘了,在回来看看</p>
+<h1 class="postTitle"><span style="color: #800000; font-size: 18px;"><a id="cb_post_title_url" class="postTitle2" title="c#Socket编程(1)基本的属于和概念" href="https://www.cnblogs.com/IPrograming/archive/2012/10/10/CSharp_Socket_1.html" target="_blank">C# Socket编程(1)基本的术语和概念</a><a id="cb_post_title_url" class="postTitle2" href="https://www.cnblogs.com/IPrograming/archive/2012/10/10/CSharp_Socket_1.html"></a></span></h1>
+<h1 class="postTitle"><span style="font-size: 18px;"><a id="cb_post_title_url" class="postTitle2" title="c#Socket编程(2)识别网络主机" href="https://www.cnblogs.com/IPrograming/archive/2012/10/11/CSharp_Socket_2.html" target="_blank">C# Socket编程(2)识别网络主机</a></span></h1>
+<h1 class="postTitle"><span style="font-size: 18px;"><a id="cb_post_title_url" class="postTitle2" title="c#Socket编程(3)编码和解码" href="https://www.cnblogs.com/IPrograming/archive/2012/10/13/CSharp_Socket_3.html" target="_blank">C# Socket编程(3)编码和解码</a></span></h1>
+<h1 class="postTitle"><span style="font-size: 18px;"><a id="cb_post_title_url" class="postTitle2" title="c#Socket编程(4)初识Socket和数据流" href="https://www.cnblogs.com/IPrograming/archive/2012/10/15/CSharp_Socket_4.html" target="_blank">C# Socket编程(4)初识Socket和数据流</a></span></h1>
+<h1 class="postTitle"><span style="font-size: 18px;"><a id="cb_post_title_url" class="postTitle2" title="c#Socket编程(5)使用TCPSocket" href="https://www.cnblogs.com/IPrograming/archive/2012/10/18/CSharp_Socket_5.html" target="_blank">C# Socket编程(5)使用TCP Socket</a></span></h1>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

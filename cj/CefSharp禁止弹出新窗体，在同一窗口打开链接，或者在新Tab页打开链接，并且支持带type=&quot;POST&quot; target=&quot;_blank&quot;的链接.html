@@ -1,0 +1,887 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修CefSharp禁止弹出新窗体，在同一窗口打开链接，或者在新Tab页打开链接，并且支持带type=&quot;POST&quot; target=&quot;_blank&quot;的链接' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>CefSharp禁止弹出新窗体，在同一窗口打开链接，或者在新Tab页打开链接，并且支持带type=&quot;POST&quot; target=&quot;_blank&quot;的链接</center></div><div class='banquan'>原文出处:本文由博客园博主秋荷雨翔提供。<br/>
+原文连接:https://www.cnblogs.com/s0611163/p/12034090.html</div><br>
+    <p>&nbsp;说明：在同一窗口打开链接，只要稍加改造就可以实现，这里实现的是在新Tab页打开链接，并且支持带type="POST" target="_blank"的链接</p>
+<p>&nbsp;</p>
+<p>github和bitbucket上相关问题：</p>
+<p>1、WPF empty POST data when using custom popup&nbsp; &nbsp;&nbsp;<a href="https://github.com/cefsharp/CefSharp/issues/1267" target="_blank">https://github.com/cefsharp/CefSharp/issues/1267</a></p>
+<p>2、CefLifeSpanHandler, customized OnBeforePopup problem&nbsp; &nbsp;&nbsp;<a href="https://bitbucket.org/chromiumembedded/cef/issues/1949/" target="_blank">https://bitbucket.org/chromiumembedded/cef/issues/1949/</a></p>
+<p>&nbsp;</p>
+<p>解决(CefSharp版本75.1.143.0)：</p>
+<p><strong>一、实现IRequestHandler接口</strong></p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('02ca8aab-559b-46af-9b3b-387fb4607bd9')"><img id="code_img_closed_02ca8aab-559b-46af-9b3b-387fb4607bd9" class="code_img_closed" src="./images/CefSharp禁止弹出新窗体，在同一窗口打开链接，或者在新Tab页打开链接，并且支持带type=&quot;POST&quot; target=&quot;_blank&quot;的链接0.png" alt="" /><img id="code_img_opened_02ca8aab-559b-46af-9b3b-387fb4607bd9" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('02ca8aab-559b-46af-9b3b-387fb4607bd9',event)" src="./images/CefSharp禁止弹出新窗体，在同一窗口打开链接，或者在新Tab页打开链接，并且支持带type=&quot;POST&quot; target=&quot;_blank&quot;的链接1.png" alt="" />
+<div id="cnblogs_code_open_02ca8aab-559b-46af-9b3b-387fb4607bd9" class="cnblogs_code_hide">
+<pre><code><span style="color: #0000ff;">using</span><span style="color: #000000;"> CefSharp;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Collections.Generic;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Linq;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Text;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Threading.Tasks;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Security.Cryptography.X509Certificates;
+
+</span><span style="color: #0000ff;">namespace</span><span style="color: #000000;"> CefSharpDemo
+{
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> RequestHandler : IRequestHandler
+    {
+        </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> ExtChromiumBrowser _browser;
+
+        </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> RequestHandler(ExtChromiumBrowser browser)
+        {
+            _browser </span>=<span style="color: #000000;"> browser;
+        }
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">bool</span> GetAuthCredentials(IWebBrowser chromiumWebBrowser, IBrowser browser, <span style="color: #0000ff;">string</span> originUrl, <span style="color: #0000ff;">bool</span> isProxy, <span style="color: #0000ff;">string</span> host, <span style="color: #0000ff;">int</span> port, <span style="color: #0000ff;">string</span> realm, <span style="color: #0000ff;">string</span><span style="color: #000000;"> scheme, IAuthCallback callback)
+        {
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+        }
+
+        </span><span style="color: #0000ff;">public</span> IResourceRequestHandler GetResourceRequestHandler(IWebBrowser chromiumWebBrowser, IBrowser browser, IFrame frame, IRequest request, <span style="color: #0000ff;">bool</span> isNavigation, <span style="color: #0000ff;">bool</span> isDownload, <span style="color: #0000ff;">string</span> requestInitiator, <span style="color: #0000ff;">ref</span> <span style="color: #0000ff;">bool</span><span style="color: #000000;"> disableDefaultHandling)
+        {
+            </span><span style="color: #0000ff;">if</span> (request.Method.ToUpper() == <span style="color: #800000;">"</span><span style="color: #800000;">POST</span><span style="color: #800000;">"</span> &amp;&amp; request.PostData != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+            {
+                </span><span style="color: #0000ff;">if</span> (request.PostData.Elements.Count &gt; <span style="color: #800080;">0</span><span style="color: #000000;">)
+                {
+                    _browser.PostData </span>= <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">byte</span>[request.PostData.Elements[<span style="color: #800080;">0</span><span style="color: #000000;">].Bytes.Length];
+                    request.PostData.Elements[</span><span style="color: #800080;">0</span>].Bytes.CopyTo(_browser.PostData, <span style="color: #800080;">0</span><span style="color: #000000;">);
+                }
+            }
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+        }
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">bool</span> OnBeforeBrowse(IWebBrowser chromiumWebBrowser, IBrowser browser, IFrame frame, IRequest request, <span style="color: #0000ff;">bool</span> userGesture, <span style="color: #0000ff;">bool</span><span style="color: #000000;"> isRedirect)
+        {
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+        }
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">bool</span> OnCertificateError(IWebBrowser chromiumWebBrowser, IBrowser browser, CefErrorCode errorCode, <span style="color: #0000ff;">string</span><span style="color: #000000;"> requestUrl, ISslInfo sslInfo, IRequestCallback callback)
+        {
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+        }
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">bool</span> OnOpenUrlFromTab(IWebBrowser chromiumWebBrowser, IBrowser browser, IFrame frame, <span style="color: #0000ff;">string</span> targetUrl, WindowOpenDisposition targetDisposition, <span style="color: #0000ff;">bool</span><span style="color: #000000;"> userGesture)
+        {
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+        }
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> OnPluginCrashed(IWebBrowser chromiumWebBrowser, IBrowser browser, <span style="color: #0000ff;">string</span><span style="color: #000000;"> pluginPath)
+        {
+
+        }
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">bool</span> OnQuotaRequest(IWebBrowser chromiumWebBrowser, IBrowser browser, <span style="color: #0000ff;">string</span> originUrl, <span style="color: #0000ff;">long</span><span style="color: #000000;"> newSize, IRequestCallback callback)
+        {
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+        }
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> OnRenderProcessTerminated(IWebBrowser chromiumWebBrowser, IBrowser browser, CefTerminationStatus status)
+        {
+
+        }
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> OnRenderViewReady(IWebBrowser chromiumWebBrowser, IBrowser browser)
+        {
+
+        }
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">bool</span> OnSelectClientCertificate(IWebBrowser chromiumWebBrowser, IBrowser browser, <span style="color: #0000ff;">bool</span> isProxy, <span style="color: #0000ff;">string</span> host, <span style="color: #0000ff;">int</span><span style="color: #000000;"> port, X509Certificate2Collection certificates, ISelectClientCertificateCallback callback)
+        {
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+        }
+    }
+}</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p><strong>二、实现ILifeSpanHandler接口</strong></p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('95813b75-1a04-4dc4-b230-93b81a42685a')"><img id="code_img_closed_95813b75-1a04-4dc4-b230-93b81a42685a" class="code_img_closed" src="./images/CefSharp禁止弹出新窗体，在同一窗口打开链接，或者在新Tab页打开链接，并且支持带type=&quot;POST&quot; target=&quot;_blank&quot;的链接0.png" alt="" /><img id="code_img_opened_95813b75-1a04-4dc4-b230-93b81a42685a" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('95813b75-1a04-4dc4-b230-93b81a42685a',event)" src="./images/CefSharp禁止弹出新窗体，在同一窗口打开链接，或者在新Tab页打开链接，并且支持带type=&quot;POST&quot; target=&quot;_blank&quot;的链接1.png" alt="" />
+<div id="cnblogs_code_open_95813b75-1a04-4dc4-b230-93b81a42685a" class="cnblogs_code_hide">
+<pre><code><span style="color: #0000ff;">using</span><span style="color: #000000;"> CefSharp;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Collections.Generic;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Collections.Specialized;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Linq;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Runtime.InteropServices;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Text;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Threading;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Threading.Tasks;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Windows;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Windows.Interop;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> Utils;
+
+</span><span style="color: #0000ff;">namespace</span><span style="color: #000000;"> CefSharpDemo
+{
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> CefLifeSpanHandler : CefSharp.ILifeSpanHandler
+    {
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> LimitedTaskScheduler _scheduler = <span style="color: #0000ff;">new</span> LimitedTaskScheduler(<span style="color: #800080;">2</span><span style="color: #000000;">);
+
+        </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> CefLifeSpanHandler()
+        {
+
+        }
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">bool</span><span style="color: #000000;"> DoClose(IWebBrowser browserControl, CefSharp.IBrowser browser)
+        {
+            </span><span style="color: #0000ff;">if</span> (browser.IsDisposed ||<span style="color: #000000;"> browser.IsPopup)
+            {
+                </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+            }
+
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+        }
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> OnAfterCreated(IWebBrowser browserControl, IBrowser browser)
+        {
+
+        }
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> OnBeforeClose(IWebBrowser browserControl, IBrowser browser)
+        {
+        }
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">bool</span> OnBeforePopup(IWebBrowser browserControl, IBrowser browser, IFrame frame, <span style="color: #0000ff;">string</span> targetUrl, <span style="color: #0000ff;">string</span> targetFrameName, WindowOpenDisposition targetDisposition, <span style="color: #0000ff;">bool</span> userGesture, IPopupFeatures popupFeatures, IWindowInfo windowInfo, IBrowserSettings browserSettings, <span style="color: #0000ff;">ref</span> <span style="color: #0000ff;">bool</span> noJavascriptAccess, <span style="color: #0000ff;">out</span><span style="color: #000000;"> IWebBrowser newBrowser)
+        {
+            </span><span style="color: #0000ff;">var</span> chromiumWebBrowser =<span style="color: #000000;"> (ExtChromiumBrowser)browserControl;
+
+            chromiumWebBrowser.Dispatcher.Invoke(</span><span style="color: #0000ff;">new</span> Action(() =&gt;<span style="color: #000000;">
+            {
+                BrowserPopupWin win </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> BrowserPopupWin();
+                win.ShowInTaskbar </span>= <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+                win.Height </span>= <span style="color: #800080;">0</span><span style="color: #000000;">;
+                win.Width </span>= <span style="color: #800080;">0</span><span style="color: #000000;">;
+                win.Show();
+
+                IntPtr handle </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> WindowInteropHelper(win).Handle;
+                windowInfo.SetAsChild(handle);
+
+                _scheduler.Run(() </span>=&gt;<span style="color: #000000;">
+                {
+                    WaitUtil.Wait(() </span>=&gt;<span style="color: #000000;"> chromiumWebBrowser.PostData);
+
+                    IRequest request </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+                    </span><span style="color: #0000ff;">if</span> (chromiumWebBrowser.PostData != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+                    {
+                        request </span>=<span style="color: #000000;"> frame.CreateRequest();
+                        request.Url </span>=<span style="color: #000000;"> targetUrl;
+                        request.Method </span>= <span style="color: #800000;">"</span><span style="color: #800000;">POST</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+
+                        request.InitializePostData();
+                        </span><span style="color: #0000ff;">var</span> element =<span style="color: #000000;"> request.PostData.CreatePostDataElement();
+                        element.Bytes </span>=<span style="color: #000000;"> chromiumWebBrowser.PostData;
+                        request.PostData.AddElement(element);
+                        chromiumWebBrowser.PostData </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+                    }
+
+                    chromiumWebBrowser.Dispatcher.Invoke(</span><span style="color: #0000ff;">new</span> Action(() =&gt;<span style="color: #000000;">
+                    {
+                        NewWindowEventArgs e </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> NewWindowEventArgs(targetUrl, request);
+                        chromiumWebBrowser.OnNewWindow(e);
+                    }));
+
+                    chromiumWebBrowser.Dispatcher.Invoke(</span><span style="color: #0000ff;">new</span> Action(() =&gt;<span style="color: #000000;">
+                    {
+                        win.Close();
+                    }));
+                });
+            }));
+
+            newBrowser </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+        }
+
+    }
+}</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p><strong>三、扩展ChromiumWebBrowser</strong></p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('65075d79-213f-48a2-abc6-72bfd3944842')"><img id="code_img_closed_65075d79-213f-48a2-abc6-72bfd3944842" class="code_img_closed" src="./images/CefSharp禁止弹出新窗体，在同一窗口打开链接，或者在新Tab页打开链接，并且支持带type=&quot;POST&quot; target=&quot;_blank&quot;的链接0.png" alt="" /><img id="code_img_opened_65075d79-213f-48a2-abc6-72bfd3944842" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('65075d79-213f-48a2-abc6-72bfd3944842',event)" src="./images/CefSharp禁止弹出新窗体，在同一窗口打开链接，或者在新Tab页打开链接，并且支持带type=&quot;POST&quot; target=&quot;_blank&quot;的链接1.png" alt="" />
+<div id="cnblogs_code_open_65075d79-213f-48a2-abc6-72bfd3944842" class="cnblogs_code_hide">
+<pre><code><span style="color: #0000ff;">using</span><span style="color: #000000;"> CefSharp.Wpf;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Collections.Generic;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Linq;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Text;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Threading.Tasks;
+
+</span><span style="color: #0000ff;">namespace</span><span style="color: #000000;"> CefSharpDemo
+{
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> ExtChromiumBrowser : ChromiumWebBrowser
+    {
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">byte</span>[] PostData { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+
+        </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> ExtChromiumBrowser()
+            : </span><span style="color: #0000ff;">base</span><span style="color: #000000;">()
+        {
+            </span><span style="color: #0000ff;">this</span>.LifeSpanHandler = <span style="color: #0000ff;">new</span><span style="color: #000000;"> CefLifeSpanHandler();
+            </span><span style="color: #0000ff;">this</span>.DownloadHandler = <span style="color: #0000ff;">new</span> DownloadHandler(<span style="color: #0000ff;">this</span><span style="color: #000000;">);
+            </span><span style="color: #0000ff;">this</span>.MenuHandler = <span style="color: #0000ff;">new</span><span style="color: #000000;"> MenuHandler();
+            </span><span style="color: #0000ff;">this</span>.KeyboardHandler = <span style="color: #0000ff;">new</span><span style="color: #000000;"> KeyboardHandler();
+            </span><span style="color: #0000ff;">this</span>.RequestHandler = <span style="color: #0000ff;">new</span> RequestHandler(<span style="color: #0000ff;">this</span><span style="color: #000000;">);
+        }
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">event</span> EventHandler&lt;NewWindowEventArgs&gt;<span style="color: #000000;"> StartNewWindow;
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> OnNewWindow(NewWindowEventArgs e)
+        {
+            </span><span style="color: #0000ff;">if</span> (StartNewWindow != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+            {
+                StartNewWindow(</span><span style="color: #0000ff;">this</span><span style="color: #000000;">, e);
+            }
+        }
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> ClearHandlers()
+        {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">如果不清理Handler，会导致子进程CefSharp.BrowserSubprocess.exe无法释放</span>
+            <span style="color: #0000ff;">this</span>.LifeSpanHandler = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">this</span>.DownloadHandler = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">this</span>.MenuHandler = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">this</span>.KeyboardHandler = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+        }
+    }
+}</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p><strong>四、封装ExtChromiumBrowser(BrowserCtrl控件)</strong></p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('788f1d05-2f9e-4664-a960-795362557b6b')"><img id="code_img_closed_788f1d05-2f9e-4664-a960-795362557b6b" class="code_img_closed" src="./images/CefSharp禁止弹出新窗体，在同一窗口打开链接，或者在新Tab页打开链接，并且支持带type=&quot;POST&quot; target=&quot;_blank&quot;的链接0.png" alt="" /><img id="code_img_opened_788f1d05-2f9e-4664-a960-795362557b6b" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('788f1d05-2f9e-4664-a960-795362557b6b',event)" src="./images/CefSharp禁止弹出新窗体，在同一窗口打开链接，或者在新Tab页打开链接，并且支持带type=&quot;POST&quot; target=&quot;_blank&quot;的链接1.png" alt="" />
+<div id="cnblogs_code_open_788f1d05-2f9e-4664-a960-795362557b6b" class="cnblogs_code_hide">
+<pre><code><span style="color: #0000ff;">using</span><span style="color: #000000;"> CefSharp;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> CefSharp.Wpf;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Collections.Generic;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.ComponentModel;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.IO;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Linq;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Runtime.InteropServices;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Text;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Threading;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Threading.Tasks;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Windows;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Windows.Controls;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Windows.Data;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Windows.Documents;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Windows.Input;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Windows.Interop;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Windows.Media;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Windows.Media.Imaging;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Windows.Navigation;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Windows.Shapes;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> Utils;
+
+</span><span style="color: #0000ff;">namespace</span><span style="color: #000000;"> CefSharpDemo
+{
+    </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+    <span style="color: #808080;">///</span><span style="color: #008000;"> 浏览器用户控件
+    </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">partial</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> BrowserCtrl : UserControl, IDisposable
+    {
+        </span><span style="color: #0000ff;">#region</span> 外部方法
+        <span style="color: #008000;">/*</span><span style="color: #008000;">
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern IntPtr SetParent(IntPtr hWndChild, IntPtr hWndNewParent);
+        [DllImport("user32.dll", SetLastError = true)]
+        public static extern IntPtr FindWindowEx(IntPtr parentHandle, IntPtr childAfter, string className, string windowTitle);
+        [DllImport("user32.dll", SetLastError = true)]
+        public static extern int MoveWindow(IntPtr hWnd, int x, int y, int nWidth, int nHeight, bool BRePaint);
+        [DllImport("user32.dll", SetLastError = true)]
+        public static extern int CloseWindow(IntPtr hWnd);
+        [DllImport("User32.dll", EntryPoint = "GetWindowText")]
+        private static extern int GetWindowText(IntPtr hwnd, StringBuilder lpString, int nMaxCount);
+        </span><span style="color: #008000;">*/</span>
+        <span style="color: #0000ff;">#endregion</span>
+
+        <span style="color: #0000ff;">#region</span> 变量属性事件
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">bool</span> _isCefInited = <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">object</span> _lockObject = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">object</span><span style="color: #000000;">();
+
+        </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> JSObject _jsObject;
+
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">bool</span> _firstLoad = <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 在此事件中设置URL(此事件已在线程中执行，此事件已对错误情况进行处理)
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">event</span><span style="color: #000000;"> EventHandler SetUrlEvent;
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> URL
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> Url { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+
+        </span><span style="color: #0000ff;">public</span> IRequest Request { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 浏览器FrameLoadEnd事件
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">event</span><span style="color: #000000;"> EventHandler FrameLoadEnd;
+
+        </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> ExtChromiumBrowser _browser;
+
+        </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> ExtChromiumBrowser Browser
+        {
+            </span><span style="color: #0000ff;">get</span><span style="color: #000000;">
+            {
+                WaitUtil.Wait(() </span>=&gt; <span style="color: #0000ff;">this</span>._browser != <span style="color: #0000ff;">null</span> &amp;&amp; <span style="color: #0000ff;">this</span>._browser.IsInitialized &amp;&amp;<span style="color: #000000;"> _isCefInited);
+
+                </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">._browser;
+            }
+        }
+
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> LimitedTaskScheduler _scheduler = <span style="color: #0000ff;">new</span> LimitedTaskScheduler(<span style="color: #800080;">2</span><span style="color: #000000;">);
+        </span><span style="color: #0000ff;">#endregion</span>
+
+        <span style="color: #0000ff;">#region</span> 构造函数
+        <span style="color: #0000ff;">public</span><span style="color: #000000;"> BrowserCtrl()
+        {
+            InitializeComponent();
+            </span><span style="color: #0000ff;">if</span> (DesignerProperties.GetIsInDesignMode(<span style="color: #0000ff;">this</span>)) <span style="color: #0000ff;">return</span><span style="color: #000000;">;
+
+            </span><span style="color: #0000ff;">this</span>.Loaded +=<span style="color: #000000;"> BrowserCtrl_Loaded;
+
+            </span><span style="color: #0000ff;">lock</span><span style="color: #000000;"> (_lockObject)
+            {
+                </span><span style="color: #0000ff;">if</span> (!<span style="color: #000000;">_isCefInited)
+                {
+                    _isCefInited </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+                    InitCef();</span><span style="color: #008000;">//</span><span style="color: #008000;">初始化CefSharp</span>
+<span style="color: #000000;">                }
+            }
+
+            _browser </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> ExtChromiumBrowser();
+            BindBrowser(_browser);
+            grid.Children.Add(_browser);
+        }
+        </span><span style="color: #0000ff;">#endregion</span>
+
+        <span style="color: #0000ff;">#region</span> BrowserCtrl_Loaded
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> BrowserCtrl_Loaded(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, RoutedEventArgs e)
+        {
+
+        }
+        </span><span style="color: #0000ff;">#endregion</span>
+
+        <span style="color: #0000ff;">#region</span> SetMapCtrl
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 设置Map控件接口，用于C#和JS互操作
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> SetMapCtrl(IMapCtrl mapCtrl)
+        {
+            _jsObject.MapCtrl </span>=<span style="color: #000000;"> mapCtrl;
+        }
+        </span><span style="color: #0000ff;">#endregion</span>
+
+        <span style="color: #0000ff;">#region</span> Dispose 释放资源
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 释放资源
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> Dispose()
+        {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">如果有弹出窗口则先释放它
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">foreach (UIElement item in grid.Children)
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">{
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">    if (item is BrowserContainer)
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">    {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">        (item as BrowserContainer).ClearResource();
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">    }
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">}</span>
+<span style="color: #000000;">
+            _browser.ClearHandlers();
+            </span><span style="color: #0000ff;">if</span> (_browser != <span style="color: #0000ff;">null</span> &amp;&amp; !<span style="color: #000000;">_browser.IsDisposed)
+            {
+                _browser.Dispose();
+            }
+        }
+        </span><span style="color: #0000ff;">#endregion</span>
+
+        <span style="color: #0000ff;">#region</span> Load
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> Load(<span style="color: #0000ff;">string</span><span style="color: #000000;"> url)
+        {
+            </span><span style="color: #0000ff;">if</span> (!<span style="color: #0000ff;">string</span><span style="color: #000000;">.IsNullOrWhiteSpace(url))
+            {
+                loadingWait.Visibility </span>=<span style="color: #000000;"> Visibility.Visible;
+                Url </span>=<span style="color: #000000;"> url;
+                _scheduler.Run(() </span>=&gt;<span style="color: #000000;">
+                {
+                    </span><span style="color: #0000ff;">#region</span> Wait<span style="color: #000000;">
+                    WaitUtil.Wait(() </span>=&gt;<span style="color: #000000;">
+                    {
+                        </span><span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span>._browser == <span style="color: #0000ff;">null</span>) <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+                        </span><span style="color: #0000ff;">if</span> (!<span style="color: #0000ff;">this</span>._browser.IsInitialized) <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+                        </span><span style="color: #0000ff;">if</span> (!_isCefInited) <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+                        </span><span style="color: #0000ff;">bool</span> isBrowserInitialized = <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+                        </span><span style="color: #0000ff;">this</span>.Dispatcher.Invoke(() =&gt;<span style="color: #000000;">
+                        {
+                            isBrowserInitialized </span>= <span style="color: #0000ff;">this</span><span style="color: #000000;">._browser.IsBrowserInitialized;
+                        });
+                        </span><span style="color: #0000ff;">if</span> (!isBrowserInitialized) <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+                        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+                    });
+                    </span><span style="color: #0000ff;">#endregion</span><span style="color: #000000;">
+
+                    _browser.Load(Url);
+                });
+            }
+        }
+        </span><span style="color: #0000ff;">#endregion</span>
+
+        <span style="color: #0000ff;">#region</span> LoadUrl
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> LoadUrl()
+        {
+            </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (_firstLoad)
+            {
+                _firstLoad </span>= <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+
+                _scheduler.Run(() </span>=&gt;<span style="color: #000000;">
+                {
+                    </span><span style="color: #0000ff;">#region</span> Wait<span style="color: #000000;">
+                    WaitUtil.Wait(() </span>=&gt;<span style="color: #000000;">
+                    {
+                        </span><span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span>._browser == <span style="color: #0000ff;">null</span>) <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+                        </span><span style="color: #0000ff;">if</span> (!<span style="color: #0000ff;">this</span>._browser.IsInitialized) <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+                        </span><span style="color: #0000ff;">if</span> (!_isCefInited) <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+                        </span><span style="color: #0000ff;">bool</span> isBrowserInitialized = <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+                        </span><span style="color: #0000ff;">this</span>.Dispatcher.Invoke(() =&gt;<span style="color: #000000;">
+                        {
+                            isBrowserInitialized </span>= <span style="color: #0000ff;">this</span><span style="color: #000000;">._browser.IsBrowserInitialized;
+                        });
+                        </span><span style="color: #0000ff;">if</span> (!isBrowserInitialized) <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+                        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+                    });
+                    </span><span style="color: #0000ff;">#endregion</span>
+
+                    <span style="color: #0000ff;">if</span> (Url == <span style="color: #0000ff;">null</span> &amp;&amp; SetUrlEvent != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+                    {
+                        </span><span style="color: #0000ff;">try</span><span style="color: #000000;">
+                        {
+                            SetUrlEvent(</span><span style="color: #0000ff;">this</span>, <span style="color: #0000ff;">null</span><span style="color: #000000;">);
+                        }
+                        </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception ex)
+                        {
+                            LogUtil.Error(ex, </span><span style="color: #800000;">"</span><span style="color: #800000;">BrowserCtrl LoadUrl error 获取URL失败</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                        }
+                    }
+                    </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+                    {
+                        </span><span style="color: #0000ff;">this</span>.Dispatcher.Invoke(<span style="color: #0000ff;">new</span> Action(() =&gt;<span style="color: #000000;">
+                        {
+                            loadingWait.Visibility </span>=<span style="color: #000000;"> Visibility.Collapsed;
+                        }));
+                    }
+
+                    </span><span style="color: #0000ff;">if</span> (Url != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+                    {
+                        </span><span style="color: #0000ff;">try</span><span style="color: #000000;">
+                        {
+                            </span><span style="color: #0000ff;">if</span> (Request == <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+                            {
+                                _browser.Load(Url);
+                            }
+                            </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+                            {
+                                _browser.Load(Url);
+                                _browser.GetMainFrame().LoadRequest(Request);
+                                Request </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+                            }
+                        }
+                        </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception ex)
+                        {
+                            LogUtil.Error(ex, </span><span style="color: #800000;">"</span><span style="color: #800000;">BrowserCtrl LoadUrl error Load URL失败</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                        }
+                    }
+                    </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+                    {
+                        </span><span style="color: #0000ff;">this</span>.Dispatcher.Invoke(<span style="color: #0000ff;">new</span> Action(() =&gt;<span style="color: #000000;">
+                        {
+                            loadingWait.Visibility </span>=<span style="color: #000000;"> Visibility.Collapsed;
+                        }));
+                    }
+                });
+            }
+        }
+        </span><span style="color: #0000ff;">#endregion</span>
+
+        <span style="color: #0000ff;">#region</span> BindBrowser
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> BindBrowser(ExtChromiumBrowser browser)
+        {
+            _jsObject </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> JSObject();
+            browser.RegisterJsObject(</span><span style="color: #800000;">"</span><span style="color: #800000;">jsObj</span><span style="color: #800000;">"</span>, _jsObject, <span style="color: #0000ff;">new</span> CefSharp.BindingOptions { CamelCaseJavascriptNames = <span style="color: #0000ff;">false</span><span style="color: #000000;"> });
+
+            browser.IsBrowserInitializedChanged </span>+= (ss, ee) =&gt;<span style="color: #000000;">
+            {
+                LoadUrl();
+            };
+            browser.FrameLoadStart </span>+= (ss, ee) =&gt;<span style="color: #000000;">
+            {
+                </span><span style="color: #0000ff;">this</span>.Dispatcher.BeginInvoke(<span style="color: #0000ff;">new</span> Action(() =&gt;<span style="color: #000000;">
+                {
+                    (ss </span><span style="color: #0000ff;">as</span><span style="color: #000000;"> ExtChromiumBrowser).Focus();
+                }));
+            };
+            browser.FrameLoadEnd </span>+= (ss, ee) =&gt;<span style="color: #000000;">
+            {
+                </span><span style="color: #0000ff;">this</span>.Dispatcher.BeginInvoke(<span style="color: #0000ff;">new</span> Action(() =&gt;<span style="color: #000000;">
+                {
+                    loadingWait.Visibility </span>=<span style="color: #000000;"> Visibility.Collapsed;
+                }));
+                </span><span style="color: #0000ff;">if</span> (FrameLoadEnd != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+                {
+                    FrameLoadEnd(</span><span style="color: #0000ff;">null</span>, <span style="color: #0000ff;">null</span><span style="color: #000000;">);
+                }
+            };
+            browser.KeyDown </span>+= (ss, ee) =&gt;<span style="color: #000000;">
+            {
+                </span><span style="color: #0000ff;">if</span> (ee.Key ==<span style="color: #000000;"> Key.F5)
+                {
+                    </span><span style="color: #0000ff;">try</span><span style="color: #000000;">
+                    {
+                        browser.Reload();
+                    }
+                    </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception ex)
+                    {
+                        LogUtil.Error(ex, </span><span style="color: #800000;">"</span><span style="color: #800000;">ExtChromiumBrowser Reload error</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                    }
+                }
+            };
+            browser.PreviewTextInput </span>+= (o, e) =&gt;<span style="color: #000000;">
+            {
+                </span><span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">var</span> character <span style="color: #0000ff;">in</span><span style="color: #000000;"> e.Text)
+                {
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 把每个字符向浏览器组件发送一遍</span>
+                    browser.GetBrowser().GetHost().SendKeyEvent((<span style="color: #0000ff;">int</span>)WM.CHAR, (<span style="color: #0000ff;">int</span>)character, <span style="color: #800080;">0</span><span style="color: #000000;">);
+                }
+
+                </span><span style="color: #008000;">//</span><span style="color: #008000;"> 不让cef自己处理</span>
+                e.Handled = <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+            };
+            browser.LoadError </span>+= (s, e) =&gt;<span style="color: #000000;">
+            {
+                </span><span style="color: #0000ff;">this</span>.Dispatcher.BeginInvoke(<span style="color: #0000ff;">new</span> Action(() =&gt;<span style="color: #000000;">
+                {
+                    loadingWait.Visibility </span>=<span style="color: #000000;"> Visibility.Collapsed;
+                }));
+            };
+        }
+        </span><span style="color: #0000ff;">#endregion</span>
+
+        <span style="color: #0000ff;">#region</span> RegisterJsObject
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> RegisterJsObject(<span style="color: #0000ff;">string</span> name, <span style="color: #0000ff;">object</span> objectToBind, BindingOptions options = <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+        {
+            </span><span style="color: #0000ff;">try</span><span style="color: #000000;">
+            {
+                </span><span style="color: #0000ff;">if</span> (_browser != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+                {
+                    _browser.RegisterJsObject(name, objectToBind, options);
+                }
+            }
+            </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception ex)
+            {
+                LogUtil.Error(ex, </span><span style="color: #800000;">"</span><span style="color: #800000;">BrowserCtrl RegisterJsObject 错误</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            }
+        }
+        </span><span style="color: #0000ff;">#endregion</span>
+
+        <span style="color: #0000ff;">#region</span> 初始化CefSharp
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> InitCef()
+        {
+            </span><span style="color: #0000ff;">string</span> cefsharpFolder = <span style="color: #800000;">"</span><span style="color: #800000;">CefSharp</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+
+            </span><span style="color: #0000ff;">var</span> settings = <span style="color: #0000ff;">new</span><span style="color: #000000;"> CefSettings();
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">The location where cache data will be stored on disk. If empty an in-memory cache will be used for some features and a temporary disk cache for others.
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">HTML5 databases such as localStorage will only persist across sessions if a cache path is specified. </span>
+            settings.CachePath = cefsharpFolder + <span style="color: #800000;">"</span><span style="color: #800000;">/cache</span><span style="color: #800000;">"</span>; <span style="color: #008000;">//</span><span style="color: #008000;">设置cache目录</span>
+<span style="color: #000000;">
+            settings.MultiThreadedMessageLoop </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+            CefSharpSettings.FocusedNodeChangedEnabled </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+            CefSharpSettings.LegacyJavascriptBindingEnabled </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+            CefSharpSettings.ShutdownOnExit </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+            CefSharpSettings.SubprocessExitIfParentProcessClosed </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+
+            </span><span style="color: #0000ff;">string</span> logDir = AppDomain.CurrentDomain.BaseDirectory + cefsharpFolder + <span style="color: #800000;">"</span><span style="color: #800000;">/log/</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">if</span> (!<span style="color: #000000;">Directory.Exists(logDir))
+            {
+                Directory.CreateDirectory(logDir);
+            }
+
+            settings.BrowserSubprocessPath </span>= AppDomain.CurrentDomain.BaseDirectory + cefsharpFolder + <span style="color: #800000;">"</span><span style="color: #800000;">/CefSharp.BrowserSubprocess.exe</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            settings.LogFile </span>= logDir + DateTime.Now.ToString(<span style="color: #800000;">"</span><span style="color: #800000;">yyyyMMdd</span><span style="color: #800000;">"</span>) + <span style="color: #800000;">"</span><span style="color: #800000;">.log</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            settings.LocalesDirPath </span>= AppDomain.CurrentDomain.BaseDirectory + cefsharpFolder + <span style="color: #800000;">"</span><span style="color: #800000;">/locales</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            settings.CefCommandLineArgs.Add(</span><span style="color: #800000;">"</span><span style="color: #800000;">disable-gpu</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">1</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            settings.CefCommandLineArgs.Add(</span><span style="color: #800000;">"</span><span style="color: #800000;">enable-media-stream</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">1</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+
+            </span><span style="color: #0000ff;">if</span> (!Cef.Initialize(settings, performDependencyCheck: <span style="color: #0000ff;">true</span>, browserProcessHandler: <span style="color: #0000ff;">new</span><span style="color: #000000;"> BrowserProcessHandler()))
+            {
+                </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> Exception(<span style="color: #800000;">"</span><span style="color: #800000;">Unable to Initialize Cef</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            }
+        }
+        </span><span style="color: #0000ff;">#endregion</span><span style="color: #000000;">
+
+    }
+}</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p><strong>五、MainWindow测试代码</strong></p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('b7df281f-42d6-4759-a6f0-48ca59653bbd')"><img id="code_img_closed_b7df281f-42d6-4759-a6f0-48ca59653bbd" class="code_img_closed" src="./images/CefSharp禁止弹出新窗体，在同一窗口打开链接，或者在新Tab页打开链接，并且支持带type=&quot;POST&quot; target=&quot;_blank&quot;的链接0.png" alt="" /><img id="code_img_opened_b7df281f-42d6-4759-a6f0-48ca59653bbd" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('b7df281f-42d6-4759-a6f0-48ca59653bbd',event)" src="./images/CefSharp禁止弹出新窗体，在同一窗口打开链接，或者在新Tab页打开链接，并且支持带type=&quot;POST&quot; target=&quot;_blank&quot;的链接1.png" alt="" />
+<div id="cnblogs_code_open_b7df281f-42d6-4759-a6f0-48ca59653bbd" class="cnblogs_code_hide">
+<pre><code><span style="color: #0000ff;">using</span><span style="color: #000000;"> CefSharp;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Collections.Generic;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.IO;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Linq;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Text;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Threading.Tasks;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Windows;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Windows.Controls;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Windows.Data;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Windows.Documents;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Windows.Input;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Windows.Media;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Windows.Media.Imaging;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Windows.Navigation;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Windows.Shapes;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> Utils;
+
+</span><span style="color: #0000ff;">namespace</span><span style="color: #000000;"> CefSharpDemo
+{
+    </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+    <span style="color: #808080;">///</span><span style="color: #008000;"> CefSharp Demo 窗体
+    </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">partial</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> MainWindow : Window
+    {
+        </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> MainWindow()
+        {
+            InitializeComponent();
+
+            tabControl.AddTabItemEvent </span>+=<span style="color: #000000;"> tabControl_AddTabItemEvent;
+            Application.Current.MainWindow </span>= <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+        }
+
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> tabControl_AddTabItemEvent(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)
+        {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">CreateTabItem("</span><span style="color: #008000; text-decoration: underline;">https://www.cnblogs.com/</span><span style="color: #008000;">");</span>
+            CreateTabItem(<span style="color: #800000;">"</span><span style="color: #800000;">file:///D:/_程序/CefSharpDemo/post.html</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 新增Tab页
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> CreateTabItem(<span style="color: #0000ff;">string</span> url = <span style="color: #0000ff;">null</span>, IRequest request = <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+        {
+            TabItem tabItem </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> TabItem();
+            tabItem.Header </span>= <span style="color: #800000;">"</span><span style="color: #800000;">新标签页</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            BrowserDemoCtrl ctrl </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> BrowserDemoCtrl();
+            ctrl.browserCtrl.Browser.StartNewWindow </span>+= (s, e) =&gt;<span style="color: #000000;">
+            {
+                CreateTabItem(e.TargetUrl, e.Request);
+            };
+            ctrl.browserCtrl.SetUrlEvent </span>+= (s, e) =&gt;<span style="color: #000000;">
+            {
+                ctrl.browserCtrl.Url </span>=<span style="color: #000000;"> url;
+                ctrl.browserCtrl.Request </span>=<span style="color: #000000;"> request;
+            };
+            tabItem.Content </span>=<span style="color: #000000;"> ctrl;
+            tabControl.Items.Add(tabItem);
+            tabControl.SelectedItem </span>=<span style="color: #000000;"> tabItem;
+            ScrollViewer scrollViewer </span>= tabControl.Template.FindName(<span style="color: #800000;">"</span><span style="color: #800000;">scrollViewer</span><span style="color: #800000;">"</span>, tabControl) <span style="color: #0000ff;">as</span><span style="color: #000000;"> ScrollViewer;
+            scrollViewer.ScrollToRightEnd();
+        }
+
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> Window_Closed(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)
+        {
+            tabControl.CloseAllTabItem(); </span><span style="color: #008000;">//</span><span style="color: #008000;">关闭窗体清理资源
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">程序退出时删除cache</span>
+<span style="color: #000000;">            CefSharp.Cef.Shutdown();
+            </span><span style="color: #0000ff;">string</span> cachePath = AppDomain.CurrentDomain.BaseDirectory + <span style="color: #800000;">"</span><span style="color: #800000;">CefSharp\\cache</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (Directory.Exists(cachePath))
+            {
+                </span><span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">string</span> path <span style="color: #0000ff;">in</span><span style="color: #000000;"> Directory.GetDirectories(cachePath))
+                {
+                    Directory.Delete(path, </span><span style="color: #0000ff;">true</span><span style="color: #000000;">);
+                }
+                </span><span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">string</span> file <span style="color: #0000ff;">in</span><span style="color: #000000;"> Directory.GetFiles(cachePath))
+                {
+                    </span><span style="color: #0000ff;">if</span> (!file.ToLower().Contains(<span style="color: #800000;">"</span><span style="color: #800000;">cookies</span><span style="color: #800000;">"</span><span style="color: #000000;">))
+                    {
+                        File.Delete(file);
+                    }
+                }
+            }
+        }
+    }
+}</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p><strong>&nbsp;六、测试html代码post.html</strong></p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('d66f1059-1695-4833-9291-9a3f3617cfe1')"><img id="code_img_closed_d66f1059-1695-4833-9291-9a3f3617cfe1" class="code_img_closed" src="./images/CefSharp禁止弹出新窗体，在同一窗口打开链接，或者在新Tab页打开链接，并且支持带type=&quot;POST&quot; target=&quot;_blank&quot;的链接0.png" alt="" /><img id="code_img_opened_d66f1059-1695-4833-9291-9a3f3617cfe1" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('d66f1059-1695-4833-9291-9a3f3617cfe1',event)" src="./images/CefSharp禁止弹出新窗体，在同一窗口打开链接，或者在新Tab页打开链接，并且支持带type=&quot;POST&quot; target=&quot;_blank&quot;的链接1.png" alt="" />
+<div id="cnblogs_code_open_d66f1059-1695-4833-9291-9a3f3617cfe1" class="cnblogs_code_hide">
+<pre><code><span style="color: #0000ff;">&lt;!</span><span style="color: #ff00ff;">DOCTYPE html</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">html</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">head</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">title</span><span style="color: #0000ff;">&gt;</span>CefSharpDemo<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">title</span><span style="color: #0000ff;">&gt;</span>
+
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">meta </span><span style="color: #ff0000;">charset</span><span style="color: #0000ff;">="utf-8"</span> <span style="color: #0000ff;">/&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">meta </span><span style="color: #ff0000;">http-equiv</span><span style="color: #0000ff;">="X-UA-Compatible"</span><span style="color: #ff0000;"> content</span><span style="color: #0000ff;">="IE=edge"</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">meta </span><span style="color: #ff0000;">name</span><span style="color: #0000ff;">="viewport"</span><span style="color: #ff0000;"> content</span><span style="color: #0000ff;">="width=device-width, initial-scale=1"</span><span style="color: #0000ff;">&gt;</span>
+
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">style </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="text/css"</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">style</span><span style="color: #0000ff;">&gt;</span>
+
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="text/javascript"</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">head</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">body</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #008000;">&lt;!--</span><span style="color: #008000;">enctype="multipart/form-data"</span><span style="color: #008000;">--&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">form </span><span style="color: #ff0000;">method</span><span style="color: #0000ff;">="post"</span><span style="color: #ff0000;"> action</span><span style="color: #0000ff;">="http://localhost:1209/netcms/"</span><span style="color: #ff0000;"> target</span><span style="color: #0000ff;">="_blank"</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">span</span><span style="color: #0000ff;">&gt;</span>name:<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">span</span><span style="color: #0000ff;">&gt;&lt;</span><span style="color: #800000;">input </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="text"</span><span style="color: #ff0000;"> name</span><span style="color: #0000ff;">="name"</span><span style="color: #ff0000;"> value</span><span style="color: #0000ff;">="测试名称"</span> <span style="color: #0000ff;">/&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">span</span><span style="color: #0000ff;">&gt;</span>code:<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">span</span><span style="color: #0000ff;">&gt;&lt;</span><span style="color: #800000;">input </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="text"</span><span style="color: #ff0000;"> name</span><span style="color: #0000ff;">="code"</span><span style="color: #ff0000;"> value</span><span style="color: #0000ff;">="测试编码"</span> <span style="color: #0000ff;">/&gt;</span>
+
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">button </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="submit"</span><span style="color: #0000ff;">&gt;</span>Post提交<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">button</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">form</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">body</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">html</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p><strong>七、测试后台代码</strong></p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('2084d046-d812-4db0-b99d-9822f0866415')"><img id="code_img_closed_2084d046-d812-4db0-b99d-9822f0866415" class="code_img_closed" src="./images/CefSharp禁止弹出新窗体，在同一窗口打开链接，或者在新Tab页打开链接，并且支持带type=&quot;POST&quot; target=&quot;_blank&quot;的链接0.png" alt="" /><img id="code_img_opened_2084d046-d812-4db0-b99d-9822f0866415" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('2084d046-d812-4db0-b99d-9822f0866415',event)" src="./images/CefSharp禁止弹出新窗体，在同一窗口打开链接，或者在新Tab页打开链接，并且支持带type=&quot;POST&quot; target=&quot;_blank&quot;的链接1.png" alt="" />
+<div id="cnblogs_code_open_2084d046-d812-4db0-b99d-9822f0866415" class="cnblogs_code_hide">
+<pre><code><span style="color: #0000ff;">public</span><span style="color: #000000;"> ActionResult index()
+{
+    </span><span style="color: #0000ff;">string</span> name = Request.Params[<span style="color: #800000;">"</span><span style="color: #800000;">name</span><span style="color: #800000;">"</span><span style="color: #000000;">];
+    </span><span style="color: #0000ff;">string</span> code = Request.Params[<span style="color: #800000;">"</span><span style="color: #800000;">code</span><span style="color: #800000;">"</span><span style="color: #000000;">];
+
+    ViewBag.name </span>=<span style="color: #000000;"> name;
+    ViewBag.code </span>=<span style="color: #000000;"> code;
+
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> View();
+}</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p><strong>八、测试前台cshtml代码</strong></p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('891b9de3-f763-48eb-a427-7f5814676db2')"><img id="code_img_closed_891b9de3-f763-48eb-a427-7f5814676db2" class="code_img_closed" src="./images/CefSharp禁止弹出新窗体，在同一窗口打开链接，或者在新Tab页打开链接，并且支持带type=&quot;POST&quot; target=&quot;_blank&quot;的链接0.png" alt="" /><img id="code_img_opened_891b9de3-f763-48eb-a427-7f5814676db2" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('891b9de3-f763-48eb-a427-7f5814676db2',event)" src="./images/CefSharp禁止弹出新窗体，在同一窗口打开链接，或者在新Tab页打开链接，并且支持带type=&quot;POST&quot; target=&quot;_blank&quot;的链接1.png" alt="" />
+<div id="cnblogs_code_open_891b9de3-f763-48eb-a427-7f5814676db2" class="cnblogs_code_hide">
+<pre><code><span style="color: #000000;">@using Models;
+@{
+    Layout = "~/Views/Shared/_SiteLayout.cshtml";
+}
+
+</span><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">style</span><span style="color: #0000ff;">="font-size:50px; height:1200px;"</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">span</span><span style="color: #0000ff;">&gt;</span>name:<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">span</span><span style="color: #0000ff;">&gt;&lt;</span><span style="color: #800000;">span</span><span style="color: #0000ff;">&gt;</span>@ViewBag.name<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">span</span><span style="color: #0000ff;">&gt;&lt;</span><span style="color: #800000;">br </span><span style="color: #0000ff;">/&gt;&lt;</span><span style="color: #800000;">span</span><span style="color: #0000ff;">&gt;</span>code:<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">span</span><span style="color: #0000ff;">&gt;&lt;</span><span style="color: #800000;">span</span><span style="color: #0000ff;">&gt;</span>@ViewBag.code<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">span</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp;</p>
+<p><strong>九：关键代码段：</strong></p>
+<p><strong>1、RequestHandler类中获取并保存PostData</strong></p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('aba38203-a3d9-49e1-80f2-308d08f80545')"><img id="code_img_closed_aba38203-a3d9-49e1-80f2-308d08f80545" class="code_img_closed" src="./images/CefSharp禁止弹出新窗体，在同一窗口打开链接，或者在新Tab页打开链接，并且支持带type=&quot;POST&quot; target=&quot;_blank&quot;的链接0.png" alt="" /><img id="code_img_opened_aba38203-a3d9-49e1-80f2-308d08f80545" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('aba38203-a3d9-49e1-80f2-308d08f80545',event)" src="./images/CefSharp禁止弹出新窗体，在同一窗口打开链接，或者在新Tab页打开链接，并且支持带type=&quot;POST&quot; target=&quot;_blank&quot;的链接1.png" alt="" />
+<div id="cnblogs_code_open_aba38203-a3d9-49e1-80f2-308d08f80545" class="cnblogs_code_hide">
+<pre><code><span style="color: #0000ff;">public</span> IResourceRequestHandler GetResourceRequestHandler(IWebBrowser chromiumWebBrowser, IBrowser browser, IFrame frame, IRequest request, <span style="color: #0000ff;">bool</span> isNavigation, <span style="color: #0000ff;">bool</span> isDownload, <span style="color: #0000ff;">string</span> requestInitiator, <span style="color: #0000ff;">ref</span> <span style="color: #0000ff;">bool</span><span style="color: #000000;"> disableDefaultHandling)
+{
+    </span><span style="color: #0000ff;">if</span> (request.Method.ToUpper() == <span style="color: #800000;">"</span><span style="color: #800000;">POST</span><span style="color: #800000;">"</span> &amp;&amp; request.PostData != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+    {
+        </span><span style="color: #0000ff;">if</span> (request.PostData.Elements.Count &gt; <span style="color: #800080;">0</span><span style="color: #000000;">)
+        {
+            _browser.PostData </span>= <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">byte</span>[request.PostData.Elements[<span style="color: #800080;">0</span><span style="color: #000000;">].Bytes.Length];
+            request.PostData.Elements[</span><span style="color: #800080;">0</span>].Bytes.CopyTo(_browser.PostData, <span style="color: #800080;">0</span><span style="color: #000000;">);
+        }
+    }
+    </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+}</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p><strong>&nbsp;2、CefLifeSpanHandler类中创建IRequest</strong></p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('70a2a94e-c809-4380-86f6-ae3374829521')"><img id="code_img_closed_70a2a94e-c809-4380-86f6-ae3374829521" class="code_img_closed" src="./images/CefSharp禁止弹出新窗体，在同一窗口打开链接，或者在新Tab页打开链接，并且支持带type=&quot;POST&quot; target=&quot;_blank&quot;的链接0.png" alt="" /><img id="code_img_opened_70a2a94e-c809-4380-86f6-ae3374829521" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('70a2a94e-c809-4380-86f6-ae3374829521',event)" src="./images/CefSharp禁止弹出新窗体，在同一窗口打开链接，或者在新Tab页打开链接，并且支持带type=&quot;POST&quot; target=&quot;_blank&quot;的链接1.png" alt="" />
+<div id="cnblogs_code_open_70a2a94e-c809-4380-86f6-ae3374829521" class="cnblogs_code_hide">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">bool</span> OnBeforePopup(IWebBrowser browserControl, IBrowser browser, IFrame frame, <span style="color: #0000ff;">string</span> targetUrl, <span style="color: #0000ff;">string</span> targetFrameName, WindowOpenDisposition targetDisposition, <span style="color: #0000ff;">bool</span> userGesture, IPopupFeatures popupFeatures, IWindowInfo windowInfo, IBrowserSettings browserSettings, <span style="color: #0000ff;">ref</span> <span style="color: #0000ff;">bool</span> noJavascriptAccess, <span style="color: #0000ff;">out</span><span style="color: #000000;"> IWebBrowser newBrowser)
+{
+    </span><span style="color: #0000ff;">var</span> chromiumWebBrowser =<span style="color: #000000;"> (ExtChromiumBrowser)browserControl;
+
+    chromiumWebBrowser.Dispatcher.Invoke(</span><span style="color: #0000ff;">new</span> Action(() =&gt;<span style="color: #000000;">
+    {
+        BrowserPopupWin win </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> BrowserPopupWin();
+        win.ShowInTaskbar </span>= <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+        win.Height </span>= <span style="color: #800080;">0</span><span style="color: #000000;">;
+        win.Width </span>= <span style="color: #800080;">0</span><span style="color: #000000;">;
+        win.Show();
+
+        IntPtr handle </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> WindowInteropHelper(win).Handle;
+        windowInfo.SetAsChild(handle);
+
+        _scheduler.Run(() </span>=&gt;<span style="color: #000000;">
+        {
+            WaitUtil.Wait(() </span>=&gt;<span style="color: #000000;"> chromiumWebBrowser.PostData);
+
+            IRequest request </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">if</span> (chromiumWebBrowser.PostData != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+            {
+                request </span>=<span style="color: #000000;"> frame.CreateRequest();
+                request.Url </span>=<span style="color: #000000;"> targetUrl;
+                request.Method </span>= <span style="color: #800000;">"</span><span style="color: #800000;">POST</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+
+                request.InitializePostData();
+                </span><span style="color: #0000ff;">var</span> element =<span style="color: #000000;"> request.PostData.CreatePostDataElement();
+                element.Bytes </span>=<span style="color: #000000;"> chromiumWebBrowser.PostData;
+                request.PostData.AddElement(element);
+                chromiumWebBrowser.PostData </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+            }
+
+            chromiumWebBrowser.Dispatcher.Invoke(</span><span style="color: #0000ff;">new</span> Action(() =&gt;<span style="color: #000000;">
+            {
+                NewWindowEventArgs e </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> NewWindowEventArgs(targetUrl, request);
+                chromiumWebBrowser.OnNewWindow(e);
+            }));
+
+            chromiumWebBrowser.Dispatcher.Invoke(</span><span style="color: #0000ff;">new</span> Action(() =&gt;<span style="color: #000000;">
+            {
+                win.Close();
+            }));
+        });
+    }));
+
+    newBrowser </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+    </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+}</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p><span style="color: #ff0000;">说明：OnBeforePopup方法要return false，用BrowserPopupWin和windowInfo.SetAsChild方法弹出一个不可见的窗体，这样才能拿到PostData</span></p>
+<p><strong><span style="color: #000000;">3、在BrowserCtrl控件中用LoadRequest方法打开新的URL，并把post数据带过去</span></strong></p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('e187bca9-ae82-4c7d-a906-d8a7c980baf7')"><img id="code_img_closed_e187bca9-ae82-4c7d-a906-d8a7c980baf7" class="code_img_closed" src="./images/CefSharp禁止弹出新窗体，在同一窗口打开链接，或者在新Tab页打开链接，并且支持带type=&quot;POST&quot; target=&quot;_blank&quot;的链接0.png" alt="" /><img id="code_img_opened_e187bca9-ae82-4c7d-a906-d8a7c980baf7" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('e187bca9-ae82-4c7d-a906-d8a7c980baf7',event)" src="./images/CefSharp禁止弹出新窗体，在同一窗口打开链接，或者在新Tab页打开链接，并且支持带type=&quot;POST&quot; target=&quot;_blank&quot;的链接1.png" alt="" />
+<div id="cnblogs_code_open_e187bca9-ae82-4c7d-a906-d8a7c980baf7" class="cnblogs_code_hide">
+<pre><code><span style="color: #0000ff;">if</span> (Request == <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+{
+    _browser.Load(Url);
+}
+</span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+{
+    _browser.Load(Url);
+    _browser.GetMainFrame().LoadRequest(Request);
+    Request </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+}</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p><strong>&nbsp;</strong></p>
+<p><strong>十、效果图：</strong></p>
+<p><img src="./images/CefSharp禁止弹出新窗体，在同一窗口打开链接，或者在新Tab页打开链接，并且支持带type=&quot;POST&quot; target=&quot;_blank&quot;的链接22.png" alt="效果图" /></p>
+<p>&nbsp;</p>
+<p><strong><span style="font-size: 14pt; color: #ff0000;">完整代码下载：<a href="https://files-cdn.cnblogs.com/files/s0611163/CefSharpDemo.zip" target="_blank"><span style="color: #ff0000;">https://files-cdn.cnblogs.com/files/s0611163/CefSharpDemo.zip</span></a></span></strong></p>
+<p><span style="color: #000000; font-size: 16px;"><strong>源码说明：为了减少源码压缩包的大小，代码中没有依赖的CefSharp文件，请自己下载(使用x86版本)，用于测试的网页后台代码也没有，请自己制作测试后台</strong></span></p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

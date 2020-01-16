@@ -1,0 +1,1071 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C#委托与事件学习笔记' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C#委托与事件学习笔记</center></div><div class='banquan'>原文出处:本文由博客园博主缥缈的尘埃提供。<br/>
+原文连接:https://www.cnblogs.com/atomy/p/12075999.html</div><br>
+    <p>&nbsp; &nbsp;&nbsp;本笔记摘抄自：<a href="https://www.cnblogs.com/leslies2/archive/2012/03/22/2389318.html">https://www.cnblogs.com/leslies2/archive/2012/03/22/2389318.html</a>，记录一下学习过程以备后续查用。</p>
+<p>&nbsp; &nbsp;&nbsp;<strong>一、委托类型的来由</strong></p>
+<p>&nbsp; &nbsp; 在使用C语言的年代，整个项目中都充满着针指的身影，那时候流行使用函数指针来创建回调函数，使用回调可以把函数回调给程序中的另一个函数。但函数指针</p>
+<p>只是简单地把地址指向另一个函数，并不能传递其他额外信息。</p>
+<p>&nbsp; &nbsp; 在.NET中，大部分时间里都没有指针的身影，因为指针被封闭在内部函数当中。可是回调函数却依然存在，它是以<strong>委托</strong>的方式来完成的。委托可以被视为一个更</p>
+<p>高级的指针，它不仅仅能把地址指向另一个函数，而且还能传递参数、返回值等多个信息。系统还为委托对象自动生成了同步、异步的调用方式，开发人员使用</p>
+<p>BeginInvoke、EndInvoke方法就可以抛开Thread而直接使用多线程调用 。</p>
+<p>&nbsp; &nbsp;&nbsp;<strong>二、建立委托类</strong></p>
+<p>&nbsp; &nbsp;&nbsp;使用delegate可以直接创建委托类型，当进行系统编译时，系统就会自动生成此类型，可以使用delegate void MyDelegate()方式创建一个委托类。</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('e5b54ac5-3472-411f-8804-b93f2d0505c1')"><img id="code_img_closed_e5b54ac5-3472-411f-8804-b93f2d0505c1" class="code_img_closed" src="./images/C#委托与事件学习笔记0.png" alt="" /><img id="code_img_opened_e5b54ac5-3472-411f-8804-b93f2d0505c1" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('e5b54ac5-3472-411f-8804-b93f2d0505c1',event)" src="./images/C#委托与事件学习笔记1.png" alt="" />
+<div id="cnblogs_code_open_e5b54ac5-3472-411f-8804-b93f2d0505c1" class="cnblogs_code_hide">
+<pre><code>    <span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #0000ff;">delegate</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> MyDelegate();
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Hello World.</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            Console.Read();
+        }
+    }</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp; &nbsp;&nbsp;使用ILDASM.exe观察委托成员，可以看到它继承了System.MulticastDelegate类，并自动生成BeginInvoke、EndInvoke、Invoke 等三个常用方法。</p>
+<p><strong><img src="./images/C#委托与事件学习笔记2.png" alt="" /></strong></p>
+<p>&nbsp; &nbsp; Invoke 方法是用于同步调用委托对象的对应方法，而BeginInvoke、EndInvoke是用于以异步方式调用对应方法。</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('9d6645e0-41e1-4210-b7d9-bd92644eb5cb')"><img id="code_img_closed_9d6645e0-41e1-4210-b7d9-bd92644eb5cb" class="code_img_closed" src="./images/C#委托与事件学习笔记0.png" alt="" /><img id="code_img_opened_9d6645e0-41e1-4210-b7d9-bd92644eb5cb" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('9d6645e0-41e1-4210-b7d9-bd92644eb5cb',event)" src="./images/C#委托与事件学习笔记1.png" alt="" />
+<div id="cnblogs_code_open_9d6645e0-41e1-4210-b7d9-bd92644eb5cb" class="cnblogs_code_hide">
+<pre><code>    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> MyDelegate:MulticastDelegate
+     {
+         </span><span style="color: #008000;">//</span><span style="color: #008000;">同步调用委托方法</span>
+         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">virtual</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> Invoke();
+         </span><span style="color: #008000;">//</span><span style="color: #008000;">异步调用委托方法</span>
+         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">virtual</span> IAsyncResult BeginInvoke(AsyncCallback callback,<span style="color: #0000ff;">object</span><span style="color: #000000;"> state);
+         </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">virtual</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> EndInvoke(IAsyncResult result);
+     }</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp; &nbsp; MulticastDelegate是System.Delegate的子类，它是一个特殊类，编译器和其他工具可以从此类派生，但是自定义类不能显式地从此类进行派生。它支持多路</p>
+<p>广播委托，并拥有一个带有链接的委托列表。在调用多路广播委托时，系统将按照调用列表中的委托出现顺序来同步调用这些委托。</p>
+<p>&nbsp; &nbsp; MulticastDelegate具有两个常用属性：Method、Target。其中Method用于获取委托所表示的方法，Target用于获取当前调用的类实例。</p>
+<p>&nbsp; &nbsp; MulticastDelegate有以下几个常用方法：</p>
+<table class="memberListTable" border="0"><colgroup><col width="30%" /><col width="70%" /></colgroup>
+<tbody>
+<tr><th>方法名称</th><th>说明</th></tr>
+<tr>
+<td>&nbsp;Clone</td>
+<td>&nbsp; 创建委托的浅表副本。</td>
+</tr>
+<tr>
+<td>&nbsp;GetInvocationList</td>
+<td>&nbsp; 按照调用顺序返回此多路广播委托的调用列表。</td>
+</tr>
+<tr>
+<td>&nbsp;GetMethodImpl</td>
+<td>&nbsp;&nbsp;返回由当前的 MulticastDelegate 表示的静态方法。</td>
+</tr>
+<tr>
+<td>&nbsp;GetObjectData</td>
+<td>&nbsp; 用序列化该实例所需的所有数据填充&nbsp;SerializationInfo&nbsp;对象。</td>
+</tr>
+<tr>
+<td>&nbsp;MemberwiseClone</td>
+<td>&nbsp; 创建当前&nbsp;Object&nbsp;的浅表副本。</td>
+</tr>
+<tr>
+<td>&nbsp;RemoveImpl</td>
+<td>&nbsp; 调用列表中移除与指定委托相等的元素</td>
+</tr>
+</tbody>
+</table>
+<p>&nbsp; &nbsp; MulticastDelegate与Delegate给委托对象建立了强大的支持。</p>
+<p><strong>&nbsp; &nbsp; 三、委托使用方式</strong><strong>&nbsp; &nbsp;&nbsp;</strong></p>
+<p><strong>&nbsp; &nbsp; 3.1 简单的委托</strong></p>
+<p>&nbsp; &nbsp; 当建立委托对象时，委托的参数类型必须与委托方法相对应。只要向建立委托对象的构造函数中输入方法名称example.Method，委托就会直接绑定此方法。</p>
+<p>使用myDelegate.Invoke(string message)，就能显式调用委托方法。</p>
+<p>&nbsp; &nbsp; 但在实际的操作中，我们无须用到Invoke方法，而只要直接使用myDelegate(string message)，就能调用委托方法。</p>
+<p>&nbsp; &nbsp; 下面代码演示简单的委托：</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('38996813-af05-4625-99b4-5298790df78f')"><img id="code_img_closed_38996813-af05-4625-99b4-5298790df78f" class="code_img_closed" src="./images/C#委托与事件学习笔记0.png" alt="" /><img id="code_img_opened_38996813-af05-4625-99b4-5298790df78f" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('38996813-af05-4625-99b4-5298790df78f',event)" src="./images/C#委托与事件学习笔记1.png" alt="" />
+<div id="cnblogs_code_open_38996813-af05-4625-99b4-5298790df78f" class="cnblogs_code_hide">
+<pre><code>    <span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #0000ff;">delegate</span> <span style="color: #0000ff;">void</span> MyDelegateVoid(<span style="color: #0000ff;">string</span><span style="color: #000000;"> message);
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Example
+        {
+            </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> ShowMessage(<span style="color: #0000ff;">string</span><span style="color: #000000;"> message)
+            {
+                Console.WriteLine(message);
+            }
+        }
+
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            </span><span style="color: #0000ff;">#region</span> 简单的委托<span style="color: #000000;">
+            Example example </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Example();
+            MyDelegateVoid myDelegateVoid </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> MyDelegateVoid(example.ShowMessage);
+            myDelegateVoid(</span><span style="color: #800000;">"</span><span style="color: #800000;">Hello World</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            Console.Read();
+            </span><span style="color: #0000ff;">#endregion</span><span style="color: #000000;">
+        }
+    }</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp; &nbsp; 运行结果如下：</p>
+<p><img src="./images/C#委托与事件学习笔记7.png" alt="" /></p>
+<p><strong>&nbsp; &nbsp; 3.2 带返回值的委托</strong></p>
+<p>&nbsp; &nbsp; 当建立委托对象时，委托的返回值必须与委托方法相对应。</p>
+<p>&nbsp; &nbsp; 下面代码演示带返回值的委托：</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('11458d3c-9dcb-4ec4-a608-46c05b6d829e')"><img id="code_img_closed_11458d3c-9dcb-4ec4-a608-46c05b6d829e" class="code_img_closed" src="./images/C#委托与事件学习笔记0.png" alt="" /><img id="code_img_opened_11458d3c-9dcb-4ec4-a608-46c05b6d829e" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('11458d3c-9dcb-4ec4-a608-46c05b6d829e',event)" src="./images/C#委托与事件学习笔记1.png" alt="" />
+<div id="cnblogs_code_open_11458d3c-9dcb-4ec4-a608-46c05b6d829e" class="cnblogs_code_hide">
+<pre><code>    <span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #0000ff;">delegate</span> <span style="color: #0000ff;">string</span> MyDelegateString(<span style="color: #0000ff;">string</span><span style="color: #000000;"> message);
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Example
+        {
+            </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> SayHi(<span style="color: #0000ff;">string</span><span style="color: #000000;"> name)
+            {
+                </span><span style="color: #0000ff;">return</span> <span style="color: #800000;">"</span><span style="color: #800000;">Hello </span><span style="color: #800000;">"</span> +<span style="color: #000000;"> name;
+            }
+        }
+
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            </span><span style="color: #0000ff;">#region</span> 带返回值的委托<span style="color: #000000;">
+            Example example </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Example();
+            MyDelegateString myDelegateString </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> MyDelegateString(example.SayHi);
+            </span><span style="color: #0000ff;">string</span> message = myDelegateString(<span style="color: #800000;">"</span><span style="color: #800000;">Atomy</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            Console.WriteLine(message);
+            Console.Read();
+            </span><span style="color: #0000ff;">#endregion</span><span style="color: #000000;">
+        }
+    }</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp; &nbsp; 运行结果如下：</p>
+<p><img src="./images/C#委托与事件学习笔记10.png" alt="" /></p>
+<p><strong>&nbsp; &nbsp; 3.3 多路广播委托</strong></p>
+<p>&nbsp; &nbsp; 在第二节前曾经提过，委托类继承于MulticastDelegate，这使委托对象支持多路广播，即委托对象可以绑定多个方法。</p>
+<p>&nbsp; &nbsp; 下面代码演示多路广播委托：</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('ed9d70d6-b97a-43cf-bf8f-768ecd803fb2')"><img id="code_img_closed_ed9d70d6-b97a-43cf-bf8f-768ecd803fb2" class="code_img_closed" src="./images/C#委托与事件学习笔记0.png" alt="" /><img id="code_img_opened_ed9d70d6-b97a-43cf-bf8f-768ecd803fb2" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('ed9d70d6-b97a-43cf-bf8f-768ecd803fb2',event)" src="./images/C#委托与事件学习笔记1.png" alt="" />
+<div id="cnblogs_code_open_ed9d70d6-b97a-43cf-bf8f-768ecd803fb2" class="cnblogs_code_hide">
+<pre><code>    <span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #0000ff;">delegate</span> <span style="color: #0000ff;">double</span> MyDelegateDouble(<span style="color: #0000ff;">double</span><span style="color: #000000;"> message);
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Example
+        {
+            </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">double</span> Ordinary(<span style="color: #0000ff;">double</span><span style="color: #000000;"> price)
+            {
+                </span><span style="color: #0000ff;">double</span> price1 = <span style="color: #800080;">0.95</span> *<span style="color: #000000;"> price;
+                Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">Ordinary price={price1}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> price1;
+            }
+
+            </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">double</span> Favourable(<span style="color: #0000ff;">double</span><span style="color: #000000;"> price)
+            {
+                </span><span style="color: #0000ff;">double</span> price1 = <span style="color: #800080;">0.85</span> *<span style="color: #000000;"> price;
+                Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">Favourable price={price1}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> price1;
+            }
+        }
+
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            </span><span style="color: #0000ff;">#region</span> 多路广播委托<span style="color: #000000;">
+            Example example </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Example();
+            MyDelegateDouble myDelegateDouble </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> MyDelegateDouble(example.Ordinary);
+            myDelegateDouble </span>+= <span style="color: #0000ff;">new</span><span style="color: #000000;"> MyDelegateDouble(example.Favourable);
+            Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">Current Price={myDelegateDouble(100)}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            Console.Read();
+            </span><span style="color: #0000ff;">#endregion</span><span style="color: #000000;">
+        }
+    }</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp; &nbsp; 运行结果如下：</p>
+<p><img src="./images/C#委托与事件学习笔记13.png" alt="" /></p>
+<p><strong>&nbsp; &nbsp; 3.4 浅谈Observer模式（观察者模式）</strong></p>
+<p>&nbsp; &nbsp; 简单回顾一下Observer模式，它使用一对多的方式，可以让多个观察者同时关注同一个事物，并作出不同的响应。</p>
+<p>&nbsp; &nbsp; 如下例，Manager的底薪为基本工资的1.5倍，Assistant的底薪为基本工资的1.2倍。WageManager类的RegisterWorker方法与RemoveWorker方法可以</p>
+<p>用于注册和注销观察者，最后执行Execute方法可以对多个已注册的观察者同时输入参数。</p>
+<p><img src="./images/C#委托与事件学习笔记14.png" alt="" /></p>
+<p>&nbsp; &nbsp; 下面代码演示使用非委托方式实现观察者模式：</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('cdf2ea94-70ec-4aa0-9f11-81a975baceb8')"><img id="code_img_closed_cdf2ea94-70ec-4aa0-9f11-81a975baceb8" class="code_img_closed" src="./images/C#委托与事件学习笔记0.png" alt="" /><img id="code_img_opened_cdf2ea94-70ec-4aa0-9f11-81a975baceb8" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('cdf2ea94-70ec-4aa0-9f11-81a975baceb8',event)" src="./images/C#委托与事件学习笔记1.png" alt="" />
+<div id="cnblogs_code_open_cdf2ea94-70ec-4aa0-9f11-81a975baceb8" class="cnblogs_code_hide">
+<pre><code>    <span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #0000ff;">#region</span> 非委托观察者模式
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 工作者类
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">abstract</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Worker
+        {
+            </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">abstract</span> <span style="color: #0000ff;">double</span> GetWages(<span style="color: #0000ff;">double</span><span style="color: #000000;"> basicWages);
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 管理级类
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Manager : Worker
+        {
+            </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">override</span> <span style="color: #0000ff;">double</span> GetWages(<span style="color: #0000ff;">double</span><span style="color: #000000;"> basicWages)
+            {
+                </span><span style="color: #0000ff;">double</span> totalWages = <span style="color: #800080;">1.5</span> *<span style="color: #000000;"> basicWages;
+                Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">Manager's wages is:{totalWages}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> totalWages;
+            }
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 助理级类
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Assistant : Worker
+        {
+            </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">override</span> <span style="color: #0000ff;">double</span> GetWages(<span style="color: #0000ff;">double</span><span style="color: #000000;"> basicWages)
+            {
+                </span><span style="color: #0000ff;">double</span> totalWages = <span style="color: #800080;">1.2</span> *<span style="color: #000000;"> basicWages;
+                Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">Assistant's wages is:{totalWages}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> totalWages;
+            }
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 工资管理类
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> WageManager
+        {
+            IList</span>&lt;Worker&gt; workerList = <span style="color: #0000ff;">new</span> List&lt;Worker&gt;<span style="color: #000000;">();
+
+            </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> RegisterWorker(Worker worker)
+            {
+                workerList.Add(worker);
+            }
+
+            </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> RemoveWorker(Worker worker)
+            {
+                workerList.Remove(worker);
+            }
+
+            </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> Excute(<span style="color: #0000ff;">double</span><span style="color: #000000;"> basicWages)
+            {
+                </span><span style="color: #0000ff;">if</span> (workerList.Count != <span style="color: #800080;">0</span><span style="color: #000000;">)
+                {
+                    </span><span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">var</span> worker <span style="color: #0000ff;">in</span><span style="color: #000000;"> workerList)
+                    {
+                        worker.GetWages(basicWages);
+                    }
+                }
+            }
+        }
+        </span><span style="color: #0000ff;">#endregion</span>
+
+        <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            </span><span style="color: #0000ff;">#region</span> 非委托观察者模式<span style="color: #000000;">
+            WageManager wageManager </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> WageManager();
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">注册观察者</span>
+            wageManager.RegisterWorker(<span style="color: #0000ff;">new</span><span style="color: #000000;"> Manager());
+            wageManager.RegisterWorker(</span><span style="color: #0000ff;">new</span><span style="color: #000000;"> Assistant());
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">同时输入底薪3000元，分别进行计算。</span>
+            wageManager.Excute(<span style="color: #800080;">3000</span><span style="color: #000000;">);
+            Console.Read();
+            </span><span style="color: #0000ff;">#endregion</span><span style="color: #000000;">
+        }
+    }</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp; &nbsp; 运行结果如下：</p>
+<p><img src="./images/C#委托与事件学习笔记17.png" alt="" /></p>
+<p>&nbsp; &nbsp; 开发Observer模式时若借助委托，可以进一步简化开发过程。由于委托对象支持多路广播，所以可以把Worker类省略。在WageManager类中建立了一个</p>
+<p>委托对象wageHandler，通过Attach与Detach方法可以分别加入及取消委托。如果观察者想对事物进行监测，只需要加入一个委托对象即可。在第二节提过，</p>
+<p>委托的GetInvodationList方法能获取多路广播委托列表，在Execute方法中，就是通过多路广播委托列表去判断所绑定的委托数量是否为0。</p>
+<p>&nbsp; &nbsp;&nbsp;下面代码演示使用委托方式实现观察者模式：</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('24314e0d-d905-4201-9a2b-f06c830c2a8f')"><img id="code_img_closed_24314e0d-d905-4201-9a2b-f06c830c2a8f" class="code_img_closed" src="./images/C#委托与事件学习笔记0.png" alt="" /><img id="code_img_opened_24314e0d-d905-4201-9a2b-f06c830c2a8f" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('24314e0d-d905-4201-9a2b-f06c830c2a8f',event)" src="./images/C#委托与事件学习笔记1.png" alt="" />
+<div id="cnblogs_code_open_24314e0d-d905-4201-9a2b-f06c830c2a8f" class="cnblogs_code_hide">
+<pre><code>    <span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #0000ff;">#region</span> 委托观察者模式
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">delegate</span> <span style="color: #0000ff;">double</span> Handler(<span style="color: #0000ff;">double</span><span style="color: #000000;"> basicWages);
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Manager
+        {
+            </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">double</span> GetWages(<span style="color: #0000ff;">double</span><span style="color: #000000;"> basicWages)
+            {
+                </span><span style="color: #0000ff;">double</span> totalWages = <span style="color: #800080;">1.5</span> *<span style="color: #000000;"> basicWages;
+                Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">Manager's wages is:{totalWages}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> totalWages;
+            }
+        }
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Assistant
+        {
+            </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">double</span> GetWages(<span style="color: #0000ff;">double</span><span style="color: #000000;"> basicWages)
+            {
+                </span><span style="color: #0000ff;">double</span> totalWages = <span style="color: #800080;">1.2</span> *<span style="color: #000000;"> basicWages;
+                Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">Assistant's wages is:{totalWages}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> totalWages;
+            }
+        }
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> WageManager
+        {
+            </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> Handler wageHandler;
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">加入观察者</span>
+            <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> Attach(Handler wageHandler1)
+            {
+                wageHandler </span>+=<span style="color: #000000;"> wageHandler1;
+            }
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">删除观察者</span>
+            <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> Detach(Handler wageHandler1)
+            {
+                wageHandler </span>-=<span style="color: #000000;"> wageHandler1;
+            }
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">通过GetInvodationList方法获取多路广播委托列表，如果观察者数量大于0即执行方法。</span>
+            <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> Execute(<span style="color: #0000ff;">double</span><span style="color: #000000;"> basicWages)
+            {
+                </span><span style="color: #0000ff;">if</span> (wageHandler != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+                {
+                    </span><span style="color: #0000ff;">if</span> (wageHandler.GetInvocationList().Count() != <span style="color: #800080;">0</span><span style="color: #000000;">)
+                    {
+                        wageHandler(basicWages);
+                    }
+                }
+            }
+        }
+        </span><span style="color: #0000ff;">#endregion</span>
+
+        <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            </span><span style="color: #0000ff;">#region</span> 委托观察者模式<span style="color: #000000;">
+            WageManager wageManager </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> WageManager();
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">加入Manager观察者</span>
+            Manager manager = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Manager();
+            Handler managerHandler </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Handler(manager.GetWages);
+            wageManager.Attach(managerHandler);
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">加入Assistant观察者</span>
+            Assistant assistant = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Assistant();
+            Handler assistantHandler </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Handler(assistant.GetWages);
+            wageManager.Attach(assistantHandler);
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">同时加入底薪3000元，分别进行计算</span>
+            wageManager.Execute(<span style="color: #800080;">3000</span><span style="color: #000000;">);
+            Console.ReadKey();
+            </span><span style="color: #0000ff;">#endregion</span><span style="color: #000000;">
+        }
+    }</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp; &nbsp; 运行结果如下：</p>
+<p><img src="./images/C#委托与事件学习笔记20.png" alt="" /></p>
+<p><strong>&nbsp; &nbsp; 3.5 委托的协变与逆变</strong></p>
+<p>&nbsp; &nbsp; 在Framework 2.0出现之前，委托协变这个概念还没有出现。此时因为委托是安全类型，它们不遵守继承的基础规则。即会这下面的情况：Manager虽然</p>
+<p>是Worker的子类，但GetWorkerHander委托不能直接绑定GetManager方法，因为在委托当中它们的返回值Manager与Worker被视为完全无关的两个类型。</p>
+<p>&nbsp; &nbsp;&nbsp;自Framework 2.0面世以后，委托协变的概念就应运而生，此时委托可以按照传统的继承规则进行转换。即GetWorkerHandler委托可以直接绑定</p>
+<p>GetManager方法。</p>
+<p>&nbsp; &nbsp; 下面代码演示委托的协变：</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('a2f6d050-c5dc-4db3-9c7e-50cadbc3bd09')"><img id="code_img_closed_a2f6d050-c5dc-4db3-9c7e-50cadbc3bd09" class="code_img_closed" src="./images/C#委托与事件学习笔记0.png" alt="" /><img id="code_img_opened_a2f6d050-c5dc-4db3-9c7e-50cadbc3bd09" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('a2f6d050-c5dc-4db3-9c7e-50cadbc3bd09',event)" src="./images/C#委托与事件学习笔记1.png" alt="" />
+<div id="cnblogs_code_open_a2f6d050-c5dc-4db3-9c7e-50cadbc3bd09" class="cnblogs_code_hide">
+<pre><code>    <span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #0000ff;">#region</span> 委托的协变
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 在Framework 2.0以上可绑定GetWorker与GetManager两个方法
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="id"&gt;&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">delegate</span> Worker GetWorkerHandler(<span style="color: #0000ff;">int</span><span style="color: #000000;"> id);
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Worker
+        {
+            </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> Worker() { }
+
+            </span><span style="color: #0000ff;">public</span> Worker(<span style="color: #0000ff;">int</span><span style="color: #000000;"> id)
+            {
+                Id </span>=<span style="color: #000000;"> id;
+            }
+
+            </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span> Id { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+
+            </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> ShowId()
+            {
+                Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">Id={Id}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            }
+        }
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Manager : Worker
+        {
+            </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> Manager() { }
+            </span><span style="color: #0000ff;">public</span> Manager(<span style="color: #0000ff;">int</span><span style="color: #000000;"> id)
+            {
+                Id </span>=<span style="color: #000000;"> id;
+            }
+        }
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> Worker GetWorker(<span style="color: #0000ff;">int</span><span style="color: #000000;"> id)
+        {
+            Worker worker </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Worker(id);
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> worker;
+        }
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> Manager GetManager(<span style="color: #0000ff;">int</span><span style="color: #000000;"> id)
+        {
+            Manager manager </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Manager(id);
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> manager;
+        }
+        </span><span style="color: #0000ff;">#endregion</span>
+
+        <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            </span><span style="color: #0000ff;">#region</span> 委托的协变<span style="color: #000000;">
+            GetWorkerHandler workerHandler </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> GetWorkerHandler(GetWorker);
+            Worker worker </span>= workerHandler(<span style="color: #800080;">1</span><span style="color: #000000;">);
+            worker.ShowId();
+            GetWorkerHandler managerHandler </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> GetWorkerHandler(GetManager);
+            Manager manager </span>= managerHandler(<span style="color: #800080;">2</span>) <span style="color: #0000ff;">as</span><span style="color: #000000;"> Manager;
+            manager.ShowId();
+            Console.Read();
+            </span><span style="color: #0000ff;">#endregion</span><span style="color: #000000;">
+        }
+    }</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp; &nbsp; 运行结果如下：</p>
+<p><img src="./images/C#委托与事件学习笔记23.png" alt="" /></p>
+<p>&nbsp; &nbsp; 委托逆变，是指委托方法的参数同样可以接收 &ldquo;继承&rdquo; 这个传统规则。像下面的例子，以object为参数的委托，可以接受任何object子类的对象作为参数。</p>
+<p>最后可以在处理方法中使用is对输入数据的类型进行判断，分别处理对不同的类型的对象。</p>
+<p>&nbsp; &nbsp; 下面代码演示委托的逆变：</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('4cf96eff-3fb1-4150-a80a-a97242b4da7f')"><img id="code_img_closed_4cf96eff-3fb1-4150-a80a-a97242b4da7f" class="code_img_closed" src="./images/C#委托与事件学习笔记0.png" alt="" /><img id="code_img_opened_4cf96eff-3fb1-4150-a80a-a97242b4da7f" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('4cf96eff-3fb1-4150-a80a-a97242b4da7f',event)" src="./images/C#委托与事件学习笔记1.png" alt="" />
+<div id="cnblogs_code_open_4cf96eff-3fb1-4150-a80a-a97242b4da7f" class="cnblogs_code_hide">
+<pre><code>    <span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #0000ff;">#region</span> 委托的逆变
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">delegate</span> <span style="color: #0000ff;">void</span> Handler(<span style="color: #0000ff;">object</span><span style="color: #000000;"> obj);
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> GetMessage(<span style="color: #0000ff;">object</span><span style="color: #000000;"> message)
+        {
+            </span><span style="color: #0000ff;">if</span> (message <span style="color: #0000ff;">is</span> <span style="color: #0000ff;">string</span><span style="color: #000000;">)
+                Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">His name is:</span><span style="color: #800000;">"</span> +<span style="color: #000000;"> message.ToString());
+            </span><span style="color: #0000ff;">if</span> (message <span style="color: #0000ff;">is</span> <span style="color: #0000ff;">int</span><span style="color: #000000;">)
+                Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">His age is:</span><span style="color: #800000;">"</span> +<span style="color: #000000;"> message.ToString());
+        }
+        </span><span style="color: #0000ff;">#endregion</span>
+
+        <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            </span><span style="color: #0000ff;">#region</span> 委托的逆变<span style="color: #000000;">
+            Handler handler </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Handler(GetMessage);
+            handler(</span><span style="color: #800080;">29</span><span style="color: #000000;">);
+            Console.Read();
+            </span><span style="color: #0000ff;">#endregion</span><span style="color: #000000;">
+        }
+    }</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp; &nbsp; 运行结果如下：</p>
+<p><img src="./images/C#委托与事件学习笔记26.png" alt="" /></p>
+<p>&nbsp; &nbsp; 注：委托与其绑定方法的参数必须一至，即当 Handler 所输入的参数为 A 类型，其绑定方法 GetMessage 的参数也必须为 A 类或者 A 的父类 。相反，</p>
+<p>当绑定方法的参数为 A 的子类，系统也无法辨认。</p>
+<p>&nbsp; &nbsp;&nbsp;<strong>3.6 泛型委托</strong></p>
+<p>&nbsp; &nbsp; 委托逆变虽然实用，但如果都以object作为参数，则需要每次都对参数进行类型的判断，这不禁令人感到厌烦。</p>
+<p>&nbsp; &nbsp; 为此，泛型委托应运而生，泛型委托有着委托逆变的优点，同时利用泛型的特性，可以使一个委托绑定多个不同类型参数的方法，而且在方法中不需要</p>
+<p>使用is进行类型判断，从而简化了代码。</p>
+<p>&nbsp; &nbsp; 下面代码演示泛型委托：</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('4ad4aef8-227c-4bcc-9e50-a007a8350ef1')"><img id="code_img_closed_4ad4aef8-227c-4bcc-9e50-a007a8350ef1" class="code_img_closed" src="./images/C#委托与事件学习笔记0.png" alt="" /><img id="code_img_opened_4ad4aef8-227c-4bcc-9e50-a007a8350ef1" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('4ad4aef8-227c-4bcc-9e50-a007a8350ef1',event)" src="./images/C#委托与事件学习笔记1.png" alt="" />
+<div id="cnblogs_code_open_4ad4aef8-227c-4bcc-9e50-a007a8350ef1" class="cnblogs_code_hide">
+<pre><code>    <span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #0000ff;">#region</span> 泛型委托
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">delegate</span> <span style="color: #0000ff;">void</span> Handler&lt;T&gt;<span style="color: #000000;">(T obj);
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 工作者类
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Worker
+        {
+            </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">double</span> Wages { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 管理级类
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Manager : Worker
+        {
+        }
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> GetWorkerWages(Worker worker)
+        {
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Worker's total wages is:</span><span style="color: #800000;">"</span> +<span style="color: #000000;"> worker.Wages);
+        }
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> GetManagerWages(Manager manager)
+        {
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Manager's total wages is:</span><span style="color: #800000;">"</span> +<span style="color: #000000;"> manager.Wages);
+        }
+        </span><span style="color: #0000ff;">#endregion</span>
+
+        <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            </span><span style="color: #0000ff;">#region</span> 泛型委托<span style="color: #000000;">
+            Handler</span>&lt;Worker&gt; workerHander = <span style="color: #0000ff;">new</span> Handler&lt;Worker&gt;<span style="color: #000000;">(GetWorkerWages);
+            Worker worker </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Worker
+            {
+                Wages </span>= <span style="color: #800080;">3000</span><span style="color: #000000;">
+            };
+            workerHander(worker);
+
+            Handler</span>&lt;Manager&gt; managerHandler = <span style="color: #0000ff;">new</span> Handler&lt;Manager&gt;<span style="color: #000000;">(GetManagerWages);
+            Manager manager </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Manager
+            {
+                Wages </span>= <span style="color: #800080;">4500</span><span style="color: #000000;">
+            };
+            managerHandler(manager);
+
+            Console.ReadKey();
+            </span><span style="color: #0000ff;">#endregion</span><span style="color: #000000;">
+        }
+    }</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp; &nbsp; 运行结果如下：</p>
+<p><img src="./images/C#委托与事件学习笔记29.png" alt="" /></p>
+<p>&nbsp; &nbsp;&nbsp;<strong>四、深入解析事件</strong></p>
+<p><strong>&nbsp; &nbsp; 4.1 事件的由来</strong></p>
+<p>&nbsp; &nbsp; 在介绍事件之前大家可以先看看下面的例子，PriceManager负责对商品价格进行处理，当委托对象GetPriceHandler的返回值大于100元，按8.8折计算，</p>
+<p>低于100元按原价计算。</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('8de41209-85e4-45c4-888b-14d2670a68ab')"><img id="code_img_closed_8de41209-85e4-45c4-888b-14d2670a68ab" class="code_img_closed" src="./images/C#委托与事件学习笔记0.png" alt="" /><img id="code_img_opened_8de41209-85e4-45c4-888b-14d2670a68ab" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('8de41209-85e4-45c4-888b-14d2670a68ab',event)" src="./images/C#委托与事件学习笔记1.png" alt="" />
+<div id="cnblogs_code_open_8de41209-85e4-45c4-888b-14d2670a68ab" class="cnblogs_code_hide">
+<pre><code>    <span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #0000ff;">#region</span> 事件的由来
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">delegate</span> <span style="color: #0000ff;">double</span><span style="color: #000000;"> PriceHandler();
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> PriceManager
+        {
+            </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> PriceHandler GetPriceHandler;
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">委托处理，当价格高于100元按8.8折计算，其他按原价计算。</span>
+            <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">double</span><span style="color: #000000;"> GetPrice()
+            {
+                </span><span style="color: #0000ff;">if</span> (GetPriceHandler.GetInvocationList().Count() &gt; <span style="color: #800080;">0</span><span style="color: #000000;">)
+                {
+                    </span><span style="color: #0000ff;">if</span> (GetPriceHandler() &gt; <span style="color: #800080;">100</span><span style="color: #000000;">)
+                        </span><span style="color: #0000ff;">return</span> GetPriceHandler() * <span style="color: #800080;">0.88</span><span style="color: #000000;">;
+                    </span><span style="color: #0000ff;">else</span>
+                        <span style="color: #0000ff;">return</span><span style="color: #000000;"> GetPriceHandler();
+                }
+                </span><span style="color: #0000ff;">return</span> -<span style="color: #800080;">1</span><span style="color: #000000;">;
+            }
+        }
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">书本价格为98元</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">double</span><span style="color: #000000;"> BookPrice()
+        {
+            </span><span style="color: #0000ff;">return</span> <span style="color: #800080;">98.0</span><span style="color: #000000;">;
+        }
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">计算机价格为8800元</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">double</span><span style="color: #000000;"> ComputerPrice()
+        {
+            </span><span style="color: #0000ff;">return</span> <span style="color: #800080;">8800.0</span><span style="color: #000000;">;
+        }
+        </span><span style="color: #0000ff;">#endregion</span>
+
+        <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            </span><span style="color: #0000ff;">#region</span> 事件的由来<span style="color: #000000;">
+            PriceManager priceManager </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> PriceManager
+            {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">调用priceManager的GetPrice方法获取价格
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">直接调用委托的Invoke获取价格，两者进行比较。</span>
+                GetPriceHandler = <span style="color: #0000ff;">new</span><span style="color: #000000;"> PriceHandler(ComputerPrice)
+            };
+            Console.WriteLine(</span><span style="color: #0000ff;">string</span>.Format(<span style="color: #800000;">"</span><span style="color: #800000;">GetPrice\n Computer's price is {0}</span><span style="color: #800000;">"</span><span style="color: #000000;">,priceManager.GetPrice()));
+            Console.WriteLine(</span><span style="color: #0000ff;">string</span>.Format(<span style="color: #800000;">"</span><span style="color: #800000;">Invoke\n Computer's price is {0}</span><span style="color: #800000;">"</span><span style="color: #000000;">,priceManager.GetPriceHandler.Invoke()));
+            Console.WriteLine();
+            priceManager.GetPriceHandler </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> PriceHandler(BookPrice);
+            Console.WriteLine(</span><span style="color: #0000ff;">string</span>.Format(<span style="color: #800000;">"</span><span style="color: #800000;">GetPrice\n Book's price is {0}</span><span style="color: #800000;">"</span><span style="color: #000000;">,priceManager.GetPrice()));
+            Console.WriteLine(</span><span style="color: #0000ff;">string</span>.Format(<span style="color: #800000;">"</span><span style="color: #800000;">Invoke\n Book's price is {0}</span><span style="color: #800000;">"</span><span style="color: #000000;">,priceManager.GetPriceHandler.Invoke()));
+            Console.Read();
+            </span><span style="color: #0000ff;">#endregion</span><span style="color: #000000;">
+        }
+    }</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp; &nbsp; 运行结果如下：</p>
+<p><img src="./images/C#委托与事件学习笔记32.png" alt="" /></p>
+<p>&nbsp; &nbsp; 观察运行的结果，如果把委托对象GetPriceHandler设置为public，外界可以直接调用GetPriceHandler.Invoke获取运行结果而移除了GetPrice方法的处理，</p>
+<p>这正是开发人员最不想看到的。</p>
+<p>&nbsp; &nbsp; 为了保证系统的封装性，开发往往需要把委托对象GetPriceHandler设置为private，再分别加入AddHandler、RemoveHandler方法对GetPriceHandler委托</p>
+<p>对象进行封装。为了保存封装性，很多操作都需要加入AddHandler、RemoveHandler这些相似的方法代码，这未免令人感到厌烦。</p>
+<p>&nbsp; &nbsp; 为了进一步简化操作，事件这个概念应运而生。</p>
+<p><strong>&nbsp; &nbsp; 4.2 事件的定义</strong></p>
+<p>&nbsp; &nbsp; 事件（event）可被视作为一种特别的委托，它为委托对象隐式地建立起add_XXX、remove_XXX两个方法，用作注册与注销事件的处理方法，而且事件对</p>
+<p>应的变量成员将会被视为private变量，外界无法超越事件所在对象直接访问它们，这使事件具备良好的封装性，而且免除了add_XXX、remove_XXX等繁琐</p>
+<p>的代码。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">#region</span> 事件的定义
+<span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> EventTest
+{
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">delegate</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> MyDelegate();
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">event</span><span style="color: #000000;"> MyDelegate MyEvent;
+}
+</span><span style="color: #0000ff;">#endregion</span></pre>
+</div>
+<p>&nbsp; &nbsp;&nbsp;使用ILDASM.exe观察事件成员，系统为MyEvent事件自动建立add_MyEvent、remove_MyEvent 方法。</p>
+<p><img src="./images/C#委托与事件学习笔记33.png" alt="" /></p>
+<p><strong>&nbsp; &nbsp; 4.3 事件的使用方式</strong></p>
+<p>&nbsp; &nbsp; 事件能通过+=和-=两个方式注册及注销对其处理的方法，使用+=与-=操作符的时候，系统会自动调用对应的add_XXX、remove_XXX进行处理。</p>
+<p>&nbsp; &nbsp; 值得留意，在PersonManager类的Execute方法中，如果MyEvent绑定的处理方法不为空，即可使用MyEvent(string)引发事件。但如果在外界的Main方法中</p>
+<p>直接使用personManager.MyEvent(string)来引发事件，系统将引发错误报告。这正是因为事件具备了良好的封装性，使外界不能超越事件所在的对象访问其变</p>
+<p>量成员。</p>
+<p>&nbsp; &nbsp;&nbsp;注：在事件所处的对象之外，事件只能出现在+=、-=的左方。</p>
+<p>&nbsp; &nbsp; 下面代码演示事件的使用：</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('39db1a91-2151-4bec-851b-b65c6fd54076')"><img id="code_img_closed_39db1a91-2151-4bec-851b-b65c6fd54076" class="code_img_closed" src="./images/C#委托与事件学习笔记0.png" alt="" /><img id="code_img_opened_39db1a91-2151-4bec-851b-b65c6fd54076" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('39db1a91-2151-4bec-851b-b65c6fd54076',event)" src="./images/C#委托与事件学习笔记1.png" alt="" />
+<div id="cnblogs_code_open_39db1a91-2151-4bec-851b-b65c6fd54076" class="cnblogs_code_hide">
+<pre><code>    <span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #0000ff;">#region</span> 事件的使用
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">delegate</span> <span style="color: #0000ff;">void</span> MyDelegate(<span style="color: #0000ff;">string</span><span style="color: #000000;"> name);
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> PersonManager
+        {
+            </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">event</span><span style="color: #000000;"> MyDelegate MyEvent;
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">执行事件</span>
+            <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> Execute(<span style="color: #0000ff;">string</span><span style="color: #000000;"> name)
+            {
+                </span><span style="color: #0000ff;">if</span> (MyEvent != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+                {
+                    MyEvent(name);
+                }
+            }
+        }
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> GetName(<span style="color: #0000ff;">string</span><span style="color: #000000;"> name)
+        {
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">My name is </span><span style="color: #800000;">"</span> +<span style="color: #000000;"> name);
+        }
+        </span><span style="color: #0000ff;">#endregion</span>
+
+        <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            </span><span style="color: #0000ff;">#region</span> 事件的使用<span style="color: #000000;">
+            PersonManager personManager </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> PersonManager();
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">绑定事件处理方法</span>
+            personManager.MyEvent += <span style="color: #0000ff;">new</span><span style="color: #000000;"> MyDelegate(GetName);
+            personManager.Execute(</span><span style="color: #800000;">"</span><span style="color: #800000;">Atomy</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            Console.Read();
+            </span><span style="color: #0000ff;">#endregion</span><span style="color: #000000;">
+        }
+    }</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp; &nbsp; 运行结果如下：</p>
+<p><img src="./images/C#委托与事件学习笔记36.png" alt="" /></p>
+<p><strong>&nbsp; &nbsp; 4.4 事件处理方法的绑定</strong></p>
+<p>&nbsp; &nbsp; 在绑定事件处理方法的时候，事件出现在+=、-= 操作符的左边，对应的委托对象出现在+=、-= 操作符的右边。对应以上例子，事件提供了更简单的绑定方式，</p>
+<p>只需要在+=、-= 操作符的右方写上方法名称，系统就能自动辩认。</p>
+<p>&nbsp; &nbsp; 下面代码演示事件处理方法的绑定：</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('be9b259c-6ed0-4e0a-866a-1b4a42ceeebe')"><img id="code_img_closed_be9b259c-6ed0-4e0a-866a-1b4a42ceeebe" class="code_img_closed" src="./images/C#委托与事件学习笔记0.png" alt="" /><img id="code_img_opened_be9b259c-6ed0-4e0a-866a-1b4a42ceeebe" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('be9b259c-6ed0-4e0a-866a-1b4a42ceeebe',event)" src="./images/C#委托与事件学习笔记1.png" alt="" />
+<div id="cnblogs_code_open_be9b259c-6ed0-4e0a-866a-1b4a42ceeebe" class="cnblogs_code_hide">
+<pre><code>    <span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #0000ff;">#region</span> 事件的使用及方法绑定
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">delegate</span> <span style="color: #0000ff;">void</span> MyDelegate(<span style="color: #0000ff;">string</span><span style="color: #000000;"> name);
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> PersonManager
+        {
+            </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">event</span><span style="color: #000000;"> MyDelegate MyEvent;
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">执行事件</span>
+            <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> Execute(<span style="color: #0000ff;">string</span><span style="color: #000000;"> name)
+            {
+                </span><span style="color: #0000ff;">if</span> (MyEvent != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+                {
+                    MyEvent(name);
+                }
+            }
+        }
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> GetName(<span style="color: #0000ff;">string</span><span style="color: #000000;"> name)
+        {
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">My name is </span><span style="color: #800000;">"</span> +<span style="color: #000000;"> name);
+        }
+        </span><span style="color: #0000ff;">#endregion</span>
+
+        <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            </span><span style="color: #0000ff;">#region</span> 事件的使用及方法绑定<span style="color: #000000;">
+            PersonManager personManager </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> PersonManager();
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">绑定事件处理方法方式一</span>
+            personManager.MyEvent += <span style="color: #0000ff;">new</span><span style="color: #000000;"> MyDelegate(GetName);
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">绑定事件处理方法方式二</span>
+            personManager.MyEvent +=<span style="color: #000000;"> GetName;
+            personManager.Execute(</span><span style="color: #800000;">"</span><span style="color: #800000;">Atomy</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            Console.Read();
+            </span><span style="color: #0000ff;">#endregion</span><span style="color: #000000;">
+        }
+    }</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp; &nbsp; 运行结果如下：</p>
+<p><img src="./images/C#委托与事件学习笔记39.png" alt="" /></p>
+<p>&nbsp; &nbsp; 如果觉得编写GetName方法过于麻烦，还可以使用匿名方法绑定事件的处理。</p>
+<p>&nbsp; &nbsp; 下面代码演示事件处理方法的匿名方法绑定：</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('97b05e4a-d92b-44b0-8335-967a593008e2')"><img id="code_img_closed_97b05e4a-d92b-44b0-8335-967a593008e2" class="code_img_closed" src="./images/C#委托与事件学习笔记0.png" alt="" /><img id="code_img_opened_97b05e4a-d92b-44b0-8335-967a593008e2" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('97b05e4a-d92b-44b0-8335-967a593008e2',event)" src="./images/C#委托与事件学习笔记1.png" alt="" />
+<div id="cnblogs_code_open_97b05e4a-d92b-44b0-8335-967a593008e2" class="cnblogs_code_hide">
+<pre><code>    <span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #0000ff;">#region</span> 事件的使用
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">delegate</span> <span style="color: #0000ff;">void</span> MyDelegate(<span style="color: #0000ff;">string</span><span style="color: #000000;"> name);
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> PersonManager
+        {
+            </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">event</span><span style="color: #000000;"> MyDelegate MyEvent;
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">执行事件</span>
+            <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> Execute(<span style="color: #0000ff;">string</span><span style="color: #000000;"> name)
+            {
+                </span><span style="color: #0000ff;">if</span> (MyEvent != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+                {
+                    MyEvent(name);
+                }
+            }
+        }
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> GetName(<span style="color: #0000ff;">string</span><span style="color: #000000;"> name)
+        {
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">My name is </span><span style="color: #800000;">"</span> +<span style="color: #000000;"> name);
+        }
+        </span><span style="color: #0000ff;">#endregion</span>
+
+        <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            </span><span style="color: #0000ff;">#region</span> 事件的使用及方法绑定<span style="color: #000000;">
+            PersonManager personManager </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> PersonManager();
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">绑定事件处理方法方式一</span>
+            personManager.MyEvent += <span style="color: #0000ff;">new</span><span style="color: #000000;"> MyDelegate(GetName);
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">绑定事件处理方法方式二</span>
+            personManager.MyEvent +=<span style="color: #000000;"> GetName;
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">绑定事件处理方法方式三(匿名方法)</span>
+            personManager.MyEvent += <span style="color: #0000ff;">delegate</span> (<span style="color: #0000ff;">string</span> name) { Console.WriteLine(<span style="color: #800000;">"</span><span style="color: #800000;">My name is </span><span style="color: #800000;">"</span> +<span style="color: #000000;"> name); };
+            personManager.Execute(</span><span style="color: #800000;">"</span><span style="color: #800000;">Atomy</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            Console.Read();
+            </span><span style="color: #0000ff;">#endregion</span><span style="color: #000000;">
+        }
+    }</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp; &nbsp; 运行结果如下：</p>
+<p><img src="./images/C#委托与事件学习笔记42.png" alt="" /></p>
+<p><strong>&nbsp; &nbsp; 4.5 C#控件中的事件</strong></p>
+<p>&nbsp; &nbsp; 在C#控件中存在很多的事件，比如Click、TextChanged、SelectIndexChanged等等，很多都是通过EventHandler委托绑定事件的处理方式，EventHandler</p>
+<p>可说是C#控件中最常见的委托 。</p>
+<p>&nbsp; &nbsp; public delegate void EventHandler (Object sender, EventArgs e)</p>
+<p>&nbsp; &nbsp; EventHandler委托并无返回值，sender代表引发事件的控件对象，e代表<span id="mt2" class="sentence SentenceHover" data-source="The type of the event data generated by the event." data-guid="08ae9ff8ba93b0b269b5f865da35e7c5">由该事件生成的数据&nbsp;。</span></p>
+<p><span class="sentence SentenceHover" data-source="The type of the event data generated by the event." data-guid="08ae9ff8ba93b0b269b5f865da35e7c5">&nbsp; &nbsp; 下面代码演示C#控件中的事件绑定：</span></p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('4eb8434d-b7d3-48b2-810b-4aaa2d9c3b03')"><img id="code_img_closed_4eb8434d-b7d3-48b2-810b-4aaa2d9c3b03" class="code_img_closed" src="./images/C#委托与事件学习笔记0.png" alt="" /><img id="code_img_opened_4eb8434d-b7d3-48b2-810b-4aaa2d9c3b03" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('4eb8434d-b7d3-48b2-810b-4aaa2d9c3b03',event)" src="./images/C#委托与事件学习笔记1.png" alt="" />
+<div id="cnblogs_code_open_4eb8434d-b7d3-48b2-810b-4aaa2d9c3b03" class="cnblogs_code_hide">
+<pre><code>    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">partial</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> EventTest : Form
+    {
+        </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> EventTest()
+        {
+            InitializeComponent();
+        }
+
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> EventTest_Load(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)
+        {
+            btnEvent.Click </span>+= <span style="color: #0000ff;">new</span><span style="color: #000000;"> EventHandler(btnEvent_onclick);
+        }
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> btnEvent_onclick(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender,EventArgs e)
+        {
+            Button button </span>=<span style="color: #000000;"> (Button)sender;
+            MessageBox.Show(button.Text);
+        }
+    }</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p><span class="sentence SentenceHover" data-source="The type of the event data generated by the event." data-guid="08ae9ff8ba93b0b269b5f865da35e7c5">&nbsp; &nbsp; 运行结果如下：</span></p>
+<p><span class="sentence SentenceHover" data-source="The type of the event data generated by the event." data-guid="08ae9ff8ba93b0b269b5f865da35e7c5"><img src="./images/C#委托与事件学习笔记45.png" alt="" /></span></p>
+<p>&nbsp; &nbsp; EventHandler只是EventHandler&lt;TEventArgs&gt;泛型委托的一个简单例子。事实上，大家可以利用 EventHandler&lt;TEventArgs&gt; 构造出所需要的委托。</p>
+<p>&nbsp; &nbsp; public delegate void EventHandler&lt;TEventArgs&gt; (Object sender, TEventArgs e)</p>
+<p>&nbsp; &nbsp; 在EventHandler&lt;TEventArgs&gt;中，sender代表事件源，e代表派生自EventArgs类的事件参数。开发人员可以建立派生自EventArgs的类，从中加入需要使用</p>
+<p>到的事件参数，然后建立EventHandler&lt;TEventArgs&gt;委托。</p>
+<p>&nbsp; &nbsp; 下面的例子中，先建立一个派生自EventArgs的类MyEventArgs作为事件参数，然后在EventManager中建立事件myEvent , 通过Execute方法可以激发事件。</p>
+<p>最后在测试中绑定myEvent的处理方法ShowMessage，在ShowMessage显示myEventArgs的事件参数Message。</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('a51943fa-52f1-41f7-bced-1d6348177e80')"><img id="code_img_closed_a51943fa-52f1-41f7-bced-1d6348177e80" class="code_img_closed" src="./images/C#委托与事件学习笔记0.png" alt="" /><img id="code_img_opened_a51943fa-52f1-41f7-bced-1d6348177e80" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('a51943fa-52f1-41f7-bced-1d6348177e80',event)" src="./images/C#委托与事件学习笔记1.png" alt="" />
+<div id="cnblogs_code_open_a51943fa-52f1-41f7-bced-1d6348177e80" class="cnblogs_code_hide">
+<pre><code>    <span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #0000ff;">#region</span> EventArgs派生
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> MyEventArgs : EventArgs
+        {
+            </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">string</span><span style="color: #000000;"> args;
+
+            </span><span style="color: #0000ff;">public</span> MyEventArgs(<span style="color: #0000ff;">string</span><span style="color: #000000;"> message)
+            {
+                args </span>=<span style="color: #000000;"> message;
+            }
+
+            </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span><span style="color: #000000;"> Message
+            {
+                </span><span style="color: #0000ff;">get</span> { <span style="color: #0000ff;">return</span><span style="color: #000000;"> args; }
+                </span><span style="color: #0000ff;">set</span> { args =<span style="color: #000000;"> value; }
+            }
+        }
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> EventManager
+        {
+            </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">event</span> EventHandler&lt;MyEventArgs&gt;<span style="color: #000000;"> myEvent;
+
+            </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> Execute(<span style="color: #0000ff;">string</span><span style="color: #000000;"> message)
+            {
+                myEvent</span>?.Invoke(<span style="color: #0000ff;">this</span>, <span style="color: #0000ff;">new</span><span style="color: #000000;"> MyEventArgs(message));
+            }
+        }
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> ShowMessage(<span style="color: #0000ff;">object</span><span style="color: #000000;"> obj, MyEventArgs e)
+        {
+            Console.WriteLine(e.Message);
+        }
+        </span><span style="color: #0000ff;">#endregion</span>
+
+        <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            </span><span style="color: #0000ff;">#region</span> EventArgs派生<span style="color: #000000;">
+            EventManager eventManager </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> EventManager();
+            eventManager.myEvent </span>+= <span style="color: #0000ff;">new</span> EventHandler&lt;MyEventArgs&gt;<span style="color: #000000;">(ShowMessage);
+            eventManager.Execute(</span><span style="color: #800000;">"</span><span style="color: #800000;">How are you?</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            Console.Read();
+            </span><span style="color: #0000ff;">#endregion</span><span style="color: #000000;">
+        }
+    }</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp; &nbsp; 运行结果如下：</p>
+<p><img src="./images/C#委托与事件学习笔记48.png" alt="" /></p>
+<p><strong>&nbsp; &nbsp; 4.6 为用户控件建立事件</strong></p>
+<p>&nbsp; &nbsp; 开发过程中，往往会出现很多类似的控件与代码，开发人员可以通过用户控件来避免重复的代码。但往往同一个用户控件，在不同的页面中需要有不同的响应。</p>
+<p>此时为用户控件建立事件，便可轻松地解决此问题。</p>
+<p>&nbsp; &nbsp; 新建一个Person类：</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('7df62f42-1f24-46a6-96ee-da7e281dbbdb')"><img id="code_img_closed_7df62f42-1f24-46a6-96ee-da7e281dbbdb" class="code_img_closed" src="./images/C#委托与事件学习笔记0.png" alt="" /><img id="code_img_opened_7df62f42-1f24-46a6-96ee-da7e281dbbdb" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('7df62f42-1f24-46a6-96ee-da7e281dbbdb',event)" src="./images/C#委托与事件学习笔记1.png" alt="" />
+<div id="cnblogs_code_open_7df62f42-1f24-46a6-96ee-da7e281dbbdb" class="cnblogs_code_hide">
+<pre><code>    <span style="color: #0000ff;">class</span><span style="color: #000000;"> Person
+    {
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span> Id { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> Name { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span> Age { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+    }</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp; &nbsp; 新建一个用户控件，拖入一个DataGridView，命名为：DataGridViewControl。</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('5c233680-22fd-4a08-84e4-b7eddc7782f3')"><img id="code_img_closed_5c233680-22fd-4a08-84e4-b7eddc7782f3" class="code_img_closed" src="./images/C#委托与事件学习笔记0.png" alt="" /><img id="code_img_opened_5c233680-22fd-4a08-84e4-b7eddc7782f3" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('5c233680-22fd-4a08-84e4-b7eddc7782f3',event)" src="./images/C#委托与事件学习笔记1.png" alt="" />
+<div id="cnblogs_code_open_5c233680-22fd-4a08-84e4-b7eddc7782f3" class="cnblogs_code_hide">
+<pre><code>    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">partial</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> DataGridViewControl : UserControl
+    {
+        </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> DataGridViewControl()
+        {
+            InitializeComponent();
+        }
+
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> DataGridViewEvent_Load(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)
+        {
+            dataGridView1.DataSource </span>=<span style="color: #000000;"> GetPersonList();
+        }
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">数据源</span>
+        <span style="color: #0000ff;">private</span> IList&lt;Person&gt;<span style="color: #000000;"> GetPersonList()
+        {
+            IList</span>&lt;Person&gt; list = <span style="color: #0000ff;">new</span> List&lt;Person&gt;<span style="color: #000000;">();
+            Person person </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Person
+            {
+                Id </span>= <span style="color: #800080;">1</span><span style="color: #000000;">,
+                Name </span>= <span style="color: #800000;">"</span><span style="color: #800000;">Hello</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+                Age </span>= <span style="color: #800080;">1</span><span style="color: #000000;">
+            };
+            list.Add(person);
+            person </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Person
+            {
+                Id </span>= <span style="color: #800080;">2</span><span style="color: #000000;">,
+                Name </span>= <span style="color: #800000;">"</span><span style="color: #800000;">World</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+                Age </span>= <span style="color: #800080;">2</span><span style="color: #000000;">
+            };
+            list.Add(person);
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> list;
+        }
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">单元格事件</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">event</span><span style="color: #000000;"> DataGridViewCellEventHandler CellEventHandler;
+
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> dataGridView1_RowEnter(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, DataGridViewCellEventArgs e)
+        {
+            CellEventHandler</span>?<span style="color: #000000;">.Invoke(sender, e);
+        }
+    }</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp; &nbsp; 新建一个WinForm窗体，命名为Main，并拖入DataGridViewControl用户控件。</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('ae1d2ecf-9750-495e-a77d-b3e6a6a3d7e8')"><img id="code_img_closed_ae1d2ecf-9750-495e-a77d-b3e6a6a3d7e8" class="code_img_closed" src="./images/C#委托与事件学习笔记0.png" alt="" /><img id="code_img_opened_ae1d2ecf-9750-495e-a77d-b3e6a6a3d7e8" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('ae1d2ecf-9750-495e-a77d-b3e6a6a3d7e8',event)" src="./images/C#委托与事件学习笔记1.png" alt="" />
+<div id="cnblogs_code_open_ae1d2ecf-9750-495e-a77d-b3e6a6a3d7e8" class="cnblogs_code_hide">
+<pre><code>    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">partial</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Main : Form
+    {
+        </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> Main()
+        {
+            InitializeComponent();
+        }
+
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> Main_Load(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)
+        {
+            dataGridViewControl1.CellEventHandler </span>+=<span style="color: #000000;"> DataGridViewControl1_CellEventHandler;
+        }
+
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> DataGridViewControl1_CellEventHandler(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, DataGridViewCellEventArgs e)
+        {
+            DataGridView dataGridView1 </span>=<span style="color: #000000;"> (DataGridView)sender;
+            </span><span style="color: #0000ff;">int</span> rowIndex = <span style="color: #0000ff;">int</span><span style="color: #000000;">.Parse(e.RowIndex.ToString());
+            </span><span style="color: #0000ff;">int</span> columnIndex = <span style="color: #0000ff;">int</span><span style="color: #000000;">.Parse(e.ColumnIndex.ToString());
+            MessageBox.Show(dataGridView1.Rows[rowIndex].Cells[columnIndex].Value.ToString());
+        }
+    }</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp; &nbsp; 运行结果如下：</p>
+<p><img src="./images/C#委托与事件学习笔记55.png" alt="" /></p>
+<p>&nbsp; &nbsp;&nbsp;使用控件已有的事件固然简单，但它限制了传送的参数类型，使开发人员无法传送额外的自定义参数。在结构比较复杂的用户控件中，使用已有的控件事件，</p>
+<p>显然不够方便，此时，您可以考虑为用户控件建立自定义事件。</p>
+<p>&nbsp; &nbsp; 新建一个MyEventArgs类：</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('a6207756-85b9-43f6-b00c-7fc2b0b7f7d5')"><img id="code_img_closed_a6207756-85b9-43f6-b00c-7fc2b0b7f7d5" class="code_img_closed" src="./images/C#委托与事件学习笔记0.png" alt="" /><img id="code_img_opened_a6207756-85b9-43f6-b00c-7fc2b0b7f7d5" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('a6207756-85b9-43f6-b00c-7fc2b0b7f7d5',event)" src="./images/C#委托与事件学习笔记1.png" alt="" />
+<div id="cnblogs_code_open_a6207756-85b9-43f6-b00c-7fc2b0b7f7d5" class="cnblogs_code_hide">
+<pre><code>    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> MyEventArgs : EventArgs
+    {
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> Name { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span>; }                    <span style="color: #008000;">//</span><span style="color: #008000;">买家姓名</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> Address { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span>; }                 <span style="color: #008000;">//</span><span style="color: #008000;">买家地址</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> Tel { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span>; }                     <span style="color: #008000;">//</span><span style="color: #008000;">买家电话</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> OrderCode { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span>; }               <span style="color: #008000;">//</span><span style="color: #008000;">订单号码</span>
+        <span style="color: #0000ff;">public</span> IList&lt;OrderItem&gt; OrderItemList { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span>; } <span style="color: #008000;">//</span><span style="color: #008000;">订单明细</span>
+        <span style="color: #0000ff;">public</span> MyEventArgs(<span style="color: #0000ff;">string</span> name, <span style="color: #0000ff;">string</span> address, <span style="color: #0000ff;">string</span> tel, <span style="color: #0000ff;">string</span> orderCode, IList&lt;OrderItem&gt;<span style="color: #000000;"> orderItemList)
+        {
+            Name </span>=<span style="color: #000000;"> name;
+            Address </span>=<span style="color: #000000;"> address;
+            Tel </span>=<span style="color: #000000;"> tel;
+            OrderCode </span>=<span style="color: #000000;"> orderCode;
+            OrderItemList </span>=<span style="color: #000000;"> orderItemList;
+        }
+    }</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp; &nbsp; 新建一个OrderItem类：</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('3342575f-4cdf-4f4f-80cc-b21061917ca9')"><img id="code_img_closed_3342575f-4cdf-4f4f-80cc-b21061917ca9" class="code_img_closed" src="./images/C#委托与事件学习笔记0.png" alt="" /><img id="code_img_opened_3342575f-4cdf-4f4f-80cc-b21061917ca9" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('3342575f-4cdf-4f4f-80cc-b21061917ca9',event)" src="./images/C#委托与事件学习笔记1.png" alt="" />
+<div id="cnblogs_code_open_3342575f-4cdf-4f4f-80cc-b21061917ca9" class="cnblogs_code_hide">
+<pre><code>    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> OrderItem
+    {
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> OrderItemID { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span>; } <span style="color: #008000;">//</span><span style="color: #008000;">明细单ID</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> Goods { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span>; }       <span style="color: #008000;">//</span><span style="color: #008000;">商品名称</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">double</span> Price { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span>; }       <span style="color: #008000;">//</span><span style="color: #008000;">商品单价</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span> Count { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span>; }          <span style="color: #008000;">//</span><span style="color: #008000;">商品数量</span>
+
+        <span style="color: #0000ff;">public</span> OrderItem(<span style="color: #0000ff;">string</span> id, <span style="color: #0000ff;">string</span> goods, <span style="color: #0000ff;">double</span> price, <span style="color: #0000ff;">int</span><span style="color: #000000;"> count)
+        {
+            OrderItemID </span>=<span style="color: #000000;"> id;
+            Goods </span>=<span style="color: #000000;"> goods;
+            Price </span>=<span style="color: #000000;"> price;
+            Count </span>=<span style="color: #000000;"> count;
+        }
+    }</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp; &nbsp; 新建一个用户控件，拖入一个DataGridView及一个Button，命名为：OrderControl。</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('1b5ca27e-2fe6-4636-ba24-a8ff9d9e5d40')"><img id="code_img_closed_1b5ca27e-2fe6-4636-ba24-a8ff9d9e5d40" class="code_img_closed" src="./images/C#委托与事件学习笔记0.png" alt="" /><img id="code_img_opened_1b5ca27e-2fe6-4636-ba24-a8ff9d9e5d40" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('1b5ca27e-2fe6-4636-ba24-a8ff9d9e5d40',event)" src="./images/C#委托与事件学习笔记1.png" alt="" />
+<div id="cnblogs_code_open_1b5ca27e-2fe6-4636-ba24-a8ff9d9e5d40" class="cnblogs_code_hide">
+<pre><code>    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">partial</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> OrderControl : UserControl
+    {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">自定义委托及事件  </span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">delegate</span> <span style="color: #0000ff;">void</span> MyDelegate(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, MyEventArgs myEventArgs);
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">event</span><span style="color: #000000;"> MyDelegate MyEvent;
+
+        </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> OrderControl()
+        {
+            InitializeComponent();
+        }
+
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> OrderControl_Load(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)
+        {
+            dataGridView1.DataSource </span>=<span style="color: #000000;"> GetList();
+        }
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">数据源</span>
+        <span style="color: #0000ff;">private</span> IList&lt;OrderItem&gt;<span style="color: #000000;"> GetList()
+        {
+            IList</span>&lt;OrderItem&gt; list = <span style="color: #0000ff;">new</span> List&lt;OrderItem&gt;<span style="color: #000000;">();
+            OrderItem orderItem </span>= <span style="color: #0000ff;">new</span> OrderItem(<span style="color: #800000;">"</span><span style="color: #800000;">1</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">鼠标</span><span style="color: #800000;">"</span>, <span style="color: #800080;">160</span>, <span style="color: #800080;">2</span><span style="color: #000000;">);
+            list.Add(orderItem);
+            orderItem </span>= <span style="color: #0000ff;">new</span> OrderItem(<span style="color: #800000;">"</span><span style="color: #800000;">2</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">键盘</span><span style="color: #800000;">"</span>, <span style="color: #800080;">80</span>, <span style="color: #800080;">2</span><span style="color: #000000;">);
+            list.Add(orderItem);
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> list;
+        }
+
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> button1_Click(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)
+        {
+            </span><span style="color: #0000ff;">if</span> (MyEvent != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+            {
+                </span><span style="color: #0000ff;">if</span> (dataGridView1.CurrentCell != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+                {
+                    </span><span style="color: #0000ff;">int</span> rowIndex = <span style="color: #0000ff;">int</span><span style="color: #000000;">.Parse(dataGridView1.CurrentCell.RowIndex.ToString());
+                    MyEventArgs myEventArgs </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> MyEventArgs
+                    (
+                        </span><span style="color: #800000;">"</span><span style="color: #800000;">张三</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+                        </span><span style="color: #800000;">"</span><span style="color: #800000;">广东</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+                        </span><span style="color: #800000;">"</span><span style="color: #800000;">111111111111</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+                        </span><span style="color: #800000;">"</span><span style="color: #800000;">2019122300001</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+                        GetList()
+                    );
+                    MyEvent(</span><span style="color: #0000ff;">this</span><span style="color: #000000;">, myEventArgs);
+                }
+            }
+        }
+    }</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp; &nbsp;&nbsp;新建一个WinForm窗体，命名为OrderForm，并拖入OrderControl用户控件。</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('e1157d0f-32a8-4710-868c-7979cba0a504')"><img id="code_img_closed_e1157d0f-32a8-4710-868c-7979cba0a504" class="code_img_closed" src="./images/C#委托与事件学习笔记0.png" alt="" /><img id="code_img_opened_e1157d0f-32a8-4710-868c-7979cba0a504" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('e1157d0f-32a8-4710-868c-7979cba0a504',event)" src="./images/C#委托与事件学习笔记1.png" alt="" />
+<div id="cnblogs_code_open_e1157d0f-32a8-4710-868c-7979cba0a504" class="cnblogs_code_hide">
+<pre><code>    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">partial</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> OrderForm : Form
+    {
+        </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> OrderForm()
+        {
+            InitializeComponent();
+        }
+
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> OrderForm_Load(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)
+        {
+            orderControl1.MyEvent </span>+=<span style="color: #000000;"> OrderControl1_MyEvent;
+        }
+
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> OrderControl1_MyEvent(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, MyEventArgs myEventArgs)
+        {
+            MessageBox.Show($</span><span style="color: #800000;">"</span><span style="color: #800000;">Name={myEventArgs.Name},Address={myEventArgs.Address},Tel={myEventArgs.Tel}</span><span style="color: #800000;">"</span>,<span style="color: #800000;">"</span><span style="color: #800000;">信息</span><span style="color: #800000;">"</span><span style="color: #000000;">,MessageBoxButtons.OK,MessageBoxIcon.Information); 
+        }
+    }</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp; &nbsp; 运行结果如下：</p>
+<p><img src="./images/C#委托与事件学习笔记64.png" alt="" /></p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

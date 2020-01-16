@@ -1,0 +1,66 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修基于Dapper的开源Lambda扩展LnskyDB 2.0已支持多表查询' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>基于Dapper的开源Lambda扩展LnskyDB 2.0已支持多表查询</center></div><div class='banquan'>原文出处:本文由博客园博主liningit提供。<br/>
+原文连接:https://www.cnblogs.com/liningit/p/11158744.html</div><br>
+    <h1 id="lnskydb-github-stars-github-forks">LnskyDB <a href="https://github.com/liningit/LnskyDB/stargazers"><img src="./images/基于Dapper的开源Lambda扩展LnskyDB 2.0已支持多表查询0.png" alt="GitHub stars" /></a> <a href="https://github.com/liningit/LnskyDB/fork"><img src="./images/基于Dapper的开源Lambda扩展LnskyDB 2.0已支持多表查询1.png" alt="GitHub forks" /></a></h1>
+<p>LnskyDB是基于Dapper的Lambda扩展,支持按时间分库分表,也可以自定义分库分表方法.而且可以T4生成实体类免去手写实体类的烦恼.</p>
+<p>文档地址: <a href="https://liningit.github.io/LnskyDB/" class="uri">https://liningit.github.io/LnskyDB/</a></p>
+<p>开源地址: <a href="https://github.com/liningit/LnskyDB" class="uri">https://github.com/liningit/LnskyDB</a></p>
+<p>nuget地址: <a href="https://www.nuget.org/packages/LnskyDB/" class="uri">https://www.nuget.org/packages/LnskyDB/</a></p>
+<p>在此非常感谢SkyChenSky其中lambda表达式的解析参考了他的开源项目</p>
+<h2 id="功能特点">功能特点</h2>
+<ul>
+<li><p><strong>Lambda表达式查询方便</strong><br />
+基于Dapper的Lambda表达式扩展可以方便的进行查询筛选操作</p></li>
+<li><p><strong>支持分库分表</strong><br />
+默认支持按年分库按月分表,也支持自定义分库分表.从此大数据不用愁</p></li>
+<li><p><strong>T4自动生成实体</strong><br />
+有T4模板自动生成实体类,再也不用手写那些烦人的实体类了.仓储类及接口也支持自动生成</p></li>
+<li><p><strong>使用门槛低,快速上手</strong><br />
+使用非常简单,可以快速上手</p></li>
+</ul>
+<h2 id="连表查询">连表查询</h2>
+<p>v2.0版本支持多表查询了<br />
+步骤如下</p>
+<ol>
+<li>调用方法是通过<code>IQuery.OuterJoin</code>或者<code>IQuery.InnerJoin</code>进行连表查询,返回IJoinQuery对象.</li>
+<li>可以调用<code>IJoinQuery.And,Or</code>进行条件过滤.调用<code>Select</code>返回<code>ISelectResult</code>.</li>
+<li>通过仓储的<code>GetList</code>或<code>GetPaging</code>进行返回结果.</li>
+</ol>
+<pre><code><code> var repository = GetRepository();
+var query = QueryFactory.Create&lt;ProductSaleByDayNSEntity&gt;(m =&gt; DBFunction.Function&lt;DateTime&gt;(&quot;ISNULL&quot;, m.UpdateDate, DateTime.Now) &gt; new DateTime(2019, 6, 26));
+var jq = query.InnerJoin(QueryFactory.Create&lt;ShopEntity&gt;(), m =&gt; m.ShopID, m =&gt; m.SysNo, (x, y) =&gt; new { Sale = x, Shop = y });
+jq.And(m =&gt; m.Shop.ShopName.Contains(&quot;店铺&quot;));
+jq.OrderByDescing(m =&gt; m.Sale.Sales + 1);
+jq.OrderBy(m =&gt; m.Sale.ProductName + m.Sale.OutProductID);
+jq.StarSize = 10;
+jq.Rows = 5;
+var res = jq.Select(m =&gt; m.Sale);
+var paging = repository.GetPaging(res);
+//也可以下面这样返回dto.第二个参数表示第一个表是否要查询所有列.
+var res2 = jq.Select(m =&gt; new PSDto { ShopName = m.Shop.ShopName }, true);
+var paging2 = repository.GetPaging(res2);
+var count = paging.TotalCount;
+var lst = paging.ToList();//或者paging.Items</code></pre>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

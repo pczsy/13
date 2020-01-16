@@ -1,0 +1,192 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修控制台基于Quartz.Net组件实现定时任务调度（一）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>控制台基于Quartz.Net组件实现定时任务调度（一）</center></div><div class='banquan'>原文出处:本文由博客园博主艾三元提供。<br/>
+原文连接:https://www.cnblogs.com/i3yuan/p/11332931.html</div><br>
+    <p><span style="color: #2d94de; font-size: 18pt;">前言</span>：</p>
+<p>&nbsp; &nbsp;你曾经需要应用执行一个任务吗？比如现在有一个需求，需要每天在零点定时执行一些操作，那应该怎样操作呢？</p>
+<p><img src="./images/控制台基于Quartz.Net组件实现定时任务调度（一）0.png" alt="" /></p>
+<p>&nbsp; &nbsp;这个时候，如果你和你的团队是用<span lang="EN-US">.NET编程的话，可以考虑使用<span lang="EN-US">Quartz.NET调度器。允许开发人员根据日期</span></span><span lang="EN-US"><span lang="EN-US">间隔来实现任务调度任务。非常适合在平时的工作中，定时轮询数据库同步，定时邮件通知，定时处理数据等。</span></span></p>
+<p>&nbsp; &nbsp;Quartz一个开源的作业调度框架，是<span lang="EN-US">OpenSymphony&nbsp;的<span lang="EN-US">&nbsp;Quartz API的<span lang="EN-US">.NET移植每隔</span></span></span>，基于C#写成，可应用于winform、asp.net、asp.net core应用中。提供了巨大的灵活性，是一个更为强大，方便管理，集群部署的作业调度框架。</p>
+<p><span lang="EN-US"><span lang="EN-US"><span lang="EN-US"><span lang="EN-US"><span lang="EN-US"><span lang="EN-US"><span lang="EN-US">所以，有时候项目需要在不同时刻，执行一个或很多个不同的作业，你可以用它来完成执行创建简单或复杂的任务调度。</span></span></span></span></span></span></span></p>
+<p><span lang="EN-US"><span lang="EN-US"><span lang="EN-US"><span lang="EN-US"><span lang="EN-US"><span lang="EN-US"><span lang="EN-US"><span style="color: #2d94de; font-size: 18pt;">导图</span>：</span></span></span></span></span></span></span></p>
+<p><span lang="EN-US"><span lang="EN-US"><span lang="EN-US"><span lang="EN-US"><span lang="EN-US"><span lang="EN-US"><span lang="EN-US"><img src="./images/控制台基于Quartz.Net组件实现定时任务调度（一）1.png" alt="" /></span></span></span></span></span></span></span></p>
+<p><span style="font-size: 18pt; color: #2d94de;">特性</span>：</p>
+<p>1：支持集群，作业分组，作业远程管理。&nbsp;</p>
+<p>2：自定义精细的时间触发器，使用简单，作业和触发分离。</p>
+<p>3：数据库支持，可以寄宿Windows服务，WebSite，winform等。</p>
+<p><span style="color: #2d94de; font-size: 18pt;">概念</span>：</p>
+<p>Scheduler&nbsp; &nbsp; &nbsp; &nbsp; 作业调度器</p>
+<p><img src="./images/控制台基于Quartz.Net组件实现定时任务调度（一）2.png" alt="" /></p>
+<p>所有的scheduler都应该由<code><span class="hljs-built_in">SchedulerFactory来创建</span></code></p>
+<div class="cnblogs_code">
+<pre><code> <span style="color: #008000;">//</span><span style="color: #008000;">创建scheduler</span>
+            Scheduler scheduler = StdSchedulerFactory.getDefaultScheduler();</pre>
+</div>
+<p>IJob&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;作业接口，继承并实现Execute，&nbsp;编写执行的具体作业逻辑。</p>
+<p><img src="./images/控制台基于Quartz.Net组件实现定时任务调度（一）3.png" alt="" /></p>
+<p><span style="font-family: 宋体;">通过实现<span lang="EN-US">I</span></span><span lang="EN-US">Job<span style="font-family: 宋体;">接口来使你的.NET</span><span style="font-family: 宋体;">组件可以很简单地被</span><span lang="EN-US">scheduler<span style="font-family: 宋体;">执行</span></span></span></p>
+<div class="cnblogs_code">
+<pre><code>    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> ConsoleJob : IJob
+    {
+        </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> Task Execute(IJobExecutionContext context)
+        {
+            </span><span style="color: #0000ff;">return</span> Console.Out.WriteLineAsync($<span style="color: #800000;">"</span><span style="color: #800000;">执行作业</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+        }
+    }</span></pre>
+</div>
+<p>JobBuilder&nbsp; &nbsp; &nbsp; &nbsp;根据设置，生成一个详细作业信息(JobDetail)。</p>
+<p>JobBuilder是一个建造者模式，链式建造。通过静态方法构建一个JobBuilder实例，然后再调用类方法Build()创建一个IJobDetail的实现。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span><span style="color: #000000;"> JobBuilder Create(Type jobType)
+{
+    JobBuilder b </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> JobBuilder();
+    b.OfType(jobType);
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> b;
+}</span></pre>
+</div>
+<p>TriggerBuilder&nbsp; &nbsp;根据规则，生产对应的Trigger，触发器可以规划执行任务</p>
+<p><img src="./images/控制台基于Quartz.Net组件实现定时任务调度（一）4.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>通过静态方法构建一个TriggerBuilder实例，然后再调用类方法Build()创建一个ITrigger的实现。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span><span style="color: #000000;"> TriggerBuilder Create()
+{
+    </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> TriggerBuilder();
+}</span></pre>
+</div>
+<p>&nbsp;根据任务设置触发的开始时间和结束时间</p>
+<div class="cnblogs_code">
+<pre><code>    <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+    <span style="color: #808080;">///</span><span style="color: #008000;"> 开始时间
+    </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+    <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="startTimeUtc"&gt;&lt;/param&gt;</span>
+    <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+    <span style="color: #0000ff;">public</span><span style="color: #000000;"> TriggerBuilder StartAt(DateTimeOffset startTimeUtc)
+    {
+        startTime </span>=<span style="color: #000000;"> startTimeUtc;
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+    }
+    </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+    <span style="color: #808080;">///</span><span style="color: #008000;"> 结束时间
+    </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+    <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="endTimeUtc"&gt;&lt;/param&gt;</span>
+    <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+    <span style="color: #0000ff;">public</span> TriggerBuilder EndAt(DateTimeOffset?<span style="color: #000000;"> endTimeUtc)
+    {
+        endTime </span>=<span style="color: #000000;"> endTimeUtc;
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+    }</span></pre>
+</div>
+<p><span style="color: #2d94de; font-size: 18pt;">步骤</span>：</p>
+<p><img src="./images/控制台基于Quartz.Net组件实现定时任务调度（一）5.png" alt="" /></p>
+<p>1、创建一个ISchedulerFactory，然后并且获取 Scheduler</p>
+<p>2、启动 Scheduler</p>
+<p>3、创建 job 任务</p>
+<p>4、创建 trigger 触发器</p>
+<p>5、使用触发器规划执行任务</p>
+<p><span style="color: #2d94de; font-size: 18pt;">开始</span>：</p>
+<p><span style="color: #ff0000; font-size: 16px;">注意</span>：</p>
+<p>新建一个Quartz项目后,需要安装下面的程序包:</p>
+<p>你可以用控制台命令的方式安装</p>
+<div class="cnblogs_code">
+<pre><code>Install-Package Quartz</pre>
+</div>
+<p>也可以使用下面这种方式选择安装版本</p>
+<p><img src="./images/控制台基于Quartz.Net组件实现定时任务调度（一）6.png" alt="" width="1128" height="612" /></p>
+<p><span style="font-size: 14pt; font-family: 楷体;">一、创建一个scheduler的引用</span>：</p>
+<div class="cnblogs_code">
+<pre><code>            ISchedulerFactory schedFact = <span style="color: #0000ff;">new</span><span style="color: #000000;"> StdSchedulerFactory();
+            IScheduler sched </span>= <span style="color: #0000ff;">await</span> schedFact.GetScheduler();</pre>
+</div>
+<p><span style="font-size: 14pt; font-family: 楷体;">二、启动 scheduler：</span></p>
+<div class="cnblogs_code">
+<pre><code>            <span style="color: #0000ff;">await</span> sched.Start();</pre>
+</div>
+<p><span style="font-family: 楷体; font-size: 14pt;">三、实现IJob:</span></p>
+<p>ConsoleJob.cs 实现IJob，在Execute方法里编写要处理的业务逻辑，系统就会按照Quartz的配置，定时处理</p>
+<div class="cnblogs_code">
+<pre><code>    <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+    <span style="color: #808080;">///</span><span style="color: #008000;"> 实现IJob,Execute方法里编写要处理的业务逻辑
+    </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> ConsoleJob : IJob
+    {
+        </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> Task Execute(IJobExecutionContext context)
+        {
+            </span><span style="color: #0000ff;">return</span> Console.Out.WriteLineAsync($<span style="color: #800000;">"ConsoleJob执行工作 在当前时间{DateTime.Now}--上一次执行时间：{DateTime.Now.AddSeconds(-5)}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+        }
+    }</span></pre>
+</div>
+<p><span style="font-size: 14pt; font-family: 楷体;">四、创建trigger：</span>（建立一个某个时间点的触发器，并且每5秒执行一次）</p>
+<div class="cnblogs_code">
+<pre><code>            ITrigger trigger =<span style="color: #000000;"> TriggerBuilder.Create()
+                .WithIdentity(</span><span style="color: #800000;">"</span><span style="color: #800000;">trigger1</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">group1</span><span style="color: #800000;">"</span>)  <span style="color: #008000;">//</span><span style="color: #008000;">触发器 组</span>
+                .WithSimpleSchedule(x =&gt; x.WithIntervalInSeconds(<span style="color: #800080;">5</span><span style="color: #000000;">).RepeatForever())
+                .Build();</span></pre>
+</div>
+<p><span style="font-family: 楷体; font-size: 14pt;">五、触发器执行任务：</span></p>
+<div class="cnblogs_code">
+<pre><code>            <span style="color: #0000ff;">await</span> sched.ScheduleJob(job, trigger);</pre>
+</div>
+<p>将几个步骤整合后代码如下：</p>
+<div class="cnblogs_code">
+<pre><code>        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 任务调度的使用过程
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">async</span> <span style="color: #0000ff;">static</span><span style="color: #000000;"> Task Run()
+        {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> 1.创建scheduler的引用</span>
+            ISchedulerFactory schedFact = <span style="color: #0000ff;">new</span><span style="color: #000000;"> StdSchedulerFactory();
+            IScheduler sched </span>= <span style="color: #0000ff;">await</span><span style="color: #000000;"> schedFact.GetScheduler();
+            
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">2.启动 scheduler</span>
+            <span style="color: #0000ff;">await</span><span style="color: #000000;"> sched.Start();
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> 3.创建 job</span>
+            IJobDetail job = JobBuilder.Create&lt;ConsoleJob&gt;<span style="color: #000000;">()
+                    .WithIdentity(</span><span style="color: #800000;">"</span><span style="color: #800000;">job1</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">group1</span><span style="color: #800000;">"</span><span style="color: #000000;">)
+                    .Build();
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> 4.创建 trigger （创建 trigger 触发器）</span>
+            ITrigger trigger =<span style="color: #000000;"> TriggerBuilder.Create()
+                .WithIdentity(</span><span style="color: #800000;">"</span><span style="color: #800000;">trigger1</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">group1</span><span style="color: #800000;">"</span>)  <span style="color: #008000;">//</span><span style="color: #008000;">触发器 组</span>
+                .WithSimpleSchedule(x =&gt; x.WithIntervalInSeconds(<span style="color: #800080;">5</span><span style="color: #000000;">).RepeatForever())
+                .Build();
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> 5.使用trigger规划执行任务job （使用触发器规划执行任务）</span>
+            <span style="color: #0000ff;">await</span><span style="color: #000000;"> sched.ScheduleJob(job, trigger);
+        }</span></pre>
+</div>
+<p><span style="color: #2d94de; font-size: 18pt;">运行</span>：</p>
+<p>间隔5秒执行一次后的效果：</p>
+<p><img src="./images/控制台基于Quartz.Net组件实现定时任务调度（一）7.png" alt="" /></p>
+<p><span style="font-size: 18pt; color: #2d94de;">附加</span>：</p>
+<p>这里使用的<span lang="EN-US">quartz为<span lang="EN-US">3.x 版本，整个版本相对于2.0版本进行了大量的修改，正式支持了.NET Core 和async/await</span></span></p>
+<p>引用<a href="https://www.cnblogs.com/shanyou/p/8269641.html" target="_blank">张队</a>文章的内容：</p>
+<p><img src="./images/控制台基于Quartz.Net组件实现定时任务调度（一）8.png" alt="" /></p>
+<p><span style="color: #2d94de; font-size: 18pt;">总结</span>：</p>
+<p>1.其实在实际项目中，可以将上面的方法进行封装处理，形成不同的任务，特别是处理多任务的时候，在不同的job中调用不同的trigger，后续会继续完善开发</p>
+<p>2.quartz还有更多的用法，可以参考资料：<a href="https://www.quartz-scheduler.net/" target="_blank">Quartz.Net官方文档</a>&nbsp; &nbsp;和&nbsp;&nbsp;<a href="https://github.com/quartznet/quartznet" target="_blank">Quartz.Net开源地址</a></p>
+<p>3.<a href="https://files-cdn.cnblogs.com/files/i3yuan/ConsoleQuartz.rar" target="_blank">项目源码地址</a></p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

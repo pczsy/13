@@ -1,0 +1,283 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C#中怎样连接数据库并将查询结果转为实体类以及如何加入事务' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C#中怎样连接数据库并将查询结果转为实体类以及如何加入事务</center></div><div class='banquan'>原文出处:本文由博客园博主霸道流氓提供。<br/>
+原文连接:https://www.cnblogs.com/badaoliumangqizhi/p/12011007.html</div><br>
+    <h1>场景</h1>
+<p>新建一个程序，需要对数据的表进行查询并将查询结果转换为实体类，然后将多个实体类</p>
+<p>再插入到另一个数据库的表中，执行插入的过程中要使用事务。</p>
+<p>注：</p>
+<p>博客主页： <br /><a href="https://blog.csdn.net/badao_liumang_qizhi">https://blog.csdn.net/badao_liumang_qizhi</a> 
+<br />关注公众号 <br />霸道的程序猿 <br />获取编程相关电子书、教程推送与免费下载。 </p>
+<h1>实现</h1>
+<h2>不带事务只是查询</h2>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;">储存数据的工具初始化</span>
+            DataSet idxDs = <span style="color: #0000ff;">new</span><span style="color: #000000;"> DataSet();
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">constr：数据库连接字符串配置</span>
+           stringconstr=<span style="color: #800000;">"</span><span style="color: #800000;">server=localhost;database=Badao;uid=sa;pwd=123</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">using</span> (SqlConnection conn=<span style="color: #0000ff;">new</span><span style="color: #000000;"> SqlConnection(constr))
+           
+            {
+  
+                conn.Open();
+                Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">开始查询索引数据...</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">查询索引数据</span>
+                <span style="color: #0000ff;">string</span> idxSql = <span style="color: #800000;">"</span><span style="color: #800000;">SELECT * FROM Idx1_1</span><span style="color: #800000;">"</span>;<span style="color: #008000;">//</span><span style="color: #008000;">获取sql语句</span>
+                SqlDataAdapter idxSda = <span style="color: #0000ff;">new</span> SqlDataAdapter(idxSql, conn);   <span style="color: #008000;">//</span><span style="color: #008000;">(查询语句和连接工具)</span>
+                idxSda.Fill(idxDs);    <span style="color: #008000;">//</span><span style="color: #008000;">将适配器数据存入DataSet工具中</span>
+             }</pre>
+</div>
+<p>&nbsp;</p>
+<p>注：</p>
+<p>首先声明一个DataSet用来存储执行查询的结果，然后使用连接数据的字符串打开连接。</p>
+<p>然后使用Adapter执行sql语句，将查询结果填充到Dataset中。</p>
+<h2>怎样将查询结果与实体类对应赋值</h2>
+<div class="cnblogs_code">
+<pre><code>                IdxRecord idx = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+                Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">开始储存索引数据...</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                </span><span style="color: #0000ff;">foreach</span> (DataRow row <span style="color: #0000ff;">in</span> idxDs.Tables[<span style="color: #800080;">0</span><span style="color: #000000;">].Rows)
+                {
+                    idx </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> IdxRecord();
+                    idx.IdxID </span>= DataProcessor.RowValue(row, <span style="color: #800000;">"</span><span style="color: #800000;">Idx_ID</span><span style="color: #800000;">"</span>, <span style="color: #800080;">0</span><span style="color: #000000;">);
+                    idx.DataPoint </span>= DataProcessor.RowValue(row, <span style="color: #800000;">"</span><span style="color: #800000;">Data_Point</span><span style="color: #800000;">"</span>, <span style="color: #800080;">0</span><span style="color: #000000;">);
+                    idx.ScheduleIndex </span>= DataProcessor.RowValue(row, <span style="color: #800000;">"</span><span style="color: #800000;">Schedule_Index</span><span style="color: #800000;">"</span>, <span style="color: #800080;">0L</span><span style="color: #000000;">);                  
+                    idxList.Add(idx);
+                }</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>注：</p>
+<p>声明一个实体类，其中要有与数据库列所对应的字段。</p>
+<p>然后将DataSet中的内容与实体列的属性一一赋值。</p>
+<p>最后将实体类对象添加到实体类的list上。</p>
+<p>其中DataProcessor.RowValue是一个工具类中的方法，此方法中的第二个参数是对应的数据库中的列</p>
+<div class="cnblogs_code">
+<pre><code> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">short</span> RowValue(DataRow dr, <span style="color: #0000ff;">string</span> field, <span style="color: #0000ff;">short</span><span style="color: #000000;"> defaultValue)
+        {
+            </span><span style="color: #0000ff;">short</span> Result =<span style="color: #000000;"> defaultValue;
+            </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (dr.Table.Columns.Contains(field))
+            {
+                </span><span style="color: #0000ff;">if</span> (dr[field] != <span style="color: #0000ff;">null</span> &amp;&amp; dr[field] !=<span style="color: #000000;"> DBNull.Value)
+                {
+                    </span><span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">short</span>.TryParse(dr[field].ToString(), <span style="color: #0000ff;">out</span><span style="color: #000000;"> Result))
+                    {
+                        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> Result;
+                    }
+                }
+            }
+            </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+            {
+                Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">DataTable中不存在[</span><span style="color: #800000;">"</span> + field + <span style="color: #800000;">"</span><span style="color: #800000;">]列!</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            }
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> defaultValue;
+        }</span></pre>
+</div>
+<p>&nbsp;</p>
+<h2>怎样开启事务并存入数据</h2>
+<div class="cnblogs_code">
+<pre><code>            <span style="color: #008000;">//</span><span style="color: #008000;">存入bak数据库</span>
+           stringconstrBak=<span style="color: #800000;">"</span><span style="color: #800000;">server=localhost;database=BadaoBak;uid=sa;pwd=123</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">using</span> (SqlConnection conn = <span style="color: #0000ff;">new</span> SqlConnection(constrBak))<span style="color: #008000;">//</span><span style="color: #008000;">constr：数据库连接配置</span>
+<span style="color: #000000;">            {
+                conn.Open();
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">开启事务</span>
+                SqlTransaction trans =<span style="color: #000000;"> conn.BeginTransaction();
+                SqlCommand cmd </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> SqlCommand();
+                cmd.Connection </span>= conn;<span style="color: #008000;">//</span><span style="color: #008000;">添加连接工具</span>
+                cmd.Transaction = trans;<span style="color: #008000;">//</span><span style="color: #008000;">添加事务</span>
+                <span style="color: #0000ff;">try</span><span style="color: #000000;">
+                {
+                    cmd.CommandText </span>= <span style="color: #800000;">"</span><span style="color: #800000;">INSERT INTO idx1_1 values  ('</span><span style="color: #800000;">"</span> + idx.IdxID + <span style="color: #800000;">"</span><span style="color: #800000;">','</span><span style="color: #800000;">"</span> + idx.StepEnd +<span style="color: #800000;">"</span><span style="color: #800000;">')</span><span style="color: #800000;">"</span>;<span style="color: #008000;">//</span><span style="color: #008000;">添加sql语句</span>
+                    cmd.ExecuteNonQuery();<span style="color: #008000;">//</span><span style="color: #008000;">执行</span>
+                    Console.WriteLine(<span style="color: #800000;">"</span><span style="color: #800000;">插入索引数据成功</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                    trans.Commit();</span><span style="color: #008000;">//</span><span style="color: #008000;">执行完成之后提交</span>
+<span style="color: #000000;">                   
+
+                }
+                </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception e)
+                {
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">执行sql语句失败，事务回滚</span>
+<span style="color: #000000;">                    trans.Rollback();
+                  
+
+                }
+                </span><span style="color: #0000ff;">finally</span><span style="color: #000000;">
+                {
+                    conn.Close();
+
+                }
+            }</span></pre>
+</div>
+<p>&nbsp;</p>
+<h2>完整示例代码</h2>
+<div class="cnblogs_code">
+<pre><code> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            List</span>&lt;IdxRecord&gt; idxList = <span style="color: #0000ff;">null</span>;         <span style="color: #008000;">//</span><span style="color: #008000;">索引数据
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">储存数据的工具初始化</span>
+            DataSet idxDs = <span style="color: #0000ff;">new</span><span style="color: #000000;"> DataSet();
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">constr：数据库连接字符串配置</span>
+            <span style="color: #0000ff;">string</span> constr = <span style="color: #800000;">"</span><span style="color: #800000;">server=localhost;database=Badao;uid=sa;pwd=123</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">using</span> (SqlConnection conn=<span style="color: #0000ff;">new</span><span style="color: #000000;"> SqlConnection(constr))
+            {
+                conn.Open();
+                Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">开始查询索引数据...</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">查询索引数据</span>
+                <span style="color: #0000ff;">string</span> idxSql = <span style="color: #800000;">"</span><span style="color: #800000;">SELECT * FROM Idx1_1</span><span style="color: #800000;">"</span>;<span style="color: #008000;">//</span><span style="color: #008000;">获取sql语句</span>
+                SqlDataAdapter idxSda = <span style="color: #0000ff;">new</span> SqlDataAdapter(idxSql, conn);   <span style="color: #008000;">//</span><span style="color: #008000;">(查询语句和连接工具)</span>
+                idxSda.Fill(idxDs);    <span style="color: #008000;">//</span><span style="color: #008000;">将适配器数据存入DataSet工具中</span>
+                idxList = <span style="color: #0000ff;">new</span> List&lt;IdxRecord&gt;<span style="color: #000000;">();
+                IdxRecord idx </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+                Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">开始储存索引数据...</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                </span><span style="color: #0000ff;">foreach</span> (DataRow row <span style="color: #0000ff;">in</span> idxDs.Tables[<span style="color: #800080;">0</span><span style="color: #000000;">].Rows)
+                {
+                    idx </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> IdxRecord();
+                    idx.IdxID </span>= DataProcessor.RowValue(row, <span style="color: #800000;">"</span><span style="color: #800000;">Idx_ID</span><span style="color: #800000;">"</span>, <span style="color: #800080;">0</span><span style="color: #000000;">);
+                   
+                    idxList.Add(idx);
+                }
+                Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">储存索引数据成功，成功储存数量为：</span><span style="color: #800000;">"</span> +<span style="color: #000000;"> idxList.Count);
+                Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">查询索引数据成功</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">开始根据索引数据查询记录数据...</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">在循环中根据索引数据查询记录数据</span>
+                <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i+<span style="color: #800080;">1</span> &lt; idxList.Count;i++<span style="color: #000000;">)
+                {
+                    List</span>&lt;Record&gt; recordList = <span style="color: #0000ff;">new</span> List&lt;Record&gt;<span style="color: #000000;">();
+                    List</span>&lt;List&lt;AuxRecord&gt;&gt; autxRecordsList = <span style="color: #0000ff;">new</span> List&lt;List&lt;AuxRecord&gt;&gt;<span style="color: #000000;">();
+                    </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> k = idxList[i].DataPoint; k &lt; idxList[i + <span style="color: #800080;">1</span>].DataPoint;k++<span style="color: #000000;"> )
+                    {
+                        DataSet recordsDs </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> DataSet();
+                        DataSet auxTDs </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> DataSet();
+                        </span><span style="color: #008000;">//</span><span style="color: #008000;">查询 记录数据</span>
+                        <span style="color: #0000ff;">string</span> recordSql = <span style="color: #800000;">"</span><span style="color: #800000;">SELECT * FROM WsC1_1 where Data_Point =</span><span style="color: #800000;">"</span> + k;<span style="color: #008000;">//</span><span style="color: #008000;">获取sql语句
+                        </span><span style="color: #008000;">//</span><span style="color: #008000;">Console.WriteLine("开始执行的查询语句为：" + recordSql);</span>
+                        SqlDataAdapter recordsSda = <span style="color: #0000ff;">new</span> SqlDataAdapter(recordSql, conn);   <span style="color: #008000;">//</span><span style="color: #008000;">(查询语句和连接工具)</span>
+                        recordsSda.Fill(recordsDs);    <span style="color: #008000;">//</span><span style="color: #008000;">将适配器数据存入DataSet工具中</span>
+                        Record entity = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Record();
+                        DataRow row </span>= recordsDs.Tables[<span style="color: #800080;">0</span>].Rows[<span style="color: #800080;">0</span><span style="color: #000000;">];
+                        entity.DataPoint </span>= DataProcessor.RowValue(row, <span style="color: #800000;">"</span><span style="color: #800000;">Data_Point</span><span style="color: #800000;">"</span>, <span style="color: #800080;">0</span><span style="color: #000000;">);
+                        entity.ScheduleIndex </span>= DataProcessor.RowValue(row, <span style="color: #800000;">"</span><span style="color: #800000;">Schedule_Index</span><span style="color: #800000;">"</span>, <span style="color: #800080;">0L</span><span style="color: #000000;">);
+                        
+                        recordList.Add(entity);
+                        </span><span style="color: #008000;">//</span><span style="color: #008000;">Console.WriteLine("根据索引数据的DataPoint：" + k + "查询到的记录数据的DataPoint:" + entity.DataPoint);
+
+                        </span><span style="color: #008000;">//</span><span style="color: #008000;">根据索引数据查询辅助通道温度数据</span>
+                        Console.WriteLine(<span style="color: #800000;">"</span><span style="color: #800000;">开始根据记录数据查询辅助通道温度数据....</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                        List</span>&lt;AuxRecord&gt; autxRecords = <span style="color: #0000ff;">new</span> List&lt;AuxRecord&gt;();         <span style="color: #008000;">//</span><span style="color: #008000;">辅助通道温度数据</span>
+                        <span style="color: #0000ff;">string</span> AuxTSql = <span style="color: #800000;">"</span><span style="color: #800000;">SELECT * FROM Aux1_1_25 where IvIndex =</span><span style="color: #800000;">"</span> + entity.AuxIndex;<span style="color: #008000;">//</span><span style="color: #008000;">获取sql语句</span>
+                        SqlDataAdapter AuxTSda = <span style="color: #0000ff;">new</span> SqlDataAdapter(AuxTSql, conn);   <span style="color: #008000;">//</span><span style="color: #008000;">(查询语句和连接工具)</span>
+                        AuxTSda.Fill(auxTDs);    <span style="color: #008000;">//</span><span style="color: #008000;">将适配器数据存入DataSet工具中
+                        </span><span style="color: #008000;">//</span><span style="color: #008000;">autxRecords = new List&lt;AuxRecord&gt;();</span>
+                        AuxRecord aux = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+                        </span><span style="color: #0000ff;">foreach</span> (DataRow auxrow <span style="color: #0000ff;">in</span> auxTDs.Tables[<span style="color: #800080;">0</span><span style="color: #000000;">].Rows)
+                        {
+                            aux </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> AuxRecord();
+                            aux.DataPoint </span>= DataProcessor.RowValue(auxrow, <span style="color: #800000;">"</span><span style="color: #800000;">Data_Point</span><span style="color: #800000;">"</span>, <span style="color: #800080;">0</span><span style="color: #000000;">);
+                            aux.IvIndex </span>= DataProcessor.RowValue(auxrow, <span style="color: #800000;">"</span><span style="color: #800000;">IvIndex</span><span style="color: #800000;">"</span>, <span style="color: #800080;">0</span><span style="color: #000000;">);
+                            </span><span style="color: #0000ff;">foreach</span> (DataColumn col <span style="color: #0000ff;">in</span> auxTDs.Tables[<span style="color: #800080;">0</span><span style="color: #000000;">].Columns)
+                            {
+                                </span><span style="color: #0000ff;">if</span> (col.ColumnName.StartsWith(<span style="color: #800000;">"</span><span style="color: #800000;">T</span><span style="color: #800000;">"</span>) || col.ColumnName.StartsWith(<span style="color: #800000;">"</span><span style="color: #800000;">V</span><span style="color: #800000;">"</span><span style="color: #000000;">))
+                                {
+                                    aux.Data.Add(DataProcessor.RowValue(row, col.ColumnName, 0D));
+                                }
+                            }
+                            autxRecords.Add(aux);
+                        }
+                        autxRecordsList.Add(autxRecords);
+                        Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">根据记录数据查询辅助通道温度数据成功</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+
+                        
+                    }
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">conn.Close();
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">开始向数据库插入中传递参数</span>
+                    <span style="color: #0000ff;">bool</span> isStoreSuccess =<span style="color: #000000;"> StoreRecordData(idxList[i],recordList,autxRecordsList);
+                    </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (isStoreSuccess)
+                    {
+                        Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">存入数据库成功</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                    }
+                    </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+                    {
+                        Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">存入数据库失败</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                    }
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">开始休眠</span>
+                    Console.WriteLine(<span style="color: #800000;">"</span><span style="color: #800000;">开始休眠...</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                    System.Threading.Thread.Sleep(</span><span style="color: #800080;">1000</span> * <span style="color: #800080;">5</span>);<span style="color: #008000;">//
+</span>                    Console.WriteLine(<span style="color: #800000;">"</span><span style="color: #800000;">休眠结束...</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+
+                }
+                
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">Console.WriteLine("查询辅助通道温度数据成功");
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">Console.ReadKey();</span>
+<span style="color: #000000;">                
+            }
+        }
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">bool</span> StoreRecordData(IdxRecord idx, List&lt;Record&gt; recordList, List&lt;List&lt;AuxRecord&gt;&gt;<span style="color: #000000;"> autxRecordsList)
+        {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">存入bak数据库</span>
+            <span style="color: #0000ff;">string</span> constrBak = <span style="color: #800000;">"</span><span style="color: #800000;">server=localhost;database=BadaoBak;uid=sa;pwd=123</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">using</span> (SqlConnection conn = <span style="color: #0000ff;">new</span> SqlConnection(constrBak))<span style="color: #008000;">//</span><span style="color: #008000;">constr：数据库连接配置</span>
+<span style="color: #000000;">            {
+                conn.Open();
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">开启事务</span>
+                SqlTransaction trans =<span style="color: #000000;"> conn.BeginTransaction();
+                SqlCommand cmd </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> SqlCommand();
+                cmd.Connection </span>= conn;<span style="color: #008000;">//</span><span style="color: #008000;">添加连接工具</span>
+                cmd.Transaction = trans;<span style="color: #008000;">//</span><span style="color: #008000;">添加事务</span>
+                <span style="color: #0000ff;">try</span><span style="color: #000000;">
+                {
+                    cmd.CommandText </span>= <span style="color: #800000;">"</span><span style="color: #800000;">INSERT INTO idx1_1 values  ('</span><span style="color: #800000;">"</span> + idx.IdxID + <span style="color: #800000;">"</span><span style="color: #800000;">','</span><span style="color: #800000;">"</span> + idx.DataPoint + <span style="color: #800000;">"</span><span style="color: #800000;">','</span><span style="color: #800000;">"</span> + idx.StepEnd +<span style="color: #800000;">"</span><span style="color: #800000;">')</span><span style="color: #800000;">"</span>;<span style="color: #008000;">//</span><span style="color: #008000;">添加sql语句</span>
+                    cmd.ExecuteNonQuery();<span style="color: #008000;">//</span><span style="color: #008000;">执行</span>
+                    Console.WriteLine(<span style="color: #800000;">"</span><span style="color: #800000;">插入索引数据成功</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                    </span><span style="color: #0000ff;">foreach</span>(Record record <span style="color: #0000ff;">in</span><span style="color: #000000;"> recordList)
+                    {
+                        cmd.CommandText </span>= <span style="color: #800000;">"</span><span style="color: #800000;">INSERT INTO WsC1_1 values  ('</span><span style="color: #800000;">"</span> + record.DataPoint + <span style="color: #800000;">"</span><span style="color: #800000;">','</span><span style="color: #800000;">"</span> + record.ScheduleIndex + <span style="color: #800000;">"</span><span style="color: #800000;">','</span><span style="color: #800000;">"</span> + record.AuxIndex + <span style="color: #800000;">"</span><span style="color: #800000;">')</span><span style="color: #800000;">"</span>;<span style="color: #008000;">//</span><span style="color: #008000;">添加sql语句</span>
+                        cmd.ExecuteNonQuery();<span style="color: #008000;">//</span><span style="color: #008000;">执行</span>
+<span style="color: #000000;">                    }
+                    Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">插入记录数据成功</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                    </span><span style="color: #0000ff;">foreach</span> (List&lt;AuxRecord&gt; auxRecords <span style="color: #0000ff;">in</span><span style="color: #000000;"> autxRecordsList)
+                    {
+                        cmd.CommandText </span>= <span style="color: #800000;">"</span><span style="color: #800000;">INSERT INTO Aux1_1_25 values  ('</span><span style="color: #800000;">"</span> + auxRecords[<span style="color: #800080;">0</span>].DataPoint + <span style="color: #800000;">"</span><span style="color: #800000;">','</span><span style="color: #800000;">"</span> + auxRecords[<span style="color: #800080;">0</span>].IvIndex + <span style="color: #800000;">"</span><span style="color: #800000;">','</span><span style="color: #800000;">"</span> + auxRecords[<span style="color: #800080;">0</span>].Data[<span style="color: #800080;">0</span>] + <span style="color: #800000;">"</span><span style="color: #800000;">')</span><span style="color: #800000;">"</span>;<span style="color: #008000;">//</span><span style="color: #008000;">添加sql语句</span>
+                        cmd.ExecuteNonQuery();<span style="color: #008000;">//</span><span style="color: #008000;">执行</span>
+<span style="color: #000000;">                    }
+                    Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">插入辅助通道温度数据成功</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                    trans.Commit();</span><span style="color: #008000;">//</span><span style="color: #008000;">执行完成之后提交</span>
+                    <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+
+                }
+                </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception e)
+                {
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">执行sql语句失败，事务回滚</span>
+<span style="color: #000000;">                    trans.Rollback();
+                    </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+
+                }
+                </span><span style="color: #0000ff;">finally</span><span style="color: #000000;">
+                {
+                    conn.Close();
+
+                }
+            }
+        }</span></pre>
+</div>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

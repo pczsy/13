@@ -1,0 +1,907 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C#线程学习笔记七：Task详细用法' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C#线程学习笔记七：Task详细用法</center></div><div class='banquan'>原文出处:本文由博客园博主缥缈的尘埃提供。<br/>
+原文连接:https://www.cnblogs.com/atomy/p/12033461.html</div><br>
+    <p>&nbsp; &nbsp; <strong>一、Task类简介：</strong></p>
+<p>&nbsp; &nbsp; Task类是在.NET Framework 4.0中提供的新功能，主要用于异步操作的控制。它比Thread和ThreadPool提供了更为强大的功能，并且更方便使用。</p>
+<p>&nbsp; &nbsp; Task和Task&lt;TResult&gt;类：前者接收的是Action委托类型；后者接收的是Func&lt;TResult&gt;委托类型。</p>
+<p>&nbsp; &nbsp; 任务Task和线程Thread的区别：</p>
+<p>&nbsp; &nbsp; 1、任务是架构在线程之上。也就是说任务最终还是要抛给线程去执行，它们都是在同一命名空间System.Threading下。</p>
+<p>&nbsp; &nbsp; 2、任务跟线程并不是一对一的关系。比如说开启10个任务并不一定会开启10个线程，因为使用Task开启新任务时，是从线程池中调用线程，这点与</p>
+<p>ThreadPool.QueueUserWorkItem类似。</p>
+<p><strong>&nbsp; &nbsp; 二、Task的创建</strong></p>
+<p><strong>&nbsp; &nbsp;</strong> 2.1创建方式1：调用构造函数</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('e285a11f-76e1-45cc-82b0-f338104d1504')"><img id="code_img_closed_e285a11f-76e1-45cc-82b0-f338104d1504" class="code_img_closed" src="./images/C#线程学习笔记七：Task详细用法0.png" alt="" /><img id="code_img_opened_e285a11f-76e1-45cc-82b0-f338104d1504" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('e285a11f-76e1-45cc-82b0-f338104d1504',event)" src="./images/C#线程学习笔记七：Task详细用法1.png" alt="" />
+<div id="cnblogs_code_open_e285a11f-76e1-45cc-82b0-f338104d1504" class="cnblogs_code_hide">
+<pre><code>    <span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            </span><span style="color: #0000ff;">#region</span> 工作者线程：使用任务实现异步<span style="color: #000000;">
+            ThreadPool.SetMaxThreads(</span><span style="color: #800080;">1000</span>, <span style="color: #800080;">1000</span><span style="color: #000000;">);
+            PrintMessage(</span><span style="color: #800000;">"</span><span style="color: #800000;">Main thread start.</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">调用构造函数创建Task对象</span>
+            Task&lt;<span style="color: #0000ff;">int</span>&gt; task = <span style="color: #0000ff;">new</span> Task&lt;<span style="color: #0000ff;">int</span>&gt;(n =&gt; AsyncMethod((<span style="color: #0000ff;">int</span>)n), <span style="color: #800080;">10</span><span style="color: #000000;">);
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">启动任务 </span>
+<span style="color: #000000;">            task.Start();
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">等待任务完成</span>
+<span style="color: #000000;">            task.Wait();
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">The method result is: </span><span style="color: #800000;">"</span> +<span style="color: #000000;"> task.Result);
+            Console.ReadLine();
+            </span><span style="color: #0000ff;">#endregion</span><span style="color: #000000;">
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 打印线程池信息
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="data"&gt;&lt;/param&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> PrintMessage(<span style="color: #0000ff;">string</span><span style="color: #000000;"> data)
+        {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">获得线程池中可用的工作者线程数量及I/O线程数量</span>
+            ThreadPool.GetAvailableThreads(<span style="color: #0000ff;">out</span> <span style="color: #0000ff;">int</span> workThreadNumber, <span style="color: #0000ff;">out</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> ioThreadNumber);
+
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">{0}\n CurrentThreadId is:{1}\n CurrentThread is background:{2}\n WorkerThreadNumber is:{3}\n IOThreadNumbers is:{4}\n</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+                data,
+                Thread.CurrentThread.ManagedThreadId,
+                Thread.CurrentThread.IsBackground.ToString(),
+                workThreadNumber.ToString(),
+                ioThreadNumber.ToString());
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 异步方法
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="n"&gt;&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">int</span> AsyncMethod(<span style="color: #0000ff;">int</span><span style="color: #000000;"> n)
+        {
+            Thread.Sleep(</span><span style="color: #800080;">1000</span><span style="color: #000000;">);
+            PrintMessage(</span><span style="color: #800000;">"</span><span style="color: #800000;">Asynchoronous method.</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+
+            </span><span style="color: #0000ff;">int</span> sum = <span style="color: #800080;">0</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">1</span>; i &lt; n; i++<span style="color: #000000;">)
+            {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">运算溢出检查</span>
+                <span style="color: #0000ff;">checked</span><span style="color: #000000;">
+                {
+                    sum </span>+=<span style="color: #000000;"> i;
+                }
+            }
+
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> sum;
+        }
+    }</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp; &nbsp; 2.2创建方式2：任务工厂</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('312de19d-6ba8-43b4-8d7c-34445f23037d')"><img id="code_img_closed_312de19d-6ba8-43b4-8d7c-34445f23037d" class="code_img_closed" src="./images/C#线程学习笔记七：Task详细用法0.png" alt="" /><img id="code_img_opened_312de19d-6ba8-43b4-8d7c-34445f23037d" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('312de19d-6ba8-43b4-8d7c-34445f23037d',event)" src="./images/C#线程学习笔记七：Task详细用法1.png" alt="" />
+<div id="cnblogs_code_open_312de19d-6ba8-43b4-8d7c-34445f23037d" class="cnblogs_code_hide">
+<pre><code>    <span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            </span><span style="color: #0000ff;">#region</span> 工作者线程：使用任务工厂实现异步
+            <span style="color: #808080;">///</span><span style="color: #008000;">/无参无返回值</span>
+            <span style="color: #008000;">//</span><span style="color: #008000;">ThreadPool.SetMaxThreads(1000, 1000);
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">Task.Factory.StartNew(() =&gt; PrintMessage("Main thread."));
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">Console.Read();
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">有参有返回值</span>
+            ThreadPool.SetMaxThreads(<span style="color: #800080;">1000</span>, <span style="color: #800080;">1000</span><span style="color: #000000;">);
+            PrintMessage(</span><span style="color: #800000;">"</span><span style="color: #800000;">Main thread start.</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            </span><span style="color: #0000ff;">var</span> task = Task.Factory.StartNew(n =&gt; AsyncMethod((<span style="color: #0000ff;">int</span>)n), <span style="color: #800080;">10</span><span style="color: #000000;">);
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">等待任务完成</span>
+<span style="color: #000000;">            task.Wait();
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">The method result is: </span><span style="color: #800000;">"</span> +<span style="color: #000000;"> task.Result);
+            Console.ReadLine();
+            </span><span style="color: #0000ff;">#endregion</span><span style="color: #000000;">
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 打印线程池信息
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="data"&gt;&lt;/param&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> PrintMessage(<span style="color: #0000ff;">string</span><span style="color: #000000;"> data)
+        {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">获得线程池中可用的工作者线程数量及I/O线程数量</span>
+            ThreadPool.GetAvailableThreads(<span style="color: #0000ff;">out</span> <span style="color: #0000ff;">int</span> workThreadNumber, <span style="color: #0000ff;">out</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> ioThreadNumber);
+
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">{0}\n CurrentThreadId is:{1}\n CurrentThread is background:{2}\n WorkerThreadNumber is:{3}\n IOThreadNumbers is:{4}\n</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+                data,
+                Thread.CurrentThread.ManagedThreadId,
+                Thread.CurrentThread.IsBackground.ToString(),
+                workThreadNumber.ToString(),
+                ioThreadNumber.ToString());
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 异步方法
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="n"&gt;&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">int</span> AsyncMethod(<span style="color: #0000ff;">int</span><span style="color: #000000;"> n)
+        {
+            Thread.Sleep(</span><span style="color: #800080;">1000</span><span style="color: #000000;">);
+            PrintMessage(</span><span style="color: #800000;">"</span><span style="color: #800000;">Asynchoronous method.</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+
+            </span><span style="color: #0000ff;">int</span> sum = <span style="color: #800080;">0</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">1</span>; i &lt; n; i++<span style="color: #000000;">)
+            {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">运算溢出检查</span>
+                <span style="color: #0000ff;">checked</span><span style="color: #000000;">
+                {
+                    sum </span>+=<span style="color: #000000;"> i;
+                }
+            }
+
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> sum;
+        }
+    }</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp; &nbsp; 2.3创建方式3：Run方法</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('f20616f3-6994-4bbe-ad0b-a1f1560a05f3')"><img id="code_img_closed_f20616f3-6994-4bbe-ad0b-a1f1560a05f3" class="code_img_closed" src="./images/C#线程学习笔记七：Task详细用法0.png" alt="" /><img id="code_img_opened_f20616f3-6994-4bbe-ad0b-a1f1560a05f3" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('f20616f3-6994-4bbe-ad0b-a1f1560a05f3',event)" src="./images/C#线程学习笔记七：Task详细用法1.png" alt="" />
+<div id="cnblogs_code_open_f20616f3-6994-4bbe-ad0b-a1f1560a05f3" class="cnblogs_code_hide">
+<pre><code>    <span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            </span><span style="color: #0000ff;">#region</span> 工作者线程：使用Task.Run实现异步<span style="color: #000000;">
+            ThreadPool.SetMaxThreads(</span><span style="color: #800080;">1000</span>, <span style="color: #800080;">1000</span><span style="color: #000000;">);
+            PrintMessage(</span><span style="color: #800000;">"</span><span style="color: #800000;">Main thread start.</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            </span><span style="color: #0000ff;">var</span> task = Task.Run(() =&gt; AsyncMethod(<span style="color: #800080;">10</span><span style="color: #000000;">));
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">等待任务完成</span>
+<span style="color: #000000;">            task.Wait();
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">The method result is: </span><span style="color: #800000;">"</span> +<span style="color: #000000;"> task.Result);
+            Console.ReadLine();
+            </span><span style="color: #0000ff;">#endregion</span><span style="color: #000000;">
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 打印线程池信息
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="data"&gt;&lt;/param&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> PrintMessage(<span style="color: #0000ff;">string</span><span style="color: #000000;"> data)
+        {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">获得线程池中可用的工作者线程数量及I/O线程数量</span>
+            ThreadPool.GetAvailableThreads(<span style="color: #0000ff;">out</span> <span style="color: #0000ff;">int</span> workThreadNumber, <span style="color: #0000ff;">out</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> ioThreadNumber);
+
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">{0}\n CurrentThreadId is:{1}\n CurrentThread is background:{2}\n WorkerThreadNumber is:{3}\n IOThreadNumbers is:{4}\n</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+                data,
+                Thread.CurrentThread.ManagedThreadId,
+                Thread.CurrentThread.IsBackground.ToString(),
+                workThreadNumber.ToString(),
+                ioThreadNumber.ToString());
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 异步方法
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="n"&gt;&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">int</span> AsyncMethod(<span style="color: #0000ff;">int</span><span style="color: #000000;"> n)
+        {
+            Thread.Sleep(</span><span style="color: #800080;">1000</span><span style="color: #000000;">);
+            PrintMessage(</span><span style="color: #800000;">"</span><span style="color: #800000;">Asynchoronous method.</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+
+            </span><span style="color: #0000ff;">int</span> sum = <span style="color: #800080;">0</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">1</span>; i &lt; n; i++<span style="color: #000000;">)
+            {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">运算溢出检查</span>
+                <span style="color: #0000ff;">checked</span><span style="color: #000000;">
+                {
+                    sum </span>+=<span style="color: #000000;"> i;
+                }
+            }
+
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> sum;
+        }
+    }</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp; &nbsp; <strong>三、Task的简略生命周期</strong></p>
+<p><strong>&nbsp; &nbsp; </strong>可通过Status属性获取。</p>
+<table border="0" align="left">
+<tbody>
+<tr>
+<td>状态</td>
+<td>说明</td>
+</tr>
+<tr>
+<td>Created</td>
+<td>表示默认初始化任务，但是工厂及Run创建方式会直接跳过。</td>
+</tr>
+<tr>
+<td>WaitingToRun</td>
+<td>表示等待任务调度器分配线程给任务执行。</td>
+</tr>
+<tr>
+<td>RanToCompletion</td>
+<td>表示任务执行完毕。</td>
+</tr>
+</tbody>
+</table>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><strong>&nbsp; &nbsp; 四、Task的控制</strong></p>
+<table border="0" align="left">
+<tbody>
+<tr>
+<td>方法名</td>
+<td>说明</td>
+</tr>
+<tr>
+<td>Task.Wait</td>
+<td>如task1.Wait();就是等待task1任务的执行，执行完成后状态变为Completed。</td>
+</tr>
+<tr>
+<td>Task.WaitAll</td>
+<td>等待所有的任务执行完毕。</td>
+</tr>
+<tr>
+<td>Task.WaitAny</td>
+<td>等待任意一个任务完成后就继续向下执行。</td>
+</tr>
+<tr>
+<td>Task.ContinueWith</td>
+<td>上一个任务执行完成后自动启动下一个任务，实现任务的按序进行。</td>
+</tr>
+<tr>
+<td>CancellationTokenSource</td>
+<td>通过其token来取消一个Task。</td>
+</tr>
+</tbody>
+</table>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><strong>&nbsp; &nbsp; </strong>4.1、组合任务</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('eeadb1c3-1ceb-4b8f-abc7-b15d57d258c1')"><img id="code_img_closed_eeadb1c3-1ceb-4b8f-abc7-b15d57d258c1" class="code_img_closed" src="./images/C#线程学习笔记七：Task详细用法0.png" alt="" /><img id="code_img_opened_eeadb1c3-1ceb-4b8f-abc7-b15d57d258c1" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('eeadb1c3-1ceb-4b8f-abc7-b15d57d258c1',event)" src="./images/C#线程学习笔记七：Task详细用法1.png" alt="" />
+<div id="cnblogs_code_open_eeadb1c3-1ceb-4b8f-abc7-b15d57d258c1" class="cnblogs_code_hide">
+<pre><code>    <span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> Main()
+        {
+            </span><span style="color: #0000ff;">#region</span> 工作者线程：Task组合任务
+            <span style="color: #008000;">//</span><span style="color: #008000;">创建一个任务</span>
+            Task&lt;<span style="color: #0000ff;">int</span>&gt; task = <span style="color: #0000ff;">new</span> Task&lt;<span style="color: #0000ff;">int</span>&gt;(() =&gt;<span style="color: #000000;">
+            {
+                </span><span style="color: #0000ff;">int</span> sum = <span style="color: #800080;">0</span><span style="color: #000000;">;
+                Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">使用任务实现异步。</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; <span style="color: #800080;">10</span>; i++<span style="color: #000000;">)
+                {
+                    sum </span>+=<span style="color: #000000;"> i;
+                }
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> sum;
+            });
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">任务启动并安排到任务队列等待执行(System.Threading.Tasks.TaskScheduler)</span>
+<span style="color: #000000;">            task.Start();
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">任务完成时执行处理</span>
+            Task cwt = task.ContinueWith(t =&gt;<span style="color: #000000;">
+            {
+                Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">任务的执行结果：{0}</span><span style="color: #800000;">"</span><span style="color: #000000;">, t.Result.ToString());
+            });
+            task.Wait();
+            cwt.Wait();
+            Console.ReadLine();
+            </span><span style="color: #0000ff;">#endregion</span><span style="color: #000000;">
+        }
+    }</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp; &nbsp;运行结果如下：</p>
+<p><img src="./images/C#线程学习笔记七：Task详细用法8.png" alt="" /></p>
+<p>&nbsp; &nbsp; 4.2、串行任务</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('a5d6e224-2426-4f9b-abe1-b984eb66df9d')"><img id="code_img_closed_a5d6e224-2426-4f9b-abe1-b984eb66df9d" class="code_img_closed" src="./images/C#线程学习笔记七：Task详细用法0.png" alt="" /><img id="code_img_opened_a5d6e224-2426-4f9b-abe1-b984eb66df9d" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('a5d6e224-2426-4f9b-abe1-b984eb66df9d',event)" src="./images/C#线程学习笔记七：Task详细用法1.png" alt="" />
+<div id="cnblogs_code_open_a5d6e224-2426-4f9b-abe1-b984eb66df9d" class="cnblogs_code_hide">
+<pre><code>    <span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> Main()
+        {
+            </span><span style="color: #0000ff;">#region</span> 工作者线程：Task串行任务
+            <span style="color: #008000;">//</span><span style="color: #008000;">堆栈</span>
+            ConcurrentStack&lt;<span style="color: #0000ff;">int</span>&gt; stack = <span style="color: #0000ff;">new</span> ConcurrentStack&lt;<span style="color: #0000ff;">int</span>&gt;<span style="color: #000000;">();
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">t1最早串行</span>
+            <span style="color: #0000ff;">var</span> t1 = Task.Factory.StartNew(() =&gt;<span style="color: #000000;">
+            {
+                stack.Push(</span><span style="color: #800080;">1</span><span style="color: #000000;">);
+                stack.Push(</span><span style="color: #800080;">2</span><span style="color: #000000;">);
+            });
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">t2、t3并行执行</span>
+            <span style="color: #0000ff;">var</span> t2 = t1.ContinueWith(t =&gt;<span style="color: #000000;">
+            {
+                stack.TryPop(</span><span style="color: #0000ff;">out</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> result);
+                Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Task t2 result={0},thread id is {1}.</span><span style="color: #800000;">"</span><span style="color: #000000;">, result, Thread.CurrentThread.ManagedThreadId);
+            });
+            </span><span style="color: #0000ff;">var</span> t3 = t1.ContinueWith(t =&gt;<span style="color: #000000;">
+            {
+                stack.TryPop(</span><span style="color: #0000ff;">out</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> result);
+                Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Task t3 result={0},thread id is {1}.</span><span style="color: #800000;">"</span><span style="color: #000000;">, result, Thread.CurrentThread.ManagedThreadId);
+            });
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">等待t2、t3执行完毕</span>
+<span style="color: #000000;">            Task.WaitAll(t2, t3);
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">t4串行执行</span>
+            <span style="color: #0000ff;">var</span> t4 = Task.Factory.StartNew(() =&gt;<span style="color: #000000;">
+            {
+                Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">The stack count={0},thread id is {1}.</span><span style="color: #800000;">"</span><span style="color: #000000;">, stack.Count, Thread.CurrentThread.ManagedThreadId);
+            });
+            t4.Wait();
+
+            Console.ReadLine();
+            </span><span style="color: #0000ff;">#endregion</span><span style="color: #000000;">
+        }
+    }</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp; &nbsp; 运行结果如下：</p>
+<p><img src="./images/C#线程学习笔记七：Task详细用法11.png" alt="" /></p>
+<p>&nbsp; &nbsp; 4.3、子任务</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('e285a2bc-5355-455a-bcd1-fbff327a743e')"><img id="code_img_closed_e285a2bc-5355-455a-bcd1-fbff327a743e" class="code_img_closed" src="./images/C#线程学习笔记七：Task详细用法0.png" alt="" /><img id="code_img_opened_e285a2bc-5355-455a-bcd1-fbff327a743e" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('e285a2bc-5355-455a-bcd1-fbff327a743e',event)" src="./images/C#线程学习笔记七：Task详细用法1.png" alt="" />
+<div id="cnblogs_code_open_e285a2bc-5355-455a-bcd1-fbff327a743e" class="cnblogs_code_hide">
+<pre><code>    <span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> Main()
+        {
+            </span><span style="color: #0000ff;">#region</span> 工作者线程：Task子任务<span style="color: #000000;">
+            Task</span>&lt;<span style="color: #0000ff;">string</span>[]&gt; parent = <span style="color: #0000ff;">new</span> Task&lt;<span style="color: #0000ff;">string</span>[]&gt;(state =&gt;<span style="color: #000000;">
+            {
+                Console.WriteLine(state);
+                </span><span style="color: #0000ff;">string</span>[] result = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">string</span>[<span style="color: #800080;">2</span><span style="color: #000000;">];
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">创建并启动子任务</span>
+                <span style="color: #0000ff;">new</span> Task(() =&gt; { result[<span style="color: #800080;">0</span>] = <span style="color: #800000;">"</span><span style="color: #800000;">子任务1。</span><span style="color: #800000;">"</span><span style="color: #000000;">; }, TaskCreationOptions.AttachedToParent).Start();
+                </span><span style="color: #0000ff;">new</span> Task(() =&gt; { result[<span style="color: #800080;">1</span>] = <span style="color: #800000;">"</span><span style="color: #800000;">子任务2。</span><span style="color: #800000;">"</span><span style="color: #000000;">; }, TaskCreationOptions.AttachedToParent).Start();
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> result;
+            }, </span><span style="color: #800000;">"</span><span style="color: #800000;">我是父任务，我创建了2个子任务，它们执行完后我才会结束执行。</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">任务完成时执行处理</span>
+            parent.ContinueWith(t =&gt;<span style="color: #000000;">
+            {
+                Array.ForEach(t.Result, r </span>=&gt;<span style="color: #000000;"> Console.WriteLine(r));
+            });
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">启动父任务</span>
+<span style="color: #000000;">            parent.Start();
+            parent.Wait();
+            Console.ReadLine();
+            </span><span style="color: #0000ff;">#endregion</span><span style="color: #000000;">
+        }
+    }</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp; &nbsp; 运行结果如下：</p>
+<p><img src="./images/C#线程学习笔记七：Task详细用法14.png" alt="" /></p>
+<p>&nbsp; &nbsp; 4.4、动态并行任务</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('16dd7507-7c8b-4b5b-8499-4f7bbd1117f3')"><img id="code_img_closed_16dd7507-7c8b-4b5b-8499-4f7bbd1117f3" class="code_img_closed" src="./images/C#线程学习笔记七：Task详细用法0.png" alt="" /><img id="code_img_opened_16dd7507-7c8b-4b5b-8499-4f7bbd1117f3" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('16dd7507-7c8b-4b5b-8499-4f7bbd1117f3',event)" src="./images/C#线程学习笔记七：Task详细用法1.png" alt="" />
+<div id="cnblogs_code_open_16dd7507-7c8b-4b5b-8499-4f7bbd1117f3" class="cnblogs_code_hide">
+<pre><code>    <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+    <span style="color: #808080;">///</span><span style="color: #008000;"> 结点类
+    </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+    <span style="color: #0000ff;">class</span><span style="color: #000000;"> Node
+    {
+        </span><span style="color: #0000ff;">public</span> Node Left { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+        </span><span style="color: #0000ff;">public</span> Node Right { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> Text { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+    }
+
+    </span><span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> Main()
+        {
+            </span><span style="color: #0000ff;">#region</span> 工作者线程：Task动态并行任务<span style="color: #000000;">
+            Node root </span>=<span style="color: #000000;"> GetNode();
+            DisplayTree(root);
+            Console.ReadLine();
+            </span><span style="color: #0000ff;">#endregion</span><span style="color: #000000;">
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> GetNode方法
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">static</span><span style="color: #000000;"> Node GetNode()
+        {
+            Node root </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Node
+            {
+                Left </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Node
+                {
+                    Left </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Node
+                    {
+                        Text </span>= <span style="color: #800000;">"</span><span style="color: #800000;">L-L</span><span style="color: #800000;">"</span><span style="color: #000000;">
+                    },
+                    Right </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Node
+                    {
+                        Text </span>= <span style="color: #800000;">"</span><span style="color: #800000;">L-R</span><span style="color: #800000;">"</span><span style="color: #000000;">
+                    },
+                    Text </span>= <span style="color: #800000;">"</span><span style="color: #800000;">L</span><span style="color: #800000;">"</span><span style="color: #000000;">
+                },
+                Right </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Node
+                {
+                    Left </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Node
+                    {
+                        Text </span>= <span style="color: #800000;">"</span><span style="color: #800000;">R-L</span><span style="color: #800000;">"</span><span style="color: #000000;">
+                    },
+                    Right </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Node
+                    {
+                        Text </span>= <span style="color: #800000;">"</span><span style="color: #800000;">R-R</span><span style="color: #800000;">"</span><span style="color: #000000;">
+                    },
+                    Text </span>= <span style="color: #800000;">"</span><span style="color: #800000;">R</span><span style="color: #800000;">"</span><span style="color: #000000;">
+                },
+                Text </span>= <span style="color: #800000;">"</span><span style="color: #800000;">Root</span><span style="color: #800000;">"</span><span style="color: #000000;">
+            };
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> root;
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> DisplayTree方法
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="root"&gt;&lt;/param&gt;</span>
+        <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> DisplayTree(Node root)
+        {
+            </span><span style="color: #0000ff;">var</span> task =<span style="color: #000000;"> Task.Factory.StartNew
+                (
+                    () </span>=&gt;<span style="color: #000000;">
+                    DisplayNode(root),
+                    CancellationToken.None,
+                    TaskCreationOptions.None,
+                    TaskScheduler.Default
+                );
+            task.Wait();
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> DisplayNode方法
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="current"&gt;&lt;/param&gt;</span>
+        <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> DisplayNode(Node current)
+        {
+
+            </span><span style="color: #0000ff;">if</span> (current.Left != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+            {
+                Task.Factory.StartNew
+                    (
+                        () </span>=&gt;<span style="color: #000000;">
+                        DisplayNode(current.Left),
+                        CancellationToken.None,
+                        TaskCreationOptions.AttachedToParent,
+                        TaskScheduler.Default
+                    );
+            }
+            </span><span style="color: #0000ff;">if</span> (current.Right != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+            {
+                Task.Factory.StartNew
+                    (
+                        () </span>=&gt;<span style="color: #000000;">
+                        DisplayNode(current.Right),
+                        CancellationToken.None,
+                        TaskCreationOptions.AttachedToParent,
+                        TaskScheduler.Default
+                    );
+                Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">The current node text={0},thread id is {1}.</span><span style="color: #800000;">"</span><span style="color: #000000;">, current.Text, Thread.CurrentThread.ManagedThreadId);
+            }
+        }
+    }</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp; &nbsp; 运行结果如下：</p>
+<p><img src="./images/C#线程学习笔记七：Task详细用法17.png" alt="" /></p>
+<p>&nbsp; &nbsp; 4.5、取消任务</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('7c20b739-ddb7-40bf-9053-020cfca07b97')"><img id="code_img_closed_7c20b739-ddb7-40bf-9053-020cfca07b97" class="code_img_closed" src="./images/C#线程学习笔记七：Task详细用法0.png" alt="" /><img id="code_img_opened_7c20b739-ddb7-40bf-9053-020cfca07b97" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('7c20b739-ddb7-40bf-9053-020cfca07b97',event)" src="./images/C#线程学习笔记七：Task详细用法1.png" alt="" />
+<div id="cnblogs_code_open_7c20b739-ddb7-40bf-9053-020cfca07b97" class="cnblogs_code_hide">
+<pre><code>    <span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            </span><span style="color: #0000ff;">#region</span> 取消任务<span style="color: #000000;">
+            ThreadPool.SetMaxThreads(</span><span style="color: #800080;">1000</span>, <span style="color: #800080;">1000</span><span style="color: #000000;">);
+            PrintMessage(</span><span style="color: #800000;">"</span><span style="color: #800000;">Main thread start.</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            CancellationTokenSource cts </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> CancellationTokenSource();
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">调用构造函数创建Task对象，将一个CancellationToken传给Task构造器从而使Task和CancellationToken关联起来。</span>
+            Task&lt;<span style="color: #0000ff;">int</span>&gt; task = <span style="color: #0000ff;">new</span> Task&lt;<span style="color: #0000ff;">int</span>&gt;(n =&gt; AsyncMethod(cts.Token, (<span style="color: #0000ff;">int</span>)n), <span style="color: #800080;">10</span><span style="color: #000000;">);
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">启动任务 </span>
+<span style="color: #000000;">            task.Start();
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">延迟取消任务</span>
+            Thread.Sleep(<span style="color: #800080;">3000</span><span style="color: #000000;">);
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">取消任务</span>
+<span style="color: #000000;">            cts.Cancel();
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">The method result is: </span><span style="color: #800000;">"</span> +<span style="color: #000000;"> task.Result);
+            Console.ReadLine();
+            </span><span style="color: #0000ff;">#endregion</span><span style="color: #000000;">
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 打印线程池信息
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="data"&gt;&lt;/param&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> PrintMessage(<span style="color: #0000ff;">string</span><span style="color: #000000;"> data)
+        {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">获得线程池中可用的工作者线程数量及I/O线程数量</span>
+            ThreadPool.GetAvailableThreads(<span style="color: #0000ff;">out</span> <span style="color: #0000ff;">int</span> workThreadNumber, <span style="color: #0000ff;">out</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> ioThreadNumber);
+
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">{0}\n CurrentThreadId is:{1}\n CurrentThread is background:{2}\n WorkerThreadNumber is:{3}\n IOThreadNumbers is:{4}\n</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+                data,
+                Thread.CurrentThread.ManagedThreadId,
+                Thread.CurrentThread.IsBackground.ToString(),
+                workThreadNumber.ToString(),
+                ioThreadNumber.ToString());
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 异步方法
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="ct"&gt;&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="n"&gt;&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">int</span> AsyncMethod(CancellationToken ct, <span style="color: #0000ff;">int</span><span style="color: #000000;"> n)
+        {
+            Thread.Sleep(</span><span style="color: #800080;">1000</span><span style="color: #000000;">);
+            PrintMessage(</span><span style="color: #800000;">"</span><span style="color: #800000;">Asynchoronous method.</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+
+            </span><span style="color: #0000ff;">int</span> sum = <span style="color: #800080;">0</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">try</span><span style="color: #000000;">
+            {
+                </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">1</span>; i &lt; n; i++<span style="color: #000000;">)
+                {
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">当CancellationTokenSource对象调用Cancel方法时，就会引起OperationCanceledException异常，
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">通过调用CancellationToken的ThrowIfCancellationRequested方法来定时检查操作是否已经取消，
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">这个方法和CancellationToken的IsCancellationRequested属性类似。</span>
+<span style="color: #000000;">                    ct.ThrowIfCancellationRequested();
+                    Thread.Sleep(</span><span style="color: #800080;">500</span><span style="color: #000000;">);
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">运算溢出检查</span>
+                    <span style="color: #0000ff;">checked</span><span style="color: #000000;">
+                    {
+                        sum </span>+=<span style="color: #000000;"> i;
+                    }
+                }
+            }
+            </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception e)
+            {
+                Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Exception is:</span><span style="color: #800000;">"</span> +<span style="color: #000000;"> e.GetType().Name);
+                Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Operation is canceled.</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            }
+
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> sum;
+        }
+    }</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp; &nbsp; 运行结果如下：</p>
+<p><img src="./images/C#线程学习笔记七：Task详细用法20.png" alt="" /></p>
+<p>&nbsp; &nbsp; 4.6、处理单个任务中的异常</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('fe713f07-d3ad-4fde-b0d8-6e79dab1975f')"><img id="code_img_closed_fe713f07-d3ad-4fde-b0d8-6e79dab1975f" class="code_img_closed" src="./images/C#线程学习笔记七：Task详细用法0.png" alt="" /><img id="code_img_opened_fe713f07-d3ad-4fde-b0d8-6e79dab1975f" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('fe713f07-d3ad-4fde-b0d8-6e79dab1975f',event)" src="./images/C#线程学习笔记七：Task详细用法1.png" alt="" />
+<div id="cnblogs_code_open_fe713f07-d3ad-4fde-b0d8-6e79dab1975f" class="cnblogs_code_hide">
+<pre><code>    <span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> Main()
+        {
+            </span><span style="color: #0000ff;">#region</span> 工作者线程：处理单个任务中的异常
+            <span style="color: #0000ff;">try</span><span style="color: #000000;">
+            {
+                Task</span>&lt;<span style="color: #0000ff;">int</span>&gt; task = Task.Run(() =&gt; SingleTaskExceptionMethod(<span style="color: #800000;">"</span><span style="color: #800000;">Single task.</span><span style="color: #800000;">"</span>, <span style="color: #800080;">2</span><span style="color: #000000;">));
+                </span><span style="color: #0000ff;">int</span> result =<span style="color: #000000;"> task.GetAwaiter().GetResult();
+                Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Result:{0}</span><span style="color: #800000;">"</span><span style="color: #000000;">, result);
+            }
+            </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception ex)
+            {
+                Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Single task exception caught:{0}</span><span style="color: #800000;">"</span><span style="color: #000000;">, ex.Message);
+            }
+            Console.ReadLine();
+            </span><span style="color: #0000ff;">#endregion</span><span style="color: #000000;">
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> SingleTaskException方法
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="name"&gt;&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="seconds"&gt;&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">int</span> SingleTaskExceptionMethod(<span style="color: #0000ff;">string</span> name, <span style="color: #0000ff;">int</span><span style="color: #000000;"> seconds)
+        {
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Task {0} is running on thread {1}.Is it threadpool thread?:{2}</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+                name, Thread.CurrentThread.ManagedThreadId, Thread.CurrentThread.IsThreadPoolThread);
+            Thread.Sleep(TimeSpan.FromSeconds(seconds));
+            </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> Exception(<span style="color: #800000;">"</span><span style="color: #800000;">Boom.</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+        }
+    }</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp; &nbsp; 运行结果如下：</p>
+<p><img src="./images/C#线程学习笔记七：Task详细用法23.png" alt="" /></p>
+<p>&nbsp; &nbsp; 4.7、处理多个任务中的异常</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('93f94eb3-59a5-42bc-b07a-62eea6c8381b')"><img id="code_img_closed_93f94eb3-59a5-42bc-b07a-62eea6c8381b" class="code_img_closed" src="./images/C#线程学习笔记七：Task详细用法0.png" alt="" /><img id="code_img_opened_93f94eb3-59a5-42bc-b07a-62eea6c8381b" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('93f94eb3-59a5-42bc-b07a-62eea6c8381b',event)" src="./images/C#线程学习笔记七：Task详细用法1.png" alt="" />
+<div id="cnblogs_code_open_93f94eb3-59a5-42bc-b07a-62eea6c8381b" class="cnblogs_code_hide">
+<pre><code>    <span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> Main()
+        {
+            </span><span style="color: #0000ff;">#region</span> 工作者线程：处理多个任务中的异常
+            <span style="color: #0000ff;">try</span><span style="color: #000000;">
+            {
+                </span><span style="color: #0000ff;">var</span> t1 = <span style="color: #0000ff;">new</span> Task&lt;<span style="color: #0000ff;">int</span>&gt;(() =&gt; MultipleTaskExceptionMethod(<span style="color: #800000;">"</span><span style="color: #800000;">Multiple task 1</span><span style="color: #800000;">"</span>, <span style="color: #800080;">3</span><span style="color: #000000;">));
+                </span><span style="color: #0000ff;">var</span> t2 = <span style="color: #0000ff;">new</span> Task&lt;<span style="color: #0000ff;">int</span>&gt;(() =&gt; MultipleTaskExceptionMethod(<span style="color: #800000;">"</span><span style="color: #800000;">Multiple task 2</span><span style="color: #800000;">"</span>, <span style="color: #800080;">2</span><span style="color: #000000;">));
+                </span><span style="color: #0000ff;">var</span> complexTask =<span style="color: #000000;"> Task.WhenAll(t1, t2);
+                </span><span style="color: #0000ff;">var</span> exceptionHandler =<span style="color: #000000;"> complexTask.ContinueWith
+                    (
+                        t </span>=&gt;<span style="color: #000000;">
+                        Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Result:{0}</span><span style="color: #800000;">"</span><span style="color: #000000;">, t.Result),
+                        TaskContinuationOptions.OnlyOnFaulted
+                    );
+                t1.Start();
+                t2.Start();
+                Task.WaitAll(t1, t2);
+                Console.ReadLine();
+            }
+            </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (AggregateException ex)
+            {
+                ex.Handle
+                    (
+                        exception </span>=&gt;<span style="color: #000000;">
+                        {
+                            Console.WriteLine(exception.Message);
+                            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+                        }
+                    );
+            }
+            </span><span style="color: #0000ff;">#endregion</span><span style="color: #000000;">
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> MultipleTaskException方法
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="name"&gt;&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="seconds"&gt;&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">int</span> MultipleTaskExceptionMethod(<span style="color: #0000ff;">string</span> name, <span style="color: #0000ff;">int</span><span style="color: #000000;"> seconds)
+        {
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Task {0} is running on thread id {1}. Is it threadpool thread?:{2}</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+                name, Thread.CurrentThread.ManagedThreadId, Thread.CurrentThread.IsThreadPoolThread);
+            Thread.Sleep(TimeSpan.FromSeconds(seconds));
+            </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> Exception(<span style="color: #0000ff;">string</span>.Format(<span style="color: #800000;">"</span><span style="color: #800000;">Task {0} Boom.</span><span style="color: #800000;">"</span><span style="color: #000000;">, name));
+        }
+    }</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp; &nbsp; 运行结果如下：</p>
+<p><img src="./images/C#线程学习笔记七：Task详细用法26.png" alt="" /></p>
+<p>&nbsp; &nbsp; 4.8、Task.FromResult的应用</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('ca7ba47d-226e-452b-b458-20248625c95e')"><img id="code_img_closed_ca7ba47d-226e-452b-b458-20248625c95e" class="code_img_closed" src="./images/C#线程学习笔记七：Task详细用法0.png" alt="" /><img id="code_img_opened_ca7ba47d-226e-452b-b458-20248625c95e" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('ca7ba47d-226e-452b-b458-20248625c95e',event)" src="./images/C#线程学习笔记七：Task详细用法1.png" alt="" />
+<div id="cnblogs_code_open_ca7ba47d-226e-452b-b458-20248625c95e" class="cnblogs_code_hide">
+<pre><code>    <span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">字典</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">readonly</span> IDictionary&lt;<span style="color: #0000ff;">string</span>, <span style="color: #0000ff;">string</span>&gt; cache = <span style="color: #0000ff;">new</span> Dictionary&lt;<span style="color: #0000ff;">string</span>, <span style="color: #0000ff;">string</span>&gt;<span style="color: #000000;">()
+        {
+            {</span><span style="color: #800000;">"</span><span style="color: #800000;">0001</span><span style="color: #800000;">"</span>,<span style="color: #800000;">"</span><span style="color: #800000;">A</span><span style="color: #800000;">"</span><span style="color: #000000;">},
+            {</span><span style="color: #800000;">"</span><span style="color: #800000;">0002</span><span style="color: #800000;">"</span>,<span style="color: #800000;">"</span><span style="color: #800000;">B</span><span style="color: #800000;">"</span><span style="color: #000000;">},
+            {</span><span style="color: #800000;">"</span><span style="color: #800000;">0003</span><span style="color: #800000;">"</span>,<span style="color: #800000;">"</span><span style="color: #800000;">C</span><span style="color: #800000;">"</span><span style="color: #000000;">},
+            {</span><span style="color: #800000;">"</span><span style="color: #800000;">0004</span><span style="color: #800000;">"</span>,<span style="color: #800000;">"</span><span style="color: #800000;">D</span><span style="color: #800000;">"</span><span style="color: #000000;">},
+            {</span><span style="color: #800000;">"</span><span style="color: #800000;">0005</span><span style="color: #800000;">"</span>,<span style="color: #800000;">"</span><span style="color: #800000;">E</span><span style="color: #800000;">"</span><span style="color: #000000;">},
+            {</span><span style="color: #800000;">"</span><span style="color: #800000;">0006</span><span style="color: #800000;">"</span>,<span style="color: #800000;">"</span><span style="color: #800000;">F</span><span style="color: #800000;">"</span><span style="color: #000000;">},
+        };
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> Main()
+        {
+            </span><span style="color: #0000ff;">#region</span> 工作者线程：Task.FromResult的应用<span style="color: #000000;">
+            Task</span>&lt;<span style="color: #0000ff;">string</span>&gt; task = GetValueFromCacheMethod(<span style="color: #800000;">"</span><span style="color: #800000;">0006</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Result={0}</span><span style="color: #800000;">"</span><span style="color: #000000;">, task.Result.ToString());
+            Console.ReadLine();
+            </span><span style="color: #0000ff;">#endregion</span><span style="color: #000000;">
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> GetValueFromCache方法
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="key"&gt;&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> Task&lt;<span style="color: #0000ff;">string</span>&gt; GetValueFromCacheMethod(<span style="color: #0000ff;">string</span><span style="color: #000000;"> key)
+        {
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">GetValueFromCache开始执行&hellip;&hellip;</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            </span><span style="color: #0000ff;">string</span> result = <span style="color: #0000ff;">string</span><span style="color: #000000;">.Empty;
+            Thread.Sleep(</span><span style="color: #800080;">3000</span><span style="color: #000000;">);
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">GetValueFromCache继续执行&hellip;&hellip;</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            </span><span style="color: #0000ff;">if</span> (cache.TryGetValue(key, <span style="color: #0000ff;">out</span><span style="color: #000000;"> result))
+            {
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> Task.FromResult(result);
+            }
+            </span><span style="color: #0000ff;">return</span> Task.FromResult(<span style="color: #800000;">""</span><span style="color: #000000;">);
+        }
+    }</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp; &nbsp; 运行结果如下：</p>
+<p><img src="./images/C#线程学习笔记七：Task详细用法29.png" alt="" /></p>
+<p>&nbsp; &nbsp; 4.9、使用IProgress实现异步编程的进程通知</p>
+<p>&nbsp; &nbsp; IProgress&lt;in T&gt;只提供了一个方法void Report(T value)，通过Report方法把一个T类型的值报告给IProgress，然后IProgress&lt;in T&gt;的实现类Progress&lt;in T&gt;的构造函数</p>
+<p>接收类型为Action&lt;T&gt;的形参，通过这个委托让进度显示在UI界面中。</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('9167c6f8-baf1-4827-9214-2978d7744861')"><img id="code_img_closed_9167c6f8-baf1-4827-9214-2978d7744861" class="code_img_closed" src="./images/C#线程学习笔记七：Task详细用法0.png" alt="" /><img id="code_img_opened_9167c6f8-baf1-4827-9214-2978d7744861" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('9167c6f8-baf1-4827-9214-2978d7744861',event)" src="./images/C#线程学习笔记七：Task详细用法1.png" alt="" />
+<div id="cnblogs_code_open_9167c6f8-baf1-4827-9214-2978d7744861" class="cnblogs_code_hide">
+<pre><code>    <span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> Main()
+        {
+            </span><span style="color: #0000ff;">#region</span> 工作者线程：使用IProgress实现异步编程的进程通知<span style="color: #000000;">
+            Task task </span>=<span style="color: #000000;"> Display();
+            task.Wait();
+            Console.ReadLine();
+            </span><span style="color: #0000ff;">#endregion</span><span style="color: #000000;">
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> DoProcessing方法
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="progress"&gt;&lt;/param&gt;</span>
+        <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> DoProcessing(IProgress&lt;<span style="color: #0000ff;">int</span>&gt;<span style="color: #000000;"> progress)
+        {
+            </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">1</span>; i &lt;= <span style="color: #800080;">100</span>; i++<span style="color: #000000;">)
+            {
+                Thread.Sleep(</span><span style="color: #800080;">100</span><span style="color: #000000;">);
+                </span><span style="color: #0000ff;">if</span> (progress != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+                {
+                    progress.Report(i);
+                }
+            }
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> Display方法
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">async</span><span style="color: #000000;"> Task Display()
+        {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">当前线程</span>
+            <span style="color: #0000ff;">var</span> progress = <span style="color: #0000ff;">new</span> Progress&lt;<span style="color: #0000ff;">int</span>&gt;<span style="color: #000000;">
+                (
+                    percent </span>=&gt;<span style="color: #000000;">
+                    {
+                        Console.Clear();
+                        Console.Write(</span><span style="color: #800000;">"</span><span style="color: #800000;">{0}%</span><span style="color: #800000;">"</span><span style="color: #000000;">, percent);
+                    }
+                );
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">线程池线程</span>
+            <span style="color: #0000ff;">await</span> Task.Run(() =&gt;<span style="color: #000000;"> DoProcessing(progress));
+            Console.WriteLine(</span><span style="color: #800000;">""</span><span style="color: #000000;">);
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">结束</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+        }
+    }</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp; &nbsp; 运行结果如下：</p>
+<p><img src="./images/C#线程学习笔记七：Task详细用法32.png" alt="" /></p>
+<p>&nbsp; &nbsp; 4.10、Factory.FromAsync的应用</p>
+<p>&nbsp; &nbsp;&nbsp;(简APM模式(委托)转换为任务)(BeginXXX和EndXXX)</p>
+<p>&nbsp; &nbsp;&nbsp;带回调方式：</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('28f54c5b-0fac-4927-809b-89ff2a7907c3')"><img id="code_img_closed_28f54c5b-0fac-4927-809b-89ff2a7907c3" class="code_img_closed" src="./images/C#线程学习笔记七：Task详细用法0.png" alt="" /><img id="code_img_opened_28f54c5b-0fac-4927-809b-89ff2a7907c3" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('28f54c5b-0fac-4927-809b-89ff2a7907c3',event)" src="./images/C#线程学习笔记七：Task详细用法1.png" alt="" />
+<div id="cnblogs_code_open_28f54c5b-0fac-4927-809b-89ff2a7907c3" class="cnblogs_code_hide">
+<pre><code>    <span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">使用委托实现异步，是使用了异步编程模型APM。</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">delegate</span> <span style="color: #0000ff;">string</span> AsynchronousTask(<span style="color: #0000ff;">string</span><span style="color: #000000;"> threadName);
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> Main()
+        {
+            </span><span style="color: #0000ff;">#region</span> 工作者线程：带回调方式的Factory.FromAsync的应用<span style="color: #000000;">
+            AsynchronousTask d </span>=<span style="color: #000000;"> TestMethod;
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Option 1</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            Task</span>&lt;<span style="color: #0000ff;">string</span>&gt; task = Task&lt;<span style="color: #0000ff;">string</span>&gt;.Factory.FromAsync(d.BeginInvoke(<span style="color: #800000;">"</span><span style="color: #800000;">AsyncTaskThread</span><span style="color: #800000;">"</span>, Callback, <span style="color: #800000;">"</span><span style="color: #800000;">A delegate asynchronous called.</span><span style="color: #800000;">"</span><span style="color: #000000;">), d.EndInvoke);
+
+            task.ContinueWith(t </span>=&gt; Console.WriteLine(<span style="color: #800000;">"</span><span style="color: #800000;">Callback is finished,now running a continuation. Result: {0}</span><span style="color: #800000;">"</span><span style="color: #000000;">,t.Result));
+
+            </span><span style="color: #0000ff;">while</span> (!<span style="color: #000000;">task.IsCompleted)
+            {
+                Console.WriteLine(task.Status);
+                Thread.Sleep(TimeSpan.FromSeconds(</span><span style="color: #800080;">0.5</span><span style="color: #000000;">));
+            }
+            Console.WriteLine(task.Status);
+            Console.ReadLine();
+            </span><span style="color: #0000ff;">#endregion</span><span style="color: #000000;">
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> FromAsync方法
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="threadName"&gt;&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">string</span> FromAsyncMethod(<span style="color: #0000ff;">string</span><span style="color: #000000;"> threadName)
+        {
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Starting...</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Is it threadpool thread?:{0}</span><span style="color: #800000;">"</span><span style="color: #000000;">, Thread.CurrentThread.IsThreadPoolThread);
+            Thread.Sleep(TimeSpan.FromSeconds(</span><span style="color: #800080;">2</span><span style="color: #000000;">));
+            Thread.CurrentThread.Name </span>=<span style="color: #000000;"> threadName;
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">string</span>.Format(<span style="color: #800000;">"</span><span style="color: #800000;">Thread name:{0}</span><span style="color: #800000;">"</span><span style="color: #000000;">, Thread.CurrentThread.Name);
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> Callback方法
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="ar"&gt;&lt;/param&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> Callback(IAsyncResult ar)
+        {
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Starting a callback...</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">State passed to a callbak: {0}</span><span style="color: #800000;">"</span><span style="color: #000000;">, ar.AsyncState);
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Is it threadpool thread?:{0}</span><span style="color: #800000;">"</span><span style="color: #000000;">, Thread.CurrentThread.IsThreadPoolThread);
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Threadpool worker thread id: {0}</span><span style="color: #800000;">"</span><span style="color: #000000;">,Thread.CurrentThread.ManagedThreadId);
+        }
+    }</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp; &nbsp; 运行结果如下：</p>
+<p><img src="./images/C#线程学习笔记七：Task详细用法35.png" alt="" /></p>
+<p>&nbsp; &nbsp; 不带回调方式：</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('c24cfd8e-68fb-48bf-b7e5-1f2992e903d3')"><img id="code_img_closed_c24cfd8e-68fb-48bf-b7e5-1f2992e903d3" class="code_img_closed" src="./images/C#线程学习笔记七：Task详细用法0.png" alt="" /><img id="code_img_opened_c24cfd8e-68fb-48bf-b7e5-1f2992e903d3" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('c24cfd8e-68fb-48bf-b7e5-1f2992e903d3',event)" src="./images/C#线程学习笔记七：Task详细用法1.png" alt="" />
+<div id="cnblogs_code_open_c24cfd8e-68fb-48bf-b7e5-1f2992e903d3" class="cnblogs_code_hide">
+<pre><code>    <span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">使用委托实现异步，是使用了异步编程模型APM。</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">delegate</span> <span style="color: #0000ff;">string</span> AsynchronousTask(<span style="color: #0000ff;">string</span><span style="color: #000000;"> threadName);
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> Main()
+        {
+            </span><span style="color: #0000ff;">#region</span> 工作者线程：不带回调方式的Factory.FromAsync的应用<span style="color: #000000;">
+            AsynchronousTask d </span>=<span style="color: #000000;"> FromAsyncMethod;
+            Task</span>&lt;<span style="color: #0000ff;">string</span>&gt; task = Task&lt;<span style="color: #0000ff;">string</span>&gt;.Factory.FromAsync(d.BeginInvoke, d.EndInvoke, <span style="color: #800000;">"</span><span style="color: #800000;">AsyncTaskThread</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">A delegate asynchronous called.</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            task.ContinueWith(t </span>=&gt; Console.WriteLine(<span style="color: #800000;">"</span><span style="color: #800000;">Task is completed, now running a continuation! Result: {0}</span><span style="color: #800000;">"</span><span style="color: #000000;">,t.Result));
+            </span><span style="color: #0000ff;">while</span> (!<span style="color: #000000;">task.IsCompleted)
+            {
+                Console.WriteLine(task.Status);
+                Thread.Sleep(TimeSpan.FromSeconds(</span><span style="color: #800080;">0.5</span><span style="color: #000000;">));
+            }
+            Console.WriteLine(task.Status);
+            Console.ReadLine();
+            </span><span style="color: #0000ff;">#endregion</span><span style="color: #000000;">
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> FromAsync方法
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="threadName"&gt;&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">string</span> FromAsyncMethod(<span style="color: #0000ff;">string</span><span style="color: #000000;"> threadName)
+        {
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Starting...</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Is it threadpool thread?:{0}</span><span style="color: #800000;">"</span><span style="color: #000000;">, Thread.CurrentThread.IsThreadPoolThread);
+            Thread.Sleep(TimeSpan.FromSeconds(</span><span style="color: #800080;">2</span><span style="color: #000000;">));
+            Thread.CurrentThread.Name </span>=<span style="color: #000000;"> threadName;
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">string</span>.Format(<span style="color: #800000;">"</span><span style="color: #800000;">Thread name:{0}</span><span style="color: #800000;">"</span><span style="color: #000000;">, Thread.CurrentThread.Name);
+        }
+    }</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp; &nbsp; 运行结果如下：</p>
+<p>&nbsp;<img src="./images/C#线程学习笔记七：Task详细用法38.png" alt="" /></p>
+<p>&nbsp; &nbsp; 参考自：</p>
+<p>&nbsp; &nbsp;&nbsp;<a href="https://www.cnblogs.com/kelelipeng/p/10237669.html">https://www.cnblogs.com/kelelipeng/p/10237669.html</a></p>
+<p>&nbsp; &nbsp;&nbsp;<a href="https://www.cnblogs.com/lonelyxmas/p/9509298.html">https://www.cnblogs.com/lonelyxmas/p/9509298.html</a></p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,290 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修动手造轮子：实现一个简单的 EventBus' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>动手造轮子：实现一个简单的 EventBus</center></div><div class='banquan'>原文出处:本文由博客园博主WeihanLi提供。<br/>
+原文连接:https://www.cnblogs.com/weihanli/p/implement-a-simple-event-bus.html</div><br>
+    <h1 id="动手造轮子实现一个简单的-eventbus">动手造轮子：实现一个简单的 EventBus</h1>
+<h2 id="intro">Intro</h2>
+<p>EventBus 是一种事件发布订阅模式，通过 EventBus 我们可以很方便的实现解耦，将事件的发起和事件的处理的很好的分隔开来，很好的实现解耦。 微软官方的示例项目 <a href="https://github.com/dotnet-architecture/eShopOnContainers">EShopOnContainers</a> 也有在使用 EventBus 。</p>
+<p>这里的 EventBus 实现也是参考借鉴了微软 eShopOnContainers 项目。</p>
+<p>EventBus 处理流程：</p>
+<p><img src="./images/动手造轮子：实现一个简单的 EventBus0.png" alt="event bus flow" /></p>
+<p>微服务间使用 EventBus 实现系统间解耦：</p>
+<p><img src="./images/动手造轮子：实现一个简单的 EventBus1.png" alt="event bus in microservice" /></p>
+<p>借助 EventBus 我们可以很好的实现组件之间，服务之间，系统之间的解耦以及相互通信的问题。</p>
+<p>起初觉得 EventBus 和 MQ 其实差不多嘛，都是通过异步处理来实现解耦合，高性能。后来看到了下面这张图才算明白为什么要用 EventBus 以及 EventBus 和 MQ 之间的关系，EventBus 是抽象的，可以用MQ来实现 EventBus.</p>
+<p><img src="./images/动手造轮子：实现一个简单的 EventBus2.png" alt="eventbus implement" /></p>
+<h2 id="为什么要使用-eventbus">为什么要使用 EventBus</h2>
+<ol>
+<li>解耦合(轻松的实现系统间解耦)</li>
+<li>高性能可扩展（每一个事件都是简单独立且不可更改的对象，只需要保存新增的事件，不涉及其他的变更删除操作）</li>
+<li>系统审计（每一个事件都是不可变更的，每一个事件都是可追溯的）</li>
+<li>...</li>
+</ol>
+<h2 id="eventbus-整体架构">EventBus 整体架构：</h2>
+<ul>
+<li><code>IEventBase</code> :所有的事件应该实现这个接口，这个接口定义了事件的唯一id <code>EventId</code> 和事件发生的事件 <code>EventAt</code></li>
+</ul>
+<p><img src="./images/动手造轮子：实现一个简单的 EventBus3.png" alt="IEventBase" /></p>
+<ul>
+<li><code>IEventHandler</code>：定义了一个 <code>Handle</code> 方法来处理相应的事件</li>
+</ul>
+<p><img src="./images/动手造轮子：实现一个简单的 EventBus4.png" alt="IEventHandler" /></p>
+<ul>
+<li><code>IEventStore</code>：所有的事件的处理存储，保存事件的<code>IEventHandler</code>，一般不会直接操作，通过 EventBus 的订阅和取消订阅来操作 <code>EventStore</code></li>
+</ul>
+<p><img src="./images/动手造轮子：实现一个简单的 EventBus5.png" alt="IEventStore" /></p>
+<ul>
+<li><code>IEventBus</code>：用来发布/订阅/取消订阅事件，并将事件的某一个 <code>IEventHandler</code> 保存到 EventStore 或从 EventStore 中移除</li>
+</ul>
+<p><img src="./images/动手造轮子：实现一个简单的 EventBus6.png" alt="IEventBus" /></p>
+<h2 id="使用示例">使用示例</h2>
+<p>来看一个使用示例，<a href="https://github.com/WeihanLi/WeihanLi.Common/blob/b11ba3dc36eb1cea18716b844c40a6bed02a05aa/samples/DotNetCoreSample/EventTest.cs">完整代码示例</a>：</p>
+<pre><code><code>internal class EventTest
+{
+    public static void MainTest()
+    {
+        var eventBus = DependencyResolver.Current.ResolveService&lt;IEventBus&gt;();
+        eventBus.Subscribe&lt;CounterEvent, CounterEventHandler1&gt;();
+        eventBus.Subscribe&lt;CounterEvent, CounterEventHandler2&gt;();
+        eventBus.Subscribe&lt;CounterEvent, DelegateEventHandler&lt;CounterEvent&gt;&gt;();
+        eventBus.Publish(new CounterEvent { Counter = 1 });
+
+        eventBus.Unsubscribe&lt;CounterEvent, CounterEventHandler1&gt;();
+        eventBus.Unsubscribe&lt;CounterEvent, DelegateEventHandler&lt;CounterEvent&gt;&gt;();
+        eventBus.Publish(new CounterEvent { Counter = 2 });
+    }
+}
+
+internal class CounterEvent : EventBase
+{
+    public int Counter { get; set; }
+}
+
+internal class CounterEventHandler1 : IEventHandler&lt;CounterEvent&gt;
+{
+    public Task Handle(CounterEvent @event)
+    {
+        LogHelper.GetLogger&lt;CounterEventHandler1&gt;().Info($&quot;Event Info: {@event.ToJson()}, Handler Type:{GetType().FullName}&quot;);
+        return Task.CompletedTask;
+    }
+}
+
+internal class CounterEventHandler2 : IEventHandler&lt;CounterEvent&gt;
+{
+    public Task Handle(CounterEvent @event)
+    {
+        LogHelper.GetLogger&lt;CounterEventHandler2&gt;().Info($&quot;Event Info: {@event.ToJson()}, Handler Type:{GetType().FullName}&quot;);
+        return Task.CompletedTask;
+    }
+}</code></pre>
+<h2 id="具体实现">具体实现</h2>
+<p><a href="https://github.com/WeihanLi/WeihanLi.Common/blob/b11ba3dc36eb1cea18716b844c40a6bed02a05aa/src/WeihanLi.Common/Event/EventStoreInMemory.cs">EventStoreInMemory</a> 实现：</p>
+<p>EventStoreInMemory 是 <code>IEventStore</code> 将数据放在内存中的实现，使用了 ConcurrentDictionary 以及 HashSet 来尽可能的保证高效，具体实现代码如下：</p>
+<pre><code><code>public class EventStoreInMemory : IEventStore
+{
+    private readonly ConcurrentDictionary&lt;string, HashSet&lt;Type&gt;&gt; _eventHandlers = new ConcurrentDictionary&lt;string, HashSet&lt;Type&gt;&gt;();
+
+    public bool AddSubscription&lt;TEvent, TEventHandler&gt;()
+        where TEvent : IEventBase
+        where TEventHandler : IEventHandler&lt;TEvent&gt;
+    {
+        var eventKey = GetEventKey&lt;TEvent&gt;();
+        if (_eventHandlers.ContainsKey(eventKey))
+        {
+            return _eventHandlers[eventKey].Add(typeof(TEventHandler));
+        }
+        else
+        {
+            return _eventHandlers.TryAdd(eventKey, new HashSet&lt;Type&gt;()
+            {
+                typeof(TEventHandler)
+            });
+        }
+    }
+
+    public bool Clear()
+    {
+        _eventHandlers.Clear();
+        return true;
+    }
+
+    public ICollection&lt;Type&gt; GetEventHandlerTypes&lt;TEvent&gt;() where TEvent : IEventBase
+    {
+        if(_eventHandlers.Count == 0)
+            return  new Type[0];
+        var eventKey = GetEventKey&lt;TEvent&gt;();
+        if (_eventHandlers.TryGetValue(eventKey, out var handlers))
+        {
+            return handlers;
+        }
+        return new Type[0];
+    }
+
+    public string GetEventKey&lt;TEvent&gt;()
+    {
+        return typeof(TEvent).FullName;
+    }
+
+    public bool HasSubscriptionsForEvent&lt;TEvent&gt;() where TEvent : IEventBase
+    {
+        if(_eventHandlers.Count == 0)
+            return false;
+
+        var eventKey = GetEventKey&lt;TEvent&gt;();
+        return _eventHandlers.ContainsKey(eventKey);
+    }
+
+    public bool RemoveSubscription&lt;TEvent, TEventHandler&gt;()
+        where TEvent : IEventBase
+        where TEventHandler : IEventHandler&lt;TEvent&gt;
+    {
+        if(_eventHandlers.Count == 0)
+            return false;
+
+        var eventKey = GetEventKey&lt;TEvent&gt;();
+        if (_eventHandlers.ContainsKey(eventKey))
+        {
+            return _eventHandlers[eventKey].Remove(typeof(TEventHandler));
+        }
+        return false;
+    }
+}</code></pre>
+<p><a href="https://github.com/WeihanLi/WeihanLi.Common/blob/b11ba3dc36eb1cea18716b844c40a6bed02a05aa/src/WeihanLi.Common/Event/EventBus.cs">EventBus</a> 的实现，从上面可以看到 EventStore 保存的是 <code>IEventHandler</code> 对应的 Type，在 Publish 的时候根据 Type 从 IoC 容器中取得相应的 Handler 即可，如果没有在 IoC 容器中找到对应的类型，则会尝试创建一个类型实例，然后调用 <code>IEventHandler</code> 的 <code>Handle</code> 方法，代码如下：</p>
+<pre><code><code>/// &lt;summary&gt;
+/// EventBus in process
+/// &lt;/summary&gt;
+public class EventBus : IEventBus
+{
+    private static readonly ILogHelperLogger Logger = Helpers.LogHelper.GetLogger&lt;EventBus&gt;();
+
+    private readonly IEventStore _eventStore;
+    private readonly IServiceProvider _serviceProvider;
+
+    public EventBus(IEventStore eventStore, IServiceProvider serviceProvider = null)
+    {
+        _eventStore = eventStore;
+        _serviceProvider = serviceProvider ?? DependencyResolver.Current;
+    }
+
+    public bool Publish&lt;TEvent&gt;(TEvent @event) where TEvent : IEventBase
+    {
+        if (!_eventStore.HasSubscriptionsForEvent&lt;TEvent&gt;())
+        {
+            return false;
+        }
+        var handlers = _eventStore.GetEventHandlerTypes&lt;TEvent&gt;();
+        if (handlers.Count &gt; 0)
+        {
+            var handlerTasks = new List&lt;Task&gt;();
+            foreach (var handlerType in handlers)
+            {
+                try
+                {
+                    if (_serviceProvider.GetServiceOrCreateInstance(handlerType) is IEventHandler&lt;TEvent&gt; handler)
+                    {
+                        handlerTasks.Add(handler.Handle(@event));
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error(ex, $&quot;handle event [{_eventStore.GetEventKey&lt;TEvent&gt;()}] error, eventHandlerType:{handlerType.FullName}&quot;);
+                }
+            }
+            handlerTasks.WhenAll().ConfigureAwait(false);
+
+            return true;
+        }
+        return false;
+    }
+
+    public bool Subscribe&lt;TEvent, TEventHandler&gt;()
+        where TEvent : IEventBase
+        where TEventHandler : IEventHandler&lt;TEvent&gt;
+    {
+        return _eventStore.AddSubscription&lt;TEvent, TEventHandler&gt;();
+    }
+
+    public bool Unsubscribe&lt;TEvent, TEventHandler&gt;()
+        where TEvent : IEventBase
+        where TEventHandler : IEventHandler&lt;TEvent&gt;
+    {
+        return _eventStore.RemoveSubscription&lt;TEvent, TEventHandler&gt;();
+    }
+}</code></pre>
+<h2 id="项目实例">项目实例</h2>
+<p>来看一个实际的项目中的使用，在我的活动室预约项目中有一个公告的模块，访问公告详情页面，这个公告的访问次数加1，把这个访问次数加1改成了用 EventBus 来实现，实际项目代码：<a href="https://github.com/WeihanLi/ActivityReservation/blob/67e2cb8e92876629a7af6dc051745dd8c7e9faeb/ActivityReservation/Startup.cs" class="uri">https://github.com/WeihanLi/ActivityReservation/blob/67e2cb8e92876629a7af6dc051745dd8c7e9faeb/ActivityReservation/Startup.cs</a></p>
+<ol>
+<li>定义 Event 以及 EventHandler</li>
+</ol>
+<pre><code><code>public class NoticeViewEvent : EventBase
+{
+    public Guid NoticeId { get; set; }
+
+    // UserId
+    // IP
+    // ...
+}
+
+public class NoticeViewEventHandler : IEventHandler&lt;NoticeViewEvent&gt;
+{
+    public async Task Handle(NoticeViewEvent @event)
+    {
+        await DependencyResolver.Current.TryInvokeServiceAsync&lt;ReservationDbContext&gt;(async dbContext =&gt;
+        {
+            var notice = await dbContext.Notices.FindAsync(@event.NoticeId);
+            notice.NoticeVisitCount += 1;
+            await dbContext.SaveChangesAsync();
+        });
+    }
+}</code></pre>
+<p>这里的 Event 只定义了一个 NoticeId ，其实也可以把请求信息如IP/UA等信息加进去，在 EventHandler里处理以便日后数据分析。</p>
+<ol>
+<li>注册 EventBus 相关服务以及 EventHandlers</li>
+</ol>
+<pre><code><code>services.AddSingleton&lt;IEventBus, EventBus&gt;();
+services.AddSingleton&lt;IEventStore, EventStoreInMemory&gt;();
+//register EventHandlers
+services.AddSingleton&lt;NoticeViewEventHandler&gt;();</code></pre>
+<ol>
+<li>订阅事件</li>
+</ol>
+<pre><code><code>public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory, IEventBus eventBus)
+{
+    eventBus.Subscribe&lt;NoticeViewEvent, NoticeViewEventHandler&gt;(); 
+    // ...
+}</code></pre>
+<ol>
+<li>发布事件</li>
+</ol>
+<pre><code><code>eventBus.Publish(new NoticeViewEvent { NoticeId = notice.NoticeId });</code></pre>
+<h2 id="reference">Reference</h2>
+<ul>
+<li><a href="https://github.com/dotnet-architecture/eShopOnContainers" class="uri">https://github.com/dotnet-architecture/eShopOnContainers</a></li>
+<li><a href="https://docs.microsoft.com/zh-cn/previous-versions/msp-n-p/jj591559(v=pandp.10)" class="uri">https://docs.microsoft.com/zh-cn/previous-versions/msp-n-p/jj591559(v=pandp.10)</a></li>
+<li><a href="https://docs.microsoft.com/en-us/dotnet/standard/microservices-architecture/multi-container-microservice-net-applications/integration-event-based-microservice-communications" class="uri">https://docs.microsoft.com/en-us/dotnet/standard/microservices-architecture/multi-container-microservice-net-applications/integration-event-based-microservice-communications</a></li>
+<li><a href="https://docs.microsoft.com/en-us/dotnet/standard/microservices-architecture/multi-container-microservice-net-applications/subscribe-events" class="uri">https://docs.microsoft.com/en-us/dotnet/standard/microservices-architecture/multi-container-microservice-net-applications/subscribe-events</a></li>
+<li><a href="https://github.com/sheng-jie/EventBus" class="uri">https://github.com/sheng-jie/EventBus</a></li>
+<li><a href="https://github.com/WeihanLi/ActivityReservation" class="uri">https://github.com/WeihanLi/ActivityReservation</a></li>
+</ul>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,242 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C# 基于NPOI+Office COM组件 实现20行代码在线预览文档（word，excel，pdf，txt，png）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C# 基于NPOI+Office COM组件 实现20行代码在线预览文档（word，excel，pdf，txt，png）</center></div><div class='banquan'>原文出处:本文由博客园博主熊泽-学习中的苦与乐提供。<br/>
+原文连接:https://www.cnblogs.com/xiongze520/p/11358585.html</div><br>
+    <p><span style="font-size: 15px;">由于项目需要，需要一个在线预览office的功能，小编一开始使用的是微软提供的方法，简单快捷，但是不符合小编开发需求，</span></p>
+<p><span style="font-size: 15px;">就另外用了：将文件转换成html文件然后预览html文件的方法。对微软提供的方法感兴趣的小伙伴可以去看一下，够简单直接：<a href="https://blog.csdn.net/superKM/article/details/81013304" target="_blank">word+excle+pdf表格在线浏览</a></span></p>
+<p><span style="font-size: 15px;">我们来说一下小编使用的方法，这种预览方式基于开源的NPOI+Office COM组件，使用是需要引入这几个动态链接库，总体如下：</span></p>
+<hr />
+<p><span style="font-size: 18px;"><strong>C#在线预览文档（word，excel，pdf，txt，png）</strong></span></p>
+<ol>
+<li><span style="font-size: 16px;">预览方式：将文件转换成html文件然后预览html文件</span></li>
+<li><span style="font-size: 16px;">预览word文件：需要引入Interop.Microsoft.Office.Interop.Word.dll（Office COM+组件）</span></li>
+<li><span style="font-size: 16px;">预览Excel文件：需要引入Interop.Microsoft.Office.Interop.Excel.dll（Office COM+组件)</span></li>
+<li><span style="font-size: 16px;">PDF文件直接嵌入到浏览器中进行查看，无需转换（需安装pdf阅读器）（直接使用文件的路径访问即可）</span></li>
+<li><span style="font-size: 16px;">文本文件直接嵌入到浏览器进行查看，无需转换（直接使用文件的路径访问即可）</span></li>
+<li><span style="font-size: 16px;">图片文件直接嵌入到浏览器进行查看，无需转换（直接使用文件的路径访问即可）</span></li>
+</ol><hr />
+<p>&nbsp;</p>
+<p><span style="font-size: 15px;">下面小编就预览word文件和预览excel文件进行学习一下。</span></p>
+<p><span style="font-size: 16px;"><strong>准备工作：</strong></span></p>
+<p><em><strong><span style="font-size: 15px;">1、创建MVC项目，引入NPOI和office Com组件动态链接库，小编使用的是VS2017，</span></strong></em></p>
+<p><em><strong><span style="font-size: 15px;">　 直接在NuGet里面引入（只演示NPOI的引入，Interop.Microsoft.Office.Interop.Word和Interop.Microsoft.Office.Interop.Excel的引入一样的操作）</span></strong></em></p>
+<p><img src="./images/C# 基于NPOI+Office COM组件 实现20行代码在线预览文档（word，excel，pdf，txt，png）0.png" alt="" /></p>
+<p>&nbsp;</p>
+<p><em><strong><span style="font-size: 15px;">2、在Content文件加下面建立一个excel文件和word文件，里面的内容可以自定义</span></strong></em></p>
+<hr />
+<p>&nbsp;</p>
+<p><span style="font-size: 16px;"><strong>&nbsp;代码编写：</strong></span></p>
+<p><span style="font-size: 16px;"><strong>　　<span style="font-size: 15px;">后端代码：</span></strong></span></p>
+<p>&nbsp;　　我们准备完成后就开始编写代码进行调试，代码如下，我直接整个控制器粘贴出来。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">using</span><span style="color: #000000;"> Microsoft.Office.Interop.Excel;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> NPOI.SS.UserModel;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> NPOI.XSSF.UserModel;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Collections.Generic;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Diagnostics;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.IO;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Linq;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Web;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Web.Mvc;
+
+</span><span style="color: #0000ff;">namespace</span><span style="color: #000000;"> WebOnlineWord.Controllers
+{
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> HomeController : Controller
+    {
+        </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> ActionResult Index()
+        {
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> View();
+        }
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">C#在线预览文档（word，excel，pdf，txt，png）
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">1、预览方式：将文件转换成html文件然后预览html文件
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">2、预览word文件：需要引入Interop.Microsoft.Office.Interop.Word.dll（Office COM组件）
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">3、预览Excel文件：需要引入Interop.Microsoft.Office.Interop.Excel.dll（Office COM组件) 
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">4、PDF文件直接嵌入到浏览器中进行查看，无需转换（需安装pdf阅读器）
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">5、文本文件直接嵌入到浏览器进行查看，无需转换
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">6、图片文件直接嵌入到浏览器进行查看，无需转换</span>
+
+
+        <span style="color: #0000ff;">#region</span> Excel预览方法
+
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;">  excel 转换为html
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="path"&gt;</span><span style="color: #008000;">要转换的文档的路径</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="savePath"&gt;</span><span style="color: #008000;">转换成的html的保存路径</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="wordFileName"&gt;</span><span style="color: #008000;">转换后html文件的名字</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #0000ff;">public</span><span style="color: #000000;"> JsonResult ExcelToHtml()
+        {
+            ResultJson result </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> ResultJson();
+            </span><span style="color: #0000ff;">string</span> path = Server.MapPath(<span style="color: #800000;">"</span><span style="color: #800000;">/Content/excel.xlsx</span><span style="color: #800000;">"</span><span style="color: #000000;">);  
+            </span><span style="color: #0000ff;">string</span> savePath = Server.MapPath(<span style="color: #800000;">"</span><span style="color: #800000;">/Content/</span><span style="color: #800000;">"</span><span style="color: #000000;">); 
+            </span><span style="color: #0000ff;">string</span> wordFileName = <span style="color: #800000;">"</span><span style="color: #800000;">ExcelToHtml</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">string</span> str = <span style="color: #0000ff;">string</span><span style="color: #000000;">.Empty;
+            Microsoft.Office.Interop.Excel.Application repExcel </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Microsoft.Office.Interop.Excel.Application();
+            Microsoft.Office.Interop.Excel.Workbook workbook </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+            Microsoft.Office.Interop.Excel.Worksheet worksheet </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+            workbook </span>=<span style="color: #000000;"> repExcel.Application.Workbooks.Open(path, Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing);
+            worksheet </span>= (Microsoft.Office.Interop.Excel.Worksheet)workbook.Worksheets[<span style="color: #800080;">1</span><span style="color: #000000;">];
+            </span><span style="color: #0000ff;">object</span> htmlFile = savePath + wordFileName + <span style="color: #800000;">"</span><span style="color: #800000;">.html</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">string</span> resultUrl =<span style="color: #000000;"> htmlFile.ToString();
+            </span><span style="color: #0000ff;">object</span> ofmt =<span style="color: #000000;"> Microsoft.Office.Interop.Excel.XlFileFormat.xlHtml;
+            workbook.SaveAs(htmlFile, ofmt, Type.Missing, Type.Missing, Type.Missing, Type.Missing, Microsoft.Office.Interop.Excel.XlSaveAsAccessMode.xlNoChange, Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing);
+            </span><span style="color: #0000ff;">object</span> osave = <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+            workbook.Close(osave, Type.Missing, Type.Missing);
+            repExcel.Quit();
+            result.str </span>= <span style="color: #800000;">"</span><span style="color: #800000;">/Content/</span><span style="color: #800000;">"</span> + wordFileName + <span style="color: #800000;">"</span><span style="color: #800000;">.html</span><span style="color: #800000;">"</span><span style="color: #000000;">; ;
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> Json(result, JsonRequestBehavior.AllowGet);
+
+        }
+
+        </span><span style="color: #0000ff;">#endregion</span>
+
+
+        <span style="color: #0000ff;">#region</span> Excel预览方法
+
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;">  word 转换为html
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="path"&gt;</span><span style="color: #008000;">要转换的文档的路径</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="savePath"&gt;</span><span style="color: #008000;">转换成的html的保存路径</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="wordFileName"&gt;</span><span style="color: #008000;">转换后html文件的名字</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #0000ff;">public</span><span style="color: #000000;"> JsonResult WordToHtml()
+        {
+            ResultJson result </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> ResultJson();
+            </span><span style="color: #0000ff;">string</span> path = Server.MapPath(<span style="color: #800000;">"</span><span style="color: #800000;">/Content/word.docx</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            </span><span style="color: #0000ff;">string</span> savePath = Server.MapPath(<span style="color: #800000;">"</span><span style="color: #800000;">/Content/</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            </span><span style="color: #0000ff;">string</span> wordFileName = <span style="color: #800000;">"</span><span style="color: #800000;">WordToHtml</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            Microsoft.Office.Interop.Word.Application word </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Microsoft.Office.Interop.Word.Application();
+            Type wordType </span>=<span style="color: #000000;"> word.GetType();
+            Microsoft.Office.Interop.Word.Documents docs </span>=<span style="color: #000000;"> word.Documents;
+            Type docsType </span>=<span style="color: #000000;"> docs.GetType();
+            Microsoft.Office.Interop.Word.Document doc </span>= (Microsoft.Office.Interop.Word.Document)docsType.InvokeMember(<span style="color: #800000;">"</span><span style="color: #800000;">Open</span><span style="color: #800000;">"</span>, System.Reflection.BindingFlags.InvokeMethod, <span style="color: #0000ff;">null</span>, docs, <span style="color: #0000ff;">new</span> Object[] { (<span style="color: #0000ff;">object</span>)path, <span style="color: #0000ff;">true</span>, <span style="color: #0000ff;">true</span><span style="color: #000000;"> });
+            Type docType </span>=<span style="color: #000000;"> doc.GetType();
+            </span><span style="color: #0000ff;">string</span> strSaveFileName = savePath + wordFileName + <span style="color: #800000;">"</span><span style="color: #800000;">.html</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">object</span> saveFileName = (<span style="color: #0000ff;">object</span><span style="color: #000000;">)strSaveFileName;
+            docType.InvokeMember(</span><span style="color: #800000;">"</span><span style="color: #800000;">SaveAs</span><span style="color: #800000;">"</span>, System.Reflection.BindingFlags.InvokeMethod, <span style="color: #0000ff;">null</span>, doc, <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">object</span><span style="color: #000000;">[] { saveFileName, Microsoft.Office.Interop.Word.WdSaveFormat.wdFormatFilteredHTML });
+            docType.InvokeMember(</span><span style="color: #800000;">"</span><span style="color: #800000;">Close</span><span style="color: #800000;">"</span>, System.Reflection.BindingFlags.InvokeMethod, <span style="color: #0000ff;">null</span>, doc, <span style="color: #0000ff;">null</span><span style="color: #000000;">);
+            wordType.InvokeMember(</span><span style="color: #800000;">"</span><span style="color: #800000;">Quit</span><span style="color: #800000;">"</span>, System.Reflection.BindingFlags.InvokeMethod, <span style="color: #0000ff;">null</span>, word, <span style="color: #0000ff;">null</span><span style="color: #000000;">);
+            result.str </span>= <span style="color: #800000;">"</span><span style="color: #800000;">/Content/</span><span style="color: #800000;">"</span> + wordFileName + <span style="color: #800000;">"</span><span style="color: #800000;">.html</span><span style="color: #800000;">"</span><span style="color: #000000;">; ;
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> Json(result, JsonRequestBehavior.AllowGet);
+
+        }
+
+        </span><span style="color: #0000ff;">#endregion</span>
+
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> ResultJson
+        {
+            </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">bool</span> res { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+            </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> info { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+            </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> str { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+        }
+    }
+}</span></pre>
+</div>
+<p><strong>　前端代码：</strong></p>
+<p>&nbsp;　　代码如下，我直接整个页面粘贴出来。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">@{
+    ViewBag.Title </span>= <span style="color: #800000;">"</span><span style="color: #800000;">Home Page</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+}
+
+</span>&lt;script src=<span style="color: #800000;">"</span><span style="color: #800000;">~/Scripts/jquery-3.3.1.min.js</span><span style="color: #800000;">"</span>&gt;&lt;/script&gt;
+&lt;script type=<span style="color: #800000;">"</span><span style="color: #800000;">text/javascript</span><span style="color: #800000;">"</span>&gt;
+   
+    <span style="color: #008000;">//</span><span style="color: #008000;">预览excel</span>
+<span style="color: #000000;">    function ExcelToHtml() {
+        $.ajax({
+            url: </span><span style="color: #800000;">"</span><span style="color: #800000;">/Home/ExcelToHtml</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+            data: </span><span style="color: #800000;">""</span><span style="color: #000000;">,
+            type: </span><span style="color: #800000;">"</span><span style="color: #800000;">POST</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+            </span><span style="color: #0000ff;">async</span>: <span style="color: #0000ff;">false</span><span style="color: #000000;">,
+            dataType: </span><span style="color: #800000;">"</span><span style="color: #800000;">json</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+            success: function (data) {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">获得窗口的垂直位置</span>
+                <span style="color: #0000ff;">var</span> iWidth = <span style="color: #800080;">1400</span><span style="color: #000000;">;
+                </span><span style="color: #0000ff;">var</span> iHeight = <span style="color: #800080;">800</span><span style="color: #000000;">;
+                </span><span style="color: #0000ff;">var</span> iTop = (window.screen.availHeight - <span style="color: #800080;">30</span> - iHeight) / <span style="color: #800080;">2</span><span style="color: #000000;">;
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">获得窗口的水平位置</span>
+                <span style="color: #0000ff;">var</span> iLeft = (window.screen.availWidth - <span style="color: #800080;">10</span> - iWidth) / <span style="color: #800080;">2</span><span style="color: #000000;">;
+                window.open(data.str, </span><span style="color: #800000;">'</span><span style="color: #800000;">_blank</span><span style="color: #800000;">'</span>, <span style="color: #800000;">'</span><span style="color: #800000;">height=</span><span style="color: #800000;">'</span> + iHeight + <span style="color: #800000;">'</span><span style="color: #800000;">,innerHeight=</span><span style="color: #800000;">'</span> + iHeight + <span style="color: #800000;">'</span><span style="color: #800000;">,width=</span><span style="color: #800000;">'</span> + iWidth + <span style="color: #800000;">'</span><span style="color: #800000;">,innerWidth=</span><span style="color: #800000;">'</span> + iWidth + <span style="color: #800000;">'</span><span style="color: #800000;">,top=</span><span style="color: #800000;">'</span> + iTop + <span style="color: #800000;">'</span><span style="color: #800000;">,left=</span><span style="color: #800000;">'</span> + iLeft + <span style="color: #800000;">'</span><span style="color: #800000;">,status=no,toolbar=no,menubar=no,location=no,resizable=no,scrollbars=0,titlebar=no</span><span style="color: #800000;">'</span><span style="color: #000000;">);
+
+               
+            }
+        });
+    }
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">预览word</span>
+<span style="color: #000000;">    function WordToHtml() {
+        $.ajax({
+            url: </span><span style="color: #800000;">"</span><span style="color: #800000;">/Home/WordToHtml</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+            data: </span><span style="color: #800000;">""</span><span style="color: #000000;">,
+            type: </span><span style="color: #800000;">"</span><span style="color: #800000;">POST</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+            </span><span style="color: #0000ff;">async</span>: <span style="color: #0000ff;">false</span><span style="color: #000000;">,
+            dataType: </span><span style="color: #800000;">"</span><span style="color: #800000;">json</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+            success: function (data) {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">获得窗口的垂直位置</span>
+                <span style="color: #0000ff;">var</span> iWidth = <span style="color: #800080;">1400</span><span style="color: #000000;">;
+                </span><span style="color: #0000ff;">var</span> iHeight = <span style="color: #800080;">800</span><span style="color: #000000;">;
+                </span><span style="color: #0000ff;">var</span> iTop = (window.screen.availHeight - <span style="color: #800080;">30</span> - iHeight) / <span style="color: #800080;">2</span><span style="color: #000000;">;
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">获得窗口的水平位置</span>
+                <span style="color: #0000ff;">var</span> iLeft = (window.screen.availWidth - <span style="color: #800080;">10</span> - iWidth) / <span style="color: #800080;">2</span><span style="color: #000000;">;
+                window.open(data.str, </span><span style="color: #800000;">'</span><span style="color: #800000;">_blank</span><span style="color: #800000;">'</span>, <span style="color: #800000;">'</span><span style="color: #800000;">height=</span><span style="color: #800000;">'</span> + iHeight + <span style="color: #800000;">'</span><span style="color: #800000;">,innerHeight=</span><span style="color: #800000;">'</span> + iHeight + <span style="color: #800000;">'</span><span style="color: #800000;">,width=</span><span style="color: #800000;">'</span> + iWidth + <span style="color: #800000;">'</span><span style="color: #800000;">,innerWidth=</span><span style="color: #800000;">'</span> + iWidth + <span style="color: #800000;">'</span><span style="color: #800000;">,top=</span><span style="color: #800000;">'</span> + iTop + <span style="color: #800000;">'</span><span style="color: #800000;">,left=</span><span style="color: #800000;">'</span> + iLeft + <span style="color: #800000;">'</span><span style="color: #800000;">,status=no,toolbar=no,menubar=no,location=no,resizable=no,scrollbars=0,titlebar=no</span><span style="color: #800000;">'</span><span style="color: #000000;">);
+
+
+            }
+        });
+    }
+
+</span>&lt;/script&gt;
+
+
+&lt;div style=<span style="color: #800000;">"</span><span style="color: #800000;">margin-top:20px;height:800px</span><span style="color: #800000;">"</span>&gt;
+      &lt;input type=<span style="color: #800000;">"</span><span style="color: #800000;">button</span><span style="color: #800000;">"</span> onclick=<span style="color: #800000;">"</span><span style="color: #800000;">ExcelToHtml()</span><span style="color: #800000;">"</span> value=<span style="color: #800000;">"</span><span style="color: #800000;">预览excel</span><span style="color: #800000;">"</span> /&gt;
+       &lt;input type=<span style="color: #800000;">"</span><span style="color: #800000;">button</span><span style="color: #800000;">"</span> onclick=<span style="color: #800000;">"</span><span style="color: #800000;">WordToHtml()</span><span style="color: #800000;">"</span> value=<span style="color: #800000;">"</span><span style="color: #800000;">预览word</span><span style="color: #800000;">"</span> /&gt;
+&lt;/div&gt;</pre>
+</div>
+<p>&nbsp;</p>
+<hr />
+<p><span style="font-size: 18px;"><strong>&nbsp;效果查看：</strong></span></p>
+<p>　<strong>　在线预览excel：</strong></p>
+<p>&nbsp;　　　　如下，很显然读取到了我们事先准备好的excel。</p>
+<p>&nbsp;</p>
+<p><img src="./images/C# 基于NPOI+Office COM组件 实现20行代码在线预览文档（word，excel，pdf，txt，png）1.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>　<strong>　在线预览excel：</strong></p>
+<p>&nbsp;　　　　如下，很显然读取到了我们事先准备好的word。</p>
+<p>&nbsp;</p>
+<p><img src="./images/C# 基于NPOI+Office COM组件 实现20行代码在线预览文档（word，excel，pdf，txt，png）2.png" alt="" /></p>
+<p>&nbsp;</p>
+<hr />
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><strong>&nbsp;<span style="font-size: 18px;">总结：</span></strong></p>
+<p>&nbsp;<span style="font-size: 15px;">到这里一个简单的在线预览office就完成了，这是一个初始手稿，需要优化后续功能。</span></p>
+<p><span style="font-size: 15px;">&nbsp;感兴趣的朋友可以关注一波，我们下次学习怎么<strong>在线编辑，实时保存（每改一下保存一下）和一键保存（编辑完成后点击保存）</strong></span></p>
+<p><span style="font-size: 15px;">&nbsp;原文地址：<a href="https://www.cnblogs.com/xiongze520/p/11358585.html">https://www.cnblogs.com/xiongze520/p/11358585.html</a></span></p>
+<p><span style="font-size: 15px;">&nbsp;转载请注明出处，谢谢！</span></p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

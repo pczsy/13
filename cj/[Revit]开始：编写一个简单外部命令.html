@@ -1,0 +1,128 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修[Revit]开始：编写一个简单外部命令' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>[Revit]开始：编写一个简单外部命令</center></div><div class='banquan'>原文出处:本文由博客园博主青烟绕指柔丶提供。<br/>
+原文连接:https://www.cnblogs.com/Murphy-L/p/11474968.html</div><br>
+    <h2 id="创建项目">1 创建项目</h2>
+<blockquote>
+<p>以Visual Studio作为开发工具，测试平台为Revit 2017</p>
+</blockquote>
+<p>打开VS，创建一个C# .NET Framwork类库项目，选择。.net框架版本为<code>.NET Framwork 4.5.2</code>，确定。<br />
+<img src="./images/[Revit]开始：编写一个简单外部命令0.png" /></p>
+<hr />
+<h2 id="项目设置">2 项目设置</h2>
+<ol>
+<li>引用相关<code>RevitAPI.dll</code>和<code>RevitAPIUI.dll</code>，根据情况设置这两个dll的<code>复制本地</code>属性，并更改项目<code>平台目标</code>为<code>x64</code>。</li>
+<li>VS自动为你创建的类名为class1，将这个类名更改为和你要实现的命令相关的名字，便于日后维护。这里我改为<code>ElementInfo</code>。</li>
+<li><p>引用相关命名空间：</p>
+<pre><code><code>using Autodesk.Revit.DB;
+using Autodesk.Revit.UI;</code></pre></li>
+<li><p>查看API，要在revit内部添加一个外部命令，就必须实现一个<code>IExternalCommand</code>接口。这个接口定义于<code>RevitAPIUI.dll</code>程序集内的<code>Autodesk.Revit.UI</code>命名空间下，我们已经引用了该命名空间，接下来就是继承这个接口并实现。这个接口只有一个<code>Execute</code>函数需要我们去实现。<br />
+<img src="./images/[Revit]开始：编写一个简单外部命令1.png" /></p></li>
+<li><p>继承<code>IExternalCommand</code>接口，并实现接口。</p>
+<pre><code><code>[Autodesk.Revit.Attributes.Transaction(Autodesk.Revit.Attributes.TransactionMode.Manual)]
+public class ElementInfo : IExternalCommand
+{
+    public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
+    {
+        return Result.Succeeded;
+    }
+}</code></pre>
+<blockquote>
+<p>这里我们<code>Execute</code>函数里面只有一个返回<code>Result.Succeeded</code>的语句，即什么事情也不做直接返回成功，通知Revit我这个命令执行完毕并成功。当然也可以写一些简单的语句进行测试。</p>
+</blockquote></li>
+<li><p>此时我们右键项目，生成，就会在项目文件夹的<code>bin\Debug</code>目录下生成我们创建的插件dll。<br />
+<img src="./images/[Revit]开始：编写一个简单外部命令2.png" /></p></li>
+<li><p>我们在Revit中使用<code>Addin Manager</code>加载运行一下。选择我们创建的外部命令类，点击Run，试运行一下。什么也没有发生也没有报错，和我们预期的一样。<br />
+<img src="./images/[Revit]开始：编写一个简单外部命令3.png" /></p></li>
+</ol>
+<hr />
+<h2 id="业务代码编写">3 业务代码编写</h2>
+<blockquote>
+<p>上面的工作相当于将前期设置给设置完成，并验证的整个框架的正确性。下面就是根据业务需求实现自己的业务目标。</p>
+</blockquote>
+<p>假定现在我想得到所有选中的构件的一些属性信息。</p>
+<ol>
+<li><p>首先需要从Revit中选择构件，然后需要再用代码拿到这些构件的引用，要拿到这些，我们需要先拿到Revit中一些常用的object的引用。在我们<code>Execute</code>函数中先添加如下代码：</p>
+<pre><code><code>public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
+{
+    UIApplication uiApplication = commandData.Application;
+    UIDocument uiDocument = uiApplication.ActiveUIDocument;
+    Document document = uiDocument.Document;
+    return Result.Succeeded;
+}</code></pre>
+<blockquote>
+<p>其中<code>UIApplication</code>、<code>UIDocument</code>、<code>Document</code>这些分别代表什么含义，可查看API中关于这些类的简介。</p>
+</blockquote></li>
+<li><p>再查找API，发现我们想要的Revit选择集中的内容就在<code>UIDocument</code>类中，<code>UIDocument</code>类中有一个<code>Selection</code>属性，其具体描述如下：<br />
+<img src="./images/[Revit]开始：编写一个简单外部命令4.png" /></p>
+<p>点击具体介绍，可以看到这是个只读属性，返回一个<code>Selection</code>对象。<br />
+<img src="./images/[Revit]开始：编写一个简单外部命令5.png" /></p>
+<p>再查看<code>Selection</code>类，它有一个<code>GetElementIds</code>方法，该方法返回当前选择的Element的Id。有了元素Id，就能根据Id找到这个Element。这个方法的返回一个泛型接口对象，我们可以直接定义一个该类型的对象接收它。<br />
+<img src="./images/[Revit]开始：编写一个简单外部命令6.png" /></p></li>
+<li><p>循环访问每个ElementId对象，取出这个对象对代表的Element，再访问该Element的属性。</p>
+<pre><code><code>public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
+{
+    UIApplication uiApplication = commandData.Application;
+    UIDocument uiDocument = uiApplication.ActiveUIDocument;
+    Document document = uiDocument.Document;
+    ICollection&lt;ElementId&gt; selectedElIds = uiDocument.Selection.GetElementIds();
+    string info = &quot;&quot;;
+    //判断用户是否选中了构件
+    if (selectedElIds.Count != 0)
+    {
+        //若选择集中至少含有一个构件，则循环访问每个ElementId
+        foreach (ElementId elementId in selectedElIds)
+        {
+            //根据ElementId得到Element
+            Element element = document.GetElement(elementId);
+            //将信息添加到info变量中
+            info += $&quot;Id:{elementId.IntegerValue}   Name:{element.Name}\n&quot;;
+        }
+        //利用Revit内置的对话窗口显示相关info信息
+        TaskDialog.Show(&quot;result&quot;, info);
+    }
+    else
+    {
+        //若选择集中至少含有一个构件，将提示信息返回给用户
+        TaskDialog.Show(&quot;result&quot;, &quot;请先选择构件&quot;);
+    }
+    return Result.Succeeded;
+}</code></pre></li>
+<li><p>重新编译生成，在Revit中用Addin Manager运行。<br />
+若没有选择构件：<br />
+<img src="./images/[Revit]开始：编写一个简单外部命令7.png" /></p>
+<p>若选择了构件：<br />
+<img src="./images/[Revit]开始：编写一个简单外部命令8.png" /></p></li>
+</ol>
+<hr />
+<h2 id="结语">4 结语</h2>
+<p>这个案例只是一个非常非常简单的外部命令案例，对于复杂的也类似，万变不离其宗，掌握了基本方法和思路，就能编写出复杂度更高的插件。</p>
+<p>如有错误，恳请指正。</p>
+<hr />
+<blockquote>
+<center>Murphy.L</center>
+<hr />
+<center>Perhaps, we’ve just forgotten that we are still <b>pioneers</b>.</center>
+</blockquote>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

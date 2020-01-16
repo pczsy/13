@@ -1,0 +1,71 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修异常吞噬问题一则' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>异常吞噬问题一则</center></div><div class='banquan'>原文出处:本文由博客园博主myzony提供。<br/>
+原文连接:https://www.cnblogs.com/myzony/p/11074427.html</div><br>
+    <h2 id="问题">问题</h2>
+<p>在一个 Timer 时钟的周期方法内，有一个 <code>foreach</code> 循环，当执行到某些特定的语句时，会从头开始执行，而不会执行后续的语句。</p>
+<h2 id="分析">分析</h2>
+<p>该问题我在初步分析之后，发现可能是由于程序出现了异常，但是被吞噬掉造成的。在我某一个 item 元素当中，其值为 <code>null</code> 应该会抛出空异常。但是没有异常抛出，后续我不知道哪个地方吞噬了异常，就在循环体内增加了一个 <code>if</code> 语句过滤掉了 <code>null</code> 元素。</p>
+<p>不过之后仍然会出现最开始所说的问题，看来还有其他的地方在抛出异常，最后排查到是执行 DevExpress 图表控件的 <code>BeginDataUpdate()</code> 和 <code>EndDataUpdate()</code> 之后就会出现上述症状。</p>
+<p>查阅了我的 <code>Timer</code> 是参照 ABP 实现的一个 <code>Timer</code>，找到调用回调方法的地方，发现是我自己将异常捕获并将其忽略掉了。</p>
+<pre><code><code>private void TimerCallBack(object state)
+{
+    lock (_taskTimer)
+    {
+        if (!_running || _performingTasks)
+        {
+            return;
+        }
+
+        _taskTimer.Change(Timeout.Infinite, Timeout.Infinite);
+        _performingTasks = true;
+    }
+
+    try
+    {
+        Elapsed?.Invoke(this, new EventArgs());
+    }
+    catch
+    {
+        // ignored
+    }
+    finally
+    {
+        lock (_taskTimer)
+        {
+            _performingTasks = false;
+            if (_running)
+            {
+                _taskTimer.Change(Period, Timeout.Infinite);
+            }
+
+            Monitor.Pulse(_taskTimer);
+        }
+    }
+}</code></pre>
+<p><img src="./images/异常吞噬问题一则0.png" /></p>
+<p>根据上图来看，确实是我回调方法中的代码抛出了异常，导致后台任务重新执行。</p>
+<h2 id="解决">解决</h2>
+<p>将跨线程访问语句修复之后，程序运行正常，后面我也在 catch 语句块里面增加了异常日志写入，成功解决问题。</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

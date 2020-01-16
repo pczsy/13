@@ -1,0 +1,330 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修MQTTnet 3.0.5学习笔记' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>MQTTnet 3.0.5学习笔记</center></div><div class='banquan'>原文出处:本文由博客园博主伪电气白兰地提供。<br/>
+原文连接:https://www.cnblogs.com/ccsharppython/p/11261069.html</div><br>
+    <p>段时间在使用MQTTnet，都说这个东西比较好,可是翻了翻网上没有例子给参考一下。</p>
+<p>今天算是找到了，给高手的帖子做个宣传吧.</p>
+<p>原网址如下：<a href="https://blog.csdn.net/chenlu5201314/article/details/94740765" target="_blank">https://blog.csdn.net/chenlu5201314/article/details/94740765</a></p>
+<p>由于GitHub上介绍的东西比较少，以我的水平真是不知道怎么用，先照葫芦画瓢，再看看怎么回事吧：</p>
+<p>功能：</p>
+<p>把订阅与发布做成一个类，还带有自动重连的功能</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Threading;　　　　
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Threading.Tasks;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> MQTTnet;　　　　　　　　　　
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> MQTTnet.Client;　　　　　　//客户端需要用到
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> MQTTnet.Client.Options;  //具体连接时需要用到的属性,ID的名称,要连接Server的名称,接入时用到的账号和密码,掉线时是否重新清除原有名称,还有许多...
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> MQTTnet.Packets;　　　　//这个没用上
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> MQTTnet.Protocol;　　  //这个也没用上
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> MQTTnet.Client.Receiving;　　　　//接收
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> MQTTnet.Client.Disconnecting;　　//断线
+</span><span style="color: #0000ff;">using</span> MQTTnet.Client.Connecting;　　　　//连接</pre>
+</div>
+<p>新建一个类：先写一下变量和一些字段</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">class</span><span style="color: #000000;"> HOSMQTT   
+{        
+</span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> MqttClient mqttClient = <span style="color: #0000ff;">null</span><span style="color: #000000;">;        
+</span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> IMqttClientOptions options = <span style="color: #0000ff;">null</span><span style="color: #000000;">;        
+</span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">bool</span> runState = <span style="color: #0000ff;">false</span><span style="color: #000000;">;        
+</span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">bool</span> running = <span style="color: #0000ff;">false</span><span style="color: #000000;">;        
+ </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>        
+<span style="color: #808080;">///</span><span style="color: #008000;"> 服务器IP        
+</span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>        
+<span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">string</span> ServerUrl = <span style="color: #800000;">"</span><span style="color: #800000;">182.61.51.85</span><span style="color: #800000;">"</span><span style="color: #000000;">;        
+</span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>        
+<span style="color: #808080;">///</span><span style="color: #008000;"> 服务器端口        
+</span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>        
+<span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">int</span> Port = <span style="color: #800080;">61613</span><span style="color: #000000;">;        
+</span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>        
+<span style="color: #808080;">///</span><span style="color: #008000;"> 选项 - 开启登录 - 密码        
+</span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>        
+<span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">string</span> Password = <span style="color: #800000;">"</span><span style="color: #800000;">ruichi8888</span><span style="color: #800000;">"</span><span style="color: #000000;">;        
+</span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>        
+<span style="color: #808080;">///</span><span style="color: #008000;"> 选项 - 开启登录 - 用户名        
+</span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>        
+<span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">string</span> UserId = <span style="color: #800000;">"</span><span style="color: #800000;">admin</span><span style="color: #800000;">"</span><span style="color: #000000;">;        
+</span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>        
+<span style="color: #808080;">///</span><span style="color: #008000;"> 主题        
+</span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;para&gt;</span><span style="color: #008000;">China/Hunan/Yiyang/Nanxian</span><span style="color: #808080;">&lt;/para&gt;</span>        
+<span style="color: #808080;">///</span> <span style="color: #808080;">&lt;para&gt;</span><span style="color: #008000;">Hotel/Room01/Tv</span><span style="color: #808080;">&lt;/para&gt;</span>        
+<span style="color: #808080;">///</span> <span style="color: #808080;">&lt;para&gt;</span><span style="color: #008000;">Hospital/Dept01/Room001/Bed001</span><span style="color: #808080;">&lt;/para&gt;</span>        
+<span style="color: #808080;">///</span> <span style="color: #808080;">&lt;para&gt;</span><span style="color: #008000;">Hospital/#</span><span style="color: #808080;">&lt;/para&gt;</span>        
+<span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>        
+<span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">string</span> Topic = <span style="color: #800000;">"</span><span style="color: #800000;">China/Hunan/Yiyang/Nanxian</span><span style="color: #800000;">"</span><span style="color: #000000;">;        
+</span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>        
+<span style="color: #808080;">///</span><span style="color: #008000;"> 保留        
+</span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>        
+<span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">bool</span> Retained = <span style="color: #0000ff;">false</span><span style="color: #000000;">;       
+ </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>       
+ <span style="color: #808080;">///</span><span style="color: #008000;"> 服务质量        
+</span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;para&gt;</span><span style="color: #008000;">0 - 至多一次</span><span style="color: #808080;">&lt;/para&gt;</span>        
+<span style="color: #808080;">///</span> <span style="color: #808080;">&lt;para&gt;</span><span style="color: #008000;">1 - 至少一次</span><span style="color: #808080;">&lt;/para&gt;</span>        
+<span style="color: #808080;">///</span> <span style="color: #808080;">&lt;para&gt;</span><span style="color: #008000;">2 - 刚好一次</span><span style="color: #808080;">&lt;/para&gt;</span>        
+<span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>        
+<span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">int</span> QualityOfServiceLevel = <span style="color: #800080;">0</span><span style="color: #000000;">;
+}</span></pre>
+</div>
+<p>先看一下Start方法</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> Start()
+        {
+            </span><span style="color: #0000ff;">try</span><span style="color: #000000;">
+            {
+                runState </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+                Thread thread </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Thread(Work);　　　　//原帖中是这样写的 Thread thread = new Thread(new ThreadStart( Work));
+                thread.IsBackground </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+                thread.Start();
+            }
+            </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception ex)
+            {
+                Console.WriteLine( </span><span style="color: #800000;">"</span><span style="color: #800000;">启动客户端出现问题:</span><span style="color: #800000;">"</span> +<span style="color: #000000;"> ex.ToString());
+            }
+        }</span></pre>
+</div>
+<p>没进入正题之前，先普及一下基本知识&nbsp;</p>
+<h1 class="postTitle"><span style="font-size: 16px;"><a id="cb_post_title_url" class="postTitle2" href="https://www.cnblogs.com/rosesmall/p/8358348.html">C#的ThreadStart 和 Thread&nbsp; </a></span><span style="font-size: 15px;">多线程，new&nbsp;Thread(t1);和new&nbsp;Thread(new&nbsp;ThreadStart(t1));没有什么区别.前者是.net的写法，后者是C#的写法</span></h1>
+<p>&nbsp;</p>
+<p><span style="font-size: 15px;">具体请看下面的连接</span></p>
+<p><a href="https://www.cnblogs.com/rosesmall/p/8358348.html" target="_blank">https://www.cnblogs.com/rosesmall/p/8358348.html</a></p>
+<p>进入整体，介绍连接方法 Work</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> Work()
+        {
+            running </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+            </span>Console.WriteLine(<span style="color: #800000;">"</span><span style="color: #800000;">Work &gt;&gt;Begin</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            </span><span style="color: #0000ff;">try</span><span style="color: #000000;">
+            {
+                </span><span style="color: #0000ff;">var</span> factory = <span style="color: #0000ff;">new</span><span style="color: #000000;"> MqttFactory();　　　　　　　　//声明一个MQTT客户端的标准步骤 的第一步
+                mqttClient </span>= factory.CreateMqttClient() <span style="color: #0000ff;">as</span><span style="color: #000000;"> MqttClient;  //factory.CreateMqttClient()实际是一个接口类型（IMqttClient）,这里是把他的类型变了一下
+                options </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> MqttClientOptionsBuilder()　　　　//实例化一个MqttClientOptionsBulider<br />                    .WithTcpServer(ServerUrl, Port)
+                    .WithCredentials(UserId, Password)
+                    .WithClientId(</span><span style="color: #800000;">"</span><span style="color: #800000;">XMan</span><span style="color: #800000;">"</span><span style="color: #000000;">)
+                    .Build();　　　　　　　　　　　　　　　　　　
+                mqttClient.ConnectAsync(options);　　　　　　//连接服务器<br />　　　　　　　　<br />　　　　　　　　　　//下面这些东西是什么，为什么要这么写，直到刚才我还是不懂，不过在GitHub的网址我发现了出处.
+                mqttClient.ConnectedHandler </span>= <span style="color: #0000ff;">new</span> MqttClientConnectedHandlerDelegate(<span style="color: #0000ff;">new</span> Func&lt;MqttClientConnectedEventArgs, Task&gt;<span style="color: #000000;">(Connected));
+                mqttClient.DisconnectedHandler </span>= <span style="color: #0000ff;">new</span> MqttClientDisconnectedHandlerDelegate(<span style="color: #0000ff;">new</span> Func&lt;MqttClientDisconnectedEventArgs, Task&gt;<span style="color: #000000;">(Disconnected));
+                mqttClient.ApplicationMessageReceivedHandler </span>= <span style="color: #0000ff;">new</span> MqttApplicationMessageReceivedHandlerDelegate(<span style="color: #0000ff;">new</span> Action&lt;MqttApplicationMessageReceivedEventArgs&gt;<span style="color: #000000;">(MqttApplicationMessageReceived));
+                </span><span style="color: #0000ff;">while</span><span style="color: #000000;"> (runState)
+                {
+
+                    Thread.Sleep(</span><span style="color: #800080;">100</span><span style="color: #000000;">);
+
+                }
+            }
+            </span><span style="color: #0000ff;">catch</span><span style="color: #000000;">(Exception exp)
+            {
+
+                Console.WriteLine(exp);
+            }
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Work &gt;&gt;End</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+
+            running </span>= <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+
+            runState </span>= <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+        }</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>先来看看MqttClient 类里面都有什么东西</p>
+<p><img src="./images/MQTTnet 3.0.5学习笔记0.png" alt="" /></p>
+<p>需要实现的接口，如何实现，说重点！</p>
+<p>在GitHub上有个地方进去看看就知道了&lsquo;</p>
+<p><img src="./images/MQTTnet 3.0.5学习笔记1.png" alt="" /></p>
+<p><strong><span style="font-size: 18px;">&nbsp;这个页面的最下方写着如何实现</span> </strong>&nbsp;&nbsp; <a href="https://github.com/chkr1011/MQTTnet/wiki/Upgrading-guide" target="_blank">https://github.com/chkr1011/MQTTnet/wiki/Upgrading-guide</a></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> Something()
+{
+    mqttClient.ApplicationMessageReceivedHandler </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> MqttApplicationMessageReceivedHandlerDelegate(OnAppMessage);
+    mqttClient.ConnectedHandler </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> MqttClientConnectedHandlerDelegate(OnConnected);
+    mqttClient.DisconnectedHandler </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> MqttClientDisconnectedHandlerDelegate(OnDisconnected);
+}
+
+</span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">async</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> OnAppMessage(MqttApplicationMessageReceivedEventArgs e)
+{
+}
+
+</span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">async</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> OnConnected(MqttClientConnectedEventArgs e)
+{
+}
+
+</span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">async</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> OnDisconnected(MqttClientDisconnectedEventArgs e)
+{
+}</span></pre>
+</div>
+<p>在开始Connected方法之前有必要看一下关于同步和异步的知识，</p>
+<p>现学现卖简单说一下：</p>
+<p>Task就是异步的调用，就在不影响主线程运行的另一个线程，但是他能像线程池一样更高效的利用现有的空闲线程</p>
+<p>async必须用来修饰Task ,void，或者Task&lt;TResult&gt;, await是等待异步线程Task.Run()开始的后台线程执行完毕。</p>
+<p>记住要是Task 实现异步功能，必须用 async 修饰，且async 与await成对出现。</p>
+<p>详见下面大神写的大作:<a href="https://www.cnblogs.com/doforfuture/p/6293926.html" target="_blank">https://www.cnblogs.com/doforfuture/p/6293926.html</a></p>
+<p>下面是什么意思？</p>
+<div class="cnblogs_code">
+<pre><code>mqttClient.ConnectedHandler = <span style="color: #0000ff;">new</span> MqttClientConnectedHandlerDelegate(<span style="color: #0000ff;">new</span> Func&lt;MqttClientConnectedEventArgs, Task&gt;(Connected));</pre>
+</div>
+<p>&nbsp;</p>
+<p>MqttClientConnectedHandlerDelegate 这个实例实现了mqttClient.ConnectedHandler接口</p>
+<p><span data-mce-="">new Func&lt;MqttClientConnectedEventArgs, Task&gt;(Connected) ，</span></p>
+<p><span data-mce-="">使用Func委托传入MqttClientConnectedEventArgs类型的参数，返回的类型是Task,Task是一个类，这个类没有返回值，如果有返回值就是Task&lt;TResult&gt;。</span></p>
+<p><span data-mce-="">是委托就要带一个方法取实现，这个方法就是Connected。</span></p>
+<p><span data-mce-="">这句话的意思是，用MqttClientConnectedHandlerDelegate实现接口，同时使用委托取调用Connected的方法，并且给这个方法传入一个MqttClientConnectedEventArgs参数，</span></p>
+<p>这个委托的返回值是Task（就是不需要返回类型的异步调用），这也就定义了Connected的类型必须是async Task。</p>
+<p>好了来看下 Connected，这个函数什么意思</p>
+<p>就是与服务器连接之后要干什么，订阅一个Topic，或几个Topic。连接之前已经连接了Connectasync(),如果断线还会重连，后面会提到。</p>
+<p>这个就连接之后需要做的事----订阅！</p>
+<div class="cnblogs_code">
+<pre><code>        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">async</span><span style="color: #000000;"> Task Connected(MqttClientConnectedEventArgs e)
+        {
+            </span><span style="color: #0000ff;">try</span><span style="color: #000000;">
+            {
+                List</span>&lt;TopicFilter&gt; listTopic = <span style="color: #0000ff;">new</span> List&lt;TopicFilter&gt;<span style="color: #000000;">();
+                </span><span style="color: #0000ff;">if</span> (listTopic.Count() &lt;= <span style="color: #800080;">0</span><span style="color: #000000;">)
+                {
+                    </span><span style="color: #0000ff;">var</span> topicFilterBulder = <span style="color: #0000ff;">new</span><span style="color: #000000;"> TopicFilterBuilder().WithTopic(Topic).Build();
+                    listTopic.Add(topicFilterBulder);
+                    Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Connected &gt;&gt;Subscribe </span><span style="color: #800000;">"</span> +<span style="color: #000000;"> Topic);
+                }                </span><span style="color: #0000ff;">await</span><span style="color: #000000;"> mqttClient.SubscribeAsync(listTopic.ToArray());
+                Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Connected &gt;&gt;Subscribe Success</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            }
+            </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception exp)
+            {
+                Console.WriteLine(exp.Message);
+            }
+        }</span></pre>
+</div>
+<p>TopicFilter是一个Topic详细信息的类</p>
+<p><img src="./images/MQTTnet 3.0.5学习笔记2.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;掉线的发生时会执行这个函数</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">async</span><span style="color: #000000;"> Task Disconnected(MqttClientDisconnectedEventArgs e)
+        {
+            </span><span style="color: #0000ff;">try</span><span style="color: #000000;">
+            {
+                Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Disconnected &gt;&gt;Disconnected Server</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                </span><span style="color: #0000ff;">await</span> Task.Delay(TimeSpan.FromSeconds(<span style="color: #800080;">5</span><span style="color: #000000;">));
+                </span><span style="color: #0000ff;">try</span><span style="color: #000000;">
+                {
+                    </span><span style="color: #0000ff;">await</span><span style="color: #000000;"> mqttClient.ConnectAsync(options);
+                }
+                </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception exp)
+                {
+                    Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Disconnected &gt;&gt;Exception </span><span style="color: #800000;">"</span> +<span style="color: #000000;"> exp.Message);
+                }
+            }
+            </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception exp)
+            {
+                Console.WriteLine(exp.Message);
+            }
+        }</span></pre>
+</div>
+<p>越写问题越多，这个为什么断线的时候会执行这个方法，这不是事件，只是接口！</p>
+<p>怎么实现的？看了一下源码，一时只看了大概，这些功能的绑定都是在ConnectAsync的时候就完成了！</p>
+<p>&nbsp;</p>
+<p>下面接收到消息的时候</p>
+<div class="cnblogs_code">
+<pre><code>        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 接收消息触发事件
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="e"&gt;&lt;/param&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> MqttApplicationMessageReceived(MqttApplicationMessageReceivedEventArgs e)
+        {
+            </span><span style="color: #0000ff;">try</span><span style="color: #000000;">
+            {
+                </span><span style="color: #0000ff;">string</span> text =<span style="color: #000000;"> Encoding.UTF8.GetString(e.ApplicationMessage.Payload);
+                </span><span style="color: #0000ff;">string</span> Topic = e.ApplicationMessage.Topic; <span style="color: #0000ff;">string</span> QoS =<span style="color: #000000;"> e.ApplicationMessage.QualityOfServiceLevel.ToString();
+                </span><span style="color: #0000ff;">string</span> Retained =<span style="color: #000000;"> e.ApplicationMessage.Retain.ToString();
+                Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">MessageReceived &gt;&gt;Topic:</span><span style="color: #800000;">"</span> + Topic + <span style="color: #800000;">"</span><span style="color: #800000;">; QoS: </span><span style="color: #800000;">"</span> + QoS + <span style="color: #800000;">"</span><span style="color: #800000;">; Retained: </span><span style="color: #800000;">"</span> + Retained + <span style="color: #800000;">"</span><span style="color: #800000;">;</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">MessageReceived &gt;&gt;Msg: </span><span style="color: #800000;">"</span> +<span style="color: #000000;"> text);
+            }
+            </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception exp)
+            {
+                Console.WriteLine(exp.Message);
+            }
+        }</span></pre>
+</div>
+<p>&nbsp;</p>
+<p><span data-mce-=""><span data-mce-=""><span data-mce-=""><span data-mce-="">&nbsp;最后就是发布：一般会选择0，如果选择其他的情况在订阅端不在的时候，服务器可能会崩溃</span></span></span></span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>       
+        <span style="color: #808080;">///</span> <span style="color: #808080;">///</span><span style="color: #008000;"> 发布        
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;paramref name="QoS"/&gt;</span>        
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;para&gt;</span><span style="color: #008000;">0 - 最多一次</span><span style="color: #808080;">&lt;/para&gt;</span>        
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;para&gt;</span><span style="color: #008000;">1 - 至少一次</span><span style="color: #808080;">&lt;/para&gt;</span>        
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;para&gt;</span><span style="color: #008000;">2 - 仅一次</span><span style="color: #808080;">&lt;/para&gt;</span>        
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>       
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="Topic"&gt;</span><span style="color: #008000;">发布主题</span><span style="color: #808080;">&lt;/param&gt;</span>        
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="Message"&gt;</span><span style="color: #008000;">发布内容</span><span style="color: #808080;">&lt;/param&gt;</span>        
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>        
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Publish( <span style="color: #0000ff;">string</span> Topic,<span style="color: #0000ff;">string</span><span style="color: #000000;"> Message)
+        {
+            </span><span style="color: #0000ff;">try</span><span style="color: #000000;">
+            {
+                </span><span style="color: #0000ff;">if</span> (mqttClient == <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+                    </span><span style="color: #0000ff;">return</span><span style="color: #000000;">;
+                </span><span style="color: #0000ff;">if</span> (mqttClient.IsConnected == <span style="color: #0000ff;">false</span><span style="color: #000000;">)
+                    mqttClient.ConnectAsync(options);
+                </span><span style="color: #0000ff;">if</span> (mqttClient.IsConnected == <span style="color: #0000ff;">false</span><span style="color: #000000;">)
+                {
+                    Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Publish &gt;&gt;Connected Failed! </span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                    </span><span style="color: #0000ff;">return</span><span style="color: #000000;">;
+                }
+                Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Publish &gt;&gt;Topic: </span><span style="color: #800000;">"</span> + Topic + <span style="color: #800000;">"</span><span style="color: #800000;">; QoS: </span><span style="color: #800000;">"</span> + QualityOfServiceLevel + <span style="color: #800000;">"</span><span style="color: #800000;">; Retained: </span><span style="color: #800000;">"</span> + Retained + <span style="color: #800000;">"</span><span style="color: #800000;">;</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Publish &gt;&gt;Message: </span><span style="color: #800000;">"</span> +<span style="color: #000000;"> Message);
+                MqttApplicationMessageBuilder mamb </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> MqttApplicationMessageBuilder()                 
+                    .WithTopic(Topic)                 
+                    .WithPayload(Message).WithRetainFlag(Retained);
+                </span><span style="color: #0000ff;">if</span> (QualityOfServiceLevel == <span style="color: #800080;">0</span><span style="color: #000000;">)
+                {
+                    mamb </span>=<span style="color: #000000;"> mamb.WithAtMostOnceQoS();
+                }
+                </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (QualityOfServiceLevel == <span style="color: #800080;">1</span><span style="color: #000000;">)
+                {
+                    mamb </span>=<span style="color: #000000;"> mamb.WithAtLeastOnceQoS();
+                }
+                </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (QualityOfServiceLevel == <span style="color: #800080;">2</span><span style="color: #000000;">)
+                {
+                    mamb </span>=<span style="color: #000000;"> mamb.WithExactlyOnceQoS();
+                }
+                mqttClient.PublishAsync(mamb.Build());
+            }
+            </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception exp)
+            {
+                Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Publish &gt;&gt;</span><span style="color: #800000;">"</span> +<span style="color: #000000;"> exp.Message);
+            }
+        }</span></pre>
+</div>
+<p>&nbsp;</p>
+<p><span style="color: #333399; font-size: 18px;">&nbsp;重点补充一下：</span></p>
+<p>这两天验证的时候发现，对于MQTT服务器来说客户端的用户名必须是唯一的，</p>
+<p>举例：同一台电脑上，两个程序同时发布(publish)到一个MQTT服务器，必须设置两个不同的ClientId，否则只有一个能连接上。</p>
+<p>&nbsp;</p>
+<p>Paho的使用：</p>
+<p>具体说明也可以看这位高手的：</p>
+<p><a href="https://blog.csdn.net/weixin_42133779/article/details/80226633" target="_blank">https://blog.csdn.net/weixin_42133779/article/details/80226633</a></p>
+<p>只是有一点需要强调以下：</p>
+<p>Paho的目录不要太深，之前我就是三层文件夹下面，结果无法运行。一直提示 error code=13</p>
+<p>没办法把他放在D盘的根目录下就可以了</p>
+<p>&nbsp;</p>
+<p>&nbsp;纸上得来终觉浅，要改造成自己想要的些东西，还要花些功夫！不过这已经很好了！谢谢各位高手的贡献</p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

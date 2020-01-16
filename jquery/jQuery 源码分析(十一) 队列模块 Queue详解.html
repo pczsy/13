@@ -1,0 +1,182 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修jQuery 源码分析(十一) 队列模块 Queue详解' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>jQuery 源码分析(十一) 队列模块 Queue详解</center></div><div class='banquan'>原文出处:本文由博客园博主大沙漠提供。<br/>
+原文连接:https://www.cnblogs.com/greatdesert/p/11670591.html</div><br>
+    <p>队列是常用的数据结构之一，只允许在表的前端(队头)进行删除操作(出队)，在表的后端(队尾)进行插入操作(入队)。特点是先进先出，最先插入的元素最先被删除。</p>
+<p>在jQuery内部，队列模块为动画模块提供基础功能，负责存储动画函数、自动出队并执行动画函数，同时还要确保动画函数的顺序执行。</p>
+<p>jQuery的静态方法含有如下API:</p>
+<ul>
+<li>$.queue(elem,type,data)　;返回或修改匹配元素关联的队列,返回最新的队列，参数如下:</li>
+</ul>
+<p>&nbsp;　　　　　　　　　　　　　　　&nbsp; elem 　　;DOM元素或JavaScript对象</p>
+<p>　　　　　　　　　　　　　　　　type&nbsp;　　;队列名称，默认是标准动画fx</p>
+<p>　　　　　　　　　　　　　　　　data　　;需要设置的队列函数，可以是空(返回队列)、函数(加入队列)或函数数组(替换队列)</p>
+<ul>
+<li>$.dequeue(elem,type) 　　;用于出队并执行匹配元素关联的函数队列中的下一个元素</li>
+</ul>
+<p>　　　　　　　　　　　　　　　　elem　　;DOM元素或JavaScript对象</p>
+<p>　　　　　　　　　　　　　　　　type　　;是队列名称，默认为动画队列fx</p>
+<p class="hwi">&nbsp;writer by:大沙漠 QQ:22969969</p>
+<p>jQuery/$ 实例方法(可以通过jQuery实例调用的):</p>
+<ul>
+<li>queue(type,data) &nbsp;　　&nbsp;&nbsp;&nbsp; ;返回第一个匹配元素的函数队列，或修改所有匹配的元素关联的函数队列，参数如下:</li>
+</ul>
+<p>　　　　　　　　　　　　　　　　type　　;队列名称</p>
+<p>　　　　　　　　　　　　　　　　data　　;data是可选的函数或函数数组，参数同$.queue()的第三个参数</p>
+<ul>
+<li>dequeue(type)　　　　&nbsp;&nbsp; ;出队并执行所有匹配元素关联的函数队列中的下一个函数</li>
+<li>delay(time,type) 　　&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ;延迟函数出队执行。通过调用.queue(type,data)向关联的函数队列中插入一个新的函数，在函数内通过setTimeout()延迟下一个函数的出队时间。</li>
+<li>clearQueue(type)&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;　 ;移除匹配元素关联的函数队列中的所有未被执行的函数，内部代码就一句:return this.queue( type || "fx", [] );</li>
+</ul>
+<p>举个栗子:</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;!</span><span style="color: #ff00ff;">DOCTYPE html</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">html </span><span style="color: #ff0000;">lang</span><span style="color: #0000ff;">="en"</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">head</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">meta </span><span style="color: #ff0000;">charset</span><span style="color: #0000ff;">="UTF-8"</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">title</span><span style="color: #0000ff;">&gt;</span>Document<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">title</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script </span><span style="color: #ff0000;">src</span><span style="color: #0000ff;">="http://libs.baidu.com/jquery/1.7.1/jquery.min.js"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">head</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">body</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">p</span><span style="color: #0000ff;">&gt;</span>123<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">p</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span>
+        <span style="background-color: #f5f5f5; color: #0000ff;">function</span><span style="background-color: #f5f5f5; color: #000000;"> f1(){console.log(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">f1触发</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">);}　　　 </span><span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;">定义两个测试函数</span>
+        <span style="background-color: #f5f5f5; color: #0000ff;">function</span><span style="background-color: #f5f5f5; color: #000000;"> f2(){console.log(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">f2触发</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">)};
+
+        $(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">p</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">).queue(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">test</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">,f1);               　　</span><span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;">将f1入队，队列名称为test</span>
+<span style="background-color: #f5f5f5; color: #000000;">        $(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">p</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">).dequeue(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">test</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">);            　　　　</span><span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;">将匹配元素的名称为test的函数列表出队并执行</span>
+<span style="background-color: #f5f5f5; color: #000000;">        $(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">p</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">).queue(f2);            　　　　　　　 </span><span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;">将f2放入p匹配元素的队列中，默认为动画队列，会自动执行。</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span>    
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">body</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">html</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<p>输出如下:</p>
+<p><img src="./images/jQuery 源码分析(十一) 队列模块 Queue详解0.png" alt="" /></p>
+<p>&nbsp;</p>
+<p><strong><span style="font-size: 18pt;">源码分析</span></strong></p>
+<hr />
+<p>jQuery的队列是基于数据缓存模块$.data来实现的，当调用$.queue()时回把函数列表以队列名+'queue'为属性，保存在对应的DOM元素的内部缓存对象上，例如:</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;!</span><span style="color: #ff00ff;">DOCTYPE html</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">html </span><span style="color: #ff0000;">lang</span><span style="color: #0000ff;">="en"</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">head</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">meta </span><span style="color: #ff0000;">charset</span><span style="color: #0000ff;">="UTF-8"</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">title</span><span style="color: #0000ff;">&gt;</span>Document<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">title</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script </span><span style="color: #ff0000;">src</span><span style="color: #0000ff;">="http://libs.baidu.com/jquery/1.7.1/jquery.min.js"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">head</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">body</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">p</span><span style="color: #0000ff;">&gt;</span>123<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">p</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span>
+        <span style="background-color: #f5f5f5; color: #0000ff;">function</span><span style="background-color: #f5f5f5; color: #000000;"> f1(){console.log(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">f1触发</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">);}
+        $(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">p</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">).queue(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">test</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">,f1);    
+    </span><span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span>    
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">body</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">html</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<p>我们可以在控制台里直接从$.cache里获取对应的属性，如下:</p>
+<p><img src="./images/jQuery 源码分析(十一) 队列模块 Queue详解1.png" alt="" /></p>
+<p>&nbsp;document.getElementsByTagName('p')[0][$.expando]就是例子里p元素节点对象的$.expando属性，该属性的值会作为$.cache的某个属性，存储着对应这个p元素的数据缓存对象(这是数据缓存模块的内容)</p>
+<p>$.queue和$.dequeue的实现如下:</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">jQuery.extend({
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">略</span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    queue: </span><span style="color: #0000ff;">function</span>( elem, type, data ) {            <span style="color: #008000;">//</span><span style="color: #008000;">返回或修改匹配元素关联的队列。elem是DOM元素或JavaScript对象，type是队列名称，data是可选的函数或函数数组</span>
+        <span style="color: #0000ff;">var</span><span style="color: #000000;"> q;
+        </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> ( elem ) {
+            type </span>= ( type || "fx" ) + "queue";                <span style="color: #008000;">//</span><span style="color: #008000;">修正参数type,默认为动画队列fx,在参数type后面加上queue表示这是一个队列</span>
+            q = jQuery._data( elem, type );                    <span style="color: #008000;">//</span><span style="color: #008000;">取出参数type对应的队列 如果之前有数据则返回该数组 否则 q等于undefined</span>
+
+            <span style="color: #008000;">//</span><span style="color: #008000;"> Speed up dequeue by getting out quickly if this is just a lookup</span>
+            <span style="color: #0000ff;">if</span> ( data ) {                                    <span style="color: #008000;">//</span><span style="color: #008000;">如果传入了data参数</span>
+                <span style="color: #0000ff;">if</span> ( !q || jQuery.isArray(data) ) {                <span style="color: #008000;">//</span><span style="color: #008000;">如果type队列不存在，或者type队列存在且data是一个数组</span>
+                    q = jQuery._data( elem, type, jQuery.makeArray(data) );    <span style="color: #008000;">//</span><span style="color: #008000;">调用jQuery.makeArray把参数data转换为数组并替换队列</span>
+                } <span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+                    q.push( data );                                </span><span style="color: #008000;">//</span><span style="color: #008000;">队列存在且data不是一个数组则调用数组push方法把参数data放入队列</span>
+<span style="color: #000000;">                }
+            }
+            </span><span style="color: #0000ff;">return</span> q ||<span style="color: #000000;"> [];
+        }
+    },
+
+    dequeue: </span><span style="color: #0000ff;">function</span>( elem, type ) {                <span style="color: #008000;">//</span><span style="color: #008000;">用于出队并执行匹配元素关联的函数队列中的下一个元素</span>
+        type = type || "fx";                            <span style="color: #008000;">//</span><span style="color: #008000;">修正参数type,默认是"fx";</span>
+
+        <span style="color: #0000ff;">var</span> queue = jQuery.queue( elem, type ),            <span style="color: #008000;">//</span><span style="color: #008000;">获取elem元素的type队列</span>
+            fn = queue.shift(),                            <span style="color: #008000;">//</span><span style="color: #008000;">调用shift方法取出队列第一个函数</span>
+            hooks = {};                                    <span style="color: #008000;">//</span><span style="color: #008000;">存放出队的函数在执行时的数据</span>
+
+        <span style="color: #008000;">//</span><span style="color: #008000;"> If the fx queue is dequeued, always remove the progress sentinel</span>
+        <span style="color: #0000ff;">if</span> ( fn === "inprogress" ) {                    <span style="color: #008000;">//</span><span style="color: #008000;">如果出队的是占位符"inprogress"，则丢弃再从队列头部出一个，只有动画队列会设置占位符"inprogress"</span>
+            fn =<span style="color: #000000;"> queue.shift();
+        }
+
+        </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> ( fn ) {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> Add a progress sentinel to prevent the fx queue from being</span>
+            <span style="color: #008000;">//</span><span style="color: #008000;"> automatically dequeued</span>
+            <span style="color: #0000ff;">if</span> ( type === "fx" ) {                        <span style="color: #008000;">//</span><span style="color: #008000;">如果是动画队列</span>
+                queue.unshift( "inprogress" );                <span style="color: #008000;">//</span><span style="color: #008000;">则在队列开头添加一个占位符"inprogress"，表示动画函数正在执行当中</span>
+<span style="color: #000000;">            }
+
+            jQuery._data( elem, type </span>+ ".run", hooks );    <span style="color: #008000;">//</span><span style="color: #008000;">设置内部数据type+".run",表示参数type对应的队列正在执行，值是hooks，它会被作为第二个参数传递给出队的函数</span>
+            fn.call( elem, <span style="color: #0000ff;">function</span><span style="color: #000000;">() {
+                jQuery.dequeue( elem, type );
+            }, hooks );                                    </span><span style="color: #008000;">//</span><span style="color: #008000;">调用函数方法call执行出队的函数，elem是函数执行的上下文，即关键词this指向的对象;第二个参数是封装了jQuery.dequeue( elem, type )的函数，不会自动执行，需要在出队的函数返回前手动调用next()</span>
+<span style="color: #000000;">        }
+
+        </span><span style="color: #0000ff;">if</span> ( !queue.length ) {                            <span style="color: #008000;">//</span><span style="color: #008000;">如果参数type对应的队列在出队后成为空队列，即所有函数都已经出队并执行</span>
+            jQuery.removeData( elem, type + "queue " + type + ".run", <span style="color: #0000ff;">true</span> );        <span style="color: #008000;">//</span><span style="color: #008000;">调用jQuery.removeData()方法移除参数type对应的数据缓存对象</span>
+            handleQueueMarkDefer( elem, type, "queue" );                            <span style="color: #008000;">//</span><span style="color: #008000;">检查匹配元素关联的队列(type+"queue")和计数器(type+"mark")是否完成，如果完成则触发方法.promise()中的计数器</span>
+<span style="color: #000000;">        }
+    }
+});</span></pre>
+</div>
+<p><span style="color: #ff0000;">type默认等于fx，jQuery的动画效果也是基于Queue实现的，这个fx默认就是动画效果</span>，对于jQuery/$ 实例方法来说，它是调用jQuery的静态方法来实现的，如下:</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">jQuery.fn.extend({
+    queue: </span><span style="color: #0000ff;">function</span>( type, data ) {            <span style="color: #008000;">//</span><span style="color: #008000;">返回第一个匹配元素的函数队列，或修改所有匹配的元素关联的函数队列。type是队列名称，默认是fx。data参数等同于jQuery.queue中的data参数</span>
+        <span style="color: #0000ff;">if</span> ( <span style="color: #0000ff;">typeof</span> type !== "string" ) {        <span style="color: #008000;">//</span><span style="color: #008000;">修正参数    当传入的格式是queue()或queue(data) (注:data可以是函数或函数数组)时</span>
+            data =<span style="color: #000000;"> type;
+            type </span>= "fx"<span style="color: #000000;">;
+        }
+
+        </span><span style="color: #0000ff;">if</span> ( data === undefined ) {                <span style="color: #008000;">//</span><span style="color: #008000;">如果没有传入data参数，</span>
+            <span style="color: #0000ff;">return</span> jQuery.queue( <span style="color: #0000ff;">this</span>[0], type );    <span style="color: #008000;">//</span><span style="color: #008000;">则调用jQuery.queue()返回第一个匹配元素上参数type对应的队列</span>
+<span style="color: #000000;">        }
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span>.each(<span style="color: #0000ff;">function</span>() {            <span style="color: #008000;">//</span><span style="color: #008000;">如果传入了data参数</span>
+            <span style="color: #0000ff;">var</span> queue = jQuery.queue( <span style="color: #0000ff;">this</span>, type, data );        <span style="color: #008000;">//</span><span style="color: #008000;">为每一个匹配元素调用jQuery.queue( this, type, data ),把参数(函数)入队，或者用参数data(函数数组)替换队列。</span>
+
+            <span style="color: #0000ff;">if</span> ( type === "fx" &amp;&amp; queue[0] !== "inprogress" ) {    <span style="color: #008000;">//</span><span style="color: #008000;">对于动画队列fx，且没有动画函数正在执行,则立即出队并执行动画函数。</span>
+                jQuery.dequeue( <span style="color: #0000ff;">this</span><span style="color: #000000;">, type );
+            }
+        });
+    },
+    dequeue: </span><span style="color: #0000ff;">function</span>( type ) {                    <span style="color: #008000;">//</span><span style="color: #008000;">出队并执行匹配元素关联的函数队列中的下一个函数</span>
+        <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span>.each(<span style="color: #0000ff;">function</span><span style="color: #000000;">() {
+            jQuery.dequeue( </span><span style="color: #0000ff;">this</span><span style="color: #000000;">, type );
+        });
+    },
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">略</span><span style="color: #008000;">*/</span><span style="color: #000000;">
+})</span></pre>
+</div>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

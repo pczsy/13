@@ -1,0 +1,389 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修webapi 导入excel处理数据' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>webapi 导入excel处理数据</center></div><div class='banquan'>原文出处:本文由博客园博主大稳&#183;杨提供。<br/>
+原文连接:https://www.cnblogs.com/dawenyang/p/11363236.html</div><br>
+    <h1>参考资料</h1>
+<p>　　　　&nbsp; &nbsp;&nbsp;<a href="https://blog.csdn.net/pan_junbiao/article/details/82935992" target="_blank">https://blog.csdn.net/pan_junbiao/article/details/82935992 </a></p>
+<p>　　　　　<a href="https://www.cnblogs.com/dansediao/p/5482467.html" target="_blank">https://www.cnblogs.com/dansediao/p/5482467.html </a></p>
+<p>　　　　　<a href="https://www.cnblogs.com/shiyh/p/7478241.html" target="_blank">https://www.cnblogs.com/shiyh/p/7478241.html</a></p>
+<h1><span style="font-family: 'Microsoft YaHei'; font-size: 18px;">excel转成datatable工具类（ExcelHelp）</span></h1>
+<p>&nbsp;</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('c454b9ee-a7d2-43e7-8235-4dc6d5dcdec4')"><img id="code_img_closed_c454b9ee-a7d2-43e7-8235-4dc6d5dcdec4" class="code_img_closed" src="./images/webapi 导入excel处理数据0.png" alt="" /><img id="code_img_opened_c454b9ee-a7d2-43e7-8235-4dc6d5dcdec4" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('c454b9ee-a7d2-43e7-8235-4dc6d5dcdec4',event)" src="./images/webapi 导入excel处理数据1.png" alt="" />
+<div id="cnblogs_code_open_c454b9ee-a7d2-43e7-8235-4dc6d5dcdec4" class="cnblogs_code_hide">
+<pre><code><span style="color: #0000ff;">using</span><span style="color: #000000;"> System;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Collections.Generic;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Data;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.IO;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Reflection;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> NPOI.HSSF.UserModel;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> NPOI.SS.UserModel;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> NPOI.SS.Util;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> NPOI.XSSF.UserModel;
+
+</span><span style="color: #0000ff;">namespace</span><span style="color: #000000;"> ELearning.Common.Extensions
+{
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> ExcelHelp
+    {
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> excel文件流转化成datatable
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> DataTable ExcelToTableForXLSX(Stream fileStream, <span style="color: #0000ff;">bool</span> haveNote = <span style="color: #0000ff;">false</span><span style="color: #000000;">)
+        {
+            </span><span style="color: #0000ff;">var</span> dt = <span style="color: #0000ff;">new</span><span style="color: #000000;"> DataTable();
+            </span><span style="color: #0000ff;">using</span> (<span style="color: #0000ff;">var</span> fs =<span style="color: #000000;"> fileStream)
+            {
+                </span><span style="color: #0000ff;">var</span> xssfworkbook = <span style="color: #0000ff;">new</span><span style="color: #000000;"> XSSFWorkbook(fs);
+                </span><span style="color: #0000ff;">var</span> sheet = xssfworkbook.GetSheetAt(<span style="color: #800080;">0</span><span style="color: #000000;">);
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">表头  判断是否包含备注</span>
+                <span style="color: #0000ff;">var</span> firstRowNum =<span style="color: #000000;"> sheet.FirstRowNum;
+                </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (haveNote)
+                {
+                    firstRowNum </span>+= <span style="color: #800080;">1</span><span style="color: #000000;">;
+                }
+                </span><span style="color: #0000ff;">var</span> header =<span style="color: #000000;"> sheet.GetRow(firstRowNum);
+                </span><span style="color: #0000ff;">var</span> columns = <span style="color: #0000ff;">new</span> List&lt;<span style="color: #0000ff;">int</span>&gt;<span style="color: #000000;">();
+                </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> i = <span style="color: #800080;">0</span>; i &lt; header.LastCellNum; i++<span style="color: #000000;">)
+                {
+                    </span><span style="color: #0000ff;">var</span> obj = GetValueTypeForXLSX(header.GetCell(i) <span style="color: #0000ff;">as</span><span style="color: #000000;"> XSSFCell);
+                    </span><span style="color: #0000ff;">if</span> (obj == <span style="color: #0000ff;">null</span> || obj.ToString() == <span style="color: #0000ff;">string</span><span style="color: #000000;">.Empty)
+                    {
+                        dt.Columns.Add(</span><span style="color: #0000ff;">new</span> DataColumn(<span style="color: #800000;">"</span><span style="color: #800000;">Columns</span><span style="color: #800000;">"</span> +<span style="color: #000000;"> i.ToString()));
+                        </span><span style="color: #008000;">//</span><span style="color: #008000;">continue;</span>
+<span style="color: #000000;">                    }
+                    </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+                        dt.Columns.Add(</span><span style="color: #0000ff;">new</span><span style="color: #000000;"> DataColumn(obj.ToString()));
+                    columns.Add(i);
+                }
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">数据</span>
+                <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> i = firstRowNum + <span style="color: #800080;">1</span>; i &lt;= sheet.LastRowNum; i++<span style="color: #000000;">)
+                {
+                    </span><span style="color: #0000ff;">var</span> dr =<span style="color: #000000;"> dt.NewRow();
+                    </span><span style="color: #0000ff;">var</span> hasValue = <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+                    </span><span style="color: #0000ff;">if</span> (sheet.GetRow(i) == <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+                    {
+                        </span><span style="color: #0000ff;">continue</span><span style="color: #000000;">;
+                    }
+                    </span><span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">var</span> j <span style="color: #0000ff;">in</span><span style="color: #000000;"> columns)
+                    {
+                        </span><span style="color: #0000ff;">var</span> cell =<span style="color: #000000;"> sheet.GetRow(i).GetCell(j);
+                        </span><span style="color: #0000ff;">if</span> (cell != <span style="color: #0000ff;">null</span> &amp;&amp; cell.CellType ==<span style="color: #000000;"> CellType.Numeric)
+                        {
+                            </span><span style="color: #008000;">//</span><span style="color: #008000;">NPOI中数字和日期都是NUMERIC类型的，这里对其进行判断是否是日期类型</span>
+                            <span style="color: #0000ff;">if</span> (DateUtil.IsCellDateFormatted(cell)) <span style="color: #008000;">//</span><span style="color: #008000;">日期类型</span>
+<span style="color: #000000;">                            {
+                                dr[j] </span>=<span style="color: #000000;"> cell.DateCellValue;
+                            }
+                            </span><span style="color: #0000ff;">else</span> <span style="color: #008000;">//</span><span style="color: #008000;">其他数字类型</span>
+<span style="color: #000000;">                            {
+                                dr[j] </span>=<span style="color: #000000;"> cell.NumericCellValue;
+                            }
+                        }
+                        </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+                        {
+                            dr[j] </span>= GetValueTypeForXLSX(sheet.GetRow(i).GetCell(j) <span style="color: #0000ff;">as</span><span style="color: #000000;"> XSSFCell);
+                        }
+                        </span><span style="color: #0000ff;">if</span> (dr[j] != <span style="color: #0000ff;">null</span> &amp;&amp; dr[j].ToString() != <span style="color: #0000ff;">string</span><span style="color: #000000;">.Empty)
+                        {
+                            hasValue </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+                        }
+                    }
+                    </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (hasValue)
+                    {
+                        dt.Rows.Add(dr);
+                    }
+                }
+            }
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> dt;
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 获取单元格类型(xlsx)
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="cell"&gt;&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">object</span><span style="color: #000000;"> GetValueTypeForXLSX(XSSFCell cell)
+        {
+            </span><span style="color: #0000ff;">if</span> (cell == <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+                </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">switch</span><span style="color: #000000;"> (cell.CellType)
+            {
+
+                </span><span style="color: #0000ff;">case</span> CellType.Blank: <span style="color: #008000;">//</span><span style="color: #008000;">BLANK:</span>
+                    <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+                </span><span style="color: #0000ff;">case</span> CellType.Boolean: <span style="color: #008000;">//</span><span style="color: #008000;">BOOLEAN:</span>
+                    <span style="color: #0000ff;">return</span><span style="color: #000000;"> cell.BooleanCellValue;
+                </span><span style="color: #0000ff;">case</span> CellType.Numeric: <span style="color: #008000;">//</span><span style="color: #008000;">NUMERIC:</span>
+                    <span style="color: #0000ff;">return</span><span style="color: #000000;"> cell.NumericCellValue;
+                </span><span style="color: #0000ff;">case</span> CellType.String: <span style="color: #008000;">//</span><span style="color: #008000;">STRING:</span>
+                    <span style="color: #0000ff;">return</span><span style="color: #000000;"> cell.StringCellValue;
+                </span><span style="color: #0000ff;">case</span> CellType.Error: <span style="color: #008000;">//</span><span style="color: #008000;">ERROR:</span>
+                    <span style="color: #0000ff;">return</span><span style="color: #000000;"> cell.ErrorCellValue;
+                </span><span style="color: #0000ff;">case</span> CellType.Formula: <span style="color: #008000;">//</span><span style="color: #008000;">FORMULA:</span>
+                <span style="color: #0000ff;">default</span><span style="color: #000000;">:
+                    </span><span style="color: #0000ff;">return</span> <span style="color: #800000;">"</span><span style="color: #800000;">=</span><span style="color: #800000;">"</span> +<span style="color: #000000;"> cell.CellFormula;
+            }
+        }
+
+  </span><span style="color: #0000ff;">#region</span>  转化实体为dataTable
+
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> Convert a List{T} to a DataTable.
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> DataTable ToDataTable&lt;T&gt;(<span style="color: #0000ff;">this</span> List&lt;T&gt;<span style="color: #000000;"> items)
+        {
+            </span><span style="color: #0000ff;">var</span> tb = <span style="color: #0000ff;">new</span> DataTable(<span style="color: #0000ff;">typeof</span><span style="color: #000000;">(T).Name);
+
+            PropertyInfo[] props </span>= <span style="color: #0000ff;">typeof</span>(T).GetProperties(BindingFlags.Public |<span style="color: #000000;"> BindingFlags.Instance);
+
+            </span><span style="color: #0000ff;">foreach</span> (PropertyInfo prop <span style="color: #0000ff;">in</span><span style="color: #000000;"> props)
+            {
+                Type t </span>=<span style="color: #000000;"> GetCoreType(prop.PropertyType);
+                tb.Columns.Add(prop.Name, t);
+            }
+
+            </span><span style="color: #0000ff;">foreach</span> (T item <span style="color: #0000ff;">in</span><span style="color: #000000;"> items)
+            {
+                </span><span style="color: #0000ff;">var</span> values = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">object</span><span style="color: #000000;">[props.Length];
+
+                </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; props.Length; i++<span style="color: #000000;">)
+                {
+                    values[i] </span>= props[i].GetValue(item, <span style="color: #0000ff;">null</span><span style="color: #000000;">);
+                }
+
+                tb.Rows.Add(values);
+            }
+
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> tb;
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> Return underlying type if type is Nullable otherwise return the type
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span><span style="color: #000000;"> Type GetCoreType(Type t)
+        {
+            </span><span style="color: #0000ff;">if</span> (t != <span style="color: #0000ff;">null</span> &amp;&amp;<span style="color: #000000;"> IsNullable(t))
+            {
+                </span><span style="color: #0000ff;">if</span> (!<span style="color: #000000;">t.IsValueType)
+                {
+                    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> t;
+                }
+                </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+                {
+                    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> Nullable.GetUnderlyingType(t);
+                }
+            }
+            </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+            {
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> t;
+            }
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> Determine of specified type is nullable
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">bool</span><span style="color: #000000;"> IsNullable(Type t)
+        {
+            </span><span style="color: #0000ff;">return</span> !t.IsValueType || (t.IsGenericType &amp;&amp; t.GetGenericTypeDefinition() == <span style="color: #0000ff;">typeof</span>(Nullable&lt;&gt;<span style="color: #000000;">));
+        }
+
+        </span><span style="color: #0000ff;">#endregion</span>
+
+        <span style="color: #0000ff;">#region</span> datatable to list
+
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> DataTable转成List
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> List&lt;T&gt; ToDataList&lt;T&gt;(<span style="color: #0000ff;">this</span><span style="color: #000000;"> DataTable dt)
+        {
+            </span><span style="color: #0000ff;">var</span> list = <span style="color: #0000ff;">new</span> List&lt;T&gt;<span style="color: #000000;">();
+            </span><span style="color: #0000ff;">var</span> plist = <span style="color: #0000ff;">new</span> List&lt;PropertyInfo&gt;(<span style="color: #0000ff;">typeof</span><span style="color: #000000;">(T).GetProperties());
+            </span><span style="color: #0000ff;">foreach</span> (DataRow item <span style="color: #0000ff;">in</span><span style="color: #000000;"> dt.Rows)
+            {
+                </span><span style="color: #0000ff;">var</span> s = Activator.CreateInstance&lt;T&gt;<span style="color: #000000;">();
+                </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> i = <span style="color: #800080;">0</span>; i &lt; dt.Columns.Count; i++<span style="color: #000000;">)
+                {
+                    </span><span style="color: #0000ff;">var</span> info = plist.Find(p =&gt; p.Name ==<span style="color: #000000;"> dt.Columns[i].ColumnName);
+                    </span><span style="color: #0000ff;">if</span> (info != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+                    {
+                        </span><span style="color: #0000ff;">try</span><span style="color: #000000;">
+                        {
+                            </span><span style="color: #0000ff;">if</span> (!<span style="color: #000000;">Convert.IsDBNull(item[i]))
+                            {
+                                </span><span style="color: #0000ff;">object</span> v = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+                                </span><span style="color: #0000ff;">if</span> (info.PropertyType.ToString().Contains(<span style="color: #800000;">"</span><span style="color: #800000;">System.Nullable</span><span style="color: #800000;">"</span><span style="color: #000000;">))
+                                {
+                                    v </span>=<span style="color: #000000;"> Convert.ChangeType(item[i], Nullable.GetUnderlyingType(info.PropertyType));
+                                }
+                                </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+                                {
+                                    v </span>=<span style="color: #000000;"> Convert.ChangeType(item[i], info.PropertyType);
+                                }
+                                info.SetValue(s, v, </span><span style="color: #0000ff;">null</span><span style="color: #000000;">);
+                            }
+                        }
+                        </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception ex)
+                        {
+                            </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> Exception(<span style="color: #800000;">"</span><span style="color: #800000;">字段[</span><span style="color: #800000;">"</span> + info.Name + <span style="color: #800000;">"</span><span style="color: #800000;">]转换出错,</span><span style="color: #800000;">"</span> +<span style="color: #000000;"> ex.Message);
+                        }
+                    }
+                }
+                list.Add(s);
+            }
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> list;
+        }
+        </span><span style="color: #0000ff;">#endregion</span><span style="color: #000000;">
+     }
+}</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp;</p>
+<h1><span style="font-family: 'Microsoft YaHei'; font-size: 18px;">SqlBulkCopyHelper工具类</span></h1>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">using</span><span style="color: #000000;"> System;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Configuration;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Data;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Data.SqlClient;
+
+</span><span style="color: #0000ff;">namespace</span><span style="color: #000000;"> ELearning.Common.Helpers
+{
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> SqlBulkCopyHelper
+    {
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> SaveTable(DataTable dtTable)
+        {
+            </span><span style="color: #0000ff;">var</span> connectionString = ConfigurationManager.ConnectionStrings[<span style="color: #800000;">"</span><span style="color: #800000;">ConnectionString</span><span style="color: #800000;">"</span><span style="color: #000000;">].ToString();
+            </span><span style="color: #0000ff;">var</span> sbc = <span style="color: #0000ff;">new</span> SqlBulkCopy(connectionString, SqlBulkCopyOptions.UseInternalTransaction) {BulkCopyTimeout = <span style="color: #800080;">5000</span><span style="color: #000000;">};
+            </span><span style="color: #0000ff;">try</span><span style="color: #000000;">
+            {
+                sbc.DestinationTableName </span>=<span style="color: #000000;"> dtTable.TableName;
+                sbc.WriteToServer(dtTable);
+            }
+            </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception ex)
+            {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">处理异常</span>
+<span style="color: #000000;">            }
+            </span><span style="color: #0000ff;">finally</span><span style="color: #000000;">
+            {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">sqlcmd.Clone();
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">srcConnection.Close();
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">desConnection.Close();</span>
+<span style="color: #000000;">            }
+        }
+    }
+}</span></pre>
+</div>
+<h1><span style="font-size: 18px; font-family: 'Microsoft YaHei';">对应excel实体类：</span></h1>
+<div class="cnblogs_code">
+<pre><code>    <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+    <span style="color: #808080;">///</span><span style="color: #008000;"> 导入用户视图模型
+    </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> InsertAdminUsersViewModel
+    {
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> 性别 { <span style="color: #0000ff;">set</span>; <span style="color: #0000ff;">get</span><span style="color: #000000;">; }
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> 出生日期 { <span style="color: #0000ff;">set</span>; <span style="color: #0000ff;">get</span><span style="color: #000000;">; }
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> 身份证号 { <span style="color: #0000ff;">set</span>; <span style="color: #0000ff;">get</span><span style="color: #000000;">; }
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> 经销商名称 { <span style="color: #0000ff;">set</span>; <span style="color: #0000ff;">get</span><span style="color: #000000;">; }
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> 经销商岗位 { <span style="color: #0000ff;">set</span>; <span style="color: #0000ff;">get</span><span style="color: #000000;">; }
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> 更新时间 { <span style="color: #0000ff;">set</span>; <span style="color: #0000ff;">get</span><span style="color: #000000;">; }
+    }</span></pre>
+</div>
+<h1><span style="font-family: 'Microsoft YaHei'; font-size: 18px;">导入信息接口（InsertAdminUsers）：</span></h1>
+<div class="cnblogs_code" onclick="cnblogs_code_show('4304a638-0606-4a89-9db3-ed97e1d6e75f')"><img id="code_img_closed_4304a638-0606-4a89-9db3-ed97e1d6e75f" class="code_img_closed" src="./images/webapi 导入excel处理数据0.png" alt="" /><img id="code_img_opened_4304a638-0606-4a89-9db3-ed97e1d6e75f" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('4304a638-0606-4a89-9db3-ed97e1d6e75f',event)" src="./images/webapi 导入excel处理数据1.png" alt="" />
+<div id="cnblogs_code_open_4304a638-0606-4a89-9db3-ed97e1d6e75f" class="cnblogs_code_hide">
+<pre><code>        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 导入用户
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        [HttpPost, Route(<span style="color: #800000;">"</span><span style="color: #800000;">api/user/InsertAdminUsers</span><span style="color: #800000;">"</span><span style="color: #000000;">)]
+        [AllowAnonymous]
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">object</span><span style="color: #000000;"> InsertAdminUsers()
+        {
+            </span><span style="color: #0000ff;">var</span> filelist =<span style="color: #000000;"> HttpContext.Current.Request.Files;
+            </span><span style="color: #0000ff;">var</span> users = <span style="color: #0000ff;">new</span> List&lt;InsertAdminUsersViewModel&gt;<span style="color: #000000;">();
+            </span><span style="color: #0000ff;">if</span> (filelist.Count &gt; <span style="color: #800080;">0</span><span style="color: #000000;">)
+            {
+                </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> i = <span style="color: #800080;">0</span>; i &lt; filelist.Count; i++<span style="color: #000000;">)
+                {
+                    </span><span style="color: #0000ff;">var</span> file =<span style="color: #000000;"> filelist[i];
+                    </span><span style="color: #0000ff;">var</span> dataTable = ExcelHelp.ExcelToTableForXLSX(file.InputStream);<span style="color: #008000;">//</span><span style="color: #008000;">excel转成datatable</span>
+                    users = dataTable.ToDataList&lt;InsertAdminUsersViewModel&gt;();<span style="color: #008000;">//</span><span style="color: #008000;">datatable转成list</span>
+<span style="color: #000000;">                }
+            }
+            </span><span style="color: #0000ff;">var</span> succe = <span style="color: #0000ff;">new</span> List&lt;ESysUser&gt;<span style="color: #000000;">();
+            </span><span style="color: #0000ff;">var</span> faile = <span style="color: #0000ff;">new</span> List&lt;ESysUser&gt;<span style="color: #000000;">();
+            </span><span style="color: #0000ff;">var</span> names = userService.FindList(u =&gt; !u.IsDelete).Select(u =&gt;<span style="color: #000000;"> u.LoginName).ToList();
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">数据list转成数据库实体对应的list</span>
+            <span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">var</span> u <span style="color: #0000ff;">in</span><span style="color: #000000;"> users)
+            {
+                </span><span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">string</span>.IsNullOrEmpty(u.状态) || !u.状态.Equals(<span style="color: #800000;">"</span><span style="color: #800000;">1</span><span style="color: #800000;">"</span><span style="color: #000000;">))
+                    </span><span style="color: #0000ff;">continue</span><span style="color: #000000;">;
+                </span><span style="color: #0000ff;">var</span> s = <span style="color: #0000ff;">new</span><span style="color: #000000;"> ESysUser
+                {
+                    CreateTime </span>=<span style="color: #000000;"> DateTime.Now,
+                    Birthday </span>= DateTime.ParseExact(u.出生日期, <span style="color: #800000;">"</span><span style="color: #800000;">yyyyMMdd</span><span style="color: #800000;">"</span><span style="color: #000000;">, CultureInfo.CurrentCulture),
+                    Email </span>= <span style="color: #0000ff;">string</span><span style="color: #000000;">.Empty,
+                    IsDelete </span>= <span style="color: #0000ff;">false</span><span style="color: #000000;">,
+                    ModifyTime </span>= DateTime.ParseExact(u.更新时间, <span style="color: #800000;">"</span><span style="color: #800000;">yyyyMMddHHmmssfff</span><span style="color: #800000;">"</span><span style="color: #000000;">, CultureInfo.CurrentCulture),
+                    UserID </span>=<span style="color: #000000;"> GuidUtil.NewSequentialId(),
+                    UserName </span>=<span style="color: #000000;"> u.职员名称,
+                    UserType </span>= <span style="color: #800000;">"</span><span style="color: #800000;">JXS</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+                    Unumber </span>=<span style="color: #000000;"> u.职员代码,
+                    AgentJobName </span>=<span style="color: #000000;"> u.经销商岗位,
+                    AgentName </span>=<span style="color: #000000;"> u.经销商名称.
+                    CardNo </span>=<span style="color: #000000;"> u.身份证号
+                };
+                </span><span style="color: #0000ff;">if</span> (!<span style="color: #0000ff;">string</span>.IsNullOrEmpty(s.CardNo) &amp;&amp; s.CardNo.Length &gt; <span style="color: #800080;">14</span><span style="color: #000000;">)
+                {
+                    </span><span style="color: #0000ff;">var</span> str = s.CardNo.Substring(<span style="color: #800080;">6</span>, <span style="color: #800080;">8</span><span style="color: #000000;">);
+                    </span><span style="color: #0000ff;">try</span><span style="color: #000000;">
+                    {
+                        s.Birthday </span>= DateTime.ParseExact(str, <span style="color: #800000;">"</span><span style="color: #800000;">yyyyMMdd</span><span style="color: #800000;">"</span><span style="color: #000000;">, CultureInfo.CurrentCulture);
+                    }
+                    </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception e)
+                    {
+                        Console.WriteLine(e);
+                    }
+
+                }
+                </span><span style="color: #0000ff;">var</span> t = names.Where(f =&gt; f ==<span style="color: #000000;"> s.LoginName);
+                </span><span style="color: #0000ff;">var</span> p1 = succe.Where(o =&gt; o.LoginName ==<span style="color: #000000;"> s.LoginName);
+                </span><span style="color: #0000ff;">if</span> (t.Any() ||<span style="color: #000000;"> p1.Any())
+                {
+                    s.Remark </span>= <span style="color: #800000;">"</span><span style="color: #800000;">登录名重复</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+                    faile.Add(s);
+                }
+                </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+                {
+                    succe.Add(s);
+                }
+            }
+            </span><span style="color: #0000ff;">var</span> dt = succe.ToDataTable();<span style="color: #008000;">//</span><span style="color: #008000;">转成 SqlBulkCopy所需要的类型：datatable</span>
+            <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">string</span><span style="color: #000000;">.IsNullOrEmpty(dt.TableName))
+                dt.TableName </span>= <span style="color: #800000;">"</span><span style="color: #800000;">ESysUser</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">var</span> r =<span style="color: #000000;"> succe.Count;
+            SqlBulkCopyHelper.SaveTable(dt);</span><span style="color: #008000;">//</span><span style="color: #008000;">批量插入</span>
+            <span style="color: #0000ff;">var</span> list = <span style="color: #0000ff;">new</span> { succeed = succe.Take(<span style="color: #800080;">100</span>).ToList(), failed = faile.Take(<span style="color: #800080;">100</span>).ToList() }; <span style="color: #008000;">//</span><span style="color: #008000;">数据太多的话，浏览器会崩溃</span>
+            <span style="color: #0000ff;">return</span><span style="color: #000000;"> OK(list);
+        }</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 18px;">基本上就是这些了。</span></p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

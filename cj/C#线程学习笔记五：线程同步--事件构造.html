@@ -1,0 +1,265 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C#线程学习笔记五：线程同步--事件构造' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C#线程学习笔记五：线程同步--事件构造</center></div><div class='banquan'>原文出处:本文由博客园博主缥缈的尘埃提供。<br/>
+原文连接:https://www.cnblogs.com/atomy/p/11996017.html</div><br>
+    <p>&nbsp; &nbsp;&nbsp;本笔记摘抄自：<a href="https://www.cnblogs.com/zhili/archive/2012/07/23/Event_Constructor.html">https://www.cnblogs.com/zhili/archive/2012/07/23/Event_Constructor.html</a>，记录一下学习过程以备后续查用。</p>
+<p>&nbsp; &nbsp;&nbsp;前面讲的线程同步主要是用户模式的（CLR Via C# 一书中是这么定义的，书中说到线程同步分两种：一、用户模式构造 二、内核模式构造），对于内核模式构造</p>
+<p>（指的的是构造操作系内核对象），我们使用.NET Framework中的类如AutoResetEvent、Semaphore中方法来实现线程同步，其实其内部是调用操作系统中的内核</p>
+<p>对象来实现的线程同步，此时就会将线程从托管代码转为内核代码。而用户模式构造，因为没有调用操作系统内核对象，所以线程只会在用户的托管代码上执行。</p>
+<p><strong>&nbsp; &nbsp; 一、WaitHandle基类介绍</strong></p>
+<p><strong>&nbsp; &nbsp; System.Threading</strong>命名空间中提供了一个<strong>WaitHandle&nbsp;</strong>的抽象基类，此类就是包装了一个Windows内核对象的句柄（句柄可以理解为标示了对象实例的一个数字，</p>
+<p>具体大家可以查资料深入理解下，在这里只是提出理解句柄也是很重要的）。</p>
+<p>&nbsp; &nbsp; 在.NET Framework中提供了从WaitHandle类派生的类，它们的继承关系为：</p>
+<p><strong>&nbsp; &nbsp; WaitHandle</strong></p>
+<p><strong>　&nbsp; &nbsp; EventWaitHandle</strong></p>
+<p><strong>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; AutoResetEvent</strong></p>
+<p><strong>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; ManualResetEvent</strong></p>
+<p><strong>&nbsp; &nbsp; &nbsp; &nbsp; Semaphore</strong></p>
+<p><strong>&nbsp; &nbsp; &nbsp; &nbsp; Mutex</strong></p>
+<p>&nbsp; &nbsp; 当我们用构造函数来实例化<strong>AutoResetEvent、</strong><strong>ManualResetEvent、</strong><strong>Semaphore、</strong><strong>Mutex</strong>这些类的对象时，其内部都调用了Win32 CreateEvent或者</p>
+<p>CreateEvent函数或者CreateSemaphore或者CreateMutex函数，这些函数调用返回的句柄值都保存在WaitHandle基类定义的SafeWaitHandle字段中。</p>
+<p><strong>&nbsp; &nbsp; 二、事件(Event)类实现线程同步</strong></p>
+<p>&nbsp; &nbsp;&nbsp;<strong>2.1&nbsp;<strong>AutoResetEvent</strong>&nbsp;（自动重置事件）</strong></p>
+<p>&nbsp; &nbsp; 2.1.1先讲讲AutoResetEvent类的构造函数，其定义为：</p>
+<p>&nbsp; &nbsp; public AutoResetEvent(bool initialState);</p>
+<p>&nbsp; &nbsp; 构造函数中用一个bool 类型的初始状态来设置AutoResetEvent对象的状态。如果要将AutoResetEvent对象的初始状态设置为终止，则传入bool值为true；</p>
+<p>若要设置为非终止，则传入bool值为false。&nbsp;</p>
+<p>&nbsp; &nbsp; 2.2.2WaitOne方法定义：</p>
+<p>&nbsp; &nbsp; public virtual bool WaitOne(int millisecondsTimeout);</p>
+<p>&nbsp; &nbsp; 该方法用来阻塞线程，当在指定的时间间隔还没有收到一个信号时，将返回false。</p>
+<p>&nbsp; &nbsp; 调用Set方法发信号来释放等待线程。</p>
+<p>&nbsp; &nbsp; 在使用过程中WaitOne方法和Set方法都是成对出现的：</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; 一个用于阻塞线程，等待信号；</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; 一个用来释放等待线程(就是说调用set方法来发送一个信号，此时WaitOne接受到信号，就释放阻塞的线程，线程就可以继续运行。)</p>
+<p>&nbsp; &nbsp; 线程通过调用AutoResetEvent的WaitOne方法来等待信号，如果AutoResetEvent对象为非终止状态，则线程被阻止，直到线程调用Set方法来恢复线程执行；</p>
+<p>如果AutoResetEvent为终止状态时，则线程不会被阻止，此时AutoResetEvent将立即释放线程并返回为非终止状态（指出有线程在使用资源的一种状态）。</p>
+<p>&nbsp; &nbsp; 下面代码演示AutoResetEvent的使用：</p>
+<div class="cnblogs_code">
+<pre><code>    <span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">创建对象</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> AutoResetEvent autoResetEvent = <span style="color: #0000ff;">new</span> AutoResetEvent(<span style="color: #0000ff;">false</span><span style="color: #000000;">);
+
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            </span><span style="color: #0000ff;">#region</span> 线程同步：AutoResetEvent的使用<span style="color: #000000;">
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Main thread start run at: </span><span style="color: #800000;">"</span> +<span style="color: #000000;"> DateTime.Now.ToLongTimeString());
+            Thread thread </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Thread(WaitOneMethod);
+            thread.Start();
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">阻塞主线程3秒钟</span>
+            Thread.Sleep(<span style="color: #800080;">3000</span><span style="color: #000000;">);
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">释放线程</span>
+<span style="color: #000000;">            autoResetEvent.Set();
+            Console.Read();
+            </span><span style="color: #0000ff;">#endregion</span><span style="color: #000000;">
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> WaitOne方法
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> WaitOneMethod()
+        {
+            autoResetEvent.WaitOne();
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Method restart run at: </span><span style="color: #800000;">"</span> +<span style="color: #000000;"> DateTime.Now.ToLongTimeString());
+        }
+    }</span></pre>
+</div>
+<p>&nbsp; &nbsp; 运行结果如下：</p>
+<p><img src="./images/C#线程学习笔记五：线程同步--事件构造0.png" alt="" /></p>
+<p>&nbsp; &nbsp; 若创建对象时，把它改为public static AutoResetEvent autoResetEvent = new AutoResetEvent(true);&nbsp;，看到的输出结果的时间就是一样的了。因为设置为True时，</p>
+<p>表示此时已经为终止状态了。因此，autoResetEvent.Set()可以理解为将autoResetEvent的状态设置为终止状态，因而释放线程。&nbsp;</p>
+<p>&nbsp; &nbsp; 上面用到的是没带参数的WaitOne方法，该方法表示无限制阻塞线程，直到收到一个事件为止（通过Set方法来发送一个信号）。</p>
+<p>&nbsp; &nbsp; 通过bool WaitOne(int millisecondsTimeout)，当超时时，线程即使没收到Set发来的信号，也将不再阻塞线程而让它继续运行，只是WaitOne方法返回的值不一样：</p>
+<p>&nbsp; &nbsp; 当收到Set信号时返回值为True，否则返回值为false。</p>
+<p>&nbsp; &nbsp; 下面代码演示WaitOne(millisecondsTimeout)的使用：</p>
+<div class="cnblogs_code">
+<pre><code>    <span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">创建对象</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> AutoResetEvent autoResetEvent = <span style="color: #0000ff;">new</span> AutoResetEvent(<span style="color: #0000ff;">false</span><span style="color: #000000;">);
+
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            </span><span style="color: #0000ff;">#region</span> 线程同步：WaitOne(millisecondsTimeout)的使用<span style="color: #000000;">
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Main thread start run at: </span><span style="color: #800000;">"</span> +<span style="color: #000000;"> DateTime.Now.ToLongTimeString());
+            Thread thread </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Thread(WaitOneTimeoutMethod);
+            thread.Start();
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">阻塞主线程3秒钟</span>
+            Thread.Sleep(<span style="color: #800080;">3000</span><span style="color: #000000;">);
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">释放线程</span>
+<span style="color: #000000;">            autoResetEvent.Set();
+            Console.Read();
+            </span><span style="color: #0000ff;">#endregion</span><span style="color: #000000;">
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> WaitOneTimeout方法
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> WaitOneTimeoutMethod()
+        {
+            </span><span style="color: #0000ff;">if</span> (autoResetEvent.WaitOne(<span style="color: #800080;">2000</span><span style="color: #000000;">))
+            {
+                Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Get signal to work.</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Method restart run at: </span><span style="color: #800000;">"</span> +<span style="color: #000000;"> DateTime.Now.ToLongTimeString());
+            }
+            </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+            {
+                Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Time out to work.</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Method restart run at: </span><span style="color: #800000;">"</span> +<span style="color: #000000;"> DateTime.Now.ToLongTimeString());
+            }
+        }
+    }</span></pre>
+</div>
+<p>&nbsp; &nbsp; 运行结果如下：</p>
+<p><img src="./images/C#线程学习笔记五：线程同步--事件构造1.png" alt="" /></p>
+<p>&nbsp; &nbsp; 若把Thread.Sleep(3000);设为Thread.Sleep(1000);，此时线程将收到Set发过来的信号，得到的结果将是Get signal to work，时间相差就只有1秒了。</p>
+<p><strong>&nbsp; &nbsp; 2.2 ManualResetEvent(手动重置事件)</strong></p>
+<p><span class="sentence" data-source="If a thread calls &lt;span class=&quot;mtpsTagOuterHtml&quot; &gt;WaitOne while the &lt;span class=&quot;selflink&quot;&gt;AutoResetEvent is in the signaled state, the thread does not block." data-guid="89f5b5007b8c3bb9a7bd377a380ad62c">&nbsp; &nbsp; ManualResetEvent和AutoResetEvent的使用方法很类似，因为他们都是从EventWaitHandle类派生的，不过他们还是有些区别：</span></p>
+<p><span id="mt36" class="sentence" data-source="If a thread calls &lt;span class=&quot;mtpsTagOuterHtml&quot; &gt;WaitOne while the &lt;span class=&quot;selflink&quot;&gt;AutoResetEvent is in the signaled state, the thread does not block." data-guid="89f5b5007b8c3bb9a7bd377a380ad62c"><span class="selflink">&nbsp; &nbsp; 2.2.1AutoResetEvent&nbsp;为终止状态(true)时，如果线程调用WaitOne方法的话线程是不会被阻止的。此时<span id="mt37" class="sentence" data-source="The &lt;span class=&quot;selflink&quot;&gt;AutoResetEvent releases the thread immediately and returns to the non-signaled state." data-guid="6b52aed4c2b560eeba356721b90fc103"><span class="selflink">AutoResetEvent将立即释放线程并返回到非终止状态(false)，</span></span></span></span></p>
+<p><span id="mt36" class="sentence" data-source="If a thread calls &lt;span class=&quot;mtpsTagOuterHtml&quot; &gt;WaitOne while the &lt;span class=&quot;selflink&quot;&gt;AutoResetEvent is in the signaled state, the thread does not block." data-guid="89f5b5007b8c3bb9a7bd377a380ad62c"><span class="selflink"><span id="mt37" class="sentence" data-source="The &lt;span class=&quot;selflink&quot;&gt;AutoResetEvent releases the thread immediately and returns to the non-signaled state." data-guid="6b52aed4c2b560eeba356721b90fc103"><span class="selflink">在这之后如果线程</span></span></span></span><span id="mt36" class="sentence" data-source="If a thread calls &lt;span class=&quot;mtpsTagOuterHtml&quot; &gt;WaitOne while the &lt;span class=&quot;selflink&quot;&gt;AutoResetEvent is in the signaled state, the thread does not block." data-guid="89f5b5007b8c3bb9a7bd377a380ad62c"><span class="selflink"><span id="mt37" class="sentence" data-source="The &lt;span class=&quot;selflink&quot;&gt;AutoResetEvent releases the thread immediately and returns to the non-signaled state." data-guid="6b52aed4c2b560eeba356721b90fc103"><span class="selflink">再次调用WaitOne方法的话，线程将<strong>会</strong>被阻止。(注：调用WaitOne方法自动改变状态，仅对初始状态为终止状态时有效。)</span></span></span></span></p>
+<p><span class="sentence" data-source="The &lt;span class=&quot;selflink&quot;&gt;AutoResetEvent releases the thread immediately and returns to the non-signaled state." data-guid="6b52aed4c2b560eeba356721b90fc103">&nbsp; &nbsp; 2.2.2ManualResetEvent为终止状态(true)时，如果线程调用WaitOne方法的话线程也是不会被阻止的。此ManualResetEvent将立即释放线程但<strong>不会</strong>返回到非终止</span></p>
+<p><span class="sentence" data-source="The &lt;span class=&quot;selflink&quot;&gt;AutoResetEvent releases the thread immediately and returns to the non-signaled state." data-guid="6b52aed4c2b560eeba356721b90fc103">状态(false)，</span><span class="sentence" data-source="The &lt;span class=&quot;selflink&quot;&gt;AutoResetEvent releases the thread immediately and returns to the non-signaled state." data-guid="6b52aed4c2b560eeba356721b90fc103">除非我们手动将状态改为终止状态(false)，否则在这之后如果线程再次调用WaitOne方法的话，线程<strong>不会</strong>被阻止。</span></p>
+<p>&nbsp; &nbsp; 下面代码演示两者的区别：</p>
+<div class="cnblogs_code">
+<pre><code>    <span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">创建对象</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> AutoResetEvent autoResetEvent = <span style="color: #0000ff;">new</span> AutoResetEvent(<span style="color: #0000ff;">false</span><span style="color: #000000;">);
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> ManualResetEvent manualResetEvent = <span style="color: #0000ff;">new</span> ManualResetEvent(<span style="color: #0000ff;">false</span><span style="color: #000000;">);
+
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            </span><span style="color: #0000ff;">#region</span> 线程同步：ManualResetEvent的使用<span style="color: #000000;">
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Main thread start run at: </span><span style="color: #800000;">"</span> +<span style="color: #000000;"> DateTime.Now.ToLongTimeString());
+
+            Thread threadAuto </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Thread(AutoResetEventMethod);
+            threadAuto.Start();
+            autoResetEvent.Set();
+            threadAuto </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Thread(AutoResetEventMethod);
+            threadAuto.Start();
+
+            Thread threadManual </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Thread(ManualResetEventMethod);
+            threadManual.Start();
+            manualResetEvent.Set();
+            threadManual </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Thread(ManualResetEventMethod);
+            threadManual.Start();
+
+            Console.Read();
+            </span><span style="color: #0000ff;">#endregion</span><span style="color: #000000;">
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> AutoResetEvent方法
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> AutoResetEventMethod()
+        {
+            autoResetEvent.WaitOne();
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Autoresetevent method restart run at: </span><span style="color: #800000;">"</span> +<span style="color: #000000;"> DateTime.Now.ToLongTimeString());
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> ManualResetEvent方法
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> ManualResetEventMethod()
+        {
+            manualResetEvent.WaitOne();
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Manualresetevent method restart run at: </span><span style="color: #800000;">"</span> +<span style="color: #000000;"> DateTime.Now.ToLongTimeString());
+        }
+    }</span></pre>
+</div>
+<p>&nbsp; &nbsp; 运行结果如下：</p>
+<p><img src="./images/C#线程学习笔记五：线程同步--事件构造2.png" alt="" /></p>
+<p><strong>&nbsp; &nbsp; 2.3 跨进程之间同步</strong></p>
+<p>&nbsp; &nbsp; 内核模式构造可实现同一台机器上的不同进程中的线程进行同步，因此可以使用AutoResetEvent来实现此功能。此时需要对AutoResetEvent进行命名，</p>
+<p>但是AutoResetEvent只提供了带一个参数的构造函数，该如何实现呢？</p>
+<p>&nbsp; &nbsp; 办法还是有的，因为AutoResetEvent是继承自EventWaitHandle类，而EventWaitHandle类有多个构造函数。</p>
+<p>&nbsp; &nbsp; 除了之前的方法创建AutoResetEvent对象外，还可以通过EventWaitHandle autoEvent = new EventWaitHandle (false, EventResetMode.Auto,"My");这样</p>
+<p>的方式来构造AutoResetEvent对象，此方式指定了名称。</p>
+<p>&nbsp; &nbsp; 下面代码演示跨进程之间的线程同步：</p>
+<p>&nbsp; &nbsp; 第一个进程代码：</p>
+<div class="cnblogs_code">
+<pre><code>    <span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">创建对象</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> EventWaitHandle autoEventFirst = <span style="color: #0000ff;">new</span> EventWaitHandle(<span style="color: #0000ff;">false</span>, EventResetMode.AutoReset, <span style="color: #800000;">"</span><span style="color: #800000;">First</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> EventWaitHandle autoEventSecond = <span style="color: #0000ff;">new</span> EventWaitHandle(<span style="color: #0000ff;">false</span>, EventResetMode.AutoReset, <span style="color: #800000;">"</span><span style="color: #800000;">Second</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            </span><span style="color: #0000ff;">#region</span> 使用AutoResetEvent实现跨进程之间的线程同步<span style="color: #000000;">
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">First main thread start run at: </span><span style="color: #800000;">"</span> +<span style="color: #000000;"> DateTime.Now.ToLongTimeString());
+            Thread thread </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Thread(EventWaitHandleMethod);
+            thread.Start();
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">为了有时间去启动另外一个进程</span>
+            Thread.Sleep(<span style="color: #800080;">15000</span><span style="color: #000000;">);
+            autoEventFirst.Set();
+            autoEventSecond.Set();
+            Console.Read();
+            </span><span style="color: #0000ff;">#endregion</span><span style="color: #000000;">
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> EventWaitHandle方法
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> EventWaitHandleMethod()
+        {
+            autoEventFirst.WaitOne();
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">First method start at:</span><span style="color: #800000;">"</span> +<span style="color: #000000;"> DateTime.Now.ToLongTimeString());
+        }
+    }</span></pre>
+</div>
+<p>&nbsp; &nbsp; 第二个进程代码：</p>
+<div class="cnblogs_code">
+<pre><code>    <span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">创建对象</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> EventWaitHandle autoEventSecond = <span style="color: #0000ff;">new</span> EventWaitHandle(<span style="color: #0000ff;">false</span>, EventResetMode.AutoReset, <span style="color: #800000;">"</span><span style="color: #800000;">Second</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            </span><span style="color: #0000ff;">#region</span> 通过AutoResetEvent实现跨进程间的线程同步<span style="color: #000000;">
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Second main thread start run at: </span><span style="color: #800000;">"</span> +<span style="color: #000000;"> DateTime.Now.ToLongTimeString());
+            Thread thread </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Thread(EventWaitHandleMethod);
+            thread.Start();
+            Console.Read();
+            </span><span style="color: #0000ff;">#endregion</span><span style="color: #000000;">
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> EventWaitHandle方法
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> EventWaitHandleMethod()
+        {
+            autoEventSecond.WaitOne();
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">Second method start at:</span><span style="color: #800000;">"</span> +<span style="color: #000000;"> DateTime.Now.ToLongTimeString());
+        }
+    }</span></pre>
+</div>
+<p>&nbsp; &nbsp; 运行结果如下：</p>
+<p><img src="./images/C#线程学习笔记五：线程同步--事件构造3.png" alt="" /></p>
+<p>&nbsp; &nbsp; 从结果可以看出，第一个进程的autoEventSecond.Set();信号发出后，第二个进程可以收到并释放线程。&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

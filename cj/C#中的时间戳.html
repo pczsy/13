@@ -1,0 +1,152 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C#中的时间戳' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C#中的时间戳</center></div><div class='banquan'>原文出处:本文由博客园博主过千帆提供。<br/>
+原文连接:https://www.cnblogs.com/doThing/p/timestamp-in-csharp.html</div><br>
+    <blockquote>
+<p>来源：<a href="https://blog.guoqianfan.com/2019/11/24/timestamp-in-csharp/" class="uri">https://blog.guoqianfan.com/2019/11/24/timestamp-in-csharp/</a></p>
+</blockquote>
+<h2 id="什么是时间戳">什么是时间戳</h2>
+<blockquote>
+<p>时间戳默认是<strong>Unix时间戳</strong>。</p>
+</blockquote>
+<p>首先要清楚JavaScript与Unix的时间戳的区别：</p>
+<p>JavaScript时间戳：是指格林威治时间1970年01月01日00时00分00秒(北京时间1970年01月01日08时00分00秒)起至现在的<strong>总毫秒数</strong>。</p>
+<p>Unix时间戳：是指格林威治时间1970年01月01日00时00分00秒(北京时间1970年01月01日08时00分00秒)起至现在的<strong>总秒数</strong>。</p>
+<p>可以看出JavaScript时间戳是<strong>总毫秒数</strong>，Unix时间戳是<strong>总秒数</strong>。</p>
+<p>比如同样是的 2016/11/03 12:30:00 ，转换为JavaScript时间戳为 1478147400000；转换为Unix时间戳为 1478147400。</p>
+<p>从上面也可以看出<strong>时间戳与时区无关</strong>。</p>
+<h2 id="unix时间戳相互转换">Unix时间戳相互转换</h2>
+<h3 id="c-datetime转换为unix时间戳">C# DateTime转换为Unix时间戳</h3>
+<h4 id="net-4.6新方法">.NET 4.6新方法</h4>
+<p>只能在 .NET 4.6及更高版本里才能使用。</p>
+<pre><code><code>long timeStamp = DateTimeOffset.Now.ToUnixTimeSeconds(); // 相差秒数
+Console.WriteLine(timeStamp);</code></pre>
+<h4 id="通用的老方法">通用的老方法</h4>
+<pre><code><code>System.DateTime startTime = TimeZone.CurrentTimeZone.ToLocalTime(new System.DateTime(1970, 1, 1)); // 当地时区
+long timeStamp = (long)(DateTime.Now - startTime).TotalSeconds; // 相差秒数
+System.Console.WriteLine(timeStamp);</code></pre>
+<h3 id="unix时间戳转换为c-datetime">Unix时间戳转换为C# DateTime</h3>
+<h4 id="net-4.6新方法-1">.NET 4.6新方法</h4>
+<p>由时间戳转换的<code>DateTimeOffset</code>的时区默认是<code>+00:00</code>，此时我们需要<strong>转为本地时区</strong>，否则后续使用可能会有问题。</p>
+<p>转为本地时区：<code>DateTimeOffset.LocalDateTime</code>。</p>
+<p>示例代码如下：</p>
+<pre><code><code>//默认为UTC时间：{2019/11/14 1:53:26 +00:00}
+DateTimeOffset dto = DateTimeOffset.FromUnixTimeMilliseconds(1573696406184);
+//默认为UTC时间：{2019/11/14 1:53:26}
+DateTime dt01 = dto.DateTime;
+//转为本地时区：{2019/11/14 9:53:26}
+DateTime dt02 = dto.LocalDateTime;</code></pre>
+<h4 id="通用的老方法-1">通用的老方法</h4>
+<pre><code><code>long unixTimeStamp = 1478162177;
+System.DateTime startTime = TimeZone.CurrentTimeZone.ToLocalTime(new System.DateTime(1970, 1, 1)); // 当地时区
+DateTime dt = startTime.AddSeconds(unixTimeStamp);
+System.Console.WriteLine(dt.ToString(&quot;yyyy/MM/dd HH:mm:ss:ffff&quot;));</code></pre>
+<h2 id="备注">备注</h2>
+<h3 id="datetimeoffset使用now还是utcnow">DateTimeOffset使用Now还是UtcNow</h3>
+<p>对于<code>DateTimeOffset</code>，发现有2个获取当前时间的属性：<code>DateTimeOffset.Now</code>和<code>DateTimeOffset.UtcNow</code>。</p>
+<p>如果只是<strong>获取时间戳</strong>，这2个使用哪个都可以，得到的值是一样的。</p>
+<p>因为<code>DateTimeOffset</code>里面有时区信息，获取时间戳时会使用时区进行转换的，所以获得的时间戳一样。</p>
+<p>而也是因为时区的原因，<code>DateTimeOffset</code>的其他操作可能会不一样。例如<code>DateTimeOffset.DateTime</code>就不一样，此时推荐使用<code>DateTimeOffset.LocalDateTime</code>来获得本地时区的时间。</p>
+<p>测试代码如下：</p>
+<pre><code><code>//none：2019/6/14 15:17:43 +08:00
+Console.WriteLine(&quot;none：{0}&quot;, DateTimeOffset.Now);
+//utc：2019/6/14 7:17:43 +00:00
+Console.WriteLine(&quot;utc：{0}&quot;, DateTimeOffset.UtcNow);
+
+//none：1560496663
+Console.WriteLine(&quot;none：{0}&quot;, DateTimeOffset.Now.ToUnixTimeSeconds());
+//utc：1560496663
+Console.WriteLine(&quot;utc：{0}&quot;, DateTimeOffset.UtcNow.ToUnixTimeSeconds());</code></pre>
+<h3 id="datetime转换为datetimeoffset">DateTime转换为DateTimeOffset</h3>
+<p>可以直接把<code>DateTime</code>赋值给<code>DateTimeOffset</code>，内部会自动进行隐式转换。这里涉及到时区，请往下看。</p>
+<h4 id="datetime的时区信息kind属性">DateTime的时区信息(Kind属性)</h4>
+<p><code>DateTime</code>的<strong>时区信息</strong>存放在<code>Kind</code>属性里。<code>Kind</code>属性的数据类型是<code>DateTimeKind</code>枚举，只有3个值：</p>
+<ul>
+<li><code>Unspecified</code>：未指定/未规定</li>
+<li><code>Utc</code>：<code>UTC</code>时间</li>
+<li><code>Local</code>：本地时区</li>
+</ul>
+<p>不同情况下得到的<code>DateTime</code>的<code>Kind</code>是不同的，具体如下：</p>
+<ul>
+<li><code>DateTime.Now</code>：<code>DateTime.Kind</code>是 <strong><code>Local</code>(本地时区)</strong>。</li>
+<li><code>DateTime.UtcNow</code>：<code>DateTime.Kind</code>是 <strong><code>Utc</code></strong>。</li>
+<li><p><code>DateTime.Parse()</code>：</p>
+<ul>
+<li>【<strong>默认</strong>】在<strong>未指定时区</strong>时，<code>DateTime.Kind</code>是 <strong><code>Unspecified</code></strong></li>
+<li><p>指定时区：指定时区后<code>DateTime.Kind</code>就是相对应的值。</p>
+指定时区有2种方式：
+<ul>
+<li>【<strong>默认+优先</strong>】<strong>待转换的字符串</strong>里有时区信息。例如：<code>2019/11/24 17:40:32 +08:00</code></li>
+<li>使用<code>DateTimeStyles</code>参数来指定时区。<code>DateTimeStyles</code>是枚举类型，更多信息自己查看定义，这里不再多说。</li>
+</ul></li>
+</ul></li>
+</ul>
+<p><code>Local</code>和<code>Utc</code>都会把相应的时区传递过去。对于 <strong><code>Unspecified</code>(未指定)</strong>，会被当做<strong>本地时区</strong>来处理（结果已验证，<a href="https://source.dot.net/#System.Private.CoreLib/DateTimeOffset.cs">源码</a>没看懂）。</p>
+<h4 id="测试代码">测试代码</h4>
+<pre><code><code>//dtNow：2019/11/24 17:40:32(Kind：Local)
+DateTime dtNow = DateTime.Now;
+//dtUtcNow：2019/11/24 9:40:32(Kind：Utc)
+DateTime dtUtcNow = DateTime.UtcNow;
+//dtParse：2019/11/24 17:40:13(Kind：Unspecified)
+DateTime dtParse = DateTime.Parse(&quot;2019-11-24 17:40:13&quot;);
+
+//dtoNow：2019/11/24 17:40:32 +08:00
+DateTimeOffset dtoNow = dtNow;
+//dtoUtcNow：2019/11/24 9:40:32 +00:00
+DateTimeOffset dtoUtcNow = dtUtcNow;
+//dtoParse：2019/11/24 17:40:13 +08:00
+DateTimeOffset dtoParse = dtParse;
+
+Console.WriteLine(&quot;DateTime：&quot;);
+Console.WriteLine(&quot;dtNow：{0}(Kind：{1})&quot;, dtNow, dtNow.Kind);
+Console.WriteLine(&quot;dtUtcNow：{0}(Kind：{1})&quot;, dtUtcNow, dtUtcNow.Kind);
+Console.WriteLine(&quot;dtParse：{0}(Kind：{1})&quot;, dtParse, dtParse.Kind);
+
+Console.WriteLine();
+
+Console.WriteLine(&quot;DateTimeOffset：&quot;);
+Console.WriteLine(&quot;dtoNow：{0}&quot;, dtoNow);
+Console.WriteLine(&quot;dtoUtcNow：{0}&quot;, dtoUtcNow);
+Console.WriteLine(&quot;dtoParse：{0}&quot;, dtoParse);</code></pre>
+<p>输出结果如下：</p>
+<pre><code><code>DateTime：
+dtNow：2019/11/24 17:40:32(Kind：Local)
+dtUtcNow：2019/11/24 9:40:32(Kind：Utc)
+dtParse：2019/11/24 17:40:13(Kind：Unspecified)
+
+DateTimeOffset：
+dtoNow：2019/11/24 17:40:32 +08:00
+dtoUtcNow：2019/11/24 9:40:32 +00:00
+dtoParse：2019/11/24 17:40:13 +08:00</code></pre>
+<h3 id="datetimeoffset.parse的默认时区">DateTimeOffset.Parse的默认时区</h3>
+<p><code>DateTimeOffset.Parse</code>的默认时区是<strong>当前时区</strong>。</p>
+<pre><code><code>//parse：2019/6/14 15:38:49 +08:00
+Console.WriteLine(&quot;parse：{0}&quot;, DateTimeOffset.Parse(&quot;2019-6-14 15:38:49&quot;));</code></pre>
+<h2 id="参考">参考</h2>
+<ol>
+<li>C# DateTime与时间戳转换：<a href="https://www.cnblogs.com/polk6/p/6024892.html" class="uri">https://www.cnblogs.com/polk6/p/6024892.html</a></li>
+<li>如何将Unix时间戳转换为DateTime，反之亦然？：<a href="https://stackoverflow.com/questions/249760/how-can-i-convert-a-unix-timestamp-to-datetime-and-vice-versa" class="uri">https://stackoverflow.com/questions/249760/how-can-i-convert-a-unix-timestamp-to-datetime-and-vice-versa</a></li>
+<li>DateTimeOffset源码：<a href="https://source.dot.net/#System.Private.CoreLib/DateTimeOffset.cs" class="uri">https://source.dot.net/#System.Private.CoreLib/DateTimeOffset.cs</a></li>
+</ol>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

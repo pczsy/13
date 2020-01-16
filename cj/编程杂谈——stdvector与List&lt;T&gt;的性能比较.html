@@ -1,0 +1,109 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修编程杂谈——stdvector与List&lt;T&gt;的性能比较' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>编程杂谈——stdvector与List&lt;T&gt;的性能比较</center></div><div class='banquan'>原文出处:本文由博客园博主Ken.W提供。<br/>
+原文连接:https://www.cnblogs.com/kenwoo/p/11695634.html</div><br>
+    <p>昨天在比较完C++中std::vector的两个方法的性能差异并留下记录后——<a href="https://www.cnblogs.com/kenwoo/p/11689284.html">编程杂谈——使用emplace_back取代push_back</a>，今日尝试在C#中测试对应功能的性能。</p>
+<p>C#中对应std::vector的数据结构为List<T>。更多的对应关系可以参照下面：</p>
+<blockquote>
+<p>std::vector - List<T><br />
+std::list - LinkedList<T><br />
+std::map - Dictionary&lt;K, V&gt;<br />
+std::set - HashSet<T><br />
+std::multimap - Dictionary&lt;K, List<V>&gt;</p>
+</blockquote>
+<p>C#的测试代码如下：</p>
+<pre><code><code>using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+
+namespace ConsoleApp
+{
+    class Item
+    {
+        public string Name { get; set; }
+    }
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            var sw = new Stopwatch();
+            sw.Start();
+            var count = 100000;
+            var l = new List&lt;Item&gt;();
+            
+            for (int i = 0; i &lt; count; i++)
+            {
+                l.Add(new Item { Name = &quot;Test&quot; });
+            }
+
+            Console.WriteLine(sw.ElapsedMilliseconds / 1000.0);
+        }
+    }
+}</code></pre>
+<p>程序执行结果约为0.077(该值每次会发生少许变化)</p>
+<p>而C++的测试代码的结果约是0.207。这就有违于我们一般的认知了，毕竟通常都觉得C++的性能要优于C#。</p>
+<pre class="cplusplus"><code>#include &lt;iostream&gt;
+#include &lt;vector&gt;
+#include &lt;chrono&gt;
+
+class Item
+{
+public:
+    Item(std::string name):name(name){}
+private:
+    std::string name;
+};
+
+int main()
+{
+    std::vector&lt;Item&gt; v;
+    int count = 100000;
+    v.reserve(count);
+    clock_t begin_time = clock();
+    for (auto i = 0; i &lt; count; i++)
+    {
+        v.emplace_back(&quot;Test&quot;);
+    }
+
+    std::cout &lt;&lt; float(clock() - begin_time) / CLOCKS_PER_SEC &lt;&lt; std::endl;
+}</code></pre>
+<p>原来这里犯了个错误，如果要进行基准测试的话，必须要在Release模式下进行。</p>
+<p>当改成Release模式后，C++的代码执行时间变成了0.003，而C#也下降到了0.061左右。</p>
+<p>不过在上述C#代码中，缺少一点优化，<code>var l = new List&lt;Item&gt;();</code>没有预设容量值，如果改成<code>var l = new List&lt;Item&gt;(count);</code>，执行时间进一步下降至0.050左右。</p>
+<p>然而C#代码还可以继续优化，将Item类改成结构体后，结果变成了0.006。</p>
+<pre><code><code>struct Item
+{
+    public string Name { get; set; }
+}</code></pre>
+<p>如果把C++代码中也同样改成结构体，则几乎没有获得什么优化。</p>
+<pre class="cplusplus"><code>struct Item
+{
+public:
+    Item(std::string name):name(name){}
+private:
+    std::string name;
+};</code></pre>
+<p>最后将测试数据量从10W加至1000W后，C++代码的执行时间约是0.286，而C#的约为0.627。同样是2倍左右的差距。</p>
+<p>值得注意的是，上述的C#代码是在.NET Core 3.0基础上测试，如果改成.NET Framwork 4.8，执行时间会降为0.536左右。由此可见，.NET Core应该还留有不少可以优化的地方，希望其在性能方面上能够进一步改善。</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

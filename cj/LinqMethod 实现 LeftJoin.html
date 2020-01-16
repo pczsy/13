@@ -1,0 +1,73 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修LinqMethod 实现 LeftJoin' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>LinqMethod 实现 LeftJoin</center></div><div class='banquan'>原文出处:本文由博客园博主WeihanLi提供。<br/>
+原文连接:https://www.cnblogs.com/weihanli/p/11093097.html</div><br>
+    <h1 id="linqmethod-实现-leftjoin">LinqMethod 实现 LeftJoin</h1>
+<h2 id="intro">Intro</h2>
+<p>有时候我们想实现 leftJoin 但是 Linq 提供的 Join 相当于是 <code>INNER JOIN</code>，于是就打算实现一个 <code>LeftJoin</code> 的扩展。<br />
+如果要使用到左连接，你需要使用 DefaultIfEmpty 来在没有join到数据的时候返回默认的集合</p>
+<h2 id="solution">Solution</h2>
+<p>源代码：<a href="https://github.com/WeihanLi/WeihanLi.Common/blob/dev/src/WeihanLi.Common/Extensions/EnumerableExtension.cs#L149" class="uri">https://github.com/WeihanLi/WeihanLi.Common/blob/dev/src/WeihanLi.Common/Extensions/EnumerableExtension.cs#L149</a></p>
+<pre><code><code>/// &lt;summary&gt;
+/// LeftJoin extension
+/// &lt;/summary&gt;
+/// &lt;typeparam name=&quot;TOuter&quot;&gt;outer&lt;/typeparam&gt;
+/// &lt;typeparam name=&quot;TInner&quot;&gt;inner&lt;/typeparam&gt;
+/// &lt;typeparam name=&quot;TKey&quot;&gt;TKey&lt;/typeparam&gt;
+/// &lt;typeparam name=&quot;TResult&quot;&gt;TResult&lt;/typeparam&gt;
+/// &lt;param name=&quot;outer&quot;&gt;outer collection&lt;/param&gt;
+/// &lt;param name=&quot;inner&quot;&gt;inner collection&lt;/param&gt;
+/// &lt;param name=&quot;outerKeySelector&quot;&gt;outerKeySelector&lt;/param&gt;
+/// &lt;param name=&quot;innerKeySelector&quot;&gt;innerKeySelector&lt;/param&gt;
+/// &lt;param name=&quot;resultSelector&quot;&gt;resultSelector&lt;/param&gt;
+/// &lt;returns&gt;&lt;/returns&gt;
+public static IEnumerable&lt;TResult&gt; LeftJoin&lt;TOuter, TInner, TKey, TResult&gt;(this IEnumerable&lt;TOuter&gt; outer,
+    IEnumerable&lt;TInner&gt; inner, Func&lt;TOuter, TKey&gt; outerKeySelector, Func&lt;TInner, TKey&gt; innerKeySelector,
+    Func&lt;TOuter, TInner, TResult&gt; resultSelector)
+{
+    return outer
+        .GroupJoin(inner, outerKeySelector, innerKeySelector, (outerObj, inners) =&gt; new
+        {
+            outerObj,
+            inners = inners.DefaultIfEmpty()
+        })
+        .SelectMany(a =&gt; a.inners.Select(innerObj =&gt; resultSelector(a.outerObj, innerObj)));
+}</code></pre>
+<h2 id="use">Use</h2>
+<p>使用起来和 Join 差不多，下面来展示一个<a href="https://github.com/WeihanLi/WeihanLi.Common/blob/dev/samples/DotNetCoreSample/Program.cs#L136">示例</a>：</p>
+<pre><code><code>var posts = new[] { new { PostId = 1, PostTitle = &quot;12333&quot;, }, new { PostId = 2, PostTitle = &quot;12333&quot;, }, };
+var postTags = new[] { new { PostId = 1, Tag = &quot;HHH&quot; } };
+
+var result = posts.LeftJoin(postTags, p =&gt; p.PostId, pt =&gt; pt.PostId, (p, pt) =&gt; new { p.PostId, p.PostTitle, pt?.Tag }).ToArray();
+Console.WriteLine(result.ToJson());</code></pre>
+<p>输出：</p>
+<pre><code><code>[{&quot;PostId&quot;:1,&quot;PostTitle&quot;:&quot;12333&quot;,&quot;Tag&quot;:&quot;HHH&quot;},{&quot;PostId&quot;:2,&quot;PostTitle&quot;:&quot;12333&quot;}]</code></pre>
+<h2 id="memo">Memo</h2>
+<p>这是使用 LinqMethod 实现 LeftJoin，如果要使用 linq 查询语法实现左连接请参考<a href="https://www.jianshu.com/p/5c1d78fa915c">这篇文章</a></p>
+<h2 id="reference">Reference</h2>
+<ul>
+<li><a href="https://github.com/WeihanLi/WeihanLi.Common" class="uri">https://github.com/WeihanLi/WeihanLi.Common</a></li>
+<li><a href="https://www.jianshu.com/p/5c1d78fa915c" class="uri">https://www.jianshu.com/p/5c1d78fa915c</a></li>
+</ul>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

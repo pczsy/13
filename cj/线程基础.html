@@ -1,0 +1,204 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修线程基础' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>线程基础</center></div><div class='banquan'>原文出处:本文由博客园博主米莱Milai提供。<br/>
+原文连接:https://www.cnblogs.com/weilai1917/p/11809359.html</div><br>
+    <blockquote>
+<p>线程，一个再熟悉不过的名词了。打下它是决定能掌握变成编程基础命脉，能够开发出性能更优的程序。</p>
+</blockquote>
+<h4>总体概览</h4>
+<div class="image-package">
+<div class="image-container">
+<div class="image-container-fill">&nbsp;</div>
+<div class="image-view" data-width="698" data-height="441"><img src="./images/线程基础0.png" alt="" data-original-src="//upload-images.jianshu.io/upload_images/6177207-eca1fcda7268d15c.png" data-original-width="698" data-original-height="441" data-original-format="image/png" data-original-filesize="49064" data-image-index="0" /></div>
+</div>
+<div class="image-caption">线程基础</div>
+</div>
+<p><em>计算机早期，操作系统都没有线程的概念，整个系统只运行着一个执行线程，同时包含操作系统代码和应用程序代码。所以就存在一个问题，长时间运行的任务会阻止其他任务执行。例如：在16位Windows的那些日子，打印文档会&ldquo;冻结&ldquo;整台机器。</em><br /><em>随后微软为了解决这部分问题，引入进程概念。但是CPU本身呢，应用程序发生死循环呢？所以线程应运而生，它是对CPU的虚拟化，为每个进程提供进程专用的线程。</em></p>
+<h5>开销</h5>
+<ol>
+<li>线程内核对象 （thread kernel object），包含线程上下文，上下文中保存CPU寄存器集合的内存块，在x64位系统中占1240字节</li>
+<li>线程环境块 （thread environment block TEB），耗用一个内存页4KB。</li>
+<li>用户模式栈 （user-mode stack），系统保留1MB的地址空间。</li>
+<li>内核模式栈 （kernel-mode stack），针对从用户模式的代码传递给内核的任何实参。x64 占用&nbsp;24KB。</li>
+<li>DLL 线程连接（attach）和 线程分离（detach）通知。</li>
+
+
+
+
+</ol>
+<h5>线程上下文切换</h5>
+<ol>
+<li>将CPU寄存器的值保存在当前正在运行的线程内核对象内部的一个上下文结构中。</li>
+<li>从现有线程集合中选出一个线程供调度。如果该线程由另一个线程拥有，系统在开始执行任何代码或者接触任何数据之前，还必须切换CPU看见的虚拟地址空间。</li>
+<li>将所选上下文结构中的值加载到CPU的寄存器中。</li>
+
+
+
+
+</ol>
+<p>上下文切换大约耗时&nbsp;30ms，一个时间片结束后，如果系统决定再次调用同一个线程，系统不会执行上下文切换。所以，你懂的，要尽量避免切换，4核最理想是4个线程同步执行。</p>
+<blockquote>
+<p>初衷<br />微软在设计OS的时候，决定侧重于可靠性与相应能力，而非侧重于速度和性能。</p>
+
+
+
+
+</blockquote>
+<h5>&nbsp;</h5>
+<h4>使用线程理由</h4>
+<ol>
+<li>可响应性</li>
+<li>性能
+<ul>
+<li>计算限制的异步操作</li>
+<li>I/O限制的异步操作</li>
+
+
+
+
+</ul>
+
+
+
+
+</li>
+
+
+
+
+</ol>
+<h4>线程调度和优先级</h4>
+<p>Windows 又被称之为抢占式多线程（preemptive multi-threaded）操作系统，是因为线程可在任何时间停止被抢占并调度另一个线程。<br />线程分0到31的优先级，其中0为零页线程，在没有其他线程工作的时候，零页线程将系统内存中的所有空闲页清零。<br />一般线程优先级为Normal，如图与线程存在Normal进程中的Normal线程，也就是8。</p>
+<table>
+<thead>
+<tr><th>相对线程优先级</th><th>进程优先级类<br />Idle</th><th>Below Normal</th><th>Normal</th><th>Above Normal</th><th>High</th><th>Realtime</th></tr>
+
+
+
+
+</thead>
+<tbody>
+<tr>
+<td>Time-Critical</td>
+<td>15</td>
+<td>15</td>
+<td>15</td>
+<td>15</td>
+<td>15</td>
+<td>31</td>
+
+
+
+
+</tr>
+<tr>
+<td>Highest</td>
+<td>6</td>
+<td>8</td>
+<td>10</td>
+<td>12</td>
+<td>15</td>
+<td>26</td>
+
+
+
+
+</tr>
+<tr>
+<td>Above Normal</td>
+<td>5</td>
+<td>7</td>
+<td>9</td>
+<td>11</td>
+<td>14</td>
+<td>25</td>
+
+
+
+
+</tr>
+<tr>
+<td>Normal</td>
+<td>4</td>
+<td>6</td>
+<td><img class="math-inline" src="./images/线程基础1.png" alt="\color{red}8" /></td>
+<td>10</td>
+<td>13</td>
+<td>24</td>
+
+
+
+
+</tr>
+<tr>
+<td>Below Normal</td>
+<td>3</td>
+<td>5</td>
+<td>7</td>
+<td>9</td>
+<td>12</td>
+<td>23</td>
+
+
+
+
+</tr>
+<tr>
+<td>Lowest</td>
+<td>2</td>
+<td>4</td>
+<td>6</td>
+<td>8</td>
+<td>11</td>
+<td>22</td>
+
+
+
+
+</tr>
+<tr>
+<td>Idle</td>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+<td>16</td>
+
+
+
+
+</tr>
+
+
+
+
+</tbody>
+
+
+
+
+</table>
+<h4>前台线程和后台线程</h4>
+<p>CLR将每个线程要么视为前台线程，要么视为后台线程。一个进程所有前台线程停止运行时，CLR强制终止仍然在运行的后台线程，并不抛出异常。<br />关键字:Background。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

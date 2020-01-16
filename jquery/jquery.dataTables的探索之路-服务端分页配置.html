@@ -1,0 +1,397 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修jquery.dataTables的探索之路-服务端分页配置' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>jquery.dataTables的探索之路-服务端分页配置</center></div><div class='banquan'>原文出处:本文由博客园博主王文竹提供。<br/>
+原文连接:https://www.cnblogs.com/wangwz2019/p/11011264.html</div><br>
+    <p>最近闲来无事想研究下数据表格，因为之前接触过layui和bootstrap的数据表格，本着能学多少学多少的学习态度，学习下dataTables的服务端分页配置。特与同学们一块分享下从中遇到的问题和解决方式。</p>
+<p>&nbsp;</p>
+<p>与bootstrap的数据表略有不同，在引入相关js后除了必要的DOM节点（<span>&lt;<span style="color: #000080; font-weight: bold;">table <span style="color: #0000ff; font-weight: bold;">id=<span style="color: #008000; font-weight: bold;">"table" <span style="color: #0000ff; font-weight: bold;">class=<span style="color: #008000; font-weight: bold;">"table table-responsive table-hover"<span>&gt;<span>&lt;/<span style="color: #000080; font-weight: bold;">table<span>&gt;</span></span></span></span></span></span></span></span></span></span>）外我们还需要表头部分，具体就是bootstrap的整张表格都可以通过js渲染，而dataTables的表头部分需要我们自己在页面添加，就像下面这样：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">table </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="table"</span><span style="color: #ff0000;"> class</span><span style="color: #0000ff;">="table table-responsive table-hover"</span><span style="color: #0000ff;">&gt;</span>
+   <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">thead</span><span style="color: #0000ff;">&gt;</span>
+       <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">tr</span><span style="color: #0000ff;">&gt;</span>
+          <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">th</span><span style="color: #0000ff;">&gt;</span>ID<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">th</span><span style="color: #0000ff;">&gt;</span>
+          <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">th</span><span style="color: #0000ff;">&gt;</span>文件名称<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">th</span><span style="color: #0000ff;">&gt;</span>
+          <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">th</span><span style="color: #0000ff;">&gt;</span>文件类型<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">th</span><span style="color: #0000ff;">&gt;</span>
+          <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">th</span><span style="color: #0000ff;">&gt;</span>逻辑地址<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">th</span><span style="color: #0000ff;">&gt;</span>
+          <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">th</span><span style="color: #0000ff;">&gt;</span>物理地址<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">th</span><span style="color: #0000ff;">&gt;</span>
+          <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">th</span><span style="color: #0000ff;">&gt;</span>更新人<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">th</span><span style="color: #0000ff;">&gt;</span>
+          <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">th</span><span style="color: #0000ff;">&gt;</span>更新时间<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">th</span><span style="color: #0000ff;">&gt;</span>
+       <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">tr</span><span style="color: #0000ff;">&gt;</span>
+   <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">thead</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">table</span><span style="color: #0000ff;">&gt;</span>
+                                        </pre>
+</div>
+<p>&nbsp;</p>
+<p>我以为dataTable的服务端分页会像bootstrap一样，给他一串url，剩下的交给他，于是我写了如下代码进行表格的初始化工作：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="text/javascript"</span><span style="color: #ff0000;"> src</span><span style="color: #0000ff;">="static/assets/js/jquery-2.1.0.min.js"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="text/javascript"</span><span style="color: #ff0000;"> src</span><span style="color: #0000ff;">="static/assets/libs/datatablejs/jquery.dataTables.min.js"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<div class="cnblogs_code">
+<pre><code>&lt;script type="text/javascript"&gt;<span style="color: #000000;">
+    initTable();
+
+    </span><span style="color: #0000ff;">function</span><span style="color: #000000;"> initTable() {
+        </span><span style="color: #0000ff;">var</span> language = {"sProcessing": "处理中...", "sLengthMenu": "显示 _MENU_ 项结果", "sZeroRecords": "没有匹配结果", "sInfo": "当前第 _START_ 至 _END_ 条记录，共 _TOTAL_ 条", "sInfoEmpty": "显示第 0 至 0 项结果，共 0 项", "sInfoFiltered": "(共 _MAX_ 页)", "sInfoPostFix": "", "sSearch": "搜索:", "sUrl": "", "sEmptyTable": "表中数据为空", "sLoadingRecords": "载入中...", "sInfoThousands": ",", "oPaginate": {"sFirst": "首页", "sPrevious": "上页", "sNext": "下页", "sLast": "末页"<span style="color: #000000;">}};
+        $(</span>'#table'<span style="color: #000000;">).DataTable({
+            </span>'processing': <span style="color: #0000ff;">true</span><span style="color: #000000;">,
+            </span>'pageLength': 5, <span style="color: #008000;">//</span><span style="color: #008000;"> 每页显示条数</span>
+            'ajax': '/admin/file/list', <span style="color: #008000;">//</span><span style="color: #008000;">异步请求地址</span>
+            'lengthChange': <span style="color: #0000ff;">false</span><span style="color: #000000;">,
+            </span>'searching': <span style="color: #0000ff;">false</span><span style="color: #000000;">,
+            </span>'info': <span style="color: #0000ff;">true</span><span style="color: #000000;">,
+            </span>'autoWidth': <span style="color: #0000ff;">false</span>, <span style="color: #008000;">//</span><span style="color: #008000;">自动列宽</span>
+            language: language, <span style="color: #008000;">//</span><span style="color: #008000;">国际化</span>
+<span style="color: #000000;">            columns: [{
+                data: </span>"id" <span style="color: #008000;">//</span><span style="color: #008000;">绑定后台数据列属相</span>
+<span style="color: #000000;">            }, {
+                data: </span>"filename"<span style="color: #000000;">
+            }, {
+                data: </span>'filetype'<span style="color: #000000;">,
+                defaultContent: </span>"" <span style="color: #008000;">//</span><span style="color: #008000;">默认值</span>
+<span style="color: #000000;">            }, {
+                data: </span>'logicadress'<span style="color: #000000;">,
+                defaultContent: </span>""<span style="color: #000000;">
+            }, {
+                data: </span>'physicsadress'<span style="color: #000000;">,
+                defaultContent: </span>""<span style="color: #000000;">
+            }, {
+                data: </span>'modifyUser'<span style="color: #000000;">,
+                defaultContent: </span>"-"<span style="color: #000000;">
+            }, {
+                data: </span>'modifyTime'<span style="color: #000000;">,
+                defaultContent: </span>""<span style="color: #000000;">
+            }],
+            columnDefs: [{ </span><span style="color: #008000;">//</span><span style="color: #008000;">自定义首列复选框</span>
+                targets: [0], <span style="color: #008000;">//</span><span style="color: #008000;">第几列：默认从0开始</span>
+                orderable: <span style="color: #0000ff;">false</span>, <span style="color: #008000;">//</span><span style="color: #008000;"> 是否支持排序</span>
+                render: <span style="color: #0000ff;">function</span><span style="color: #000000;"> (id, type, row, meta) {
+                    </span><span style="color: #0000ff;">return</span> '&lt;input type="checkbox" name="ids" value=' + id + '&gt;&lt;label for="input-' + id + '"&gt;&lt;/label&gt;'<span style="color: #000000;">;
+                }
+            }]
+        })
+    }
+</span>&lt;/script&gt;</pre>
+</div>
+<p>刷新页面结果如下：</p>
+<p><img style="float: left;" src="./images/jquery.dataTables的探索之路-服务端分页配置0.png" alt="" width="1000" height="194" /></p>
+<pre><code><span><span style="color: #000080; font-weight: bold;"><span style="color: #0000ff; font-weight: bold;"><span style="color: #008000; font-weight: bold;"><span style="color: #0000ff; font-weight: bold;"><span style="color: #008000; font-weight: bold;"><span><span style="color: #000080; font-weight: bold;"><span><br /></span></span></span></span></span></span></span></span></span><br /><br /><br /><br /><br /><br /><br /><br /><br /><br /><span style="font-size: 14px;">咦！！我的数据哪去啦？难道是请求除了问题？</span></pre>
+<p><img src="./images/jquery.dataTables的探索之路-服务端分页配置1.png" alt="" width="1000" /></p>
+<p>查看控制台，发现请求没问题后台数据也正常接收。</p>
+<p>对了，服务端返回数据的格式有问题！！后台数据返回的是自定义JSON，不符合dataTables的默认值规范！！</p>
+<div class="cnblogs_code">
+<pre><code>{"code":"200",<br /> "msg":<span style="color: #0000ff;">null</span>,<br /> "data":{<br />　　　　　　"count":7,<br />　　　　　　"totalPage":2,<br />　　　　　　"pageSize":5,<br />　　　　　　"currentPage":1,<br />　　　　　　"list":[<br />　　　　　　　　　　　　{"createUser":<span style="color: #0000ff;">null</span>,"createTime":"2019-05-28T14:24:56.000+0000","modifyUser":10000001,"modifyTime":"2019-05-09T14:24:59.000+0000","id":7,"filename":"女王大人","filetype":3,"logicadress":"www","physicsadress":"E:/test.txt","sort":"99"},<br />　　　　　　　　　　　　{"createUser":<span style="color: #0000ff;">null</span>,"createTime":"2019-05-28T14:24:54.000+0000","modifyUser":10000001,"modifyTime":"2019-05-08T14:25:02.000+0000","id":6,"filename":"你的皇帝","filetype":2,"logicadress":"www","physicsadress":"E:/test.txt","sort":"99"},<br />　　　　　　　　　　　　...<br />　　　　　　　　　　],<br />　　　　　　"sort":<span style="color: #0000ff;">null</span>,<br />　　　　　　"order":<span style="color: #0000ff;">null<br /></span>　　　　　}<br />}</pre>
+</div>
+<p>我在服务端封装了返回的数据，导致dataTables不知道从哪下手！</p>
+<p>在找到问题所在后，结合百老师的各种博客找到了解决的办法：改造&lsquo;ajax&rsquo;属性</p>
+<div class="cnblogs_code">
+<pre><code>$('#table'<span style="color: #000000;">).DataTable({
+            ...
+            </span>'ajax'<span style="color: #000000;">: {
+                url: </span>'/admin/file/list'<span style="color: #000000;">,
+                dataSrc: </span><span style="color: #0000ff;">function</span><span style="color: #000000;"> (json) {
+                    </span><span style="color: #0000ff;">return</span> json.data.list; <span style="color: #008000;">//</span><span style="color: #008000;">指定返回数据列的位置，该数据列为数组形式</span>
+<span style="color: #000000;">                }
+            },
+            ...
+ })</span></pre>
+</div>
+<p>通过指定数据列的位置，可以实现对后台自定义数据的渲染（通常情况下会保证返回数据的统一格式）:</p>
+<p>再次刷新页面数据能正常显示了</p>
+<p><img src="./images/jquery.dataTables的探索之路-服务端分页配置2.png" alt="" width="1000" /></p>
+<p>嗯，很满意。。但新的问题又出现了：分页出毛病了，再查看控制台发现我一共有7条记录，按理说应该是2页7条</p>
+<p>通过百老师的大量博客，发现了问题所在：未开启服务端分页！！</p>
+<p>继续改造如下：</p>
+<div class="cnblogs_code">
+<pre><code>$('#table'<span style="color: #000000;">).DataTable({
+            ...
+            </span>'serverSide': <span style="color: #0000ff;">true</span>,     <span style="color: #008000;">//</span><span style="color: #008000;"> 开启服务端分页</span>
+<span style="color: #000000;">            ... 
+ )}</span></pre>
+</div>
+<p>再次刷新页面，意外发生了，很突然：</p>
+<p><img src="./images/jquery.dataTables的探索之路-服务端分页配置3.png" alt="" width="1000" /></p>
+<p>出现了意想不到的事情：在开启真正的服务端分页后，我的数据又丢了！！</p>
+<p>这次是后台的错误，通过控制台可以发现在开启服务端分页后，dataTables在初始化时向后台传递了很多参数：</p>
+<p><img src="./images/jquery.dataTables的探索之路-服务端分页配置4.png" alt="" width="1000" /></p>
+<p>可以看到url后面拼接了一连串的字符串，导致后台的SpringMVC在封装参数时出现了问题：</p>
+<div class="cnblogs_code">
+<pre><code>    @GetMapping("file/list"<span style="color: #000000;">)
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> RestJson page(PageHelper pageHelper) {
+        System.out.println(pageHelper);
+        RestJson json </span>=<span style="color: #000000;"> fileRecordService.getFileRecordByPage(pageHelper);
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> json;
+    }</span></pre>
+</div>
+<p>PageHelper是我自定义的分页工具类具体代码如下：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> PageHelper&lt;T&gt; <span style="color: #0000ff;">implements</span><span style="color: #000000;"> Serializable {
+
+    </span><span style="color: #0000ff;">private</span> Integer count;<span style="color: #008000;">//</span><span style="color: #008000;">总记录数</span>
+    <span style="color: #0000ff;">private</span> Integer totalPage;<span style="color: #008000;">//</span><span style="color: #008000;">总页数</span>
+    <span style="color: #0000ff;">private</span> Integer pageSize;<span style="color: #008000;">//</span><span style="color: #008000;">每页显示的条数</span>
+    <span style="color: #0000ff;">private</span> Integer currentPage;<span style="color: #008000;">//</span><span style="color: #008000;">当前页</span>
+    <span style="color: #0000ff;">private</span> List&lt;T&gt; list = <span style="color: #0000ff;">new</span> ArrayList&lt;T&gt;();<span style="color: #008000;">//</span><span style="color: #008000;">分页之后的数据</span>
+    <span style="color: #0000ff;">private</span> String sort;<span style="color: #008000;">//</span><span style="color: #008000;">排序字段</span>
+    <span style="color: #0000ff;">private</span> String order;<span style="color: #008000;">//</span><span style="color: #008000;">升序或降序</span>
+
+    <span style="color: #0000ff;">public</span><span style="color: #000000;"> Integer getCount() {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> count;
+    }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setCount(Integer count) {
+        </span><span style="color: #0000ff;">this</span>.count =<span style="color: #000000;"> count;
+    }
+
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> Integer getTotalPage() {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> totalPage;
+    }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setTotalPage(Integer totalPage) {
+        </span><span style="color: #0000ff;">this</span>.totalPage =<span style="color: #000000;"> totalPage;
+    }
+
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> Integer getPageSize() {
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span>.pageSize == <span style="color: #0000ff;">null</span> ? 5 : <span style="color: #0000ff;">this</span><span style="color: #000000;">.pageSize;
+    }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setPageSize(Integer pageSize) {
+        </span><span style="color: #0000ff;">this</span>.pageSize =<span style="color: #000000;"> pageSize;
+    }
+
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> Integer getCurrentPage() {
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span>.currentPage == <span style="color: #0000ff;">null</span> ? 1 : <span style="color: #0000ff;">this</span><span style="color: #000000;">.currentPage;
+    }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setCurrentPage(Integer currentPage) {
+        </span><span style="color: #0000ff;">this</span>.currentPage =<span style="color: #000000;"> currentPage;
+    }
+
+    </span><span style="color: #0000ff;">public</span> List&lt;T&gt;<span style="color: #000000;"> getList() {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> list;
+    }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> setList(List&lt;T&gt;<span style="color: #000000;"> list) {
+        </span><span style="color: #0000ff;">this</span>.list =<span style="color: #000000;"> list;
+    }
+
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> String getSort() {
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span>.sort == "" ? <span style="color: #0000ff;">null</span> : <span style="color: #0000ff;">this</span><span style="color: #000000;">.sort;
+    }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setSort(String sort) {
+        </span><span style="color: #0000ff;">this</span>.sort =<span style="color: #000000;"> sort;
+    }
+
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> String getOrder() {
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span>.order == "" ? <span style="color: #0000ff;">null</span> : <span style="color: #0000ff;">this</span><span style="color: #000000;">.order;
+    }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setOrder(String order) {
+        </span><span style="color: #0000ff;">this</span>.order =<span style="color: #000000;"> order;
+    }
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * 计算总页数
+     *
+     * </span><span style="color: #808080;">@return</span><span style="color: #008000;"> 总页数
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> countPage() {
+        </span><span style="color: #0000ff;">int</span> countPage = getCount() /<span style="color: #000000;"> getPageSize();
+        </span><span style="color: #0000ff;">return</span> getCount() % getPageSize() == 0 ? countPage : countPage + 1<span style="color: #000000;">;
+    }
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * 从哪条开始取(当前记录数)
+     *
+     * </span><span style="color: #808080;">@return</span><span style="color: #008000;"> 当前记录数
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> countOffSet() {
+        </span><span style="color: #0000ff;">return</span> getPageSize() * (getCurrentPage() - 1<span style="color: #000000;">);
+    }
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * MYSQL
+     * 取几条
+     *
+     * </span><span style="color: #808080;">@return</span><span style="color: #008000;"> 取几条
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> countMySQLLength() {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> getPageSize();
+    }
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * ORACLE
+     * 取几条
+     *
+     * </span><span style="color: #808080;">@return</span><span style="color: #008000;"> 取几条
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> countOracleLength() {
+        </span><span style="color: #0000ff;">return</span> getPageSize() *<span style="color: #000000;"> getCurrentPage();
+    }
+
+    @Override
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> String toString() {
+        </span><span style="color: #0000ff;">return</span> "[ " +
+                "count:" + count +
+                " totalPage:" + totalPage +
+                " pageSize:" + pageSize +
+                " currentPage:" + currentPage +
+                " sort:" + sort +
+                " order:" + order +
+                " ]"<span style="color: #000000;">;
+    }
+}</span></pre>
+</div>
+<p>由于SpringMVC封装参数时出现了问题，于是我想能不能在dataTables初始化时自定义后台传递的参数呢？</p>
+<p>继续改造&lsquo;ajax&rsquo;属性：</p>
+<div class="cnblogs_code">
+<pre><code>$('#table'<span style="color: #000000;">).DataTable({
+           ...
+            </span>'ajax'<span style="color: #000000;">: {
+                url: </span>'/admin/file/list', <span style="color: #008000;">//</span><span style="color: #008000;"> url请求</span>
+                data: <span style="color: #0000ff;">function</span> (data) { <span style="color: #008000;">//</span><span style="color: #008000;"> 定义初始化参数 :data为向后台发送的参数obj</span>
+                    <span style="color: #0000ff;">return</span> $.extend( {},{}, { <span style="color: #008000;">//</span><span style="color: #008000;">自定义参数</span>
+                        "currentPage": data.start/data.length+1, <span style="color: #008000;">//<span style="color: #008000;">当前页</span></span>"pageSize": data.length, <span style="color: #008000;">//</span><span style="color: #008000;"> 每页显示条数，data.length='pageLength'属性的值 我设置的是5</span>
+<span style="color: #000000;">                    } )
+                },
+                dataSrc: </span><span style="color: #0000ff;">function</span><span style="color: #000000;"> (json) {
+                    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> json.data.list;
+                }
+            },
+            ...
+ )}    </span></pre>
+</div>
+<p>再次刷新页面，数据又回来了</p>
+<p><img src="./images/jquery.dataTables的探索之路-服务端分页配置5.png" alt="" width="1000" /></p>
+<p>等等，分页是怎么回事？？不打紧，加上这两句：</p>
+<div class="cnblogs_code">
+<pre><code> $('#table'<span style="color: #000000;">).DataTable({
+            ...
+            </span>'ajax'<span style="color: #000000;">: {
+                ...
+                dataSrc: </span><span style="color: #0000ff;">function</span><span style="color: #000000;"> (json) {
+                    json.recordsFiltered </span>= json.data.count;  <span style="color: #008000;">//</span><span style="color: #008000;"> 指定记录数</span>
+                    json.recordsTotal = json.data.totalPage; <span style="color: #008000;">//</span><span style="color: #008000;"> 指定页数</span>
+                    <span style="color: #0000ff;">return</span><span style="color: #000000;"> json.data.list;
+                }
+            },
+            ...
+ })</span></pre>
+</div>
+<p>再次刷新页面出现了预期的结果：</p>
+<p><img src="./images/jquery.dataTables的探索之路-服务端分页配置6.png" alt="" width="1000" /></p>
+<p>调试完毕，发现部分列不应该排序，查看&lsquo;<span style="color: #660e7a; font-weight: bold;">columnDefs</span>&rsquo;属性，发现ID列排序被禁用，但排序图标初始化时依然存在。</p>
+<p>添加如下属性：</p>
+<div class="cnblogs_code">
+<pre><code>$('#table'<span style="color: #000000;">).DataTable({
+            ...
+            </span>'order': [1,'asc'], <span style="color: #008000;">//</span><span style="color: #008000;">修改默认的排序列为第2列、升序</span>
+<span style="color: #000000;">            ...
+ })</span></pre>
+</div>
+<p>再次刷新页面后正常显示，能不能实现指定列排序呢？</p>
+<p>修改代码如下（为了使代码更简洁我将&lsquo;<span style="color: #660e7a; font-weight: bold;">columnDefs</span>&rsquo;属性中的代码转移到&lsquo;<span style="color: #660e7a; font-weight: bold;">columns</span>&rsquo;属性中）：</p>
+<div class="cnblogs_code">
+<pre><code>$('#table'<span style="color: #000000;">).DataTable({
+            ...
+            columns:[{  </span><span style="color: #008000;">// </span><span style="color: #008000;">合并后的columns</span>
+                data: "id", <span style="color: #008000;">//</span><span style="color: #008000;"> 绑定后台数据列的属性</span>
+                sortable: <span style="color: #0000ff;">false</span>, <span style="color: #008000;">//</span><span style="color: #008000;"> 禁止排序</span>
+                render : <span style="color: #0000ff;">function</span>(id, type, row, meta) { <span style="color: #008000;">//</span><span style="color: #008000;"> 将数据进行DOM转换</span>
+                    <span style="color: #0000ff;">return</span> '&lt;input type="checkbox" name="ids" value=' + id + '&gt;&lt;label for="input-' + id + '"&gt;&lt;/label&gt;'<span style="color: #000000;">;
+                }
+            },{
+                data: </span>"filename"<span style="color: #000000;">,
+                render : </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(id) {
+                    </span><span style="color: #0000ff;">return</span> '&lt;a href="javascript:;"&gt;'+id+'&lt;a/&gt;'<span style="color: #000000;">;
+                }
+            },{
+                data: </span>'filetype'<span style="color: #000000;">,
+                defaultContent : </span>""<span style="color: #000000;">,
+                sortable: </span><span style="color: #0000ff;">false</span><span style="color: #000000;">,
+            },{
+                data: </span>'logicadress'<span style="color: #000000;">,
+                defaultContent : </span>""<span style="color: #000000;">,
+                sortable: </span><span style="color: #0000ff;">false</span><span style="color: #000000;">,
+            },{
+                data: </span>'physicsadress'<span style="color: #000000;">,
+                defaultContent : </span>""<span style="color: #000000;">,
+                sortable: </span><span style="color: #0000ff;">false</span><span style="color: #000000;">,
+            },{
+                data: </span>'modifyUser'<span style="color: #000000;">,
+                defaultContent : </span>"-"<span style="color: #000000;">,
+                sortable: </span><span style="color: #0000ff;">false</span><span style="color: #000000;">,
+            },{
+                data: </span>'modifyTime'<span style="color: #000000;">,
+                defaultContent : </span>""<span style="color: #000000;">
+            }]，<br />　　　　　　　...
+ })</span></pre>
+</div>
+<p>刷新页面后效果如下：</p>
+<p><img src="./images/jquery.dataTables的探索之路-服务端分页配置7.png" alt="" width="1000" /></p>
+<p>点击排序发现没有反应。后台的排序已经实现了，前台只要发送相应的参数即可。</p>
+<p>继续修改代码如下：</p>
+<div class="cnblogs_code">
+<pre><code>$('#table'<span style="color: #000000;">).DataTable({
+            ...
+            </span>'ajax'<span style="color: #000000;">: {
+                ...
+                data: </span><span style="color: #0000ff;">function</span><span style="color: #000000;"> (data) {
+                    console.log(data);
+                    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> $.extend( {},{}, {
+                        </span>"currentPage": data.start/data.length+1,
+                        "pageSize"<span style="color: #000000;">: data.length,
+                        </span>"order": data.order[0].dir, <span style="color: #008000;">//</span><span style="color: #008000;">升序或降序：随鼠标点击发生变化</span>
+                        "sort": data.order[0].column==1?"fileName":"modifyTime" <span style="color: #008000;">//</span><span style="color: #008000;">获取排序列：下标从0开始，1代表第二列（因为只有两列参与排序，所以简单写了）</span>
+<span style="color: #000000;">                    } )
+                },
+                ...
+            },
+            ...
+ })</span></pre>
+</div>
+<p>刷新页面，打开控制台，我们看下&lsquo;data&rsquo;的结构：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">{
+  </span>"draw": 1<span style="color: #000000;">,
+  </span>"columns"<span style="color: #000000;">: [
+    {
+      </span>"data": "id"<span style="color: #000000;">,</span>"name": ""<span style="color: #000000;">,</span>"searchable": <span style="color: #0000ff;">true</span><span style="color: #000000;">,</span>"orderable": <span style="color: #0000ff;">false</span><span style="color: #000000;">,
+      </span>"search"<span style="color: #000000;">: {</span>"value": ""<span style="color: #000000;">, </span>"regex": <span style="color: #0000ff;">false</span><span style="color: #000000;">}
+    },</span><span style="color: #000000;">
+    ...</span><span style="color: #000000;">
+  ],
+  </span>"order"<span style="color: #000000;">: [{</span>"column": 1<span style="color: #000000;">,</span>"dir": "asc"<span style="color: #000000;">}],
+  </span>"start": 0<span style="color: #000000;">,
+  </span>"length": 5<span style="color: #000000;">,
+  </span>"search"<span style="color: #000000;">: {</span>"value": ""<span style="color: #000000;">,</span>"regex": <span style="color: #0000ff;">false</span><span style="color: #000000;">}
+}</span></pre>
+</div>
+<p>一个标准的json对象，现在回头看看这两行代码是不是有种恍然大悟的感觉：</p>
+<div class="cnblogs_code">
+<pre><code>"order": data.order[0<span style="color: #000000;">].dir, 
+</span>"sort": data.order[0].column==1?"fileName":"modifyTime"</pre>
+</div>
+<p>后台的分页和排序代码无须赘述，本文主要是分享在使用dataTables时如何自定义前后台参数问题，其实使用起来和bootstrap的数据表格有很多相似的地方，感觉还是后者更简单一些。咸鱼水平，不足之处欢迎指正！</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,56 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C# 矢量图EMF 总结' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C# 矢量图EMF 总结</center></div><div class='banquan'>原文出处:本文由博客园博主稳重》》小子提供。<br/>
+原文连接:https://www.cnblogs.com/nihaolican/p/11865292.html</div><br>
+    <p>个人知识记录、如果有用请点赞，否则勿喷、忽略。</p>
+<p>个人站点：<a href="https://i.cnblogs.com/EditPosts.aspx?opt=1">https://i.cnblogs.com/EditPosts.aspx?opt=1</a></p>
+<p>注意：句柄的操作<br />1、创建 代码如下：</p>
+<p>          <br />            Metafile metafile;<br />            using(Graphics offScreenGraphics = Graphics.FromHwndInternal(IntPtr.Zero))<br />            {<br />                IntPtr hDC = offScreenGraphics.GetHdc();<br />                metafile = new Metafile(hDC,<br />                    new Rectangle(0, 0, metafileWidth, metafileHeight),<br />                    MetafileFrameUnit.Pixel,<br />                    EmfType.EmfPlusOnly);<br />                offScreenGraphics.ReleaseHdc();<br />            }</p>
+<p>            return metafile;</p>
+<p>2、GDI Graphics 创建 </p>
+<p>var        graphics = Graphics.FromImage(metafile); //也可以使用句柄 </p>
+<p>//有时大小可能设置的不好使 需进行特殊处理<br />var width=height=0;<br />  graphics.SetClip(new RectangleF(0, 0, width, height));</p>
+<p>3、非托管调用代码</p>
+<p>        /// &lt;summary&gt;<br />        /// 获取矢量图的byte<br />        /// &lt;/summary&gt;<br />        /// &lt;param name="hemf"&gt;&lt;/param&gt;<br />        /// &lt;param name="cbBuffer"&gt;&lt;/param&gt;<br />        /// &lt;param name="lpbBuffer"&gt;&lt;/param&gt;<br />        /// &lt;returns&gt;&lt;/returns&gt;<br />        [DllImport("gdi32.dll")]<br />        public static extern uint GetEnhMetaFileBits(IntPtr hemf, uint cbBuffer, byte[] lpbBuffer);<br />        /// &lt;summary&gt;<br />        /// byte转换矢量图<br />        /// &lt;/summary&gt;<br />        /// &lt;param name="cbBuffer"&gt;&lt;/param&gt;<br />        /// &lt;param name="lpBuffer"&gt;&lt;/param&gt;<br />        /// &lt;returns&gt;&lt;/returns&gt;<br />        [DllImport("gdi32.dll")]<br />        public static extern IntPtr SetEnhMetaFileBits(uint cbBuffer, byte[] lpBuffer);<br />        /// &lt;summary&gt;<br />        /// 删除矢量图<br />        /// &lt;/summary&gt;<br />        /// &lt;param name="hemf"&gt;&lt;/param&gt;<br />        /// &lt;returns&gt;&lt;/returns&gt;<br />        [DllImport("gdi32.dll")]<br />        public static extern bool DeleteEnhMetaFile(IntPtr hemf);</p>
+<p>        /// &lt;summary&gt;<br />        /// Copy EMF to file<br />        /// &lt;/summary&gt;<br />        /// &lt;param name="hemfSrc"&gt;Handle to EMF&lt;/param&gt;<br />        /// &lt;param name="lpszFile"&gt;File&lt;/param&gt;<br />        /// &lt;returns&gt;&lt;/returns&gt;<br />        [DllImport("gdi32.dll")]<br />        private static extern IntPtr CopyEnhMetaFile(IntPtr hemfSrc, string lpszFile);</p>
+<p>4、矢量图 转换 byte[]</p>
+<p>    private byte[] ConvertMetaFileToByteArray(Image image)<br />        {<br />            byte[] dataArray = null;</p>
+<p>            Metafile mf = (Metafile)image;</p>
+<p>            IntPtr enhMetafileHandle = mf.GetHenhmetafile();</p>
+<p>            uint bufferSize = GetEnhMetaFileBits(enhMetafileHandle, 0, null);</p>
+<p><br />            if (enhMetafileHandle != IntPtr.Zero)<br />            {<br />                dataArray = new byte[bufferSize];</p>
+<p>                GetEnhMetaFileBits(enhMetafileHandle, bufferSize, dataArray);<br />            }</p>
+<p>            DeleteEnhMetaFile(enhMetafileHandle);</p>
+<p>            return dataArray;<br />        }</p>
+<p>5、byte[] 转换 矢量图<br />        public static Image ConvertByteArrayToMetafile(byte[] data)<br />        {<br />            Metafile mf = null; <br />                IntPtr hemf = SetEnhMetaFileBits((uint)data.Length, data); <br />                mf = new Metafile(hemf, true); <br />                //DeleteEnhMetaFile(hemf);  //如若后续对图像进行操作不能进行删除句柄<br />            return (Image)mf;<br />        }</p>
+<p><br />6、矢量图保存</p>
+<p>   public static void SaveMetafile(Metafile file, string emfName)<br />        {<br />            //MetafileHeader metafileHeader = file.GetMetafileHeader(); //这句话可要可不要<br />            IntPtr iptrMetafileHandle = file.GetHenhmetafile();<br />            CopyEnhMetaFile(iptrMetafileHandle, emfName);<br />            DeleteEnhMetaFile(iptrMetafileHandle);<br />        }<br />        <br />7、转换base64 字符<br />            var m = (Metafile)Metafile.FromFile(@"EMF.emf"); //加载矢量图<br />            var by = ConvertMetaFileToByteArray(m); //转换数组<br />            var ls = Convert.ToBase64String(by); //转字符串</p>
+<p>8、base64转 byte[]<br />    <br />    var bt = Convert.FromBase64String(ls);</p>
+<p>9、图像的通过字符生长之后、可保存操作、不能进行绘制操作、这时需要进行 创建一个新的对象接受这个生成对象、然后操作<br />            var imz = (Metafile)ConvertByteArrayToMetafile(bt); <br />            var jbhtr = imz.GetHenhmetafile(); <br />            Metafile mmmmm = new Metafile(jbhtr, true); //new 新对象接收</p>
+<p>10、矢量图的结构播放主要使用：EnumerateMetafileProc 代码如下</p>
+<p> public partial class MetafilePlayRecord : Form<br />    {<br />        private Metafile metafile1;<br />        private Graphics.EnumerateMetafileProc metafileDelegate; <br />        public MetafilePlayRecord(Metafile metafile )<br />        {<br />            InitializeComponent();<br />            metafile1 = metafile; <br />            metafileDelegate = new Graphics.EnumerateMetafileProc(MetafileCallback);<br />        }</p>
+<p>        private bool MetafileCallback(EmfPlusRecordType recordType, int flags, int dataSize, IntPtr data, PlayRecordCallback callbackData)<br />        {<br />            byte[] dataArray = null;<br />            if (data != IntPtr.Zero)<br />            {<br />               <br />                dataArray = new byte[dataSize];<br />                Marshal.Copy(data, dataArray, 0, dataSize);<br />                //GdipComment<br />                metafile1.PlayRecord(recordType, flags, dataSize, dataArray);<br />                switch (recordType) //记录类型<br />                {</p>
+<p>                    case EmfPlusRecordType.Object: //对象<br />                    case EmfPlusRecordType.DrawLines: //线<br />                    case EmfPlusRecordType.SetPageTransform: //设置页变换 <br />                        break;<br />                }<br />            }<br />            Console.WriteLine(recordType.ToString()); <br />            return true;<br />        }</p>
+<p>        protected override void OnPaint(PaintEventArgs e)<br />        {<br />            e.Graphics.EnumerateMetafile(metafile1, destPoint, metafileDelegate);</p>
+<p>        }<br />        protected override void OnClosed(EventArgs e)<br />        {<br />            base.OnClosed(e);<br />            metafile1.Dispose(); <br />        }</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

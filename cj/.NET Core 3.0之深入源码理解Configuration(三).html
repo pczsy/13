@@ -1,0 +1,260 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修.NET Core 3.0之深入源码理解Configuration(三)' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>.NET Core 3.0之深入源码理解Configuration(三)</center></div><div class='banquan'>原文出处:本文由博客园博主艾心❤提供。<br/>
+原文连接:https://www.cnblogs.com/edison0621/p/10891365.html</div><br>
+    <div class="wlWriterHeaderFooter" style="float: right; margin: 0px; padding: 0px 0px 4px 8px;">&nbsp;</div>
+<h1 style="font-size: 200%; border-bottom: #5ea2d6 1px solid; font-weight: bold; color: #0378bb; padding-bottom: 10px; padding-top: 0px; padding-left: 20px; clear: both; border-left: #3d97cb 12px solid; line-height: 1.5em; padding-right: 100px;">写在前面</h1>
+<p><a href="https://www.cnblogs.com/edison0621/p/10889325.html">上一篇</a>文章讨论了文件型配置的基本内容，本篇内容讨论JSON型配置的实现方式，理解了这一种配置类型的实现方式，那么其他类型的配置实现方式基本可以触类旁通。看过了<a href="https://www.cnblogs.com/edison0621/p/10889325.html">上一篇</a>文章的朋友，应该看得出来似曾相识。此图主要表达了文件型配置的实现，当然其他配置，包括自定义配置，都会按照这样的方式去实现。</p>
+<p><a href="https://img2018.cnblogs.com/blog/533598/201905/533598-20190519225741492-2092328714.png"><img style="background-image: none; padding-top: 0px; padding-left: 0px; display: inline; padding-right: 0px; border-width: 0px;" title="绘图3" src="./images/.NET Core 3.0之深入源码理解Configuration(三)0.png" alt="绘图3" width="1060" height="541" border="0" /></a></p>
+<h1 style="font-size: 200%; border-bottom: #5ea2d6 1px solid; font-weight: bold; color: #0378bb; padding-bottom: 10px; padding-top: 0px; padding-left: 20px; clear: both; border-left: #3d97cb 12px solid; line-height: 1.5em; padding-right: 100px;">JSON配置组件的相关内容</h1>
+<p>该组件有四个类</p>
+<ul>
+<li>JsonConfigurationExtensions</li>
+<li>JsonConfigurationSource</li>
+<li>JsonConfigurationFileParser</li>
+<li>JsonConfigurationProvider</li>
+</ul>
+<p>这四个类相互合作，职责明确，共同将JSON类型的配置加载到内存中，供相应的系统使用。</p>
+<h2 style="font-size: 18px; color: #aa7652; padding-bottom: 5px; padding-top: 5px; padding-left: 30px; padding-right: 8px; background-color: #f5f5f4; border-radius: 5px; border: #d0cfcf 1px solid;">JsonConfigurationFileParser</h2>
+<p>该类是一个内部类，拥有一个私有的构造方法，意味着该类无法在其他地方进行实例化，只能在自己内部使用。它只有一个公共方法，并且是静态的，如下所示</p>
+<div class="csharpcode">
+<div class="csharpcode">
+<pre><code><span class="lnum">   1:  </span><span class="kwrd">public</span> <span class="kwrd">static</span> IDictionary&lt;<span class="kwrd">string</span>, <span class="kwrd">string</span>&gt; Parse(Stream input) =&gt; <span class="kwrd">new</span> JsonConfigurationFileParser().ParseStream(input);</pre>
+</div>
+</div>
+<style><!--
+.csharpcode, .csharpcode pre
+{
+	font-size: small;
+	color: black;
+	font-family: consolas, "Courier New", courier, monospace;
+	background-color: #ffffff;
+	/*white-space: pre;*/
+}
+.csharpcode pre { margin: 0em; }
+.csharpcode .rem { color: #008000; }
+.csharpcode .kwrd { color: #0000ff; }
+.csharpcode .str { color: #006080; }
+.csharpcode .op { color: #0000c0; }
+.csharpcode .preproc { color: #cc6633; }
+.csharpcode .asp { background-color: #ffff00; }
+.csharpcode .html { color: #800000; }
+.csharpcode .attr { color: #ff0000; }
+.csharpcode .alt 
+{
+	background-color: #f4f4f4;
+	width: 100%;
+	margin: 0em;
+}
+.csharpcode .lnum { color: #606060; }
+--></style>
+<p>该方法通过读取输入数据流，将其转化为字典类型的配置数据，该字典类型是SortedDictionary类型的，并且不区分大小写，此处需要注意。这也呼应了之前所说的.NET Core Configuration对外使用的时候，都是以字典方式去提供给外界使用的。</p>
+<p>那么，这个类是如何将数据流转化为JSON的呢，我们继续阅读源码</p>
+<div class="csharpcode">
+<pre><code><span class="lnum">   1:  </span><span class="kwrd">private</span> IDictionary&lt;<span class="kwrd">string</span>, <span class="kwrd">string</span>&gt; ParseStream(Stream input)</pre>
+<pre><code><span class="lnum">   2:  </span>{</pre>
+<pre><code><span class="lnum">   3:  </span>    _data.Clear();</pre>
+<pre><code><span class="lnum">   4:  </span>&nbsp;</pre>
+<pre><code><span class="lnum">   5:  </span>    <span class="kwrd">using</span> (var reader = <span class="kwrd">new</span> StreamReader(input))</pre>
+<pre><code><span class="lnum">   6:  </span>    <span class="kwrd">using</span> (JsonDocument doc = JsonDocument.Parse(reader.ReadToEnd(), <span class="kwrd">new</span> JsonReaderOptions { CommentHandling = JsonCommentHandling.Skip }))</pre>
+<pre><code><span class="lnum">   7:  </span>    {</pre>
+<pre><code><span class="lnum">   8:  </span>        <span class="kwrd">if</span> (doc.RootElement.Type != JsonValueType.Object)</pre>
+<pre><code><span class="lnum">   9:  </span>        {</pre>
+<pre><code><span class="lnum">  10:  </span>            <span class="kwrd">throw</span> <span class="kwrd">new</span> FormatException(Resources.FormatError_UnsupportedJSONToken(doc.RootElement.Type));</pre>
+<pre><code><span class="lnum">  11:  </span>        }</pre>
+<pre><code><span class="lnum">  12:  </span>        VisitElement(doc.RootElement);</pre>
+<pre><code><span class="lnum">  13:  </span>    }</pre>
+<pre><code><span class="lnum">  14:  </span>&nbsp;</pre>
+<pre><code><span class="lnum">  15:  </span>    <span class="kwrd">return</span> _data;</pre>
+<pre><code><span class="lnum">  16:  </span>}</pre>
+</div>
+<p>通过源码，我们知道，此处使用了JsonDocument处理StreamReader数据，JsonDocument又是什么呢，通过命名空间我们知道，它位于System.Text.Json中，这是.NET Core原生的处理JSON的组件，有兴趣的朋友可以去翻翻MSDN或者GitHub查找相关资料。此处不做过多说明。</p>
+<p>VisitElement方法主要是遍历JsonElement.EnumerateObject()方法中的对象集合，此处采用Stack&lt;string&gt;实例进行数据安全方面的控制。其中VisitValue是一个在处理json时相当全面的方法，说它全面是因为它考虑到了JSON值的几乎所有类型：</p>
+<blockquote>
+<ul>
+<li>JsonValueType.Object</li>
+<li>JsonValueType.Array</li>
+<li>JsonValueType.Number</li>
+<li>JsonValueType.String</li>
+<li>JsonValueType.True</li>
+<li>JsonValueType.False</li>
+<li>JsonValueType.Null</li>
+</ul>
+</blockquote>
+<p>当然，该方法，并不会很傻的处理每一种类型，主要是针对Object和Array类型进行了递归遍历，以便在诸如Number、String等的简单类型时跳出递归，并存放到字典中，需要再次强调的是，存放在字典中的值是以String类型存储的。</p>
+<p>至此，JsonConfigurationFileParser完成了从文件读取内容并转化为键值对的工作。</p>
+<h2 style="font-size: 18px; color: #aa7652; padding-bottom: 5px; padding-top: 5px; padding-left: 30px; padding-right: 8px; background-color: #f5f5f4; border-radius: 5px; border: #d0cfcf 1px solid;">JsonConfigurationSource</h2>
+<p>这个类比较简单，因为继承自FileConfigurationSource，如前文所说，FileConfigurationSource类已经做了初步的实现，只提供了一个Build方法交给子类去重写。其返回值是JsonConfigurationProvider实例。</p>
+<div class="csharpcode">
+<pre><code><span class="lnum">   1:  </span><span class="rem">/// &lt;summary&gt;</span></pre>
+<pre><code><span class="lnum">   2:  </span><span class="rem">/// Represents a JSON file as an &lt;see cref="IConfigurationSource"/&gt;.</span></pre>
+<pre><code><span class="lnum">   3:  </span><span class="rem">/// &lt;/summary&gt;</span></pre>
+<pre><code><span class="lnum">   4:  </span><span class="kwrd">public</span> <span class="kwrd">class</span> JsonConfigurationSource : FileConfigurationSource</pre>
+<pre><code><span class="lnum">   5:  </span>{</pre>
+<pre><code><span class="lnum">   6:  </span>    <span class="rem">/// &lt;summary&gt;</span></pre>
+<pre><code><span class="lnum">   7:  </span>    <span class="rem">/// Builds the &lt;see cref="JsonConfigurationProvider"/&gt; for this source.</span></pre>
+<pre><code><span class="lnum">   8:  </span>    <span class="rem">/// &lt;/summary&gt;</span></pre>
+<pre><code><span class="lnum">   9:  </span>    <span class="rem">/// &lt;param name="builder"&gt;The &lt;see cref="IConfigurationBuilder"/&gt;.&lt;/param&gt;</span></pre>
+<pre><code><span class="lnum">  10:  </span>    <span class="rem">/// &lt;returns&gt;A &lt;see cref="JsonConfigurationProvider"/&gt;&lt;/returns&gt;</span></pre>
+<pre><code><span class="lnum">  11:  </span>    <span class="kwrd">public</span> <span class="kwrd">override</span> IConfigurationProvider Build(IConfigurationBuilder builder)</pre>
+<pre><code><span class="lnum">  12:  </span>    {</pre>
+<pre><code><span class="lnum">  13:  </span>        EnsureDefaults(builder);</pre>
+<pre><code><span class="lnum">  14:  </span>        <span class="kwrd">return</span> <span class="kwrd">new</span> JsonConfigurationProvider(<span class="kwrd">this</span>);</pre>
+<pre><code><span class="lnum">  15:  </span>    }</pre>
+<pre><code><span class="lnum">  16:  </span>}</pre>
+</div>
+<p>此处的EnsureDefaults()方法，主要是设置FileProvider实例以及指定加载类型的异常处理方式。</p>
+<h2 style="font-size: 18px; color: #aa7652; padding-bottom: 5px; padding-top: 5px; padding-left: 30px; padding-right: 8px; background-color: #f5f5f4; border-radius: 5px; border: #d0cfcf 1px solid;">JsonConfigurationProvider</h2>
+<p>这个类也很简单，它继承于FileConfigurationProvider，FileConfigurationProvider本身也已经通用功能进行了抽象实现，先看一下这个类的源码</p>
+<div class="csharpcode">
+<pre><code><span class="lnum">   1:  </span><span class="rem">/// &lt;summary&gt;</span></pre>
+<pre><code><span class="lnum">   2:  </span><span class="rem">/// A JSON file based &lt;see cref="FileConfigurationProvider"/&gt;.</span></pre>
+<pre><code><span class="lnum">   3:  </span><span class="rem">/// &lt;/summary&gt;</span></pre>
+<pre><code><span class="lnum">   4:  </span><span class="kwrd">public</span> <span class="kwrd">class</span> JsonConfigurationProvider : FileConfigurationProvider</pre>
+<pre><code><span class="lnum">   5:  </span>{</pre>
+<pre><code><span class="lnum">   6:  </span>    <span class="rem">/// &lt;summary&gt;</span></pre>
+<pre><code><span class="lnum">   7:  </span>    <span class="rem">/// Initializes a new instance with the specified source.</span></pre>
+<pre><code><span class="lnum">   8:  </span>    <span class="rem">/// &lt;/summary&gt;</span></pre>
+<pre><code><span class="lnum">   9:  </span>    <span class="rem">/// &lt;param name="source"&gt;The source settings.&lt;/param&gt;</span></pre>
+<pre><code><span class="lnum">  10:  </span>    <span class="kwrd">public</span> JsonConfigurationProvider(JsonConfigurationSource source) : <span class="kwrd">base</span>(source) { }</pre>
+<pre><code><span class="lnum">  11:  </span>&nbsp;</pre>
+<pre><code><span class="lnum">  12:  </span>    <span class="rem">/// &lt;summary&gt;</span></pre>
+<pre><code><span class="lnum">  13:  </span>    <span class="rem">/// Loads the JSON data from a stream.</span></pre>
+<pre><code><span class="lnum">  14:  </span>    <span class="rem">/// &lt;/summary&gt;</span></pre>
+<pre><code><span class="lnum">  15:  </span>    <span class="rem">/// &lt;param name="stream"&gt;The stream to read.&lt;/param&gt;</span></pre>
+<pre><code><span class="lnum">  16:  </span>    <span class="kwrd">public</span> <span class="kwrd">override</span> <span class="kwrd">void</span> Load(Stream stream)</pre>
+<pre><code><span class="lnum">  17:  </span>    {</pre>
+<pre><code><span class="lnum">  18:  </span>        <span class="kwrd">try</span> {</pre>
+<pre><code><span class="lnum">  19:  </span>            Data = JsonConfigurationFileParser.Parse(stream);</pre>
+<pre><code><span class="lnum">  20:  </span>        } <span class="kwrd">catch</span> (JsonReaderException e)</pre>
+<pre><code><span class="lnum">  21:  </span>        {</pre>
+<pre><code><span class="lnum">  22:  </span>            <span class="kwrd">throw</span> <span class="kwrd">new</span> FormatException(Resources.Error_JSONParseError, e);</pre>
+<pre><code><span class="lnum">  23:  </span>        }</pre>
+<pre><code><span class="lnum">  24:  </span>    }</pre>
+<pre><code><span class="lnum">  25:  </span>}</pre>
+</div>
+<style><!--
+.csharpcode, .csharpcode pre
+{
+	font-size: small;
+	color: black;
+	font-family: consolas, "Courier New", courier, monospace;
+	background-color: #ffffff;
+	/*white-space: pre;*/
+}
+.csharpcode pre { margin: 0em; }
+.csharpcode .rem { color: #008000; }
+.csharpcode .kwrd { color: #0000ff; }
+.csharpcode .str { color: #006080; }
+.csharpcode .op { color: #0000c0; }
+.csharpcode .preproc { color: #cc6633; }
+.csharpcode .asp { background-color: #ffff00; }
+.csharpcode .html { color: #800000; }
+.csharpcode .attr { color: #ff0000; }
+.csharpcode .alt 
+{
+	background-color: #f4f4f4;
+	width: 100%;
+	margin: 0em;
+}
+.csharpcode .lnum { color: #606060; }
+--></style>
+<p>其构造函数的传入参数类型是JsonConfigurationSource，这和JsonConfigurationSource.Build()方法中的<span class="kwrd">return</span> <span class="kwrd">new</span> JsonConfigurationProvider(<span class="kwrd">this</span>)代码片段相呼应。</p>
+<p>JsonConfigurationProvider所重写的方法，调用的是JsonConfigurationFileParser.Parse(stream)方法，所以该类显得非常的轻量。</p>
+<h2 style="font-size: 18px; color: #aa7652; padding-bottom: 5px; padding-top: 5px; padding-left: 30px; padding-right: 8px; background-color: #f5f5f4; border-radius: 5px; border: #d0cfcf 1px solid;">JsonConfigurationExtensions</h2>
+<p>这个方法，大家就更熟悉了，我们平时所使用的AddJsonFile()方法，就是在这个扩展类中进行扩展的，其返回值是IConfigurationBuilder类型，其核心方法源码如下所示</p>
+<div class="csharpcode">
+<pre><code><span class="lnum">   1:  </span><span class="rem">/// &lt;summary&gt;</span></pre>
+<pre><code><span class="lnum">   2:  </span><span class="rem">/// Adds a JSON configuration source to &lt;paramref name="builder"/&gt;.</span></pre>
+<pre><code><span class="lnum">   3:  </span><span class="rem">/// &lt;/summary&gt;</span></pre>
+<pre><code><span class="lnum">   4:  </span><span class="rem">/// &lt;param name="builder"&gt;The &lt;see cref="IConfigurationBuilder"/&gt; to add to.&lt;/param&gt;</span></pre>
+<pre><code><span class="lnum">   5:  </span><span class="rem">/// &lt;param name="provider"&gt;The &lt;see cref="IFileProvider"/&gt; to use to access the file.&lt;/param&gt;</span></pre>
+<pre><code><span class="lnum">   6:  </span><span class="rem">/// &lt;param name="path"&gt;Path relative to the base path stored in </span></pre>
+<pre><code><span class="lnum">   7:  </span><span class="rem">/// &lt;see cref="IConfigurationBuilder.Properties"/&gt; of &lt;paramref name="builder"/&gt;.&lt;/param&gt;</span></pre>
+<pre><code><span class="lnum">   8:  </span><span class="rem">/// &lt;param name="optional"&gt;Whether the file is optional.&lt;/param&gt;</span></pre>
+<pre><code><span class="lnum">   9:  </span><span class="rem">/// &lt;param name="reloadOnChange"&gt;Whether the configuration should be reloaded if the file changes.&lt;/param&gt;</span></pre>
+<pre><code><span class="lnum">  10:  </span><span class="rem">/// &lt;returns&gt;The &lt;see cref="IConfigurationBuilder"/&gt;.&lt;/returns&gt;</span></pre>
+<pre><code><span class="lnum">  11:  </span><span class="kwrd">public</span> <span class="kwrd">static</span> IConfigurationBuilder AddJsonFile(<span class="kwrd">this</span> IConfigurationBuilder builder, IFileProvider provider, <span class="kwrd">string</span> path, <span class="kwrd">bool</span> optional, <span class="kwrd">bool</span> reloadOnChange)</pre>
+<pre><code><span class="lnum">  12:  </span>{</pre>
+<pre><code><span class="lnum">  13:  </span>    <span class="kwrd">if</span> (builder == <span class="kwrd">null</span>)</pre>
+<pre><code><span class="lnum">  14:  </span>    {</pre>
+<pre><code><span class="lnum">  15:  </span>        <span class="kwrd">throw</span> <span class="kwrd">new</span> ArgumentNullException(nameof(builder));</pre>
+<pre><code><span class="lnum">  16:  </span>    }</pre>
+<pre><code><span class="lnum">  17:  </span>    <span class="kwrd">if</span> (<span class="kwrd">string</span>.IsNullOrEmpty(path))</pre>
+<pre><code><span class="lnum">  18:  </span>    {</pre>
+<pre><code><span class="lnum">  19:  </span>        <span class="kwrd">throw</span> <span class="kwrd">new</span> ArgumentException(Resources.Error_InvalidFilePath, nameof(path));</pre>
+<pre><code><span class="lnum">  20:  </span>    }</pre>
+<pre><code><span class="lnum">  21:  </span>&nbsp;</pre>
+<pre><code><span class="lnum">  22:  </span>    <span class="kwrd">return</span> builder.AddJsonFile(s =&gt;</pre>
+<pre><code><span class="lnum">  23:  </span>    {</pre>
+<pre><code><span class="lnum">  24:  </span>        s.FileProvider = provider;</pre>
+<pre><code><span class="lnum">  25:  </span>        s.Path = path;</pre>
+<pre><code><span class="lnum">  26:  </span>        s.Optional = optional;</pre>
+<pre><code><span class="lnum">  27:  </span>        s.ReloadOnChange = reloadOnChange;</pre>
+<pre><code><span class="lnum">  28:  </span>        s.ResolveFileProvider();</pre>
+<pre><code><span class="lnum">  29:  </span>    });</pre>
+<pre><code><span class="lnum">  30:  </span>}</pre>
+</div>
+<style><!--
+.csharpcode, .csharpcode pre
+{
+	font-size: small;
+	color: black;
+	font-family: consolas, "Courier New", courier, monospace;
+	background-color: #ffffff;
+	/*white-space: pre;*/
+}
+.csharpcode pre { margin: 0em; }
+.csharpcode .rem { color: #008000; }
+.csharpcode .kwrd { color: #0000ff; }
+.csharpcode .str { color: #006080; }
+.csharpcode .op { color: #0000c0; }
+.csharpcode .preproc { color: #cc6633; }
+.csharpcode .asp { background-color: #ffff00; }
+.csharpcode .html { color: #800000; }
+.csharpcode .attr { color: #ff0000; }
+.csharpcode .alt 
+{
+	background-color: #f4f4f4;
+	width: 100%;
+	margin: 0em;
+}
+.csharpcode .lnum { color: #606060; }
+--></style>
+<p>不过，大家不要看这个方法的代码行数很多，就认为，其他方法都重载于该方法，其实该方法重载自</p>
+<div class="csharpcode">
+<pre><code><span class="lnum">   1:  </span><span class="rem">/// &lt;summary&gt;</span></pre>
+<pre><code><span class="lnum">   2:  </span><span class="rem">/// Adds a JSON configuration source to &lt;paramref name="builder"/&gt;.</span></pre>
+<pre><code><span class="lnum">   3:  </span><span class="rem">/// &lt;/summary&gt;</span></pre>
+<pre><code><span class="lnum">   4:  </span><span class="rem">/// &lt;param name="builder"&gt;The &lt;see cref="IConfigurationBuilder"/&gt; to add to.&lt;/param&gt;</span></pre>
+<pre><code><span class="lnum">   5:  </span><span class="rem">/// &lt;param name="configureSource"&gt;Configures the source.&lt;/param&gt;</span></pre>
+<pre><code><span class="lnum">   6:  </span><span class="rem">/// &lt;returns&gt;The &lt;see cref="IConfigurationBuilder"/&gt;.&lt;/returns&gt;</span></pre>
+<pre><code><span class="lnum">   7:  </span><span class="kwrd">public</span> <span class="kwrd">static</span> IConfigurationBuilder AddJsonFile(<span class="kwrd">this</span> IConfigurationBuilder builder, Action&lt;JsonConfigurationSource&gt; configureSource)</pre>
+<pre><code><span class="lnum">   8:  </span>    =&gt; builder.Add(configureSource);</pre>
+</div>
+<p>这个方法最终调用的还是IConfigurationBuilder.Add()方法</p>
+<h1 style="font-size: 200%; border-bottom: #5ea2d6 1px solid; font-weight: bold; color: #0378bb; padding-bottom: 10px; padding-top: 0px; padding-left: 20px; clear: both; border-left: #3d97cb 12px solid; line-height: 1.5em; padding-right: 100px;">总结</h1>
+<p>通过介绍以上JSON Configuration组件的四个类，我们知道了，该组件针对JSON格式的文件的处理方式，不过由于其实文件型配置，其抽象实现已经在文件型配置扩展实现。</p>
+<p>从这里，我们可以学习一下，如果有一天我们需要扩展远程配置，比如Consul、ZK等，我们也可以考虑并采用这种架构的设计方式。另外在JSON Configuration组件中，.NET Core将专有型功能方法的处理进行了聚合，并聚焦关注点的方式也值得我们学习。</p>
+<p>最后JsonConfigurationFileParser中给了我们一种关于Stream转换成JSON的实现，我们完全可以把这个类当成工具类去使用。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

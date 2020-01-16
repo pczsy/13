@@ -1,0 +1,276 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C# DataGridView绑定数据源的几种常见方式' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C# DataGridView绑定数据源的几种常见方式</center></div><div class='banquan'>原文出处:本文由博客园博主鵼泽提供。<br/>
+原文连接:https://www.cnblogs.com/zhiyuyuan/p/11069273.html</div><br>
+    <p>开始以前，先认识一下WinForm控件数据绑定的两种形式，简单数据绑定和复杂数据绑定。</p>
+<h1>1. 简单的数据绑定</h1>
+<p><strong>例1</strong></p>
+<div class="cnblogs_Highlighter">
+<pre><code>using (SqlConnection conn = new SqlConnection(ConfigurationManager.ConnectionStrings["connStr"].ToString())) 
+{  
+ 
+　　SqlDataAdapter sda = new SqlDataAdapter("Select * From T_Class Where F_Type='Product' order by F_RootID,F_Orders", conn); 
+　　DataSet Ds = new DataSet(); 
+　　sda.Fill(Ds, "T_Class"); 
+ 
+　　//使用DataSet绑定时，必须同时指明DateMember 
+　　this.dataGridView1.DataSource = Ds; 
+　　this.dataGridView1.DataMember = "T_Class"; 
+ 
+　　//也可以直接用DataTable来绑定 
+　　this.dataGridView1.DataSource = Ds.Tables["T_Class"]; 
+}
+</pre>
+</div>
+<p>　　</p>
+<p>简单的数据绑定是将用户控件的某一个属性绑定至某一个类型实例上的某一属性。</p>
+<p>　　采用如下形式进行绑定：引用控件.DataBindings.Add("控件属性", 实例对象, "属性名", true);&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;例2</p>
+<p>　　从数据库中把数据读出来放到一个数据集中，比如List&lt;&gt;、DataTable，DataSet，我一般用List&lt;&gt;,<br />　　然后绑定数据源：</p>
+<div class="cnblogs_Highlighter">
+<pre><code>IList&lt;student&gt; sList=StudentDB.GetAllList();
+DataGridView.DataSource=sList;
+</pre>
+</div>
+<p>　　</p>
+<p>如果你没有设置DataGridView的列，它会自动生成所有列。</p>
+<p>2. 复杂数据绑定&nbsp;</p>
+<p>　　复杂的数据绑定是将一个以列表为基础的用户控件（例如：ComboBox、ListBox、ErrorProvider、DataGridView等控件）绑定至一个数据对象的列表。&nbsp;<br />　　基本上，Windows Forms的复杂数据绑定允许绑定至支持IList接口的数据列表。此外，如果想通过一个BindingSource组件进行绑定，还可以绑定至一个支持IEnumerable接口的数据列表。&nbsp;<br />　　对于复杂数据绑定，常用的数据源类型有（代码以DataGridView作为示例控件）。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">using</span><span style="color: #000000;"> System; 
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Collections.Generic; 
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.ComponentModel; 
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Data; 
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Drawing; 
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Text; 
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Windows.Forms; 
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Collections; 
+ 
+</span><span style="color: #0000ff;">namespace</span><span style="color: #000000;"> DataGridViewBindingData 
+{ 
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">partial</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Form1 : Form 
+{ 
+ 
+</span><span style="color: #0000ff;">public</span><span style="color: #000000;"> Form1() 
+{ 
+　　InitializeComponent(); 
+} 
+ 
+ 
+</span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> button1_Click(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e) 
+{ 
+　　</span><span style="color: #008000;">//</span><span style="color: #008000;">this.dataGridView1.DataSource = DataBindingByList1(); 
+　　</span><span style="color: #008000;">//</span><span style="color: #008000;">this.dataGridView1.DataSource = DataBindingByList2(); 
+　　</span><span style="color: #008000;">//</span><span style="color: #008000;">this.dataGridView1.DataSource = DataBindingByDataTable(); </span>
+　　<span style="color: #0000ff;">this</span>.dataGridView1.DataSource =<span style="color: #000000;"> DataBindingByBindingSource(); 
+} 
+ 
+</span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span> 
+<span style="color: #808080;">///</span><span style="color: #008000;"> IList接口（包括一维数组，ArrayList等） 
+</span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span> 
+<span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span> 
+<span style="color: #0000ff;">private</span><span style="color: #000000;"> ArrayList DataBindingByList1() 
+{ 
+　　ArrayList Al </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> ArrayList(); 
+　　Al.Add(</span><span style="color: #0000ff;">new</span> PersonInfo(<span style="color: #800000;">"</span><span style="color: #800000;">a</span><span style="color: #800000;">"</span>,<span style="color: #800000;">"</span><span style="color: #800000;">-1</span><span style="color: #800000;">"</span><span style="color: #000000;">)); 
+　　Al.Add(</span><span style="color: #0000ff;">new</span> PersonInfo(<span style="color: #800000;">"</span><span style="color: #800000;">b</span><span style="color: #800000;">"</span>,<span style="color: #800000;">"</span><span style="color: #800000;">-2</span><span style="color: #800000;">"</span><span style="color: #000000;">)); 
+　　Al.Add(</span><span style="color: #0000ff;">new</span> PersonInfo(<span style="color: #800000;">"</span><span style="color: #800000;">c</span><span style="color: #800000;">"</span>,<span style="color: #800000;">"</span><span style="color: #800000;">-3</span><span style="color: #800000;">"</span><span style="color: #000000;">)); 
+　　</span><span style="color: #0000ff;">return</span><span style="color: #000000;"> Al; 
+} 
+ 
+</span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span> 
+<span style="color: #808080;">///</span><span style="color: #008000;"> IList接口（包括一维数组，ArrayList等） 
+</span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span> 
+<span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span> 
+<span style="color: #0000ff;">private</span><span style="color: #000000;"> ArrayList DataBindingByList2() 
+{ 
+　　ArrayList list </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> ArrayList(); 
+　　</span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; <span style="color: #800080;">10</span>; i++<span style="color: #000000;">) 
+　　{ 
+　　　　list.Add(</span><span style="color: #0000ff;">new</span> DictionaryEntry(i.ToString(),i.ToString()+<span style="color: #800000;">"</span><span style="color: #800000;">_List</span><span style="color: #800000;">"</span><span style="color: #000000;">)); 
+　　} 
+　　</span><span style="color: #0000ff;">return</span><span style="color: #000000;"> list; 
+} 
+ 
+ 
+</span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span> 
+<span style="color: #808080;">///</span><span style="color: #008000;"> IListSource接口（DataTable、DataSet等） 
+</span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span> 
+<span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span> 
+<span style="color: #0000ff;">private</span><span style="color: #000000;"> DataTable DataBindingByDataTable() 
+{ 
+　　DataTable dt </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> DataTable(); 
+　　DataColumn dc1 </span>= <span style="color: #0000ff;">new</span> DataColumn(<span style="color: #800000;">"</span><span style="color: #800000;">Name</span><span style="color: #800000;">"</span><span style="color: #000000;">); 
+　　DataColumn dc2 </span>= <span style="color: #0000ff;">new</span> DataColumn(<span style="color: #800000;">"</span><span style="color: #800000;">Value</span><span style="color: #800000;">"</span><span style="color: #000000;">); 
+ 
+　　dt.Columns.Add(dc1); 
+　　dt.Columns.Add(dc2); 
+ 
+　　</span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">1</span>; i &lt;= <span style="color: #800080;">10</span>; i++<span style="color: #000000;">) 
+　　{ 
+　　　　DataRow dr </span>=<span style="color: #000000;"> dt.NewRow(); 
+　　　　dr[</span><span style="color: #800080;">0</span>] =<span style="color: #000000;"> i; 
+　　　　dr[</span><span style="color: #800080;">1</span>] = i.ToString() + <span style="color: #800000;">"</span><span style="color: #800000;">_DataTable</span><span style="color: #800000;">"</span><span style="color: #000000;">; 
+　　　　dt.Rows.Add(dr); 
+　　} 
+ 
+　　</span><span style="color: #0000ff;">return</span><span style="color: #000000;"> dt; 
+} 
+ 
+ 
+</span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span> 
+<span style="color: #808080;">///</span><span style="color: #008000;"> IBindingListView接口（如BindingSource类） 
+</span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span> 
+<span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span> 
+<span style="color: #0000ff;">private</span><span style="color: #000000;"> BindingSource DataBindingByBindingSource() 
+{ 
+　　Dictionary</span>&lt;<span style="color: #0000ff;">string</span>, <span style="color: #0000ff;">string</span>&gt; dic = <span style="color: #0000ff;">new</span> Dictionary&lt;<span style="color: #0000ff;">string</span>, <span style="color: #0000ff;">string</span>&gt;<span style="color: #000000;">(); 
+　　</span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; <span style="color: #800080;">10</span>; i++<span style="color: #000000;">) 
+　　{ 
+　　　　dic.Add(i.ToString(),i.ToString()</span>+<span style="color: #800000;">"</span><span style="color: #800000;">_Dictionary</span><span style="color: #800000;">"</span><span style="color: #000000;">); 
+　　} 
+　　</span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span> BindingSource(dic,<span style="color: #0000ff;">null</span><span style="color: #000000;">); 
+} 
+ 
+} 
+}</span></pre>
+</div>
+<p>上面代码中BindingSource的Datasource是一个结构类型DictionaryEntry，同样的DictionaryEntry并不能直接赋值给Combobox的DataSource，但通过BindingSource仍然可以间接实现。 这是因为：&nbsp;<br />　　BindingSource可以作为一个强类型的数据源。其数据源的类型通过以下机制之一固定。使用 Add 方法可将某项添加到 BindingSource 组件中。&nbsp;<br />　　将 DataSource 属性设置为一个列表、单个对象或类型。（这三者并不一定要实现IList或IListSource）&nbsp;<br />　　这两种机制都创建一个强类型列表。BindingSource 支持由其 DataSource 和 DataMember 属性指示的简单数据绑定和复杂数据绑定。</p>
+<p>&nbsp;</p>
+<p>总结：</p>
+<p>根据DataSource绑定的对象的不同，可以有一下几种简单的绑定:</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> DataSet 、DataTable
+ 
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 方式1</span>
+DataSet ds=<span style="color: #0000ff;">new</span><span style="color: #000000;"> DataSet ();
+</span><span style="color: #0000ff;">this</span>.dataGridView1.DataSource=ds.Table[<span style="color: #800080;">0</span><span style="color: #000000;">];
+</span><span style="color: #0000ff;">this</span>.dataGridView1.DataSource = ds.Tables[<span style="color: #800000;">"</span><span style="color: #800000;">表名</span><span style="color: #800000;">"</span><span style="color: #000000;">];
+ 
+</span><span style="color: #008000;">//</span><span style="color: #008000;">  方式2</span>
+DataTable dt=<span style="color: #0000ff;">new</span><span style="color: #000000;"> DataTable();
+</span><span style="color: #0000ff;">this</span>.dataGridView1.DataSource=<span style="color: #000000;">dt;
+ 
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> DataView</span>
+DataView dv = <span style="color: #0000ff;">new</span><span style="color: #000000;"> DataView();
+</span><span style="color: #0000ff;">this</span>.dataGridView1.DataSource =<span style="color: #000000;"> dv;
+ 
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 设置了DataMember</span>
+DataSet ds=<span style="color: #0000ff;">new</span><span style="color: #000000;"> DataSet ();
+</span><span style="color: #0000ff;">this</span>.dataGridView1.DataSource =<span style="color: #000000;"> ds;
+</span><span style="color: #0000ff;">this</span>.dataGridView1.DataMember = <span style="color: #800000;">"</span><span style="color: #800000;">表名</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+ 
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> ArrayList</span>
+ArrayList Al = <span style="color: #0000ff;">new</span><span style="color: #000000;"> ArrayList();
+</span><span style="color: #0000ff;">this</span>.dataGridView1.DataSource =<span style="color: #000000;"> Al;
+ 
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> dic</span>
+Dictionary&lt;<span style="color: #0000ff;">string</span>, <span style="color: #0000ff;">string</span>&gt; dic = <span style="color: #0000ff;">new</span> Dictionary&lt;<span style="color: #0000ff;">string</span>, <span style="color: #0000ff;">string</span>&gt;<span style="color: #000000;">();
+</span><span style="color: #0000ff;">this</span>.dataGridView1.DataSource =<span style="color: #000000;"> dic;
+ 
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> List&lt;Object&gt;</span>
+<span style="color: #0000ff;">this</span>.dataGridVi.DataSource = <span style="color: #0000ff;">new</span> BindingList&lt;Object&gt;(List&lt;Object&gt;);</pre>
+</div>
+<h1>3. 实例</h1>
+<h2><a name="t3"></a>3.1&nbsp;手动给dataGridView绑定数据源的方法</h2>
+<p>c#中手动给dataGridView绑定数据源，能够很自由地进行操作，但展示数据并没有C#自动添加数据源那么方便。可有时为了方便操作数据，我们更愿意手动连接数据源，代码如下:</p>
+<div class="cnblogs_code">
+<pre><code>conn = <span style="color: #0000ff;">new</span> OleDbConnection(<span style="color: #800000;">"</span><span style="color: #800000;">Provider=Microsoft.Jet.OLEDB.4.0;Data Source=Restaurant.mdb</span><span style="color: #800000;">"</span>);<span style="color: #008000;">//</span><span style="color: #008000;">建立数据库连接  </span>
+cmd = <span style="color: #0000ff;">new</span> OleDbCommand(<span style="color: #800000;">"</span><span style="color: #800000;">select * from data</span><span style="color: #800000;">"</span>, conn);<span style="color: #008000;">//</span><span style="color: #008000;">执行数据连接  </span>
+DataSet ds = <span style="color: #0000ff;">new</span><span style="color: #000000;"> DataSet();  
+OleDbDataAdapter da </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> OleDbDataAdapter(cmd);  
+da.Fill(ds);
+ 
+</span><span style="color: #0000ff;">this</span>.dataGridView1.DataSource = ds.Tables[<span style="color: #800080;">0</span>];<span style="color: #008000;">//</span><span style="color: #008000;">数据源  </span>
+<span style="color: #0000ff;">this</span>.dataGridView1.AutoGenerateColumns = <span style="color: #0000ff;">false</span>;<span style="color: #008000;">//</span><span style="color: #008000;">不自动  </span>
+conn.Close();<span style="color: #008000;">//</span><span style="color: #008000;">关闭数据库连接</span></pre>
+</div>
+<p>说明：</p>
+<p>解决DataGridView绑定了数据源无法更新保存当前行的问题</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">this</span>.dataGridView.currentCell=<span style="color: #0000ff;">null</span>;<span style="color: #008000;">//</span><span style="color: #008000;">该行的作用是取消datagridview行的编辑状态  adapter.Update(userTable);</span></pre>
+</div>
+<h2>3.2 利用泛型集合向DataGridView中添加数据</h2>
+<h3><a name="t5"></a>List&lt;&gt;泛型集合</h3>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> Form1_Load(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)  
+{  
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">使用List&lt;&gt;泛型集合填充DataGridView  </span>
+    List&lt;Student&gt; students = <span style="color: #0000ff;">new</span> List&lt;Student&gt;<span style="color: #000000;">();  
+    Student hat </span>= <span style="color: #0000ff;">new</span> Student(<span style="color: #800000;">"</span><span style="color: #800000;">Hathaway</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">12</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">Male</span><span style="color: #800000;">"</span><span style="color: #000000;">);  
+    Student peter </span>= <span style="color: #0000ff;">new</span> Student(<span style="color: #800000;">"</span><span style="color: #800000;">Peter</span><span style="color: #800000;">"</span>,<span style="color: #800000;">"</span><span style="color: #800000;">14</span><span style="color: #800000;">"</span>,<span style="color: #800000;">"</span><span style="color: #800000;">Male</span><span style="color: #800000;">"</span><span style="color: #000000;">);  
+    Student dell </span>= <span style="color: #0000ff;">new</span> Student(<span style="color: #800000;">"</span><span style="color: #800000;">Dell</span><span style="color: #800000;">"</span>,<span style="color: #800000;">"</span><span style="color: #800000;">16</span><span style="color: #800000;">"</span>,<span style="color: #800000;">"</span><span style="color: #800000;">Male</span><span style="color: #800000;">"</span><span style="color: #000000;">);  
+    Student anne </span>= <span style="color: #0000ff;">new</span> Student(<span style="color: #800000;">"</span><span style="color: #800000;">Anne</span><span style="color: #800000;">"</span>,<span style="color: #800000;">"</span><span style="color: #800000;">19</span><span style="color: #800000;">"</span>,<span style="color: #800000;">"</span><span style="color: #800000;">Female</span><span style="color: #800000;">"</span><span style="color: #000000;">);  
+    students.Add(hat);  
+    students.Add(peter);  
+    students.Add(dell);  
+    students.Add(anne);  
+    </span><span style="color: #0000ff;">this</span>.dataGridView1.DataSource =<span style="color: #000000;"> students;  
+}</span></pre>
+</div>
+<h3>Dictionary&lt;&gt;泛型集合</h3>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> Form1_Load(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)  
+{  
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">使用Dictionary&lt;&gt;泛型集合填充DataGridView  </span>
+    Dictionary&lt;String, Student&gt; students = <span style="color: #0000ff;">new</span> Dictionary&lt;String, Student&gt;<span style="color: #000000;">();  
+    Student hat </span>= <span style="color: #0000ff;">new</span> Student(<span style="color: #800000;">"</span><span style="color: #800000;">Hathaway</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">12</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">Male</span><span style="color: #800000;">"</span><span style="color: #000000;">);  
+    Student peter </span>= <span style="color: #0000ff;">new</span> Student(<span style="color: #800000;">"</span><span style="color: #800000;">Peter</span><span style="color: #800000;">"</span>,<span style="color: #800000;">"</span><span style="color: #800000;">14</span><span style="color: #800000;">"</span>,<span style="color: #800000;">"</span><span style="color: #800000;">Male</span><span style="color: #800000;">"</span><span style="color: #000000;">);  
+    Student dell </span>= <span style="color: #0000ff;">new</span> Student(<span style="color: #800000;">"</span><span style="color: #800000;">Dell</span><span style="color: #800000;">"</span>,<span style="color: #800000;">"</span><span style="color: #800000;">16</span><span style="color: #800000;">"</span>,<span style="color: #800000;">"</span><span style="color: #800000;">Male</span><span style="color: #800000;">"</span><span style="color: #000000;">);  
+    Student anne </span>= <span style="color: #0000ff;">new</span> Student(<span style="color: #800000;">"</span><span style="color: #800000;">Anne</span><span style="color: #800000;">"</span>,<span style="color: #800000;">"</span><span style="color: #800000;">19</span><span style="color: #800000;">"</span>,<span style="color: #800000;">"</span><span style="color: #800000;">Female</span><span style="color: #800000;">"</span><span style="color: #000000;">);  
+    students.Add(hat.StuName,hat);  
+    students.Add(peter.StuName,peter);  
+    students.Add(dell.StuName,dell);  
+    students.Add(anne.StuName,anne);  
+     　　　　</span><span style="color: #008000;">//</span><span style="color: #008000;">在这里必须创建一个BindIngSource对象，用该对象接收Dictionary&lt;&gt;泛型集合的对象  </span>
+    BindingSource bs = <span style="color: #0000ff;">new</span><span style="color: #000000;"> BindingSource();  
+     　　　　</span><span style="color: #008000;">//</span><span style="color: #008000;">将泛型集合对象的值赋给BindingSourc对象的数据源  </span>
+    bs.DataSource =<span style="color: #000000;"> students.Values;  
+    </span><span style="color: #0000ff;">this</span>.dataGridView1.DataSource =<span style="color: #000000;"> bs;  
+}</span></pre>
+</div>
+<h2>3.3 利用SqlDataReader填充DataGridView&nbsp;</h2>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;">使用SqlDataReader填充DataGridView  </span>
+<span style="color: #0000ff;">using</span> (SqlCommand command = <span style="color: #0000ff;">new</span> SqlCommand(<span style="color: #800000;">"</span><span style="color: #800000;">select * from product</span><span style="color: #800000;">"</span><span style="color: #000000;">, DBService.Conn))  
+{  
+      SqlDataReader dr </span>=<span style="color: #000000;"> command.ExecuteReader();  
+      BindingSource bs </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> BindingSource();  
+      bs.DataSource </span>=<span style="color: #000000;"> dr;  
+      </span><span style="color: #0000ff;">this</span>.dataGridView1.DataSource =<span style="color: #000000;"> bs;  
+}</span></pre>
+</div>
+<h2>3.4 利用SqlDataAdapter对象向DataGridView中添加数据&nbsp;</h2>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">using</span> (SqlDataAdapter da = <span style="color: #0000ff;">new</span> SqlDataAdapter(<span style="color: #800000;">"</span><span style="color: #800000;">select * from Product</span><span style="color: #800000;">"</span><span style="color: #000000;">, DBService.Conn))  
+{  
+      DataSet ds </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> DataSet();  
+      da.Fill(ds);  
+      </span><span style="color: #0000ff;">this</span>.dataGridView1.DataSource = ds.Tables[<span style="color: #800080;">0</span><span style="color: #000000;">];  
+}</span></pre>
+</div>
+<p>如果你没有设置DataGridView的列，它会自动生成所有列。</p>
+<p>&nbsp;</p>
+<p>作者：鵼泽 <br />来源：CSDN <br />原文：https://blog.csdn.net/qq_41511678/article/details/91947776 </p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

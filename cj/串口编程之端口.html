@@ -1,0 +1,175 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修串口编程之端口' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>串口编程之端口</center></div><div class='banquan'>原文出处:本文由博客园博主wind721888提供。<br/>
+原文连接:https://www.cnblogs.com/wind721888/p/10675936.html</div><br>
+    <p>软件程序与硬件通过串口交换数据，首先要知道COM口，但是COM口是由计算机动态随机分配的。也就是说COM口的编号是变化的。因此我们在编程时不能将COM的编号写死。针对此问题我们想到的可能是将所有COM口读出来绑定到下拉框，软件启动后从下拉框选择需要的端口。或者写到配置文件，软件启动前在配置文件配置。不用说这两种方法都不是很理想。后来通过查询资料原来COM口的变化会在注册表中记录。如图。</p>
+<p><img src="./images/串口编程之端口0.png" alt="" /></p>
+<p>这样我们就有一个想法，能不能通过监控注册表来监测COM口。于是有了下面代码。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">  1</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> Microsoft.Win32;
+</span><span style="color: #008080;">  2</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System;
+</span><span style="color: #008080;">  3</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Threading;
+</span><span style="color: #008080;">  4</span> <span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Threading.Tasks;
+</span><span style="color: #008080;">  5</span> 
+<span style="color: #008080;">  6</span> <span style="color: #0000ff;">namespace</span><span style="color: #000000;"> AutoTester.Utilities
+</span><span style="color: #008080;">  7</span> <span style="color: #000000;">{
+</span><span style="color: #008080;">  8</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> COMListenService
+</span><span style="color: #008080;">  9</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;"> 10</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;"> 11</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> COM监听服务类
+</span><span style="color: #008080;"> 12</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;"> 13</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="serialPort"&gt;</span><span style="color: #008000;">需要监听的端口</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;"> 14</span>         <span style="color: #008000;">//</span><span style="color: #008000;">public COMListenService(string serialPort)
+</span><span style="color: #008080;"> 15</span>         <span style="color: #008000;">//</span><span style="color: #008000;">{
+</span><span style="color: #008080;"> 16</span>         <span style="color: #008000;">//</span><span style="color: #008000;">    _SerialPort = serialPort;
+</span><span style="color: #008080;"> 17</span>         <span style="color: #008000;">//</span><span style="color: #008000;">}</span>
+<span style="color: #008080;"> 18</span> 
+<span style="color: #008080;"> 19</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;"> 20</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 监听连接状态事件
+</span><span style="color: #008080;"> 21</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;"> 22</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">event</span> Action&lt;<span style="color: #0000ff;">string</span>, <span style="color: #0000ff;">bool</span>&gt;<span style="color: #000000;"> ConnectionStatusChanged;
+</span><span style="color: #008080;"> 23</span> 
+<span style="color: #008080;"> 24</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;"> 25</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 连接状态
+</span><span style="color: #008080;"> 26</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;"> 27</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">bool</span><span style="color: #000000;"> _connectionStatus;
+</span><span style="color: #008080;"> 28</span> 
+<span style="color: #008080;"> 29</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;"> 30</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 连接状态
+</span><span style="color: #008080;"> 31</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;"> 32</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">bool</span><span style="color: #000000;"> ConnectionStatus
+</span><span style="color: #008080;"> 33</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 34</span>             <span style="color: #0000ff;">get</span> { <span style="color: #0000ff;">return</span><span style="color: #000000;"> _connectionStatus; }
+</span><span style="color: #008080;"> 35</span>             <span style="color: #0000ff;">set</span>
+<span style="color: #008080;"> 36</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 37</span>                 <span style="color: #0000ff;">if</span> (_connectionStatus !=<span style="color: #000000;"> value)
+</span><span style="color: #008080;"> 38</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;"> 39</span>                     _connectionStatus =<span style="color: #000000;"> value;
+</span><span style="color: #008080;"> 40</span> <span style="color: #000000;">                    ConnectionStatusChanged(_SerialPort, value);
+</span><span style="color: #008080;"> 41</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;"> 42</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 43</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 44</span> 
+<span style="color: #008080;"> 45</span> 
+<span style="color: #008080;"> 46</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;"> 47</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 开始监听
+</span><span style="color: #008080;"> 48</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;"> 49</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> StartListen()
+</span><span style="color: #008080;"> 50</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 51</span>             _TokenSource = <span style="color: #0000ff;">new</span><span style="color: #000000;"> CancellationTokenSource();
+</span><span style="color: #008080;"> 52</span> 
+<span style="color: #008080;"> 53</span>             Task.Factory.StartNew(() =&gt;
+<span style="color: #008080;"> 54</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 55</span> <span style="color: #000000;">                Listenning();
+</span><span style="color: #008080;"> 56</span> <span style="color: #000000;">            });
+</span><span style="color: #008080;"> 57</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 58</span> 
+<span style="color: #008080;"> 59</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;"> 60</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 停止监听
+</span><span style="color: #008080;"> 61</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;"> 62</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> StopListen()
+</span><span style="color: #008080;"> 63</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 64</span> <span style="color: #000000;">            _TokenSource.Cancel();
+</span><span style="color: #008080;"> 65</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 66</span> 
+<span style="color: #008080;"> 67</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;"> 68</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 监听端口
+</span><span style="color: #008080;"> 69</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;"> 70</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> Listenning()
+</span><span style="color: #008080;"> 71</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 72</span>             <span style="color: #0000ff;">while</span> (<span style="color: #0000ff;">true</span><span style="color: #000000;">)
+</span><span style="color: #008080;"> 73</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 74</span> <span style="color: #000000;">                Thread.Sleep(ListenFrequency);
+</span><span style="color: #008080;"> 75</span> 
+<span style="color: #008080;"> 76</span>                 <span style="color: #0000ff;">if</span><span style="color: #000000;"> (_TokenSource.IsCancellationRequested)
+</span><span style="color: #008080;"> 77</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;"> 78</span>                     <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 79</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;"> 80</span> 
+<span style="color: #008080;"> 81</span>                 <span style="color: #0000ff;">lock</span><span style="color: #000000;"> (_Locker)
+</span><span style="color: #008080;"> 82</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;"> 83</span>                     <span style="color: #0000ff;">bool</span> isExist = <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 84</span>                     RegistryKey keyCom = Registry.LocalMachine.OpenSubKey(<span style="color: #800000;">@"</span><span style="color: #800000;">Hardware\DeviceMap\SerialComm</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 85</span>                     <span style="color: #0000ff;">if</span> (keyCom != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+</span><span style="color: #008080;"> 86</span> <span style="color: #000000;">                    {
+</span><span style="color: #008080;"> 87</span>                         <span style="color: #0000ff;">string</span>[] sSubKeys =<span style="color: #000000;"> keyCom.GetValueNames();
+</span><span style="color: #008080;"> 88</span> 
+<span style="color: #008080;"> 89</span>                         <span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">string</span> sName <span style="color: #0000ff;">in</span><span style="color: #000000;"> sSubKeys)
+</span><span style="color: #008080;"> 90</span> <span style="color: #000000;">                        {
+</span><span style="color: #008080;"> 91</span>                             <span style="color: #0000ff;">string</span> sValue = <span style="color: #0000ff;">string</span><span style="color: #000000;">.Empty;
+</span><span style="color: #008080;"> 92</span> 
+<span style="color: #008080;"> 93</span>                             <span style="color: #008000;">//</span><span style="color: #008000;">if (sValue == _SerialPort)
+</span><span style="color: #008080;"> 94</span>                             <span style="color: #008000;">//</span><span style="color: #008000;">{
+</span><span style="color: #008080;"> 95</span>                             <span style="color: #008000;">//</span><span style="color: #008000;">    isExist = true;
+</span><span style="color: #008080;"> 96</span>                             <span style="color: #008000;">//</span><span style="color: #008000;">    break;
+</span><span style="color: #008080;"> 97</span>                             <span style="color: #008000;">//</span><span style="color: #008000;">}</span>
+<span style="color: #008080;"> 98</span> 
+<span style="color: #008080;"> 99</span>                             <span style="color: #0000ff;">if</span> (sName.Contains(<span style="color: #800000;">"</span><span style="color: #800000;">ProlificSerial</span><span style="color: #800000;">"</span>) || sName.ToUpper().Contains(<span style="color: #800000;">"</span><span style="color: #800000;">VCP</span><span style="color: #800000;">"</span><span style="color: #000000;">))                           
+</span><span style="color: #008080;">100</span> <span style="color: #000000;">                            { 
+</span><span style="color: #008080;">101</span>                                 _SerialPort = (<span style="color: #0000ff;">string</span><span style="color: #000000;">)keyCom.GetValue(sName);
+</span><span style="color: #008080;">102</span>                                 isExist = <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+</span><span style="color: #008080;">103</span>                                 <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+</span><span style="color: #008080;">104</span> <span style="color: #000000;">                            }
+</span><span style="color: #008080;">105</span> <span style="color: #000000;">                        }
+</span><span style="color: #008080;">106</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">107</span> 
+<span style="color: #008080;">108</span>                     ConnectionStatus =<span style="color: #000000;"> isExist;
+</span><span style="color: #008080;">109</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">110</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">111</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">112</span> 
+<span style="color: #008080;">113</span> 
+<span style="color: #008080;">114</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">string</span><span style="color: #000000;"> _SerialPort;
+</span><span style="color: #008080;">115</span>         <span style="color: #0000ff;">private</span><span style="color: #000000;"> CancellationTokenSource _TokenSource;
+</span><span style="color: #008080;">116</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">int</span> ListenFrequency = <span style="color: #800080;">1000</span>; <span style="color: #008000;">//</span><span style="color: #008000;">监听频率(毫秒)</span>
+<span style="color: #008080;">117</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">readonly</span> <span style="color: #0000ff;">object</span> _Locker = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">object</span><span style="color: #000000;">();
+</span><span style="color: #008080;">118</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">119</span> }</pre>
+</div>
+<p>（注：ProlificSerial和VCP和你的硬件设备有关，插上你的硬件后观察注册表变化）</p>
+<p>调用非常简单，直接上代码。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span>  COMListenService cls = <span style="color: #0000ff;">new</span><span style="color: #000000;"> COMListenService();
+</span><span style="color: #008080;">2</span>  cls.ConnectionStatusChanged +=<span style="color: #000000;"> Cls_ConnectionStatusChanged;
+</span><span style="color: #008080;">3</span>  cls.StartListen();</pre>
+</div>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;"> 2</span>         <span style="color: #808080;">///</span> 
+<span style="color: #008080;"> 3</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;"> 4</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="comPort"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;"> 5</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="status"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;"> 6</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Cls_ConnectionStatusChanged(<span style="color: #0000ff;">string</span> comPort, <span style="color: #0000ff;">bool</span><span style="color: #000000;"> status)
+</span><span style="color: #008080;"> 7</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 8</span>             <span style="color: #0000ff;">if</span><span style="color: #000000;"> (status)
+</span><span style="color: #008080;"> 9</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">10</span>                 <span style="color: #008000;">//</span><span style="color: #008000;">comPort已插入</span>
+<span style="color: #008080;">11</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">12</span>             <span style="color: #0000ff;">else</span>
+<span style="color: #008080;">13</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">14</span>                 <span style="color: #008000;">//</span><span style="color: #008000;">comPort已拔出</span>
+<span style="color: #008080;">15</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">16</span>         }</pre>
+</div>
+<p>测试后，完美一切正常。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

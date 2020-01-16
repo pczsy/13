@@ -1,0 +1,190 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修【带着canvas去流浪（7）】绘制水球图' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>【带着canvas去流浪（7）】绘制水球图</center></div><div class='banquan'>原文出处:本文由博客园博主大史不说话提供。<br/>
+原文连接:https://www.cnblogs.com/dashnowords/p/10692243.html</div><br>
+    <div class="toc">
+    <p class="toc-title">目录</p>
+    <div class="toc-list">
+        <ul>
+        <li><a href="#一.-任务说明">一. 任务说明</a></li>
+        <li><a href="#二.-重点提示">二. 重点提示</a></li>
+        <li><a href="#三.-示例代码">三. 示例代码</a></li>
+        <li><a href="#四.-文字淹水效果的实现">四. 文字淹水效果的实现</a></li>
+        <li><a href="#五.-关于canvas抗锯齿">五. 关于canvas抗锯齿</a></li>
+        <li><a href="#六.-小结">六. 小结</a></li>
+        </ul>
+    </div>
+</div>
+<p><img src="./images/【带着canvas去流浪（7）】绘制水球图0.png" /></p>
+<blockquote>
+<p>示例代码托管在：<a href="https://github.com/dashnowords/blogs/tree/master/Demo/canvas-echarts/liquid-chart">http://www.github.com/dashnowords/blogs</a></p>
+<p>博客园地址：<a href="https://www.cnblogs.com/dashnowords/p/10127926.html">《大史住在大前端》原创博文目录</a></p>
+<p>华为云社区地址：<a href="https://bbs.huaweicloud.com/blogs/8ae7e6420a4611e9bd5a7ca23e93a891">【你要的前端打怪升级指南】</a></p>
+</blockquote>
+<h2 id="一.-任务说明">一. 任务说明</h2>
+<p>使用原生<code>canvasAPI</code>绘制水球图，这将是一个非常有意思的挑战任务。水球图是一种常见的加载动画，属于扩展图形，在<code>echarts</code>中使用时需要下载扩展库（同为扩展库的还包括文字云插件和地图插件,项目地址为<a href="https://github.com/ecomfe/echarts-liquidfill" class="uri">https://github.com/ecomfe/echarts-liquidfill</a>）。</p>
+<p><img src="./images/【带着canvas去流浪（7）】绘制水球图1.png" /></p>
+<h2 id="二.-重点提示">二. 重点提示</h2>
+<p>水球图的绘制有以下几个难点：</p>
+<ol>
+<li><p>水波的绘制</p>
+<p>水波的绘制实际上是运用简谐振动公式来模拟的，也就是<code>x = A*(wt +φ)</code>,其中振幅<code>A</code>决定了水波的波纹高低，角频率<code>w</code>决定了水波的快慢，相位<code>φ</code>决定了初始位移差，再加上一些y轴方向的位移偏差和颜色的差异，就可以模拟出不同的水波，接着只需要在帧动画中不断改变<code>φ</code>并重绘曲线，就可以模拟出水波效果了。</p></li>
+<li><p>球形剪裁区域</p>
+<p>水波的范围是不能流出球形的外轮廓的，此处的做法是在绘制水波之前，先使用<code>context.clip( )</code>方法将水波的可见绘图区域控制在水球之内即可，如果还有水球外的图形需要绘制，记得在每一帧绘制完水波后调用<code>context.restore( )</code>取消掉之前的剪裁。</p></li>
+<li><p>文字的绘制</p>
+<p>如果只是绘制漂浮于水球图之上的文字，是比较容易实现的，但是如果想要实现一些细节更丰富的效果，并不那么容易。我们期望实现的效果是，当文字未被水波浸入时，显示水纹的蓝色，而被水浸润的部分显示为白色，这样看起来更加生动。但是绘制起来却并不容易，如果将文字绘制成蓝色，那么被水淹没的部分就会消失在水纹中，如果绘制成白色，那么水纹高度较小时，会完全看不到文字。那么这样的渲染文字要如何实现呢？</p></li>
+</ol>
+<h2 id="三.-示例代码">三. 示例代码</h2>
+<pre><code><code>let options = {
+    value:0,
+    a:20,//振幅
+    pos:[300,300],//水球图位置
+    r:160,//水球图半径
+    color:[&#39;#2E5199&#39;,&#39;#1567c8&#39;,&#39;#1593E7&#39;,&#39;#42B8F9&#39;]//水纹颜色
+};
+
+start(options);
+
+/**
+ * 绘制水球图
+ */
+function start(options) {
+    //移动绘图坐标至水球图左边界点
+    context.translate(options.pos[0],options.pos[1]);
+    context.font = &#39;bold 60px Arial&#39;;
+    context.textAlign=&#39;center&#39;;
+    context.textBaseLine = &#39;baseline&#39;;
+    //计算水球图绘图数据
+    createParams(options);
+    //开启帧动画
+    requestAnimationFrame(startAnim);
+}
+
+//生成水波动画参数，位置坐标公式为 y = A * (wt + φ)
+function createParams(options) {
+    options.w = [];//存储水波的角速度
+    options.theta = [];//存储每条水波的位移
+    for(let i = 0; i &lt; 4; i++){
+      options.w.push(Math.PI /(100 + 20*Math.random()));
+      options.theta.push(20*Math.random());
+    }
+}
+
+//绘制水波线
+function drawWaterLines(options) {
+   let offset;
+   let A = options.a;//正弦曲线振幅
+   let y,x,w,theta;
+   let r = options.r;
+   //遍历每一条水纹理
+   for(let line = 0; line &lt; 4; line++){ 
+     context.save();
+     //每次绘制时水波的偏移距离
+     theta = Math.random();
+     offset = r + A / 2  -  (r*19/8 + A) * (options.value / 100 ) + line * r/12;
+     //获取正弦曲线计算参数
+     w = options.w[line];
+     theta = options.theta[line];
+     context.fillStyle = options.color[line];
+     context.moveTo(0,0);
+     context.beginPath(); 
+     //以0.1为步长绘制正弦曲线
+     for(x = 0; x &lt;= 2*r; x+=0.1){
+        y = A * Math.sin(w * x + theta) + offset;
+        //绘制点
+        context.lineTo(x,y);
+     }
+      //绘制为超出水球范围的封闭图形
+      context.lineTo(x,r);
+      context.lineTo(x - 2 * r,r);
+      context.lineTo(0, A * Math.sin(theta) - options.height);
+      context.closePath();
+      //填充封闭图形得到一条水波
+      context.fill();
+      //截取水波范围，绘制文字（此处将在后文解释）
+      context.clip();
+      context.fillStyle = &#39;white&#39;;
+      context.fillText(parseInt(options.value,10) + &#39;%&#39;,options.r + 10,10);
+      context.restore();
+   }
+}
+
+//绘制最底层文字
+function drawText1(options) {
+    context.fillStyle = options.color[0];
+    context.fillText(parseInt(options.value,10) + &#39;%&#39;,options.r + 10,10);
+}
+
+//帧动画循环
+function startAnim() {
+    //用位移变化模拟水波
+    options.theta = options.theta.map(item=&gt;item-0.03);
+    //用百分比进度计算水波的高度
+    options.value += options.value &gt; 100 ? 0:0.1;
+    context.save();
+    resetClip(options);//剪切绘图区
+    drawText1(options);//绘制蓝色文字
+    drawWaterLines(options);//绘制水波线
+    context.restore();
+    requestAnimationFrame(startAnim);
+}
+
+/**设置水球范围为剪裁区域
+*(本例中并没有水球以外的部分需要绘制，实际上这里不需要加入帧动画循环中，只需要在开头设置一次即可。)
+*/
+function resetClip(options) {
+   let r = options.r;
+   context.strokeStyle = &#39;#2E5199&#39;;
+   context.fillStyle = &#39;white&#39;;
+   context.lineWidth = 10;
+   context.beginPath();
+   context.arc(r, 0, r + 10, 0, 2*Math.PI, false);
+   context.closePath();
+   context.fill();
+   context.stroke();
+   context.beginPath();
+   context.arc(r, 0, r, 0, 2*Math.PI, true);
+   context.clip();
+}</code></pre>
+<p>浏览器中可查看效果：</p>
+<p><img src="./images/【带着canvas去流浪（7）】绘制水球图2.png" /></p>
+<h2 id="四.-文字淹水效果的实现">四. 文字淹水效果的实现</h2>
+<p>文字淹水效果的绘制实际上是按照如下思路来进行的：</p>
+<ol>
+<li>首先绘制与最上层水纹颜色一致的文字，这样在被水淹没之前，文字都可以以可见的颜色显示。</li>
+<li>在绘制水波的过程中，连线完成后调用<code>context.clip( )</code>方法将绘图区域剪裁为所有浸水部分，此时再将填充色设置为白色，接着在同一个位置渲染文字，这样渲染出的白色文字不会超出水纹的范围，那么水纹之外的文字的蓝色部分也就被保存在画布上了。</li>
+<li>为了避免文字中白色的部分被下一层水纹绘制时截断，我们需要在每一层水纹绘制后，都重复步骤2，将该层水纹到水球底部的所有范围设置为剪裁区域，然后绘制该层水纹以内的白色文字部分，这样当几层水纹都绘制完毕后，文字淹水的部分就都会被染成白色。</li>
+<li>在这样的绘制方法中，文字的最终效果相当于是逐层绘制出来的片段拼接起来的，每次绘制中能被保存到最后的部分，都只有和当前层的水纹相交的部分。</li>
+</ol>
+<p>如果我们将每一层文字的绘制颜色修改一下，就比较容易理解绘制过程：</p>
+<p><img src="./images/【带着canvas去流浪（7）】绘制水球图3.png" /></p>
+<h2 id="五.-关于canvas抗锯齿">五. 关于canvas抗锯齿</h2>
+<p>如果仔细查看上面的水球外圆，会发现水球图的外侧不是很平整，看起来会有很多锯齿。网上查到的方法大多是将画布画布尺寸(<code>canvas.height</code>,<code>canvas.width</code>)调整为元素尺寸（CSS中设置的<code>canvas</code>元素的尺寸）的3-4倍，希望利用缩放来达到抗锯齿的作用，但实测的结果却并没有明显改进，利用画布尺寸来缩放在<strong>解决图像和填充模糊</strong>的时候效果较好，但在抗锯齿方面的作用似乎与线条本身的尺寸仍有关系，不是一种绝对有效的方案。另一种较为有效的方案，是在绘制外圆时增加<strong>2px-4px</strong>的深色阴影，在视觉上可以很好地弱化锯齿感。</p>
+<pre><code><code>//在绘制外圆之前添加如下代码   
+   context.shadowColor = &#39;#2E5199&#39;;
+   context.shadowBlur = 2;
+   context.shadowOffsetX = 0;
+   context.shadowOffsetY = 2;</code></pre>
+<h2 id="六.-小结">六. 小结</h2>
+<p>至此，我们在这个系列中完成了所有基本图表的原生API绘制，一些相对高级的图表，其绘制过程并不一定很复杂，比如矩形树图，绘制起来实际上都是矩形方块，但却有助于我们以某种更直观更具有表现力的方式来观察数据，例如可视化呈现<code>webpack</code>的打包结果。数据可视化的基本任务就是让数据变得可视，这需要我们为想观察的数据选出恰当的表现方式，这不是纯粹靠技术能够达到的，也需要一些艺术细胞和想象力。但无论如何，这都是一个值得研究的有趣的方向。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

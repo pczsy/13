@@ -1,0 +1,486 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修c# 自定义解析JSON字符串数据' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>c# 自定义解析JSON字符串数据</center></div><div class='banquan'>原文出处:本文由博客园博主心电心提供。<br/>
+原文连接:https://www.cnblogs.com/weloglog888/p/11084939.html</div><br>
+    <p>解析json字符串有很多方式, 1 : 在网上下载json解析的dll类库并添加引用, 调用相关方法; 2 : 使用自带类库JavaScriptSerializer的序列号和反序列化; 对于以上两个方法我没有试用过, 应该很方便很简洁性能很高吧!</p>
+<p><span style="color: #000000;">自己根据遍历字符串找json字符串规律, 自己写了一个类库, 只有一个方法只提供解析, 没有其他方法. 缺点 : 可能比较死板, 可能性能也不及网上下载解析类库. </span></p>
+<p><span style="color: #3366ff;">经测试和调试后可以遍历大部分json字符串数据, json字符串可以嵌套, 但要符合json的规律,</span> <span style="color: #3366ff;">数据中不能出现json字符串敏感关键字符 " 和 , 和 [ ] 和 { } ,数据中如果需要使用可以使用中文字符代替.</span></p>
+<p><span style="color: #339966;">数据返回结果存放在 Dictionary&lt;string, object&gt; 键 值对中, 如果 值为字符串, 那么object就为字符串,为了嵌套, 如果 值为数组, 那么object就为 List&lt;object&gt; , 如果值为一个对象, 那么object就存放在&nbsp;Dictionary&lt;string, object&gt; 如此嵌套下去, 最终数据我们根据自己的json数据结构遍历Dictionary&lt;string, object&gt;集合即可.</span> (<span style="color: #ff9900;">注 : 每个Dictionary中键必须唯一</span>)</p>
+<p><strong>1. 解析类 :&nbsp;AnalyzeJSON 全部代码:</strong></p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('4771576c-02d5-4d20-bdae-2e8f8c98a359')"><img id="code_img_closed_4771576c-02d5-4d20-bdae-2e8f8c98a359" class="code_img_closed" src="./images/c# 自定义解析JSON字符串数据0.png" alt="" /><img id="code_img_opened_4771576c-02d5-4d20-bdae-2e8f8c98a359" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('4771576c-02d5-4d20-bdae-2e8f8c98a359',event)" src="./images/c# 自定义解析JSON字符串数据1.png" alt="" />
+<div id="cnblogs_code_open_4771576c-02d5-4d20-bdae-2e8f8c98a359" class="cnblogs_code_hide">
+<pre><code><span style="color: #0000ff;">using</span><span style="color: #000000;"> System;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Collections.Generic;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Linq;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Text;
+
+</span><span style="color: #0000ff;">namespace</span><span style="color: #000000;"> System.AnalyzeJSON
+{
+    </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+    <span style="color: #808080;">///</span><span style="color: #008000;"> 对于 JSON数据进行解析
+    </span><span style="color: #808080;">///</span><span style="color: #008000;"> Date:2019/6/25
+    </span><span style="color: #808080;">///</span><span style="color: #008000;"> Author:weloglog  
+    </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> AnalyzeJSON
+    {
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 最大嵌套深度
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span> MaxNum = <span style="color: #800080;">50</span><span style="color: #000000;">;
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 解析JSON字符串
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="strJSON"&gt;</span><span style="color: #008000;">JSON字符串</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;</span><span style="color: #008000;">返回Dictionary数据</span><span style="color: #808080;">&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">public</span> Dictionary&lt;<span style="color: #0000ff;">string</span>, <span style="color: #0000ff;">object</span>&gt; AnalyzeString(<span style="color: #0000ff;">string</span><span style="color: #000000;"> strJSON)
+        {
+            </span><span style="color: #0000ff;">if</span> (strJSON == <span style="color: #0000ff;">null</span> || strJSON.Trim() == <span style="color: #800000;">""</span> || strJSON.Trim().Length &lt; <span style="color: #800080;">0</span><span style="color: #000000;">)
+            {
+                </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+            }
+
+            </span><span style="color: #0000ff;">#region</span> 筛选判断并赋值  [此步骤可以省略]
+            <span style="color: #0000ff;">int</span> idF = -<span style="color: #800080;">1</span>;<span style="color: #008000;">//</span><span style="color: #008000;">第一个 { 下标索引</span>
+            <span style="color: #0000ff;">int</span> idL = -<span style="color: #800080;">1</span>;<span style="color: #008000;">//</span><span style="color: #008000;">最后一个 } 下标索引</span>
+            <span style="color: #0000ff;">int</span> mD = <span style="color: #800080;">0</span>;<span style="color: #008000;">//</span><span style="color: #008000;">记录 { } 的个数对</span>
+            <span style="color: #0000ff;">int</span> mZ = <span style="color: #800080;">0</span>;<span style="color: #008000;">//</span><span style="color: #008000;">记录 [ ] 的个数对</span>
+            <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; strJSON.Length; i++<span style="color: #000000;">)
+            {
+                </span><span style="color: #0000ff;">if</span> (mD &gt; MaxNum || mZ &gt;<span style="color: #000000;"> MaxNum)
+                {
+                    </span><span style="color: #0000ff;">break</span>;<span style="color: #008000;">//</span><span style="color: #008000;">不满足条件退出循环</span>
+<span style="color: #000000;">                }
+                </span><span style="color: #0000ff;">if</span> (idF == -<span style="color: #800080;">1</span> &amp;&amp; strJSON[i] == <span style="color: #800000;">'</span><span style="color: #800000;">{</span><span style="color: #800000;">'</span><span style="color: #000000;">)
+                {
+                    idF </span>= i;<span style="color: #008000;">//</span><span style="color: #008000;">取第一个 { 下标</span>
+<span style="color: #000000;">                }
+                </span><span style="color: #0000ff;">if</span> (strJSON[i] == <span style="color: #800000;">'</span><span style="color: #800000;">{</span><span style="color: #800000;">'</span><span style="color: #000000;">)
+                {
+                    mD</span>++<span style="color: #000000;">;
+                    </span><span style="color: #0000ff;">if</span> (idL &gt; <span style="color: #800080;">0</span><span style="color: #000000;">)
+                    {
+                        </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+                    }
+                }
+                </span><span style="color: #0000ff;">if</span> (strJSON[i] == <span style="color: #800000;">'</span><span style="color: #800000;">}</span><span style="color: #800000;">'</span><span style="color: #000000;">)
+                {
+                    mD</span>--<span style="color: #000000;">;
+                    </span><span style="color: #0000ff;">if</span> (mD == <span style="color: #800080;">0</span><span style="color: #000000;">)
+                    {
+                        idL </span>=<span style="color: #000000;"> i;
+                    }
+                }
+                </span><span style="color: #0000ff;">if</span> (strJSON[i] == <span style="color: #800000;">'</span><span style="color: #800000;">[</span><span style="color: #800000;">'</span><span style="color: #000000;">)
+                {
+                    mZ</span>++<span style="color: #000000;">;
+                }
+                </span><span style="color: #0000ff;">if</span> (strJSON[i] == <span style="color: #800000;">'</span><span style="color: #800000;">]</span><span style="color: #800000;">'</span><span style="color: #000000;">)
+                {
+                    mZ</span>--<span style="color: #000000;">;
+                }
+            }
+            </span><span style="color: #0000ff;">if</span> (mD == <span style="color: #800080;">0</span> &amp;&amp; mZ == <span style="color: #800080;">0</span> &amp;&amp; idL &gt; <span style="color: #800080;">0</span> &amp;&amp; idL - idF &gt; <span style="color: #800080;">1</span><span style="color: #000000;">)
+            {
+                strJSON </span>= strJSON.Substring(idF, idL - idF + <span style="color: #800080;">1</span>);<span style="color: #008000;">//</span><span style="color: #008000;">重新赋值json字符串数据, 去掉{ }前后多余部分</span>
+<span style="color: #000000;">            }
+            </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+            {
+                </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">null</span>;<span style="color: #008000;">//</span><span style="color: #008000;">条件不满足, JSON字符串不规范</span>
+<span style="color: #000000;">            }
+            </span><span style="color: #0000ff;">#endregion</span>
+
+            <span style="color: #008000;">//</span><span style="color: #008000;">遍历 并返回</span>
+            <span style="color: #0000ff;">return</span><span style="color: #000000;"> obj(strJSON);
+        }
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">遇到 { } 的处理函数</span>
+        <span style="color: #0000ff;">private</span> Dictionary&lt;<span style="color: #0000ff;">string</span>, <span style="color: #0000ff;">object</span>&gt; obj(<span style="color: #0000ff;">string</span><span style="color: #000000;"> str)
+        {
+            Dictionary</span>&lt;<span style="color: #0000ff;">string</span>, <span style="color: #0000ff;">object</span>&gt; ro = <span style="color: #0000ff;">new</span> Dictionary&lt;<span style="color: #0000ff;">string</span>, <span style="color: #0000ff;">object</span>&gt;<span style="color: #000000;">();
+
+            </span><span style="color: #0000ff;">int</span> dc = <span style="color: #800080;">0</span>;<span style="color: #008000;">//</span><span style="color: #008000;">{ } 的对数</span>
+            <span style="color: #0000ff;">int</span> len =<span style="color: #000000;"> str.Length;
+            </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; len; i++<span style="color: #000000;">)
+            {
+                </span><span style="color: #0000ff;">if</span> (str[i] == <span style="color: #800000;">'</span><span style="color: #800000;">{</span><span style="color: #800000;">'</span><span style="color: #000000;">)
+                {
+                    dc</span>++<span style="color: #000000;">;
+                }
+                </span><span style="color: #0000ff;">if</span> (str[i] == <span style="color: #800000;">'</span><span style="color: #800000;">}</span><span style="color: #800000;">'</span><span style="color: #000000;">)
+                {
+                    dc</span>--<span style="color: #000000;">;
+                }
+                </span><span style="color: #0000ff;">if</span> (str[i] != <span style="color: #800000;">'</span><span style="color: #800000;">{</span><span style="color: #800000;">'</span> &amp;&amp; dc &gt; <span style="color: #800080;">0</span><span style="color: #000000;">)
+                {
+                    StringBuilder tem </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> StringBuilder();
+                    StringBuilder ojtem </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> StringBuilder();
+                    </span><span style="color: #0000ff;">bool</span> isstr = <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+                    </span><span style="color: #0000ff;">object</span> oj = <span style="color: #800000;">""</span><span style="color: #000000;">;
+                    </span><span style="color: #0000ff;">int</span> c = <span style="color: #800080;">0</span>;<span style="color: #008000;">//</span><span style="color: #008000;">次数</span>
+                    <span style="color: #0000ff;">bool</span> iskey = <span style="color: #0000ff;">true</span>;<span style="color: #008000;">//</span><span style="color: #008000;">是否为键赋值</span>
+                    <span style="color: #0000ff;">bool</span> isString = <span style="color: #0000ff;">true</span>;<span style="color: #008000;">//</span><span style="color: #008000;">值是否为字符串类型</span>
+                    <span style="color: #0000ff;">while</span> (i &lt; len &amp;&amp; str[i] != <span style="color: #800000;">'</span><span style="color: #800000;">,</span><span style="color: #800000;">'</span><span style="color: #000000;">)
+                    {
+                        </span><span style="color: #0000ff;">if</span> (iskey) <span style="color: #008000;">//</span><span style="color: #008000;">给键 赋值</span>
+<span style="color: #000000;">                        {
+                            </span><span style="color: #0000ff;">if</span> (str[i] != <span style="color: #800000;">'</span><span style="color: #800000;">\"</span><span style="color: #800000;">'</span><span style="color: #000000;">)
+                            {
+                                </span><span style="color: #0000ff;">if</span> (str[i] == <span style="color: #800000;">'</span><span style="color: #800000;">:</span><span style="color: #800000;">'</span><span style="color: #000000;">)
+                                {
+                                    iskey </span>= <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+                                    c </span>= -<span style="color: #800080;">1</span>;<span style="color: #008000;">//</span><span style="color: #008000;">重置</span>
+<span style="color: #000000;">                                }
+                                </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+                                {
+                                    </span><span style="color: #008000;">//</span><span style="color: #008000;">tem += str[i];</span>
+<span style="color: #000000;">                                    tem.Append(str[i]);
+                                }
+                            }
+                        }
+                        </span><span style="color: #0000ff;">else</span> <span style="color: #008000;">//</span><span style="color: #008000;">给值 赋值</span>
+<span style="color: #000000;">                        {
+                            </span><span style="color: #008000;">//</span><span style="color: #008000;">特殊情况, 遇到 { } 和 [ ] 的情况</span>
+                            <span style="color: #0000ff;">if</span> (isString &amp;&amp; str[i] == <span style="color: #800000;">'</span><span style="color: #800000;">[</span><span style="color: #800000;">'</span>)<span style="color: #008000;">//</span><span style="color: #008000;">只允许第一次进入</span>
+<span style="color: #000000;">                            {
+                                isString </span>= <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+                                </span><span style="color: #0000ff;">int</span> idxs = <span style="color: #800080;">0</span>;<span style="color: #008000;">//</span><span style="color: #008000;">记录 [ ] 出现的次数</span>
+                                StringBuilder tm = <span style="color: #0000ff;">new</span><span style="color: #000000;"> StringBuilder();
+                                </span><span style="color: #0000ff;">while</span> (i &lt;<span style="color: #000000;"> len)
+                                {
+                                    </span><span style="color: #0000ff;">if</span> (str[i] == <span style="color: #800000;">'</span><span style="color: #800000;">[</span><span style="color: #800000;">'</span><span style="color: #000000;">)
+                                    {
+                                        idxs</span>++<span style="color: #000000;">;
+                                    }
+                                    </span><span style="color: #0000ff;">if</span> (str[i] == <span style="color: #800000;">'</span><span style="color: #800000;">]</span><span style="color: #800000;">'</span><span style="color: #000000;">)
+                                    {
+                                        idxs</span>--<span style="color: #000000;">;
+                                    }
+                                    tm.Append(str[i]);
+                                    i</span>++<span style="color: #000000;">;
+                                    </span><span style="color: #0000ff;">if</span> (idxs == <span style="color: #800080;">0</span>)<span style="color: #008000;">//</span><span style="color: #008000;">变成一个完整的组合</span>
+<span style="color: #000000;">                                    {
+                                        </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+                                    }
+                                }
+                                oj </span>=<span style="color: #000000;"> arr(tm.ToString());
+                                </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+                            }
+                            </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (isString &amp;&amp; str[i] == <span style="color: #800000;">'</span><span style="color: #800000;">{</span><span style="color: #800000;">'</span>)<span style="color: #008000;">//</span><span style="color: #008000;">只允许第一次进入</span>
+<span style="color: #000000;">                            {
+                                isString </span>= <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+                                </span><span style="color: #0000ff;">int</span> idxs = <span style="color: #800080;">0</span>;<span style="color: #008000;">//</span><span style="color: #008000;">记录 { } 出现的次数</span>
+                                StringBuilder tm = <span style="color: #0000ff;">new</span><span style="color: #000000;"> StringBuilder();
+                                </span><span style="color: #0000ff;">while</span> (i &lt;<span style="color: #000000;"> len)
+                                {
+                                    </span><span style="color: #0000ff;">if</span> (str[i] == <span style="color: #800000;">'</span><span style="color: #800000;">{</span><span style="color: #800000;">'</span><span style="color: #000000;">)
+                                    {
+                                        idxs</span>++<span style="color: #000000;">;
+                                    }
+                                    </span><span style="color: #0000ff;">if</span> (str[i] == <span style="color: #800000;">'</span><span style="color: #800000;">}</span><span style="color: #800000;">'</span><span style="color: #000000;">)
+                                    {
+                                        idxs</span>--<span style="color: #000000;">;
+                                    }
+                                    tm.Append(str[i]);
+                                    i</span>++<span style="color: #000000;">;
+                                    </span><span style="color: #0000ff;">if</span> (idxs == <span style="color: #800080;">0</span>)<span style="color: #008000;">//</span><span style="color: #008000;">变成一个完整的组合</span>
+<span style="color: #000000;">                                    {
+                                        </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+                                    }
+                                }
+                                oj </span>=<span style="color: #000000;"> obj(tm.ToString());
+                                </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+                            }
+                            </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+                            {
+                                </span><span style="color: #0000ff;">if</span> (str[i] != <span style="color: #800000;">'</span><span style="color: #800000;">\"</span><span style="color: #800000;">'</span><span style="color: #000000;">)
+                                {
+                                    </span><span style="color: #0000ff;">if</span> (str[i] == <span style="color: #800000;">'</span><span style="color: #800000;">,</span><span style="color: #800000;">'</span> || str[i] == <span style="color: #800000;">'</span><span style="color: #800000;">}</span><span style="color: #800000;">'</span> || str[i] == <span style="color: #800000;">'</span><span style="color: #800000;">]</span><span style="color: #800000;">'</span>)<span style="color: #008000;">//</span><span style="color: #008000;">跳出循环</span>
+<span style="color: #000000;">                                    {
+                                        </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+                                    }
+                                    </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+                                    {
+                                        isstr </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+                                        ojtem.Append(str[i]);
+                                    }
+                                }
+                            }
+                        }
+                        c</span>++<span style="color: #000000;">;
+                        i</span>++<span style="color: #000000;">;
+                    }
+                    c </span>= <span style="color: #800080;">0</span><span style="color: #000000;">;
+                    </span><span style="color: #0000ff;">try</span><span style="color: #008000;">//</span><span style="color: #008000;">键 唯一</span>
+<span style="color: #000000;">                    {
+                        </span><span style="color: #0000ff;">if</span> (tem != <span style="color: #0000ff;">null</span> &amp;&amp; tem.ToString().Length &gt; <span style="color: #800080;">0</span><span style="color: #000000;">)
+                        {
+                            </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (isstr)
+                            {
+                                ro.Add(tem.ToString(), ojtem);</span><span style="color: #008000;">//</span><span style="color: #008000;">添加</span>
+                                isstr = <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+                            }
+                            </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+                            {
+                                ro.Add(tem.ToString(), oj);</span><span style="color: #008000;">//</span><span style="color: #008000;">添加</span>
+<span style="color: #000000;">                            }
+                        }
+                    }
+                    </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> { }
+                }
+            }
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> ro;
+        }
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">遇到 [ ] 的处理函数</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">object</span> arr(<span style="color: #0000ff;">string</span><span style="color: #000000;"> str)
+        {
+            </span><span style="color: #0000ff;">object</span> ojj = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">object</span><span style="color: #000000;">();
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">去掉首位 [ ] 符号</span>
+            str = str.Substring(<span style="color: #800080;">1</span>, str.Length - <span style="color: #800080;">2</span><span style="color: #000000;">);
+            </span><span style="color: #0000ff;">int</span> len =<span style="color: #000000;"> str.Length;
+            </span><span style="color: #0000ff;">int</span> c = <span style="color: #800080;">0</span>;<span style="color: #008000;">//</span><span style="color: #008000;">双引号索引</span>
+            List&lt;<span style="color: #0000ff;">object</span>&gt; lst = <span style="color: #0000ff;">new</span> List&lt;<span style="color: #0000ff;">object</span>&gt;<span style="color: #000000;">();
+            </span><span style="color: #0000ff;">bool</span> ists = <span style="color: #0000ff;">false</span>;<span style="color: #008000;">//</span><span style="color: #008000;">是否为特殊</span>
+
+            <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; len; i++<span style="color: #000000;">)
+            {
+                </span><span style="color: #0000ff;">object</span> tem = <span style="color: #800000;">""</span><span style="color: #000000;">;
+                StringBuilder sb </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> StringBuilder();
+                </span><span style="color: #0000ff;">bool</span> isstr = <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+                </span><span style="color: #0000ff;">while</span> (i &lt;<span style="color: #000000;"> len)
+                {
+                    </span><span style="color: #0000ff;">if</span> (str[i] == <span style="color: #800000;">'</span><span style="color: #800000;">[</span><span style="color: #800000;">'</span>)<span style="color: #008000;">//</span><span style="color: #008000;">特殊处理</span>
+<span style="color: #000000;">                    {
+                        </span><span style="color: #0000ff;">int</span> idxs = <span style="color: #800080;">0</span>;<span style="color: #008000;">//</span><span style="color: #008000;">记录 [ ] 出现的次数</span>
+                        StringBuilder tm = <span style="color: #0000ff;">new</span><span style="color: #000000;"> StringBuilder();
+                        </span><span style="color: #0000ff;">while</span> (i &lt;<span style="color: #000000;"> len)
+                        {
+                            </span><span style="color: #0000ff;">if</span> (str[i] == <span style="color: #800000;">'</span><span style="color: #800000;">[</span><span style="color: #800000;">'</span><span style="color: #000000;">)
+                            {
+                                idxs</span>++<span style="color: #000000;">;
+                            }
+                            </span><span style="color: #0000ff;">if</span> (str[i] == <span style="color: #800000;">'</span><span style="color: #800000;">]</span><span style="color: #800000;">'</span><span style="color: #000000;">)
+                            {
+                                idxs</span>--<span style="color: #000000;">;
+                            }
+                            tm.Append(str[i]);
+                            i</span>++<span style="color: #000000;">;
+                            </span><span style="color: #0000ff;">if</span> (idxs == <span style="color: #800080;">0</span>)<span style="color: #008000;">//</span><span style="color: #008000;">变成一个完整的组合</span>
+<span style="color: #000000;">                            {
+                                </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+                            }
+                        }
+                        lst.Add(arr(tm.ToString()));
+                        ists </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+                        i</span>++<span style="color: #000000;">;
+                        </span><span style="color: #0000ff;">continue</span><span style="color: #000000;">;
+                    }
+                    </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (str[i] == <span style="color: #800000;">'</span><span style="color: #800000;">{</span><span style="color: #800000;">'</span>)<span style="color: #008000;">//</span><span style="color: #008000;">特殊处理</span>
+<span style="color: #000000;">                    {
+                        </span><span style="color: #0000ff;">int</span> idxs = <span style="color: #800080;">0</span>;<span style="color: #008000;">//</span><span style="color: #008000;">记录 [ ] 出现的次数</span>
+                        StringBuilder tm = <span style="color: #0000ff;">new</span><span style="color: #000000;"> StringBuilder();
+                        </span><span style="color: #0000ff;">while</span> (i &lt;<span style="color: #000000;"> len)
+                        {
+                            </span><span style="color: #0000ff;">if</span> (str[i] == <span style="color: #800000;">'</span><span style="color: #800000;">{</span><span style="color: #800000;">'</span><span style="color: #000000;">)
+                            {
+                                idxs</span>++<span style="color: #000000;">;
+                            }
+                            </span><span style="color: #0000ff;">if</span> (str[i] == <span style="color: #800000;">'</span><span style="color: #800000;">}</span><span style="color: #800000;">'</span><span style="color: #000000;">)
+                            {
+                                idxs</span>--<span style="color: #000000;">;
+                            }
+                            tm.Append(str[i]);
+                            i</span>++<span style="color: #000000;">;
+                            </span><span style="color: #0000ff;">if</span> (idxs == <span style="color: #800080;">0</span>)<span style="color: #008000;">//</span><span style="color: #008000;">变成一个完整的组合</span>
+<span style="color: #000000;">                            {
+                                </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+                            }
+                        }
+                        lst.Add(obj(tm.ToString()));
+                        ists </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+                        i</span>++<span style="color: #000000;">;
+                        </span><span style="color: #0000ff;">continue</span><span style="color: #000000;">;
+                    }
+                    </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+                    {
+                        ists </span>= <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+                        </span><span style="color: #0000ff;">if</span> (c == <span style="color: #800080;">0</span> &amp;&amp; str[i] == <span style="color: #800000;">'</span><span style="color: #800000;">\"</span><span style="color: #800000;">'</span><span style="color: #000000;">)
+                        {
+                            i</span>++<span style="color: #000000;">;
+                            c</span>++<span style="color: #000000;">;
+                            </span><span style="color: #0000ff;">continue</span><span style="color: #000000;">;
+                        }
+                        </span><span style="color: #0000ff;">if</span> (str[i] == <span style="color: #800000;">'</span><span style="color: #800000;">\"</span><span style="color: #800000;">'</span> &amp;&amp; i + <span style="color: #800080;">1</span> &lt; len &amp;&amp; str[i + <span style="color: #800080;">1</span>] == <span style="color: #800000;">'</span><span style="color: #800000;">,</span><span style="color: #800000;">'</span> || i + <span style="color: #800080;">1</span> ==<span style="color: #000000;"> len)
+                        {
+                            i</span>++<span style="color: #000000;">;
+                            c</span>++<span style="color: #000000;">;
+                            </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+                        }
+                        </span><span style="color: #0000ff;">if</span> (str[i] == <span style="color: #800000;">'</span><span style="color: #800000;">\"</span><span style="color: #800000;">'</span> &amp;&amp; i + <span style="color: #800080;">1</span> &lt; len &amp;&amp; str[i + <span style="color: #800080;">1</span>] == <span style="color: #800000;">'</span><span style="color: #800000;">]</span><span style="color: #800000;">'</span> || i + <span style="color: #800080;">1</span> ==<span style="color: #000000;"> len)
+                        {
+                            i</span>++<span style="color: #000000;">;
+                            c</span>++<span style="color: #000000;">;
+                            </span><span style="color: #0000ff;">continue</span><span style="color: #000000;">;
+                        }
+                        </span><span style="color: #0000ff;">if</span> (i + <span style="color: #800080;">1</span> &lt; len &amp;&amp; str[i + <span style="color: #800080;">1</span>] == <span style="color: #800000;">'</span><span style="color: #800000;">]</span><span style="color: #800000;">'</span><span style="color: #000000;">)
+                        {
+                            i</span>++<span style="color: #000000;">;
+                            c</span>++<span style="color: #000000;">;
+                            </span><span style="color: #0000ff;">continue</span><span style="color: #000000;">;
+                        }
+                        isstr </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+                        sb.Append(str[i]);
+                        i</span>++<span style="color: #000000;">;
+                        c</span>++<span style="color: #000000;">;
+                    }
+                }
+                </span><span style="color: #0000ff;">if</span> (!<span style="color: #000000;">ists)
+                {
+                    </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (isstr)
+                    {
+                        lst.Add(sb);</span><span style="color: #008000;">//</span><span style="color: #008000;"> [ ] 的值存入List&lt;string&gt; 中</span>
+                        isstr = <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+                    }
+                    </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+                    {
+                        lst.Add(tem);</span><span style="color: #008000;">//</span><span style="color: #008000;"> [ ] 的值存入List&lt;string&gt; 中</span>
+<span style="color: #000000;">                    }
+                }
+                c </span>= <span style="color: #800080;">0</span>;<span style="color: #008000;">//</span><span style="color: #008000;">归零</span>
+<span style="color: #000000;">            }
+            ojj </span>=<span style="color: #000000;"> lst;
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> ojj;
+        }
+    }
+}</span></pre>
+</div>
+<span class="cnblogs_code_collapse">AnalyzeJSON 类</span></div>
+<p><strong>2. 方法的调用和数据的使用</strong></p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('bb1060c6-c2ec-4bd5-8fc0-796b08bb4c3a')"><img id="code_img_closed_bb1060c6-c2ec-4bd5-8fc0-796b08bb4c3a" class="code_img_closed" src="./images/c# 自定义解析JSON字符串数据0.png" alt="" /><img id="code_img_opened_bb1060c6-c2ec-4bd5-8fc0-796b08bb4c3a" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('bb1060c6-c2ec-4bd5-8fc0-796b08bb4c3a',event)" src="./images/c# 自定义解析JSON字符串数据1.png" alt="" />
+<div id="cnblogs_code_open_bb1060c6-c2ec-4bd5-8fc0-796b08bb4c3a" class="cnblogs_code_hide">
+<pre><code><span style="color: #0000ff;">using</span><span style="color: #000000;"> System;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Collections.Generic;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.ComponentModel;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Data;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Drawing;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.AnalyzeJSON;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Linq;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Text;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Threading.Tasks;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Windows.Forms;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.IO;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Text.RegularExpressions;
+
+</span><span style="color: #0000ff;">namespace</span><span style="color: #000000;"> WindowsFormsApplication1
+{
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">partial</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Form1 : Form
+    {
+        </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> Form1()
+        {
+            InitializeComponent();
+        }
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">按钮点击事件</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> button1_Click(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)
+        {
+            </span><span style="color: #008000;">//</span>
+            <span style="color: #008000;">//</span><span style="color: #008000;">窗体中一个 TextBox 文本框[多行] 和 一个 Button 测试按钮
+            </span><span style="color: #008000;">//</span>
+
+            <span style="color: #008000;">//</span>
+            <span style="color: #008000;">//</span><span style="color: #008000;">在网上随便找了一个json数据字符串的js
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">[在这里感谢'4399游戏资讯'平台提供的这些数据供测试,该js只供学习不可用作商业用途]
+            </span><span style="color: #008000;">//</span>
+            <span style="color: #008000;">//</span><span style="color: #008000;">该js是一个游戏类英雄相关属性的数据
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">js共4行, 每一行数据也非常大, 我们使用第一行进行测试,每一行使用回车键[\n]分割
+            </span><span style="color: #008000;">//
+</span>            <span style="color: #0000ff;">string</span> src = <span style="color: #800000;">"</span><span style="color: #800000;">//newsimg.5054399.com/dtzzq/static/zrmnq/wap/js/data.js</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            StreamReader reader </span>= <span style="color: #0000ff;">new</span> StreamReader(System.Net.WebRequest.Create(<span style="color: #800000;">"</span><span style="color: #800000;">http:</span><span style="color: #800000;">"</span> +<span style="color: #000000;"> src).GetResponse().GetResponseStream());
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">Regex.Unescape("") 方法是将字符串含有 \uxxxx 的16进制转化为我们识别的字符</span>
+            <span style="color: #0000ff;">string</span>[] zongstrs = Regex.Unescape(reader.ReadToEnd()).Split(<span style="color: #800000;">'</span><span style="color: #800000;">\n</span><span style="color: #800000;">'</span><span style="color: #000000;">);
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">创建一个解析对象</span>
+            AnalyzeJSON aj = <span style="color: #0000ff;">new</span><span style="color: #000000;"> AnalyzeJSON();
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">调用方法 AnalyzeString("JSON数据字符串") 进行解析 并返回 解析后的数据集合Dictionary&lt;string, object&gt;</span>
+            Dictionary&lt;<span style="color: #0000ff;">string</span>, <span style="color: #0000ff;">object</span>&gt; obj = aj.AnalyzeString(zongstrs[<span style="color: #800080;">0</span><span style="color: #000000;">]);
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">定义一个字符串进行拼接显示得到的数据</span>
+            StringBuilder sb = <span style="color: #0000ff;">new</span><span style="color: #000000;"> StringBuilder();
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">调用拼接处理方法</span>
+<span style="color: #000000;">            zx(obj, sb);
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">把得到的数据以字符串的形式展示出来</span>
+            textBox1.Text =<span style="color: #000000;"> sb.ToString();
+        }
+
+        </span><span style="color: #008000;">//</span>
+        <span style="color: #008000;">//</span><span style="color: #008000;">数据遍历解析方法
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">根据需要可以为自己定义数据处理赋值方法,此处只作为显示使用
+        </span><span style="color: #008000;">//
+</span>        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> zx(Dictionary&lt;<span style="color: #0000ff;">string</span>, <span style="color: #0000ff;">object</span>&gt;<span style="color: #000000;"> obj, StringBuilder sb)
+        {
+            </span><span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">var</span> item <span style="color: #0000ff;">in</span><span style="color: #000000;"> obj)
+            {
+                </span><span style="color: #0000ff;">if</span> ((item.Value <span style="color: #0000ff;">as</span> Dictionary&lt;<span style="color: #0000ff;">string</span>, <span style="color: #0000ff;">object</span>&gt;) != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+                {
+                    zx((item.Value </span><span style="color: #0000ff;">as</span> Dictionary&lt;<span style="color: #0000ff;">string</span>, <span style="color: #0000ff;">object</span>&gt;<span style="color: #000000;">), sb);
+                }
+                </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+                {
+                    </span><span style="color: #0000ff;">if</span> ((item.Value <span style="color: #0000ff;">as</span> List&lt;<span style="color: #0000ff;">object</span>&gt;) != <span style="color: #0000ff;">null</span> &amp;&amp; (item.Value <span style="color: #0000ff;">as</span> List&lt;<span style="color: #0000ff;">object</span>&gt;).Count &gt; <span style="color: #800080;">0</span><span style="color: #000000;">)
+                    {
+                        List</span>&lt;<span style="color: #0000ff;">object</span>&gt; lst = item.Value <span style="color: #0000ff;">as</span> List&lt;<span style="color: #0000ff;">object</span>&gt;<span style="color: #000000;">;
+                        sb.Append(item.Key </span>+ <span style="color: #800000;">"</span><span style="color: #800000;">:\r\n</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                        </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; lst.Count; i++<span style="color: #000000;">)
+                        {
+                            </span><span style="color: #0000ff;">if</span> ((lst[i] <span style="color: #0000ff;">as</span> Dictionary&lt;<span style="color: #0000ff;">string</span>, <span style="color: #0000ff;">object</span>&gt;) != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+                            {
+                                zx((lst[i] </span><span style="color: #0000ff;">as</span> Dictionary&lt;<span style="color: #0000ff;">string</span>, <span style="color: #0000ff;">object</span>&gt;<span style="color: #000000;">), sb);
+                            }
+                            </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+                            {
+                                sb.Append(</span><span style="color: #800000;">"</span><span style="color: #800000;">\t</span><span style="color: #800000;">"</span> + lst[i] + <span style="color: #800000;">"</span><span style="color: #800000;">,</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                            }
+
+                        }
+                        sb.Append(</span><span style="color: #800000;">"</span><span style="color: #800000;">\r\n</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                    }
+                    </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+                    {
+                        sb.Append(item.Key </span>+ <span style="color: #800000;">"</span><span style="color: #800000;">:</span><span style="color: #800000;">"</span> + item.Value.ToString() + <span style="color: #800000;">"</span><span style="color: #800000;">\r\n</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                    }
+                }
+            }
+        }
+
+
+    }
+}</span></pre>
+</div>
+<span class="cnblogs_code_collapse">页面展示代码</span></div>
+<p>&nbsp;</p>
+<p><span style="color: #ff0000;"><strong>代码可能还有很多需要改进的地方, 希望各位大神指出来, 共同学习进步!^_^</strong></span></p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

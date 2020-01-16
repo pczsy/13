@@ -1,0 +1,190 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修实现 WebApi 自托管服务宿主于 WinForms 及其交互' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>实现 WebApi 自托管服务宿主于 WinForms 及其交互</center></div><div class='banquan'>原文出处:本文由博客园博主心千提供。<br/>
+原文连接:https://www.cnblogs.com/xixixiao/p/run-self-hosting-owin-web-api-inside-winforms.html</div><br>
+    <p>在 Windows 平台 Web 服务一般托管于 IIS. 在开发中, 会遇到 WinForms 或 WPF 服务端程序需要提供对外 API 作为服务. 在本文详细介绍 WebApi 自托管于 WinForms 中, WPF 或 Console 程序实现类似.</p>
+<h2 id="完整示例演示">0. 完整示例演示</h2>
+<p><img src="./images/实现 WebApi 自托管服务宿主于 WinForms 及其交互0.png" alt="示例演示" /></p>
+<h2 id="新建解决方案以及-winforms-工程">1. 新建解决方案以及 WinForms 工程</h2>
+<h3 id="新建解决方案及工程">1.1. 新建解决方案及工程</h3>
+<p>如下图所示:</p>
+<p><img src="./images/实现 WebApi 自托管服务宿主于 WinForms 及其交互1.png" alt="解决方案结构" /></p>
+<ul>
+<li>建立空白解决方案及 Winforms 工程,</li>
+<li>新建 <code>Controllers</code> 文件夹用于存放 WebApi 代码,</li>
+<li>新建 <code>Services</code> 文件夹用于存放服务代码.</li>
+</ul>
+<h3 id="拖拽控件">1.2. 拖拽控件</h3>
+<p>绘制必要控件, 布局如下:</p>
+<p><img src="./images/实现 WebApi 自托管服务宿主于 WinForms 及其交互2.png" alt="窗体布局" /></p>
+<p>备注: 绘制一个 NumericUpDown 和两个 Button 控件.</p>
+<h3 id="引用相关开发包">1.3. 引用相关开发包:</h3>
+<ul>
+<li><code>Microsoft.AspNet.WebApi.Client</code></li>
+<li><code>Microsoft.AspNet.WebApi.Core</code></li>
+<li><code>Microsoft.AspNet.WebApi.SelfHost</code></li>
+</ul>
+<h2 id="开发-http-服务类">2. 开发 HTTP 服务类</h2>
+<pre><code><code>/// &lt;summary&gt;
+/// HTTP service.
+/// &lt;/summary&gt;
+public class HttpService : IDisposable
+{
+    /// &lt;summary&gt;
+    /// HTTP server&#39;s listening port.
+    /// &lt;/summary&gt;
+    public int Port { get; set; }
+
+    /// &lt;summary&gt;
+    /// HTTP self hosting.
+    /// &lt;/summary&gt;
+    private readonly HttpSelfHostServer _server;
+
+    /// &lt;summary&gt;
+    /// HTTP server.
+    /// &lt;/summary&gt;
+    /// &lt;param name=&quot;port&quot;&gt;Listening port.&lt;/param&gt;
+    public HttpService(int port)
+    {
+        this.Port = port;
+
+        var config = new HttpSelfHostConfiguration($&quot;http://0.0.0.0:{this.Port}&quot;);
+
+        config.MapHttpAttributeRoutes();
+        config.Routes.MapHttpRoute(&quot;DefaultApi&quot;, &quot;api/{controller}/{action}&quot;);
+
+        _server = new HttpSelfHostServer(config);
+    }
+
+    #region HTTP Service
+
+    /// &lt;summary&gt;
+    /// start HTTP server.
+    /// &lt;/summary&gt;
+    public Task StartHttpServer()
+    {
+        return _server.OpenAsync();
+    }
+
+    /// &lt;summary&gt;
+    /// Close HTTP server.
+    /// &lt;/summary&gt;
+    public Task CloseHttpServer()
+    {
+        return _server.CloseAsync();
+    }
+
+    #endregion
+
+    /// &lt;summary&gt;
+    /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+    /// &lt;/summary&gt;
+    public void Dispose()
+    {
+        _server?.Dispose();
+    }
+}</code></pre>
+<p>WebApi 自托管服务主要由 <code>HttpSelfHostServer</code> 实现, 其 <code>OpenAsync</code> 开启 HTTP 监听, <code>CloseAsync</code> 关闭 HTTP 监听.</p>
+<pre><code><code>config.MapHttpAttributeRoutes();</code></pre>
+<p>可以在 <code>Controller</code> 中使用路由特性.</p>
+<h2 id="调用-http-服务">3. 调用 HTTP 服务</h2>
+<p>在 MainForm 窗体程序中引用 HTTP 服务:</p>
+<pre><code><code>
+public class MainForm:Form
+{
+    /// &lt;summary&gt;
+    /// Http service.
+    /// &lt;/summary&gt;
+    private HttpService _http;
+}
+</code></pre>
+<h3 id="编写开启-http-服务代码">3.1. 编写开启 HTTP 服务代码</h3>
+<pre><code><code>/// &lt;summary&gt;
+/// start the http server.
+/// &lt;/summary&gt;
+private async void StartButton_Click(object sender, EventArgs e)
+{
+    /**
+     * start.
+     */
+    try
+    {
+        var port = Convert.ToInt32(this.PortNum.Value);
+
+        /**
+         * initialize http service.
+         */
+        _http = new HttpService(port);
+
+        await _http.StartHttpServer();
+    }
+    catch (Exception exception)
+    {
+        MessageBox.Show($&quot;{exception.Message}&quot;, &quot;Error&quot;, MessageBoxButtons.OK, MessageBoxIcon.Error);
+    }
+}</code></pre>
+<h3 id="编写关闭-http-服务代码">3.2. 编写关闭 HTTP 服务代码</h3>
+<pre><code><code>/// &lt;summary&gt;
+/// close the http server.
+/// &lt;/summary&gt;
+private async void CloseButton_Click(object sender, EventArgs e)
+{
+    /**
+     * close.
+     */
+    try
+    {
+        await _http.CloseHttpServer();
+        _http.Dispose();
+    }
+    catch (Exception exception)
+    {
+        MessageBox.Show($&quot;{exception.Message}&quot;, &quot;Error&quot;, MessageBoxButtons.OK, MessageBoxIcon.Error);
+    }
+}</code></pre>
+<h2 id="开发控制器">4. 开发控制器</h2>
+<pre><code><code>/// &lt;summary&gt;
+/// Home controller.
+/// &lt;/summary&gt;
+[RoutePrefix(&quot;api/home&quot;)]
+public class HomeController : ApiController
+{
+    /// &lt;summary&gt;
+    /// Print the greetings
+    /// &lt;/summary&gt;
+    /// &lt;param name=&quot;name&quot;&gt;visitor&lt;/param&gt;
+    /// &lt;returns&gt;greetings&lt;/returns&gt;
+    [Route(&quot;echo&quot;)]
+    [HttpGet]
+    public IHttpActionResult Echo(string name)
+    {
+        return Json(new {Name = name, Message = $&quot;Hello, {name}&quot;});
+    }
+}</code></pre>
+<h2 id="合在一起">5. 合在一起</h2>
+<p><img src="./images/实现 WebApi 自托管服务宿主于 WinForms 及其交互3.png" alt="解决方案完整结构" /></p>
+<p><a href="https://github.com/xixixixixiao/xiao-blog/tree/master/solutions/SelfHostingDemo">下载完整示例代码 (GitHub)</a></p>
+<h2 id="注意事项">6. 注意事项</h2>
+<p>程序需要拥有 <strong>管理员权限</strong> 才能开启 HTTP 监听, 在调试时, 若 Visual Studio 为拥有管理员权限, 则无法正常运行. 同样地, 在程序编译生成之后运行时亦需要权限.</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

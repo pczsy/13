@@ -1,0 +1,71 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C#学习--Oracle数据库基本操作（连接、增、删、改、查）封装' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C#学习--Oracle数据库基本操作（连接、增、删、改、查）封装</center></div><div class='banquan'>原文出处:本文由博客园博主让挑战成为习惯提供。<br/>
+原文连接:https://www.cnblogs.com/mexihq/p/11700741.html</div><br>
+    <h3>&nbsp;写在前面：</h3>
+<p>&nbsp;SQLserver的C#封装：<a href="https://www.cnblogs.com/mexihq/p/11636785.html">https://www.cnblogs.com/mexihq/p/11636785.html</a></p>
+<p>类似于上篇有关SQLserver的C#封装，小编对Oracle数据库进行了相应的封装，方便后期开发使用，主要包括Oracle数据库的连接、增、删、改、查，如有什么问题还请各位大佬指教。后续也将对其他几个常用的数据库进行相应的整理。话不多说，直接开始码代码。</p>
+<p>先声明一个SqlConnection便于后续使用。</p>
+<div class="cnblogs_code">
+<pre><code>private OracleConnection oracle_con;;//声明一个OracleConnection方便使用 </pre>
+</div>
+<p>&nbsp;</p>
+<h3>&nbsp;Oracle打开：</h3>
+<div class="cnblogs_code">
+<p> /// &lt;summary&gt;<br />        /// Oracle open<br />        /// &lt;/summary&gt;<br />        /// &lt;param name="link"&gt;link statement&lt;/param&gt;<br />        /// &lt;returns&gt;Success:success; Fail:reason&lt;/returns&gt;<br />        public string Oracle_Open(string link)<br />        {<br />            　　try<br />            　　{<br />                　　　　oracle_con = new OracleConnection(link);<br />                　　　　oracle_con.Open();<br />                　　　　return "success";<br />            　　}<br />            　　catch (Exception ex)<br />            　　{<br />                　　　　return ex.Message;<br />            　　}<br />        }</p>
+
+
+</div>
+<h3>Oracle关闭：</h3>
+<div class="cnblogs_code">
+<p> /// &lt;summary&gt;<br />        /// Oracle close<br />        /// &lt;/summary&gt;<br />        /// &lt;returns&gt;Success:success Fail:reason&lt;/returns&gt;<br />        public string Oracle_Close()<br />        {<br />            　　try<br />            　　{<br />                　　　　if (oracle_con == null)<br />                　　　　{<br />                    　　　　　　return "No database connection";<br />                　　　　}<br />                　　　　if (oracle_con.State == ConnectionState.Open)<br />                　　　　{<br />                    　　　　　　oracle_con.Close();<br />                    　　　　　　oracle_con.Dispose();<br />                　　　　}<br />                　　　　else<br />                　　　　{<br />                    　　　　　　if (oracle_con.State == ConnectionState.Closed)<br />                    　　　　　　{<br />                        　　　　　　　　return "success";<br />                    　　　　　　}<br />                    　　　　　　if (oracle_con.State == ConnectionState.Broken)<br />                    　　　　　　{<br />                        　　　　　　　　return "ConnectionState:Broken";<br />                    　　　　　　}<br />                　　　　}<br />                　　　　return "success";<br />            　　}<br />            　　catch (Exception ex)<br />            　　{<br />                　　　　return ex.Message;<br />            　　}</p>
+<p>}</p>
+
+
+</div>
+<h3>Oracle的增删改：</h3>
+<div class="cnblogs_code">
+<p> /// &lt;summary&gt;<br />        /// Oracle insert,delete,update<br />        /// &lt;/summary&gt;<br />        /// &lt;param name="sql"&gt;insert,delete,update statement&lt;/param&gt;<br />        /// &lt;returns&gt;Success:success + Number of affected rows; Fail:reason&lt;/returns&gt;<br />        public string Oracle_Insdelupd(string sql)<br />        {<br />            　　try<br />            　　{<br />                　　　　int num = 0;<br />                　　　　if (oracle_con == null)<br />                　　　　{<br />                    　　　　　　return "Please open the database connection first";<br />                　　　　}<br />                　　　　if (oracle_con.State == ConnectionState.Open)<br />                　　　　{<br />                    　　　　　　OracleCommand oracleCommand = new OracleCommand(sql, oracle_con);<br />                    　　　　　　num = oracleCommand.ExecuteNonQuery();<br />                　　　　}<br />                　　　　else<br />                　　　　{<br />                    　　　　　　if (oracle_con.State == ConnectionState.Closed)<br />                    　　　　　　{<br />                        　　　　　　　　return "Database connection closed";<br />                    　　　　　　}<br />                    　　　　　　if (oracle_con.State == ConnectionState.Broken)<br />                    　　　　　　{<br />                        　　　　　　　　return "Database connection is destroyed";<br />                    　　　　　　}<br />                　　　　}<br />                　　　　return "success" + num;<br />            　　}<br />            　　catch (Exception ex)<br />            　　{<br />                　　　　return ex.Message.ToString();<br />            　　}<br />        }</p>
+
+
+</div>
+<h3>Oracle的查：</h3>
+<div class="cnblogs_code">
+<p>/// &lt;summary&gt;<br />        /// Oracle select<br />        /// &lt;/summary&gt;<br />        /// &lt;param name="sql"&gt;select statement&lt;/param&gt;<br />        /// &lt;param name="record"&gt;Success:success; Fail:reason&lt;/param&gt;<br />        /// &lt;returns&gt;select result&lt;/returns&gt;<br />        public DataSet Oracle_Select(string sql, out string record)<br />        {<br />            　　try<br />            　　{<br />                　　　　DataSet dataSet = new DataSet();<br />                　　　　if (oracle_con != null)<br />                　　　　{<br />                    　　　　　　if (oracle_con.State == ConnectionState.Open)<br />                    　　　　　　{<br />                        　　　　　　　　OracleDataAdapter oracleDataAdapter = new OracleDataAdapter(sql, oracle_con);<br />                        　　　　　　　　oracleDataAdapter.Fill(dataSet, "sample");<br />                        　　　　　　　　oracleDataAdapter.Dispose();<br />                        　　　　　　　　record = "OK";<br />                        　　　　　　　　return dataSet;<br />                    　　　　　　}<br />                    　　　　　　if (oracle_con.State == ConnectionState.Closed)<br />                    　　　　　　{<br />                        　　　　　　　　record = "Database connection closed";<br />                    　　　　　　}<br />                    　　　　　　else if (oracle_con.State == ConnectionState.Broken)<br />                    　　　　　　{<br />                        　　　　　　　　record = "Database connection is destroyed";<br />                    　　　　　　}<br />                　　　　}<br />                　　　　else<br />                　　　　{<br />                    　　　　　　record = "Please open the database connection first";<br />                　　　　}<br />                　　　　record = "error";<br />                　　　　return dataSet;<br />            　　}<br />            　　catch (Exception ex)<br />            　　{<br />                　　　　DataSet dataSet = new DataSet();<br />                　　　　record = ex.Message.ToString();<br />                　　　　return dataSet;<br />            　　}<br />        }</p>
+
+
+</div>
+<p>&nbsp;小编发现以上这种封装方式还是很麻烦，每次对Oracle进行增删改查的时候还得先打开数据库，最后还要关闭，实际运用起来比较麻烦。因此对上面两个增删改查的方法进行了重载，在每次进行操作时都先打开数据库，然后关闭数据库。</p>
+<div class="cnblogs_code">
+<p> /// &lt;summary&gt;<br />        /// Oracle insert,delete,update<br />        /// &lt;/summary&gt;<br />        /// &lt;param name="sql"&gt;insert,delete,update statement&lt;/param&gt;<br />        /// &lt;param name="link"&gt;link statement&lt;/param&gt;<br />        /// &lt;returns&gt;Success:success + Number of affected rows; Fail:reason&lt;/returns&gt;<br />        public string Oracle_Insdelupd(string sql, string link)<br />        {<br />            　　try<br />            　　{<br />                　　　　int num = 0;<br />                　　　　using (OracleConnection oracleConnection = new OracleConnection(link))<br />                　　　　{<br />                    　　　　　　DataSet dataSet = new DataSet();<br />                    　　　　　　oracleConnection.Open();<br />                    　　　　　　OracleCommand oracleCommand = new OracleCommand(sql, oracleConnection);<br />                    　　　　　　num = oracleCommand.ExecuteNonQuery();<br />                    　　　　　　oracleConnection.Close();<br />                    　　　　　　return "success" + num;<br />                　　　　}<br />            　　}<br />            　　catch (Exception ex)<br />            　　{<br />                　　　　return ex.Message.ToString();<br />            　　}<br />        }</p>
+
+
+</div>
+<p>&nbsp;</p>
+<div class="cnblogs_code">
+<p>/// &lt;summary&gt;<br />        /// Oracle select<br />        /// &lt;/summary&gt;<br />        /// &lt;param name="sql"&gt;select statement&lt;/param&gt;<br />        /// &lt;param name="link"&gt;link statement&lt;/param&gt;<br />        /// &lt;param name="record"&gt;Success:success; Fail:reason&lt;/param&gt;<br />        /// &lt;returns&gt;select result&lt;/returns&gt;<br />        public DataSet Oracle_Select(string sql, string link, out string record)<br />        {<br />            　　try<br />            　　{<br />                　　　　using (OracleConnection oracleConnection = new OracleConnection(link))<br />                　　　　{<br />                    　　　　　　DataSet dataSet = new DataSet();<br />                    　　　　　　oracleConnection.Open();<br />                    　　　　　　OracleDataAdapter oracleDataAdapter = new OracleDataAdapter(sql, oracleConnection);<br />                    　　　　　　oracleDataAdapter.Fill(dataSet, "sample");<br />                    　　　　　　oracleDataAdapter.Dispose();<br />                    　　　　　　oracleConnection.Close();<br />                    　　　　　　record = "success";<br />                    　　　　　　return dataSet;<br />                　　　　}<br />            　　}<br />            　　catch (Exception ex)<br />            　　{<br />                　　　　DataSet dataSet = new DataSet();<br />                　　　　record = ex.Message.ToString();<br />                　　　　return dataSet;<br />            　　}<br />        }</p>
+
+
+</div>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

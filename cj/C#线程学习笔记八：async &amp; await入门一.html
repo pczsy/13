@@ -1,0 +1,194 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C#线程学习笔记八：async &amp; await入门一' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C#线程学习笔记八：async &amp; await入门一</center></div><div class='banquan'>原文出处:本文由博客园博主缥缈的尘埃提供。<br/>
+原文连接:https://www.cnblogs.com/atomy/p/12038318.html</div><br>
+    <p>&nbsp; &nbsp; <strong>一、涉及内容</strong></p>
+<p>&nbsp; &nbsp; async &amp; await是C# 5.0引入的，控制台输出所使用的$符号（拼接字符串）是C# 6.0引入的，其功能类似于string.Format()方法。</p>
+<p>&nbsp; &nbsp; <strong>二、多线程、异步、同步之间的联系与区别</strong></p>
+<p>&nbsp; &nbsp; 厨房案例：</p>
+<p>&nbsp; &nbsp; 比如说你要炒5道菜ABCDE，但是只有两个炉子可以用，即同时只能炒两道菜。在这里，炉子就是线程。</p>
+<p>&nbsp; &nbsp; 假如两个炉子分别同时炒A和B，那剩下的CDE只能等A或B炒完了才能开始。这个等待的过程就是<strong>同步</strong>，我们称之为<strong>阻塞</strong>，即这个时候你只能炒A和B这两道菜。</p>
+<p>&nbsp; &nbsp;&nbsp;假如你还有一台咖啡机，在你炒A和B的时候顺手把咖啡豆和水放到咖啡机里打开开关，然后你就不用管它了。此时，就是新开了一个线程去煮咖啡，而煮咖啡</p>
+<p>是由咖啡机自动完成的并不影响继续炒菜，所以煮咖啡这个线程是<strong>异步</strong>的，我们称之为<strong>非阻塞</strong>。</p>
+<p><em>&nbsp; &nbsp; </em>当咖啡机叮的一声通知你咖啡已经煮好了，你要去把咖啡拿出来加点糖或奶什么的，这个拿咖啡的动作我们称之为<strong>回调</strong>，这个是咖啡机线程完成之后通知你要去</p>
+<p>做的动作。</p>
+<p>&nbsp; &nbsp; 简单来说：</p>
+<p>&nbsp; &nbsp; 会占用你的时间让你无法去做其它事情的任务叫做同步任务（炒菜要专注否则会糊锅）。</p>
+<p>&nbsp; &nbsp; 那些不需要占用你的时间的任务叫做异步任务（咖啡机自己会把咖啡煮好，不需要你一直看着它）。</p>
+<p>&nbsp; &nbsp; 下面代码演示不使用异步的情况：</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('d6756301-a38a-40c7-9214-18cd8954fbcd')"><img id="code_img_closed_d6756301-a38a-40c7-9214-18cd8954fbcd" class="code_img_closed" src="./images/C#线程学习笔记八：async &amp; await入门一0.png" alt="" /><img id="code_img_opened_d6756301-a38a-40c7-9214-18cd8954fbcd" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('d6756301-a38a-40c7-9214-18cd8954fbcd',event)" src="./images/C#线程学习笔记八：async &amp; await入门一1.png" alt="" />
+<div id="cnblogs_code_open_d6756301-a38a-40c7-9214-18cd8954fbcd" class="cnblogs_code_hide">
+<pre><code>    <span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">创建计时器</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">readonly</span> Stopwatch stopwatch = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Stopwatch();
+
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            </span><span style="color: #0000ff;">#region</span> async &amp; await入门一之不使用异步
+            <span style="color: #008000;">//</span><span style="color: #008000;">启动计时器</span>
+<span style="color: #000000;">            stopwatch.Start();
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">URL地址</span>
+            <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">string</span> url1 = <span style="color: #800000;">"</span><span style="color: #800000;">http://www.cnblogs.com/</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">const</span> <span style="color: #0000ff;">string</span> url2 = <span style="color: #800000;">"</span><span style="color: #800000;">http://www.cnblogs.com/atomy/</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">异步下载某网站内容，并统计字符的个数。</span>
+            <span style="color: #0000ff;">var</span> result1 = CountCharacters(<span style="color: #800000;">"</span><span style="color: #800000;">url1</span><span style="color: #800000;">"</span><span style="color: #000000;">, url1);
+            </span><span style="color: #0000ff;">var</span> result2 = CountCharacters(<span style="color: #800000;">"</span><span style="color: #800000;">url2</span><span style="color: #800000;">"</span><span style="color: #000000;">, url2);
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">主要是通过拼接字符串达到耗时操作</span>
+            <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> i = <span style="color: #800080;">0</span>; i &lt; <span style="color: #800080;">3</span>; i++<span style="color: #000000;">)
+            {
+                ExtraOperation(i </span>+ <span style="color: #800080;">1</span><span style="color: #000000;">);
+            }
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">控制台输出</span>
+            Console.WriteLine($<span style="color: #800000;">"</span><span style="color: #800000;">{url1} 的字符个数：{result1}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">{url2} 的字符个数：{result2}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">总耗时{stopwatch.ElapsedMilliseconds}ms。</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            Console.Read();
+            </span><span style="color: #0000ff;">#endregion</span><span style="color: #000000;">
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 统计字符个数
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="id"&gt;&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="address"&gt;&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">int</span> CountCharacters(<span style="color: #0000ff;">string</span> name, <span style="color: #0000ff;">string</span><span style="color: #000000;"> address)
+        {
+            </span><span style="color: #0000ff;">var</span> wc = <span style="color: #0000ff;">new</span><span style="color: #000000;"> WebClient();
+            Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">{name}开始调用，历时{stopwatch.ElapsedMilliseconds}ms，线程id={Thread.CurrentThread.ManagedThreadId}。</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+
+            </span><span style="color: #0000ff;">var</span> result =<span style="color: #000000;"> wc.DownloadString(address);
+            Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">{name}调用完成，历时{stopwatch.ElapsedMilliseconds}ms，线程id={Thread.CurrentThread.ManagedThreadId}。</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> result.Length;
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 额外操作
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="id"&gt;&lt;/param&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> ExtraOperation(<span style="color: #0000ff;">int</span><span style="color: #000000;"> id)
+        {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">这里是通过拼接字符串进行一些相对耗时的操作</span>
+            <span style="color: #0000ff;">var</span> s = <span style="color: #800000;">""</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> i = <span style="color: #800080;">0</span>; i &lt; <span style="color: #800080;">6000</span>; i++<span style="color: #000000;">)
+            {
+                s </span>+=<span style="color: #000000;"> i;
+            }
+            Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">第{id}次ExtraOperation执行完成，历时：{stopwatch.ElapsedMilliseconds}ms。</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+        }
+    }</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp; &nbsp; 运行结果如下：</p>
+<p><img src="./images/C#线程学习笔记八：async &amp; await入门一2.png" alt="" /></p>
+<p>&nbsp; &nbsp;&nbsp;下面代码演示使用异步的情况：</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('b34f662f-77ae-4145-9502-53b075e6a7d9')"><img id="code_img_closed_b34f662f-77ae-4145-9502-53b075e6a7d9" class="code_img_closed" src="./images/C#线程学习笔记八：async &amp; await入门一0.png" alt="" /><img id="code_img_opened_b34f662f-77ae-4145-9502-53b075e6a7d9" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('b34f662f-77ae-4145-9502-53b075e6a7d9',event)" src="./images/C#线程学习笔记八：async &amp; await入门一1.png" alt="" />
+<div id="cnblogs_code_open_b34f662f-77ae-4145-9502-53b075e6a7d9" class="cnblogs_code_hide">
+<pre><code>    <span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">创建计时器</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">readonly</span> Stopwatch stopwatch = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Stopwatch();
+
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        {
+            </span><span style="color: #0000ff;">#region</span> async &amp; await入门一之使用异步
+            <span style="color: #008000;">//</span><span style="color: #008000;">启动计时器</span>
+<span style="color: #000000;">            stopwatch.Start();
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">URL地址</span>
+            <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">string</span> url1 = <span style="color: #800000;">"</span><span style="color: #800000;">http://www.cnblogs.com/</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">const</span> <span style="color: #0000ff;">string</span> url2 = <span style="color: #800000;">"</span><span style="color: #800000;">http://www.cnblogs.com/atomy/</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">异步下载某网站内容，并统计字符的个数。</span>
+            Task&lt;<span style="color: #0000ff;">int</span>&gt; t1 = CountCharactersAsync(<span style="color: #800000;">"</span><span style="color: #800000;">url1</span><span style="color: #800000;">"</span><span style="color: #000000;">, url1);
+            Task</span>&lt;<span style="color: #0000ff;">int</span>&gt; t2 = CountCharactersAsync(<span style="color: #800000;">"</span><span style="color: #800000;">url2</span><span style="color: #800000;">"</span><span style="color: #000000;">, url2);
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">主要是通过拼接字符串达到耗时操作</span>
+            <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> i = <span style="color: #800080;">0</span>; i &lt; <span style="color: #800080;">3</span>; i++<span style="color: #000000;">)
+            {
+                ExtraOperation(i </span>+ <span style="color: #800080;">1</span><span style="color: #000000;">);
+            }
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">控制台输出</span>
+            Console.WriteLine($<span style="color: #800000;">"</span><span style="color: #800000;">{url1} 的字符个数：{t1.Result}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">{url2} 的字符个数：{t2.Result}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">总耗时{stopwatch.ElapsedMilliseconds}ms。</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            Console.Read();
+            </span><span style="color: #0000ff;">#endregion</span><span style="color: #000000;">
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 统计字符个数
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="id"&gt;&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="address"&gt;&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">async</span> Task&lt;<span style="color: #0000ff;">int</span>&gt; CountCharactersAsync(<span style="color: #0000ff;">string</span> name, <span style="color: #0000ff;">string</span><span style="color: #000000;"> address)
+        {
+            </span><span style="color: #0000ff;">var</span> wc = <span style="color: #0000ff;">new</span><span style="color: #000000;"> WebClient();
+            Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">{name}开始调用，历时{stopwatch.ElapsedMilliseconds}ms，线程id={Thread.CurrentThread.ManagedThreadId}。</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+
+            </span><span style="color: #0000ff;">var</span> result =<span style="color: #0000ff;">await</span><span style="color: #000000;"> wc.DownloadStringTaskAsync(address);
+            Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">{name}调用完成，历时{stopwatch.ElapsedMilliseconds}ms，线程id={Thread.CurrentThread.ManagedThreadId}。</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> result.Length;
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 额外操作
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="id"&gt;&lt;/param&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> ExtraOperation(<span style="color: #0000ff;">int</span><span style="color: #000000;"> id)
+        {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">这里是通过拼接字符串进行一些相对耗时的操作</span>
+            <span style="color: #0000ff;">var</span> s = <span style="color: #800000;">""</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> i = <span style="color: #800080;">0</span>; i &lt; <span style="color: #800080;">6000</span>; i++<span style="color: #000000;">)
+            {
+                s </span>+=<span style="color: #000000;"> i;
+            }
+            Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">第{id}次ExtraOperation执行完成，历时：{stopwatch.ElapsedMilliseconds}ms。</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+        }
+    }</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp; &nbsp; 运行结果如下：</p>
+<p><img src="./images/C#线程学习笔记八：async &amp; await入门一5.png" alt="" /></p>
+<p>&nbsp; &nbsp; 三<strong>、async &amp; await 结构</strong></p>
+<p>&nbsp; &nbsp; async &amp; await结构可分成三部分：</p>
+<p>&nbsp; &nbsp; 1）调用方法：该方法调用异步方法，然后在异步方法执行其任务的时候继续执行。</p>
+<p>&nbsp; &nbsp; 2）异步方法：该方法异步执行工作，然后立刻返回到调用方法。</p>
+<p>&nbsp; &nbsp; 3）await表达式：用于异步方法内部，指出需要异步执行的任务。</p>
+<p><img src="./images/C#线程学习笔记八：async &amp; await入门一6.png" alt="" /></p>
+<p><img src="./images/C#线程学习笔记八：async &amp; await入门一7.png" alt="" /></p>
+<p>&nbsp; &nbsp; 四<strong>、异步方法</strong></p>
+<p>&nbsp; &nbsp; 异步方法：在执行完成前立即返回调用方法，在调用方法继续执行的过程中完成任务。</p>
+<p>&nbsp; &nbsp; 语法分析：</p>
+<div>&nbsp; &nbsp; 1）关键字：方法头返回类型前使用async关键字，它是一个上下文关键字。</div>
+<div>&nbsp; &nbsp; 2）要求：需有await表达式(可多个)方可进行异步操作，否则视为普通方法进行同步操作。</div>
+<div>&nbsp; &nbsp; 3）返回类型：只能返回3种类型（void、Task和Task&lt;T&gt;）。Task和Task&lt;T&gt;标识返回的对象会在将来完成工作，表示调用方法和异步方法可以继续执行。</div>
+<div>&nbsp; &nbsp; 4）参数：数量不限，但不能使用out和ref关键字。</div>
+<div>&nbsp; &nbsp; 5）命名约定：方法后缀名应以Async结尾。</div>
+<div>&nbsp; &nbsp;&nbsp;6）其它：匿名方法和 Lambda 表达式也可以作为异步对象。</div>
+<div><img src="./images/C#线程学习笔记八：async &amp; await入门一8.png" alt="" /></div>
+<p><em id="__mceDel">&nbsp; &nbsp; </em>参考自：</p>
+<p>&nbsp; &nbsp;&nbsp;<a href="https://www.cnblogs.com/woxihuadabai/p/8042652.html">https://www.cnblogs.com/woxihuadabai/p/8042652.html</a></p>
+<p>&nbsp; &nbsp;&nbsp;<a href="https://www.cnblogs.com/liqingwen/p/5831951.html">https://www.cnblogs.com/liqingwen/p/5831951.html</a></p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

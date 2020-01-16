@@ -1,0 +1,102 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修[.NET] 控制只启动单个指定外部程序' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>[.NET] 控制只启动单个指定外部程序</center></div><div class='banquan'>原文出处:本文由博客园博主独立观察员提供。<br/>
+原文连接:https://www.cnblogs.com/weiliuhong/p/dotnet-single-program.html</div><br>
+    <p style="text-align: right;"><a href="http://dlgcy.com/">独立观察员 2019 年 6 月 12 日</a></p>
+<p>有的时候我们<span class="wp_keywordlink_affiliate"><a title="View all posts in 程序" href="http://dlgcy.com/tag/%e7%a8%8b%e5%ba%8f/" target="_blank">程序</a>需要<span class="wp_keywordlink_affiliate"><a title="View all posts in 启动" href="http://dlgcy.com/tag/%e5%90%af%e5%8a%a8/" target="_blank">启动</a>外部<span class="wp_keywordlink_affiliate"><a title="View all posts in 程序" href="http://dlgcy.com/tag/%e7%a8%8b%e5%ba%8f/" target="_blank">程序</a>来配合实现某些功能，比如<span class="wp_keywordlink_affiliate"><a title="View all posts in 启动" href="http://dlgcy.com/tag/%e5%90%af%e5%8a%a8/" target="_blank">启动</a>一个&nbsp;<span class="wp_keywordlink_affiliate"><a title="View all posts in Cef" href="http://dlgcy.com/tag/cef/" target="_blank">Cef</a>&nbsp;相关程序来承载网页。那么如果那个外部程序并没有实现<span class="wp_keywordlink_affiliate"><a title="View all posts in 单例" href="http://dlgcy.com/tag/%e5%8d%95%e4%be%8b/" target="_blank">单例</a>启动，我们程序去启动它的时候就有可能启动了多个，这样轻则造成系统卡顿，重则引发 Bug。这肯定是我们不想看到的，所以本文来探讨如何在启动某个外部程序时，始终只会启动一个。</span></span></span></span></span></span></p>
+<p>&nbsp;</p>
+<p>先来看看外部程序（其实不用关心），其中有一个这样的类：</p>
+<div>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> BoundObject
+</span><span style="color: #008080;"> 2</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;"> 3</span>         [DllImport(<span style="color: #800000;">"</span><span style="color: #800000;">user32.dll</span><span style="color: #800000;">"</span>, EntryPoint = <span style="color: #800000;">"</span><span style="color: #800000;">ShowWindow</span><span style="color: #800000;">"</span>, SetLastError = <span style="color: #0000ff;">true</span><span style="color: #000000;">)]
+</span><span style="color: #008080;"> 4</span>         <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">extern</span> <span style="color: #0000ff;">bool</span> ShowWindow(IntPtr hWnd, <span style="color: #0000ff;">uint</span><span style="color: #000000;"> nCmdShow);
+</span><span style="color: #008080;"> 5</span>  
+<span style="color: #008080;"> 6</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;"> 7</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 是否关闭：1 - 隐藏  2 - 关闭
+</span><span style="color: #008080;"> 8</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 用法：onclick="javascript:alert ('1');BoundObject.CloseFlag ('1');"
+</span><span style="color: #008080;"> 9</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">10</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> CloseFlag(<span style="color: #0000ff;">string</span><span style="color: #000000;"> flag)
+</span><span style="color: #008080;">11</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">12</span>             <span style="color: #0000ff;">if</span> (flag == <span style="color: #800000;">"</span><span style="color: #800000;">1</span><span style="color: #800000;">"</span><span style="color: #000000;">)
+</span><span style="color: #008080;">13</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">14</span>                 System.Diagnostics.Process[] processes = System.Diagnostics.Process.GetProcessesByName(<span style="color: #800000;">"</span><span style="color: #800000;">CefApp</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">15</span>                 <span style="color: #0000ff;">if</span> (processes.Length &gt;= <span style="color: #800080;">1</span><span style="color: #000000;">)
+</span><span style="color: #008080;">16</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">17</span>                     Console.WriteLine($<span style="color: #800000;">"</span><span style="color: #800000;">当前系统中有该程序在运行，将隐藏该程序</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">18</span>                     <span style="color: #008000;">//</span><span style="color: #008000;">ShowWindow (processes [0].MainWindowHandle, 0);  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 隐藏；</span>
+<span style="color: #008080;">19</span>                     ShowWindow(processes[<span style="color: #800080;">0</span>].MainWindowHandle, <span style="color: #800080;">6</span>);    <span style="color: #008000;">//</span><span style="color: #008000;"> 最小化；</span>
+<span style="color: #008080;">20</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">21</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">22</span>             <span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (flag == <span style="color: #800000;">"</span><span style="color: #800000;">2</span><span style="color: #800000;">"</span><span style="color: #000000;">)
+</span><span style="color: #008080;">23</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">24</span>                 Console.WriteLine($<span style="color: #800000;">"</span><span style="color: #800000;">程序即将退出...</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">25</span>                 Environment.Exit(<span style="color: #800080;">0</span><span style="color: #000000;">);
+</span><span style="color: #008080;">26</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">27</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">28</span>     }</pre>
+</div>
+<p>&nbsp;</p>
+</div>
+<p>关键的就是 flag == &ldquo;1&rdquo; 里面的内容，先获取所有名为&rdquo;CefApp&rdquo; 的进程，如果大等 1，表示进程已经存在，这里是将其隐藏，用的是系统的&nbsp;ShowWindow 方法。</p>
+<p>&nbsp;</p>
+<p>另外，与本文无关，但是有助于理解使用场景的是：该程序为一个 Cef 相关程序，以上的类可用于让 Cef 中承载的网页能够通过 JS 调用到这个 C# 的方法，进而进行隐藏或关闭控制。相关设置如下：</p>
+<div>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> CefSharp.Wpf.ChromiumWebBrowser webView = <span style="color: #0000ff;">new</span><span style="color: #000000;"> CefSharp.Wpf.ChromiumWebBrowser();
+</span><span style="color: #008080;">2</span>  
+<span style="color: #008080;">3</span> <span style="color: #0000ff;">var</span> bindScriptOption = <span style="color: #0000ff;">new</span><span style="color: #000000;"> CefSharp.BindingOptions();
+</span><span style="color: #008080;">4</span> bindScriptOption.CamelCaseJavascriptNames = <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+</span><span style="color: #008080;">5</span>  
+<span style="color: #008080;">6</span> webView.RegisterJsObject(<span style="color: #800000;">"</span><span style="color: #800000;">BoundObject</span><span style="color: #800000;">"</span>, <span style="color: #0000ff;">new</span> BoundObject(), bindScriptOption);</pre>
+</div>
+<p>&nbsp;</p>
+</div>
+<p>回归正题，现在来看看主程序里面：</p>
+<div>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> System.Diagnostics.Process[] processes = System.Diagnostics.Process.GetProcessesByName(<span style="color: #800000;">"</span><span style="color: #800000;">CefApp</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 2</span> <span style="color: #0000ff;">if</span> (processes.Length &gt;= <span style="color: #800080;">1</span><span style="color: #000000;">)
+</span><span style="color: #008080;"> 3</span> <span style="color: #000000;">{
+</span><span style="color: #008080;"> 4</span>     Console.WriteLine($<span style="color: #800000;">"</span><span style="color: #800000;">当前系统中已有该程序在运行，将唤起该程序</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 5</span>     ShowWindow(processes[<span style="color: #800080;">0</span>].MainWindowHandle, <span style="color: #800080;">3</span>); <span style="color: #008000;">//</span><span style="color: #008000;"> 对隐藏程序不起作用；</span>
+<span style="color: #008080;"> 6</span> <span style="color: #000000;">}
+</span><span style="color: #008080;"> 7</span> <span style="color: #0000ff;">else</span>
+<span style="color: #008080;"> 8</span> <span style="color: #000000;">{
+</span><span style="color: #008080;"> 9</span>     <span style="color: #0000ff;">string</span> path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, <span style="color: #800000;">"</span><span style="color: #800000;">External</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">Cef</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">CefApp.exe</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">10</span>     System.Diagnostics.ProcessStartInfo info = <span style="color: #0000ff;">new</span><span style="color: #000000;"> System.Diagnostics.ProcessStartInfo(path);
+</span><span style="color: #008080;">11</span>     info.WorkingDirectory =<span style="color: #000000;"> Path.GetDirectoryName(path);
+</span><span style="color: #008080;">12</span> <span style="color: #000000;">    System.Diagnostics.Process.Start(info);
+</span><span style="color: #008080;">13</span>  
+<span style="color: #008080;">14</span>     Thread.Sleep(<span style="color: #800080;">1000</span> * <span style="color: #800080;">3</span><span style="color: #000000;">);
+</span><span style="color: #008080;">15</span> }</pre>
+</div>
+<p>&nbsp;</p>
+</div>
+<p>也是获取所有&rdquo;CefApp&rdquo; 进程，如果有则启动之前最小化的该程序，没有则启动新程序。因为使用 ShowWindow 隐藏程序后无法再显示出来，所以只能配合最小化来使用，所以两个程序都是全屏运行效果会比较好。</p>
+<p>&nbsp;</p>
+<p>以上就是本文全部内容。</p>
+<p>&nbsp;</p>
+<p><a href="http://dlgcy.com/dotnet-single-program/" target="_blank">http://dlgcy.com/dotnet-single-program/</a></p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

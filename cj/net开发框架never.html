@@ -1,0 +1,282 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修net开发框架never' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>net开发框架never</center></div><div class='banquan'>原文出处:本文由博客园博主shelldudu提供。<br/>
+原文连接:https://www.cnblogs.com/shelldudu/p/10944952.html</div><br>
+    <h2><span style="color: #000000;">【一】 摘要</span></h2>
+<p><span style="color: #000000;">never是纯c#语言开发的一个框架，同时可在netcore下运行。 该框架github地址：<a title="https://github.com/shelldudu/never" href="https://github.com/shelldudu/never" target="_blank"><span style="color: #000000;">https://github.com/shelldudu/never</span></a></span></p>
+<p><span style="color: #000000;"><span style="color: #000000;">同时，配合never_web，never_component，never_application （demo）可对比代码学习。</span></span></p>
+<p><span style="color: #000000;">引用其图片说明该构架所涉及到的工具</span></p>
+<p><span style="color: #000000;"><img src="./images/net开发框架never0.png" alt="never" width="542" height="469" />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <br /></span></p>
+<p><span style="color: #000000;">使用emit技术所实现的核心功能点 &nbsp;&nbsp; </span></p>
+<p><span style="color: #000000;"><img src="./images/net开发框架never1.png" alt="never" width="482" height="482" /><br /></span></p>
+<p><span style="color: #000000;">其中使用包含了一些开发设计模式，比如message的订阅与发布，熔断机制等。</span></p>
+<h2><span style="color: #000000;">【二】整体设计</span></h2>
+<p><span style="color: #000000;">1、以ApplicationStartup开始，启动服务，注册不同组件，这里是netcore的部分代码</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #808080;">///</span><span style="color: #008000;"> 该方法被ConfigureServices里面的base.ConfigureServicese调用，由于ConfigureServices方法会使用不同的组件方案，所以在其后面启支，是将这些组件方案所注册的ioc规则加入到自己的ioc规则里面去
+</span><span style="color: #808080;">///</span><span style="color: #008000;"> 同时替换了系统IServiceCollection自己生成的IServiceProvider对象
+</span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="sender"&gt;&lt;/param&gt;</span>
+<span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="e"&gt;&lt;/param&gt;</span>
+<span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> Startup_OnStarting(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, Never.StartupEventArgs e)
+{
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">ddd的command里面使用了恢复（即一些命令出错后被保存后过段时间再执行），当前使用sqlite本地数据库方式</span>
+    <span style="color: #0000ff;">var</span> commandfile = <span style="color: #0000ff;">new</span> FileInfo(AppContext.BaseDirectory + <span style="color: #800000;">"</span><span style="color: #800000;">\\App_Data\\command_demo.db</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">ddd的event跟上面的一样</span>
+    <span style="color: #0000ff;">var</span> eventfile = <span style="color: #0000ff;">new</span> FileInfo(AppContext.BaseDirectory + <span style="color: #800000;">"</span><span style="color: #800000;">\\App_Data\\event_demo.db</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">使用nlog组件</span>
+    <span style="color: #0000ff;">var</span> logfile = <span style="color: #0000ff;">new</span> FileInfo(AppContext.BaseDirectory + <span style="color: #800000;">"</span><span style="color: #800000;">\\App_Config\\nlog.config</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">配置文件的读取</span>
+    <span style="color: #0000ff;">var</span> configReader = <span style="color: #0000ff;">new</span> AppConfigReader(<span style="color: #0000ff;">this</span><span style="color: #000000;">.Configuration);
+}</span></pre>
+</div>
+<p>&nbsp;我们先对程序集过滤与开启IoC</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;">注册程序集过滤，因为整个启动过程会分析程序集里面的Type对象，很多dll我们不用分析，只焦点到我们现在注入的2个规则就行，"Never" + "B2C",正则只要匹配到该字符就加加载到待分析的dll集合中</span>
+e.Startup.RegisterAssemblyFilter(<span style="color: #800000;">"</span><span style="color: #800000;">B2C</span><span style="color: #800000;">"</span>.CreateAssemblyFilter()).RegisterAssemblyFilter(<span style="color: #800000;">"</span><span style="color: #800000;">Never</span><span style="color: #800000;">"</span><span style="color: #000000;">.CreateAssemblyFilter());
+</span><span style="color: #008000;">//</span><span style="color: #008000;">ioc分2种启动方法，主要原因如下：（1）服务启动有先后顺序，不同的系统组件所注册的顺序不同的，但有些组件要求在所有环境下都只有第一或最后启动（2）由于使用环境自动注册这种设计下，一些组件要手动注册会带自己的规则就会被自动注册覆盖</span>
+<span style="color: #000000;">e.Startup.UseEasyIoC(
+    (x, y, z) </span>=&gt;<span style="color: #000000;">
+    {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">先启动该服务注册组件，</span>
+<span style="color: #000000;">    },
+    (x, y, z) </span>=&gt;<span style="color: #000000;">
+    {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">再按自己的个性化注册组件，比如Controller在下面UseApiDependency后会自动注入，但是我想HomeController注入的时候使用memecahed，这种情况就要手动注入了
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">x.RegisterType&lt;Controllers.HomeController, Controllers.HomeController&gt;().WithParameter&lt;Never.Caching.ICaching&gt;("memcached");
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">注入query与repository实例，为什么不用自动注入？哈哈，因为在framework或netcore等各种不同的环境下大家读取配置文件是不同的，一旦写死在B2C.Message.SqlData.Query里面读取配置文件，则使用不同的host技术就出现极大问题，
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">比如netcore没有connectionString这种配置（或者有人说可以手动引用System.Configuration，这不是嫌麻烦吗）</span>
+        x.RegisterInstance(<span style="color: #0000ff;">new</span> B2C.Message.SqlData.Query.QueryDaoBuilder(Infrastructure.SqldbType.sqlserver, () =&gt; configReader[<span style="color: #800000;">"</span><span style="color: #800000;">message_conn</span><span style="color: #800000;">"</span><span style="color: #000000;">]));
+        x.RegisterInstance(</span><span style="color: #0000ff;">new</span> B2C.Message.SqlData.Repository.RepositoryDaoBuilder(Infrastructure.SqldbType.sqlserver, () =&gt; configReader[<span style="color: #800000;">"</span><span style="color: #800000;">message_conn</span><span style="color: #800000;">"</span><span style="color: #000000;">]));
+    });</span></pre>
+</div>
+<p>注册各种组件</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;">使用环境下自动注册组件，</span>
+e.Startup.UseAutoInjectingAttributeUsingIoC(<span style="color: #0000ff;">new</span><span style="color: #000000;"> IAutoInjectingEnvironmentProvider[]
+{
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">在message该环境下，所有单例注册组件只有匹配message的才注册，（1）有些组件是线程的，那么不会被描述和注入中，除非再加个线程provider；（2）即使是单例provider,但所运行不是message环境，所以也不会注入</span>
+    SingletonAutoInjectingEnvironmentProvider.UsingRuleContainerAutoInjectingEnvironmentProvider(<span style="color: #800000;">"</span><span style="color: #800000;">message</span><span style="color: #800000;">"</span><span style="color: #000000;">),
+})
+</span><span style="color: #008000;">//</span><span style="color: #008000;">使用统一配置中心读取配置文件，实用性在后面有讲到</span>
+.UseConfigClient(<span style="color: #0000ff;">new</span> IPEndPoint(IPAddress.Parse(configReader[<span style="color: #800000;">"</span><span style="color: #800000;">config_host</span><span style="color: #800000;">"</span>]), configReader.IntInAppConfig(<span style="color: #800000;">"</span><span style="color: #800000;">config_port</span><span style="color: #800000;">"</span>)), <span style="color: #0000ff;">out</span> <span style="color: #0000ff;">var</span><span style="color: #000000;"> configFileClient);
+configFileClient.Startup(TimeSpan.FromMinutes(</span><span style="color: #800080;">10</span>), <span style="color: #0000ff;">new</span>[] { <span style="color: #0000ff;">new</span> ConfigFileClientRequest { FileName = <span style="color: #800000;">"</span><span style="color: #800000;">message_api</span><span style="color: #800000;">"</span> } }, (c, t) =&gt;<span style="color: #000000;">
+{
+    </span><span style="color: #0000ff;">var</span> content =<span style="color: #000000;"> t;
+    </span><span style="color: #0000ff;">if</span> (c != <span style="color: #0000ff;">null</span> &amp;&amp; c.FileName == <span style="color: #800000;">"</span><span style="color: #800000;">message_api</span><span style="color: #800000;">"</span><span style="color: #000000;">)
+    {
+        System.IO.File.WriteAllText(System.IO.Path.Combine(</span><span style="color: #0000ff;">this</span>.Environment.ContentRootPath, <span style="color: #800000;">"</span><span style="color: #800000;">appsettings.app.json</span><span style="color: #800000;">"</span><span style="color: #000000;">), content);
+    }
+}).Push(</span><span style="color: #800000;">"</span><span style="color: #800000;">message_api</span><span style="color: #800000;">"</span><span style="color: #000000;">).GetAwaiter().GetResult();
+e.Startup
+    .UseCounterCache() </span><span style="color: #008000;">//</span><span style="color: #008000;">使用countcache</span>
+    .UseConcurrentCache() <span style="color: #008000;">//</span><span style="color: #008000;">使用安全countcache</span>
+    .UseDataContractJson() <span style="color: #008000;">//</span><span style="color: #008000;">使用datacontract技术的序列化，实现了IJsonSerialize接口</span>
+    .UseEasyJson(<span style="color: #0000ff;">string</span>.Empty) <span style="color: #008000;">//</span><span style="color: #008000;">使用easyjson技术的序列化，实现了IJsonSerialize接口</span>
+    .UseNLog(logfile) <span style="color: #008000;">//</span><span style="color: #008000;">使用nlog</span>
+    .UseAppConfig(configReader) <span style="color: #008000;">//</span><span style="color: #008000;">将IConfigReader注入</span>
+    .UseForceCheckAggregateRootImplIHandle() <span style="color: #008000;">//</span><span style="color: #008000;">这几个Force都是为了检查ddd开发一些要求，比如是否继承某个类，某些接口</span>
+    .UseForceCheckCommandAppDomainAttribute() <span style="color: #008000;">//</span><span style="color: #008000;">检查所有的command是否带了特定attribute</span>
+    .UseForceCheckCommandEvenWithNoParamaterCtor() <span style="color: #008000;">//</span><span style="color: #008000;">检查所有的commandhandler所要的构造参数是否被注入中</span>
+    .UseForceCheckCommandHandlerCtor() <span style="color: #008000;">//</span><span style="color: #008000;">检查所有的eventhandler所要的构造参数是否被注入中</span>
+    .UseForceCheckEventAppDomainAttribute()<span style="color: #008000;">//</span><span style="color: #008000;">检查所有的event是否带了特定attribute</span>
+    .UseForceCheckEventHandlerCtor() <span style="color: #008000;">//</span><span style="color: #008000;">检查所有的eventhandler所要的构造参数是否被注入中</span>
+    .UseForceCheckMessageSubscriberCtor() <span style="color: #008000;">//</span><span style="color: #008000;">使用消息的订单与发布</span>
+    .UseInjectingCommandHandlerEventHandler(Never.IoC.ComponentLifeStyle.Singleton) <span style="color: #008000;">//</span><span style="color: #008000;">注入所有的commandhandler，在commandbus执行其对象行为</span>
+    .UseSqliteEventProviderCommandBus&lt;DefaultCommandContext&gt;(<span style="color: #0000ff;">new</span> SqliteFailRecoveryStorager(commandfile, eventfile)) <span style="color: #008000;">//</span><span style="color: #008000;">使用cqrs组件，指定sqlite作为恢复组件，</span>
+    .UseApiModelStateValidation() <span style="color: #008000;">//</span><span style="color: #008000;">mvc,webapi的模型参数验证</span>
+    .UseApiActionCustomRoute(e.Collector <span style="color: #0000ff;">as</span> IServiceCollection) <span style="color: #008000;">//</span><span style="color: #008000;">自定义路由，相同于在controller可以使用httpget等route技术</span>
+    .UseApiDependency(e.Collector <span style="color: #0000ff;">as</span> IServiceCollection);<span style="color: #008000;">//</span><span style="color: #008000;">注入所有的controller</span></pre>
+</div>
+<p>最后启动过程中检查整个系统是否正常</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;">配置中心更新配置文件后，系统不一定马上能重新加载</span>
+e.Startup.Startup(TimeSpan.FromSeconds(<span style="color: #800080;">1</span>), (x) =&gt;<span style="color: #000000;">
+{
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">我们在此启动看看所使用组件是否正常启动</span>
+    <span style="color: #0000ff;">using</span> (<span style="color: #0000ff;">var</span> sc =<span style="color: #000000;"> x.ServiceLocator.BeginLifetimeScope())
+    {
+        sc.Resolve</span>&lt;ICommandBus&gt;<span style="color: #000000;">();
+        sc.Resolve</span>&lt;ILoggerBuilder&gt;<span style="color: #000000;">();
+        sc.Resolve</span>&lt;IJsonSerializer&gt;<span style="color: #000000;">();
+        </span><span style="color: #0000ff;">var</span> home = sc.Resolve&lt;Controllers.MessageController&gt;<span style="color: #000000;">();
+
+        </span><span style="color: #0000ff;">var</span> logger = sc.Resolve&lt;ILoggerBuilder&gt;().Build(<span style="color: #0000ff;">typeof</span><span style="color: #000000;">(Startup));
+        logger.Info(</span><span style="color: #800000;">"</span><span style="color: #800000;">startup at </span><span style="color: #800000;">"</span> + DateTime.Now.ToString(<span style="color: #800000;">"</span><span style="color: #800000;">yyyy-MM-dd HH:mm:ss</span><span style="color: #800000;">"</span><span style="color: #000000;">));
+    }
+});
+}</span></pre>
+</div>
+<p>2、Controller的注入，使用构造函数的方法注入</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">readonly</span> IEmailCodeQuery emailCodeQuery = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+</span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">readonly</span> IMobileCodeQuery mobileCodeQuery = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+</span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">readonly</span> ICommandBus commandBus = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+</span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">readonly</span> ILoggerBuilder loggerBuilder = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+</span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">readonly</span> IJsonSerializer jsonSerializer = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+</span><span style="color: #0000ff;">public</span><span style="color: #000000;"> VCodeController(ICommandBus commandBus,
+    ILoggerBuilder loggerBuilder,
+    IJsonSerializer jsonSerializer,
+    IEmailCodeQuery emailCodeQuery,
+    IMobileCodeQuery mobileCodeQuery)
+{
+    </span><span style="color: #0000ff;">this</span>.commandBus =<span style="color: #000000;"> commandBus;
+    </span><span style="color: #0000ff;">this</span>.loggerBuilder =<span style="color: #000000;"> loggerBuilder;
+    </span><span style="color: #0000ff;">this</span>.jsonSerializer =<span style="color: #000000;"> jsonSerializer;
+    </span><span style="color: #0000ff;">this</span>.emailCodeQuery =<span style="color: #000000;"> emailCodeQuery;
+    </span><span style="color: #0000ff;">this</span>.mobileCodeQuery =<span style="color: #000000;"> mobileCodeQuery;
+}</span></pre>
+</div>
+<p>3、Action代码处理</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #808080;">///</span><span style="color: #008000;"> 校验邮箱验证码
+</span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="reqs"&gt;&lt;/param&gt;</span>
+<span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+[ApiActionRemark(<span style="color: #800000;">"</span><span style="color: #800000;">a9a900aee8c6</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">HttpPost</span><span style="color: #800000;">"</span><span style="color: #000000;">), HttpPost]
+</span><span style="color: #0000ff;">public</span> ApiResult&lt;<span style="color: #0000ff;">string</span>&gt;<span style="color: #000000;"> CheckEmailValidateCode(CheckEmailValidateCodeReqs reqs)
+{
+    </span><span style="color: #0000ff;">if</span> (!<span style="color: #0000ff;">this</span><span style="color: #000000;">.TryValidateModel(reqs))
+    {
+        </span><span style="color: #0000ff;">return</span> Anonymous.NewApiResult(ApiStatus.Fail, <span style="color: #0000ff;">string</span>.Empty, <span style="color: #0000ff;">this</span><span style="color: #000000;">.ModelErrorMessage);
+    }
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">实际上不用try + catch了，因为在startup统一日志处理了。
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">发送命令后交给commandhandler去处理<span style="color: #008000;">领域，commandbus + eventbus</span></span>
+    <span style="color: #0000ff;">var</span> handler = <span style="color: #0000ff;">this</span>.commandBus.Send(<span style="color: #0000ff;">new</span><span style="color: #000000;"> DestroyEmailCodeCommand(NewId.GenerateGuid())
+    {
+        Email </span>=<span style="color: #000000;"> reqs.Email,
+        UsageType </span>=<span style="color: #000000;"> reqs.UsageType,
+        VCode </span>=<span style="color: #000000;"> reqs.VCode,
+    });
+
+    </span><span style="color: #0000ff;">if</span> (handler == <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+    {
+        </span><span style="color: #0000ff;">return</span> Anonymous.NewApiResult(ApiStatus.Fail, <span style="color: #0000ff;">string</span>.Empty, <span style="color: #800000;">"</span><span style="color: #800000;">验证失败</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+    }
+
+    </span><span style="color: #0000ff;">if</span> (handler.Status !=<span style="color: #000000;"> CommandHandlerStatus.Success)
+    {
+        </span><span style="color: #0000ff;">return</span> Anonymous.NewApiResult(ApiStatus.Error, <span style="color: #0000ff;">string</span>.Empty, <span style="color: #0000ff;">this</span><span style="color: #000000;">.HandlerMerssage(handler));
+    }
+
+    </span><span style="color: #0000ff;">return</span> Anonymous.NewApiResult(ApiStatus.Success, <span style="color: #0000ff;">string</span><span style="color: #000000;">.Empty);
+}</span></pre>
+</div>
+<h2><span style="color: #000000;">【三】组成部分</span></h2>
+<ol>
+<li><span style="color: #000000;"><span style="color: #000000;">ApplicationStartup 整个系统的初始化中心点，可以是Web环境，也可以是Service环境。</span><br /></span></li>
+<li><span style="color: #000000;"><span style="color: #000000;"><span style="color: #000000;">Emit 避免使用反射带来的损耗，并且对OpCode的使用封装变成方法的调用，可容易理解与使用，是后面所有技术的支撑点。</span></span><br /></span></li>
+<li><span style="color: #000000;">IoC <span style="color: #000000;">简单</span>实现三种生命周期，单例 + 作用域 + 短暂，<span style="color: #000000;">注入</span>指定参数，可以生成代理注入拦截器。</span></li>
+<li>Aop 加入上下文日志跟踪（如LoggerAttribte自动写日志）；Mock对象等。</li>
+<li>CQRS 实现了一套commandbus + eventbus设计，commandbus执行命令后，若聚合对象有事件，则通过eventbus发布到订阅者；中间使用sqlite来保存订阅失败的队列，用于后期的恢复发布订阅。</li>
+<li>SqlClient 配置极其简单，使用也很容易的一个sql执行方法，使用xml文件配置管理sql语句，可执行事务，对xml内容进行缩进使得好看；也可以直接写sql语句。使用typehander，用于处理阻抗失败的情况。</li>
+<li>Mapper 直接映射对象，效率比emitmapper差一点。</li>
+<li>Message 消息的发布与订阅，可以在内存，mq方式发布到不同的机器。</li>
+<li>Socket 使用SocketAsyncEventArgs实现的一套高性能方案，读取与发送分开队列，可以设置心跳。</li>
+<li>Remoting 在socket的基础上实现一套通讯。</li>
+<li>Configuration 配置中心，对文件（夹）进行监控，修改文件会触发所有应用程序的配置更新；设置了共享级+应用级配置文件，不用的应用级配置文件可以直接link共享级的配置，共享级的配置可以读取文件，也可以到数据库查询。</li>
+<li>Deployment 对WebApi里面的Service直接生成代理类，封装了web请求的参数，路由等信息，还可以使用熔断机制，在客户端发现服务不可用的时候自动返回友好结果。</li>
+<li>Workflow 实现了一套工作流内容，每一步骤都可以独立为插件或一个类，并且可组合不同步骤，包含等待，重试，中断等不同状态。</li>
+<li>Memcached 一个memcached客户端，文本协议+二进制协议，还有Gzip压缩，Binary序列化；定义的接口可以很方便使用protobuf等技术的自由扩展。</li>
+<li>JsonSerializerjson 序列化，可动态配置不用类型的输出结构，通过emit后缓存提高性能，还能支持用户自定义序列接口。</li>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</ol>
+<h2><span style="color: #000000;">【四】快速开发</span></h2>
+<p><span style="color: #000000;">我们打开<a href="https://github.com/shelldudu/never_application/blob/master/src/message/B2C.Message.Api/Startup.cs" target="_blank">startup文件</a>或<a href="https://github.com/shelldudu/never_web/blob/master/test/Never.TestMvc/Global.asax.cs" target="_blank">global文件</a>来看看，整个构架的初始化都在global或startup里面实现的，<span style="color: #000000;">环境</span>的<span style="color: #000000;">搭建比较<span style="color: #000000;">简单，</span></span><strong>可以直接开发业务而不关心组件实现方式。</strong></span></p>
+<p><span style="color: #000000;">摘要里面一些代码展示：</span></p>
+<p><span style="color: #000000;">1、<span style="color: #000000;">接口与实现使用IoC管理，加上灵活的AOP，可统一日志管理的管理</span></span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">[Logger]
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> EmailCodeCommandHandler : ICommandHandler&lt;CreateEmailCodeCommand&gt;, ICommandHandler&lt;DestroyEmailCodeCommand&gt; { }</pre>
+</div>
+<p style="color: #000000;"><span style="color: #000000;"><span style="color: #000000;">2、</span>对远程方法的调用，封装成本地调用方式</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;">实际上这里是web远程方法,使用代理生成类，带熔断，</span>
+<span style="color: #0000ff;">var</span> api = <span style="color: #0000ff;">this</span>.validateCodeService.CreateMobileValidateCode(<span style="color: #0000ff;">new</span><span style="color: #000000;"> Message.Contract.Request.CreateMobileValidateCodeReqs()
+{
+    Mobile </span>=<span style="color: #000000;"> model.UserName,
+    ClientIP </span>= <span style="color: #0000ff;">this</span><span style="color: #000000;">.GetAppIP(),
+    Platform </span>= <span style="color: #0000ff;">this</span><span style="color: #000000;">.GetAppPlatform(),
+    Length </span>= <span style="color: #800080;">4</span><span style="color: #000000;">,
+    UsageType </span>=<span style="color: #000000;"> Message.Contract.EnumTypes.UsageType.注册,
+});</span></pre>
+</div>
+<p style="color: #000000;">3、友好的参数验证，用户自己加验证参数规则。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #808080;">///</span><span style="color: #008000;"> 用户Model
+</span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+[Serializable, Validator(<span style="color: #0000ff;">typeof</span><span style="color: #000000;">(RequestValidator))]
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> UserViewModel
+{
+    </span><span style="color: #0000ff;">#region</span> prop
+
+    <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+    <span style="color: #808080;">///</span><span style="color: #008000;"> 用户名
+    </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+    [DisplayName(<span style="color: #800000;">"</span><span style="color: #800000;">用户名</span><span style="color: #800000;">"</span><span style="color: #000000;">)]
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> UserName { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+
+    </span><span style="color: #0000ff;">#endregion</span> prop
+
+    <span style="color: #0000ff;">#region</span> validator
+
+    <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">class</span> RequestValidator : Validator&lt;UserViewModel&gt;<span style="color: #000000;">
+    {
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">override</span> IEnumerable&lt;KeyValuePair&lt;Expression&lt;Func&lt;UserViewModel, <span style="color: #0000ff;">object</span>&gt;&gt;, <span style="color: #0000ff;">string</span>&gt;&gt;<span style="color: #000000;"> RuleFor(UserViewModel target)
+        {
+            </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (target.UserName.IsNullOrWhiteSpace())
+                </span><span style="color: #0000ff;">yield</span> <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span> KeyValuePair&lt;Expression&lt;Func&lt;UserViewModel, <span style="color: #0000ff;">object</span>&gt;&gt;, <span style="color: #0000ff;">string</span>&gt;(m =&gt; m.UserName, <span style="color: #800000;">"</span><span style="color: #800000;">手机号码为空</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+        }
+    }
+
+    </span><span style="color: #0000ff;">#endregion</span> validator<span style="color: #000000;">
+}</span></pre>
+</div>
+<p>4、可靠的性能：<span style="color: #000000;"><span style="color: #000000;">json的序列化与反序列化，在反序列化timespan下（字符串："00:10:00")， 2700x + 32g内存1000万次测试，jsonnet 使用12.6秒（GC=3.7万），easyser使用2.6秒（GC=3.7K)，jil使用0.8秒（GC=1.2k）</span></span></p>
+<p><span style="color: #000000;"><span style="color: #000000;">5、简单的配置：系统初始化过程风格统一，还有组件<span style="color: #000000;"><span style="color: #000000;">eqsysql</span></span>只需要xml文件 + 链接字符串，就可以实现ORM管理（如QueryForObject&lt;T&gt;，QueryForEnumerable&lt;T&gt;）</span></span></p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

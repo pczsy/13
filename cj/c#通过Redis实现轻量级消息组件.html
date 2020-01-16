@@ -1,0 +1,238 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修c#通过Redis实现轻量级消息组件' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>c#通过Redis实现轻量级消息组件</center></div><div class='banquan'>原文出处:本文由博客园博主Code_Roc提供。<br/>
+原文连接:https://www.cnblogs.com/yanpeng19940119/p/11603865.html</div><br>
+    <p>最近在开发一个轻量级ASP.NET MVC开发框架，需要加入日志记录，邮件发送，短信发送等功能，为了保持模块的独立性，所以需要通过消息通信的方式进行处理，为了保持框架在部署，使用，二次开发过程中的简易便捷性，所以没有选择传统的MQ，而是基于Redis的订阅发布实现一个系统内部消息组件，话不多说，上码！</p>
+<h1>数据结构定义</h1>
+<p>消息实体包含几个部分，订阅通道名称，信息头，信息体，信息差异化额外信息字典，信息头主要包含消息标识，消息日期，信息体包含信息内容，信息实体类型等</p>
+<div class="cke_widget_wrapper cke_widget_block cke_widget_codeSnippet cke_widget_wrapper_has cke_widget_selected" data-cke-widget-wrapper="1" data-cke-filter="off" data-cke-display-name="代码段" data-cke-widget-id="5">
+<div class="cnblogs_Highlighter">
+<pre><code>   public class Message
+    {
+        public string MessageChannel { set; get; }
+        public MessageHead @MessageHead { set; get; }
+        public MessageBody @MessageBody { set; get; }
+
+        [JsonExtensionData]
+        public Dictionary&lt;string,Object&gt; @MessageExtra { set; get; }
+
+        public Message()
+        {
+
+        }
+
+        public void AddExtra(string Name, string Value)
+        {
+            if (@MessageExtra == null)
+            {
+                @MessageExtra = new Dictionary&lt;string, object&gt;();
+            }
+            @MessageExtra.Add(Name, Value);
+        }
+
+        public Object GetExtra(string Name)
+        {
+            return @MessageExtra[Name];
+        }
+    }
+
+    public class MessageHead
+    {
+        public string MessageID { set; get; }
+        public DateTime MessageDate { set; get; }
+
+        public MessageHead()
+        {
+            MessageID = CommonUtil.CreateCommonGuid();
+            MessageDate = DateTime.Now;
+        }
+    }
+
+    public class MessageBody
+    {
+        public string MessageJsonContent { set; get; }
+        public Type MessageMapperType { set; get; }
+    }</pre>
+</div>
+</div>
+<p>注：因为消息订阅发布传递过程中，我是通过Json序列化传输的，使用过程中可能需要一些额外的键值对信息，这里在对象中定义的是Dictinary对象，但是Dictinary本身是不支持序列化的，所以需要加上注解JsonExtensionData</p>
+<h1>订阅通道声明</h1>
+<p>我们需要达到的效果是，在系统启动时，所有消息通道可以根据系统中的应用自动订阅，这里就需要一个注解来标识我们的订阅通道接收消息的实现类</p>
+<div class="cke_widget_wrapper cke_widget_block cke_widget_codeSnippet cke_widget_wrapper_has cke_widget_selected" data-cke-widget-wrapper="1" data-cke-filter="off" data-cke-display-name="代码段" data-cke-widget-id="4">
+<div class="cnblogs_Highlighter">
+<pre><code>[AttributeUsage(AttributeTargets.Class)]
+    public class MessageChanelAttribute : Attribute
+    {
+        private string _ChannleName;
+        public string ChannelName
+        {
+            get
+            {
+                return this._ChannleName;
+            }
+            set
+            {
+                this._ChannleName = value;
+            }
+
+        }
+    }</pre>
+<img class="cke_reset cke_widget_drag_handler" style="background-color: #ffffff; font-family: 'PingFang SC', 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 14px;" title="点击并拖拽以移动" src="data:image/gif;base64,R0lGODlhAQABAPABAP///wAAACH5BAEKAAAALAAAAAABAAEAAAICRAEAOw==" alt="" width="15" height="15" data-cke-widget-drag-handler="1" /></div>
+</div>
+<h1>消息的个性化策略处理</h1>
+<p>Redis的三方库我这里使用的是StackExchange.Redis.dll，在消息订阅时，需要为Channel指定接收到消息时的处理委托，我们在自动订阅的过程中肯定也要收集好各类消息处理类并与Channel一一对应，这时候我们就需要一个基类FastDefaultMessageHandler，我们的具体的消息处理类继承自FastDefaultMessageHandler，重写处理方法即可</p>
+<div class="cke_widget_wrapper cke_widget_block cke_widget_codeSnippet cke_widget_wrapper_has cke_widget_selected" data-cke-widget-wrapper="1" data-cke-filter="off" data-cke-display-name="代码段" data-cke-widget-id="3">
+<div class="cnblogs_Highlighter">
+<pre><code> [Component]
+    [MessageChanelAttribute(ChannelName = "DefaultMessage")]
+    public class FastDefaultMessageHandler : IFastMessageHandle
+    {
+        [AutoWired]
+        public DBUtil @DBUtil;
+
+        public void HandleMessage(RedisChannel ChannelName, RedisValue Message)
+        {
+            FastExecutor.Message.Design.Message Entity = JsonConvert.DeserializeObject&lt;FastExecutor.Message.Design.Message&gt;(Message);
+            try
+            {
+                if (!CheckMessageIsConsume(Entity))
+                {
+                    this.CustomHandle(Entity);
+                }
+            }
+            catch (Exception e)
+            {
+                StringBuilder ExceptionLog = new StringBuilder();
+                ExceptionLog.AppendFormat("异常Message所属Channel:{0}", Entity.MessageChannel + Environment.NewLine);
+                ExceptionLog.AppendFormat("异常Message插入时间:{0}", Entity.MessageHead.MessageDate.ToString() + Environment.NewLine);
+                ExceptionLog.AppendFormat("异常Message内容：{0}", Message + Environment.NewLine);
+                ExceptionLog.AppendFormat("异常信息：{0}", e.Message + Environment.NewLine);
+                LogUtil.WriteLog("Logs/MessageErrorLog", "log_", ExceptionLog.ToString() + Environment.NewLine);
+                ExceptionLog.AppendFormat("========================================================================================================================================================================" + Environment.NewLine);
+                MessageACK.MoveMessageToExceptionChannel(Entity.MessageChannel, Entity);
+            }
+            finally
+            {
+                MessageACK.ConfirmMessageFinish(Entity.MessageChannel, Entity.MessageHead.MessageID);
+            }
+
+        }
+
+        public virtual void CustomHandle(FastExecutor.Message.Design.Message @Message)
+        {
+
+        }
+
+        public virtual bool CheckMessageIsConsume(FastExecutor.Message.Design.Message @Message)
+        {
+            return false;
+        }
+    }</pre>
+</div>
+</div>
+<p>其中的HandleMessage方法就是我们在订阅Channel时对应的委托，会调用类中的CustomHandle的虚方法，子类继承重写该方法就会基于多态进行策略调用，CheckMessageIsConsume方法是用于确认消息是否重复消费的，也可以被重写，下面看一个访问日志类的实例，使用MessageChanelAttribute标注声明该实现类需要订阅发布的Channel名称为Visit，CustomHandle方法中实现了插入数据库操作，CheckMessageIsConsume方法判断该条日志数据是否已消费（已经存在于数据库）</p>
+<div class="cke_widget_wrapper cke_widget_block cke_widget_codeSnippet cke_widget_wrapper_has cke_widget_selected" data-cke-widget-wrapper="1" data-cke-filter="off" data-cke-display-name="代码段" data-cke-widget-id="2">
+<div class="cnblogs_Highlighter">
+<pre><code>    [MessageChanelAttribute(ChannelName = "Visit")]
+    public class VisitLog : FastDefaultMessageHandler
+    {
+        public override void CustomHandle(Message.Design.Message Message)
+        {
+            Frame_VisitLog LogEntity = JsonConvert.DeserializeObject&lt;Frame_VisitLog&gt;(Message.MessageBody.MessageJsonContent);
+            @DBUtil.Insert(LogEntity);
+            base.CustomHandle(Message);
+        }
+
+        public override bool CheckMessageIsConsume(Message.Design.Message Message)
+        {
+            Frame_VisitLog LogEntity = JsonConvert.DeserializeObject&lt;Frame_VisitLog&gt;(Message.MessageBody.MessageJsonContent);
+            DBRow Row = new DBRow("Frame_VisitLog", "RowGuid", LogEntity.RowGuid);
+            if (Row.IsExist())
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+    }</pre>
+</div>
+</div>
+<h1>消息自动订阅</h1>
+<p>我们希望系统在启动时就寻找出定义好Channel和实现类，自动实现订阅，这里就需要用到IOC容器，启动系统时将所有的消息处理类放入容器中，在自动订阅时全部取出来，根据消息处理类中声明的Channel名称进行自动订阅</p>
+<div class="cke_widget_wrapper cke_widget_block cke_widget_codeSnippet cke_widget_wrapper_has cke_widget_selected" data-cke-widget-wrapper="1" data-cke-filter="off" data-cke-display-name="代码段" data-cke-widget-id="1">
+<div class="cnblogs_Highlighter">
+<pre><code>  public void Init()
+        {
+            List&lt;Type&gt; HandlerTypeList = InjectUtil.Container.GetRegistType(typeof(IFastMessageHandle));
+            foreach (Type HandlerType in HandlerTypeList)
+            {
+                MessageChanelAttribute Channel = Attribute.GetCustomAttribute(HandlerType, typeof(MessageChanelAttribute)) as MessageChanelAttribute;
+                RedisUtil.Subscribe(Channel.ChannelName, ((FastDefaultMessageHandler)InjectUtil.Container.Resolve(HandlerType)).HandleMessage);
+            }
+        }</pre>
+</div>
+</div>
+<p>注：</p>
+<p>1.这里的IOC容器是我自己实现的，地址：<a href="https://gitee.com/grassprogramming/FastIOC" data-cke-saved-href="https://gitee.com/grassprogramming/FastIOC">https://gitee.com/grassprogramming/FastIOC</a>，大家可以用AutoFac代替</p>
+<p>2.RedisUtil是对StackExchange.Redis.dll封装的处理类，地址：<a href="https://gitee.com/grassprogramming/FastUtil" data-cke-saved-href="https://gitee.com/grassprogramming/FastUtil">https://gitee.com/grassprogramming/FastUtil</a></p>
+<h1>消息发送</h1>
+<p>消息只需要调用Redis的发布方法即可，将Channel名称与定义好的数据实体类传入，序列化为Json</p>
+<div class="cke_widget_wrapper cke_widget_block cke_widget_codeSnippet cke_widget_wrapper_has cke_widget_selected" data-cke-widget-wrapper="1" data-cke-filter="off" data-cke-display-name="代码段" data-cke-widget-id="0">
+<div class="cnblogs_Highlighter">
+<pre><code>     public void SendMessage&lt;T&gt;(string ChannleName, T CustomMessageEntity, Dictionary&lt;string, string&gt; ExtraData = null)
+        {
+            FastExecutor.Message.Design.Message MessageEntity = new Design.Message();
+            MessageEntity.MessageChannel = ChannleName;
+            MessageHead Head = new MessageHead();
+            MessageBody Body = new MessageBody();
+            Body.MessageMapperType = typeof(T);
+            Body.MessageJsonContent = JsonConvert.SerializeObject(CustomMessageEntity);
+            MessageEntity.MessageHead = Head;
+            MessageEntity.MessageBody = Body;
+            if (ExtraData != null)
+            {
+                foreach (var item in ExtraData)
+                {
+                    MessageEntity.AddExtra(item.Key, item.Value);
+                }
+            }
+            RedisUtil.Publish(ChannleName, MessageEntity);
+            MessageACK.CopyMessageToACKList(ChannleName, MessageEntity);
+        }</pre>
+</div>
+</div>
+<h1>消息确认与存储</h1>
+<p>Redis作订阅发布模式作为消息组件的问题有两方面</p>
+<h3>问题：消息消费完没有确认机制</h3>
+<h3>解决方案</h3>
+<p>基于Redis的Hash存储方式建立一个消息存储字段，在发送消息时拷贝到消息Hash字典中，消费完毕后再删除，对应SendMessage中的MessageACK.CopyMessageToACKList方法和FastDefaultMessageHandler中的MessageACK.ConfirmMessageFinish方法，本质就是对Hash字典的增加与删除功能</p>
+<h3>问题：消息处理端挂了再次重启消息会丢失</h3>
+<h3>解决方案</h3>
+<p>确认机制已经保证了消息即使没有被消费完但是处理端宕机消息也不会丢失，需要注意的是，消息没有丢失仅仅是Hash字典中有存储，但是消息通道中不存在了，所以我们在系统每次启动时扫描这个Hash字典，重新发布消息到Channel，这样可能导致重复消费，所以需要靠FastDefaultMessageHandler中的CheckMessageIsConsume方法判断，同时消息处理者本身处理异常我们也需要记录下来，比如发短信供应商接口有问题，消息处理异常会进入Redis的ChannelException通道，我们可以根据需求实现一个可视化界面决定是否通过手动恢复</p>
+<h1>最后</h1>
+<p>Message组件相关代码地址：<a href="https://gitee.com/grassprogramming/FastExecutor/tree/master/code/FastExecutor/FastExecutor.Message" data-cke-saved-href="https://gitee.com/grassprogramming/FastExecutor/tree/master/code/FastExecutor/FastExecutor.Message">https://gitee.com/grassprogramming/FastExecutor/tree/master/code/FastExecutor/FastExecutor.Message</a></p>
+<p>存在不足问题：如果消息是单纯记录日志问题，没办法确认消息是否消费了</p>
+<p>如果大家有什么好的建议，可留言一起交流学习，共同进步</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

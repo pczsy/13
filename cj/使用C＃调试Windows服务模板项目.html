@@ -1,0 +1,165 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修使用C＃调试Windows服务模板项目' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>使用C＃调试Windows服务模板项目</center></div><div class='banquan'>原文出处:本文由博客园博主九天飞翼提供。<br/>
+原文连接:https://www.cnblogs.com/langda/p/11218016.html</div><br>
+    <p><span><span>Windows服务是非常强大的应用程序，可用于在backgorund中执行许多不同类型的任务。</span><span>他们可以在不需要任何用户登录的情况下启动，并且可以使用除登录用户之外的其他用户帐户运行。</span><span>但是，如果通过遵循常规服务开发步骤开发Windows服务应用程序，即使在开发环境中也难以调试。</span></span></p>
+<p><span>本文提出了一种不使用任何服务开发库（如Topshelf）开发Windows服务的不同方法，以便在开发阶段轻松监视和调试。</span></p>
+<h2><span>特征</span></h2>
+<p><span>示例项目具有以下功能;</span></p>
+<ul>
+<li><span>它在调试模式下作为控制台应用程序运行，在发布模式下作为常规Windows服务运行。</span></li>
+<li><span>根据日志类型在控制台上显示具有不同文本颜色的日志消息。</span></li>
+<li><span>Windows服务相关操作和实际后台任务处理操作是分开的，因此可以轻松地对实际服务操作进行单元测试。</span></li>
+<li><span><span>可以使用InstallUtil.exe安装和卸载服务。</span><span>但是您不需要安装它来进行测试和调试。</span></span></li>
+</ul>
+<h2><span>准备此应用程序的步骤</span></h2>
+<p>示例项目<span style="color: #000000;"><a href="http://www.codesocang.com" target="_blank"><span style="color: #000000;">网站源码</span></a></span>是使用Visual Studio 2017准备的。</p>
+<h4><span>1-创建Windows服务项目</span></h4>
+<p><span><span>在Visual Studio中，单击&ldquo;文件&rdquo;\&ldquo;新建&rdquo;\&ldquo;项目&rdquo;。</span><span>选择&ldquo;Visual C＃\ Windows桌面\ Windows服务&rdquo;项目类型。</span></span></p>
+<p><img src="./images/使用C＃调试Windows服务模板项目0.png" alt="使用C＃调试Windows服务模板项目" width="830px" height="489px" /></p>
+<h4><span>2-将项目输出类型从Windows应用程序更改为控制台应用程序</span></h4>
+<p><span>右键单击项目名称并选择&ldquo;属性&rdquo;，打开项目属性。</span></p>
+<p><span>从&ldquo;输出类型&rdquo;选择列表中选择控制台应用程序。</span></p>
+<p><img src="./images/使用C＃调试Windows服务模板项目1.png" alt="使用C＃调试Windows服务模板项目" width="768px" height="260px" /></p>
+<h4><span>3-安装log4net软件包</span></h4>
+<p><span>从Package Manager控制台或Manage Nuget Packages菜单选项安装log4net nuget软件包。</span></p>
+<h4><span>4-配置log4net</span></h4>
+<p><span><span>log4net是一个非常强大的日志库，可以将日志写入许多目标，如文本文件，控制台，数据库，Windows事件日志，甚至可以将它们作为电子邮件发送。</span><span>这些日志编写器（或目标）称为&ldquo;appender&rdquo;。</span><span>log4net配置必须至少有一个appender，但它可能有很多。</span><span>每个appender都有自己的设置。</span></span></p>
+<p><span>log4net配置可以添加到</span>app.config<span><span>文件中，也可以是单独的文件。</span><span>我更喜欢单独的文件方法，因此为log4net添加两个配置文件，用于调试和发布模式。</span><span>名称无关紧要，您可以将它们命名为&ldquo;&nbsp;</span></span>log4net.debug.config<span>&nbsp;&rdquo;和&ldquo;&nbsp;</span>log4net.prod.config<span><span>&nbsp;&rdquo;。</span><span>Debug配置文件有两个appender;&nbsp;</span></span><code>RollingFileAppender</code><span>和&nbsp;&nbsp;</span><code>ColoredConsoleAppender</code><span><span>。</span><span>生产配置文件还有两个appender;&nbsp;</span></span><code>RollingFileAppender</code><span>和&nbsp;&nbsp;</span><code>EventLog</code><span><span>。</span><span>但&nbsp;&nbsp;</span></span><code>EventLog</code><span>appender已注释掉，如果要编写Windows事件日志，可以取消注释。</span></p>
+<p><span>最小日志级别在</span><code>&lt;root&gt;</code><span><span>元素</span><span>下定义</span><span>为</span></span><code>&lt;level&gt;</code><span><span>配置元素。</span><span>对于调试配置级别是DEBUG，对于生产它是</span></span><code>INFO</code><span><span>。</span><span>有效等级是;&nbsp;</span></span><code>DEBUG</code><span>，</span><code>INFO</code><span>，</span><code>WARN</code><span>，</span><code>ERROR</code><span><span>。</span><span>有关详细信息，</span><span>请参阅</span></span>log4net文档<span>。</span></p>
+<p><span><span>下一步配置步骤是告诉log4net库在调试和释放模式下使用哪个文件。</span><span>为此，请打开</span></span>AssemblyInfo.cs<span><span>文件并为log4net添加程序集级别属性。</span><span>添加这些行以在调试和释放模式下在两个文件之间切换。</span></span></p>
+<pre><code><span class="code-preprocessor">#if DEBUG
+ [ <span class="code-keyword">assembly：log4net.Config.XmlConfigurator（ConfigFile = <span class="code-string">&ldquo; <span class="code-string">log4net.debug.config&rdquo;，Watch = <span class="code-keyword">true）]
+ <span class="code-preprocessor">#else
+ [ <span class="code-keyword">assembly：log4net.Config.XmlConfigurator（ConfigFile = <span class="code-string">&ldquo; <span class="code-string">log4net.prod.config&rdquo;，Watch = <span class="code-keyword">真的）]
+ <span class="code-preprocessor">#endif</span></span></span></span></span></span></span></span></span></span></span></pre>
+<h4><span>5-添加SampleBackgroundService类，其中包含我们的Windows服务将执行的实际后台操作。</span></h4>
+<p><span>它是一个非常简单的类&nbsp;&nbsp;</span><code>Start</code><span>，</span><code>Stop</code><span>用于启动和停止后台任务处理线程的方法以及连续写入日志的线程方法。</span></p>
+<pre><code><span class="code-keyword">class SampleBackgroundService
+{
+&nbsp;   <span class="code-comment">// <span class="code-comment">从log4net获取此类的记录器LogManager 
+    <span class="code-keyword">private  <span class="code-keyword">static ILog logger = LogManager.GetLogger（<span class="code-keyword">typeof（SampleBackgroundService））;
+
+&nbsp;   <span class="code-comment">// <span class="code-comment">启动线程
+    <span class="code-keyword">public  <span class="code-keyword">void Start（）{...}
+
+&nbsp;   <span class="code-comment">// <span class="code-comment">停止线程
+    <span class="code-keyword">public  <span class="code-keyword">void Stop（）{...}
+
+&nbsp;   <span class="code-comment">// <span class="code-comment">执行后台任务并写入日志的服务线程
+    <span class="code-keyword">private  <span class="code-keyword">void serviceThread（）
+    {
+       <span class="code-keyword">while（！stopRequested）
+       {
+         <span class="code-comment">// <span class="code-comment">写出不同类型的日志......
+       }
+    }
+}</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></pre>
+<h4><span>6-更新自动生成的Windows Service类中的代码</span></h4>
+<p><span>我已将自动添加的Windows Services类重命名为&nbsp;&nbsp;</span><code>SampleWindowsService</code><span><span>。</span><span>此类继承自</span></span><code>ServiceBase</code><span><span>，并且是在</span><span>启动或停止Windows服务时调用</span><span>其</span><span>方法</span></span><code>OnStart</code><span><span>和</span><span>类的类</span></span><code>OnStop</code><span><span>。</span><span>该类仅创建类的实例&nbsp;&nbsp;</span></span><code>SampleBackgroundService</code><span>并调用其</span><code>Start</code><span>和</span><code>Stop</code><span>方法。</span></p>
+<h4><span>7-更新Program.cs文件中的Main mathod，使其在Debug和Release模式下表现不同</span></h4>
+<p><span><span>创建新的Windows服务项目时，自动生成的Main方法包含用于创建和启动自动生成的Windows服务的代码。</span><span>但是，Windows服务无法作为常规应用程序启动和托管。</span><span>因此，当您尝试运行该应用程序时会出现一条错误消息。</span></span></p>
+<p><span>要运行和测试我们的应用程序，我们不需要创建真正的Windows服务实例，因为除了创建和启动</span><code>SampleBackgroundService</code><span><span>类的</span><span>实例之外，它不包含任何代码&nbsp;&nbsp;</span><span>。</span><span>Main方法中更新的代码在</span></span><code>SampleBackgroundService</code><span><span>Debug模式下</span><span>创建并启动</span><span>类</span><span>的实例，&nbsp;&nbsp;</span><span>并作为控制台应用程序运行。</span><span>但是在发布模式下创建并运行真正的Windows服务。</span></span></p>
+<pre><code><span class="code-keyword">static  <span class="code-keyword">void Main（）
+{
+    ILog logger = LogManager.GetLogger（<span class="code-keyword">typeof（Program））;
+
+<span class="code-preprocessor">#if DEBUG //在调试模式下作为常规控制台应用程序运行
+ &nbsp;   <span class="code-comment">// <span class="code-comment">手动创建SampleBackgroundService类的实例并调用其start方法
+
+    logger.Info（<span class="code-string">&ldquo;正在<span class="code-string">启动服务......&rdquo;）;
+
+    SampleBackgroundService _backgroundService = <span class="code-keyword">new SampleBackgroundService （）;
+    _backgroundService.Start（）;
+
+    logger.Info（<span class="code-string">&ldquo; <span class="code-string">服务已启动。按Enter键停止...&rdquo;）;
+    到Console.ReadLine（）;
+
+    logger.Info（<span class="code-string">&ldquo; <span class="code-string">停止服务......&rdquo;）;
+    _backgroundService.Stop（）;
+    logger.Info（<span class="code-string">&ldquo;已<span class="code-string">停止。&rdquo;）;
+
+<span class="code-preprocessor">#else //在Release模式     ServiceBase [] ServicesToRun中<span class="code-preprocessor">创建并运行真正的Windows服务实例
+ ;
+    ServicesToRun = <span class="code-keyword">new ServiceBase []
+    {
+        <span class="code-keyword">新的 SampleWindowsService（）
+    };
+    ServiceBase.Run（ServicesToRun）;
+<span class="code-preprocessor">#endif
+ }</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></pre>
+<p><strong>8-添加Service Installer组件，以便能够使用InstallUtil.exe安装此服务</strong></p>
+<p><span><span>要添加安装程序组件，请</span><span>在解决方案资源管理器上</span><span>双击</span></span>SampleWindowsService.cs<span><span>。</span><span>它将显示服务的设计视图。</span></span></p>
+<p><span>右键单击设计区域，然后单击上下文菜单中的&ldquo;添加安装程序&rdquo;。</span></p>
+<p><img src="./images/使用C＃调试Windows服务模板项目2.png" alt="使用C＃调试Windows服务模板项目" width="580px" height="342px" /></p>
+<p><span>这会将</span>ProjectInstaller.cs<span><span>和设计器文件</span><span>添加</span><span>到项目中。</span><span>删除自动生成的代码&nbsp;&nbsp;</span></span><code>ProjectInstaller.InitializeComponent()</code><span>方法和自动生成的变量（</span><code>serviceProcessInstaller1</code><span>，</span><code>serviceInstaller1</code><span>）。</span></p>
+<p><span>将以下代码添加到&nbsp;&nbsp;</span>ProjectInstaller.cs<span>文件中;</span></p>
+<pre><code><span class="code-keyword">public  <span class="code-keyword">partial  <span class="code-keyword">class ProjectInstaller：Installer
+{
+    <span class="code-keyword">public  <span class="code-keyword">const  <span class="code-keyword">string SERVICE_NAME = <span class="code-string">&ldquo; <span class="code-string">Sample Background Service&rdquo; ;
+
+    <span class="code-keyword">private  <span class="code-keyword">readonly ServiceProcessInstaller m_ServiceProcessInstaller;
+    <span class="code-keyword">private  <span class="code-keyword">readonly ServiceInstaller m_ServiceInstaller;
+
+    <span class="code-keyword">public ProjectInstaller（）
+    {
+&nbsp;       <span class="code-comment">// <span class="code-comment">安装进程的安装程序（在本例中为'DebuggableWindowsService.exe'）
+&nbsp; &nbsp; &nbsp; &nbsp; <span class="code-comment">// <span class="code-comment">只能有一个ServiceProcessInstaller 
+        m_ServiceProcessInstaller = <span class="code-keyword">new ServiceProcessInstaller（）;
+        m_ServiceProcessInstaller.Account = ServiceAccount.LocalSystem;
+
+       <span class="code-comment">// <span class="code-comment">在应用程序中注册实际Windows服务实现的安装程序
+&nbsp; &nbsp; &nbsp; &nbsp;<span class="code-comment">// <span class="code-comment">可能有一个或多个ServiceInstaller 
+        m_ServiceInstaller = <span class="code-keyword">new ServiceInstaller（）;
+        m_ServiceInstaller.ServiceName = SERVICE_NAME;
+        m_ServiceInstaller.Description = <span class="code-string">&ldquo; <span class="code-string">&rdquo; ;
+        m_ServiceInstaller.StartType = ServiceStartMode.Automatic;
+        m_ServiceInstaller.DelayedAutoStart = <span class="code-keyword">true ;            
+
+        Installers.Add（m_ServiceProcessInstaller）;
+        Installers.Add（m_ServiceInstaller）;
+
+        的InitializeComponent（）;
+    }
+
+<span class="code-comment">// <span class="code-comment">...
+
+}</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></pre>
+<p><span>如果要在安装服务之前和之后执行任何任务，可以覆盖适当的基本方法，例如&nbsp;&nbsp;</span><code>OnBeforeInstall</code><span>，&nbsp;&nbsp;</span><code>OnBeforeUninstall</code><span>...</span></p>
+<p><span><span>您无需安装（或向Windows服务注册表注册服务）您的服务即可运行和调试。</span><span>但是，如果需要，可以使用InstallUtil.exe来安装和卸载服务。</span><span>InstallUtil.exe位于.NET Framework安装文件夹下。</span><span>例如，&ldquo;&nbsp;</span></span>C：\ Windows \ Microsoft.NET \ Framework \ v4.0.30319<span>&nbsp;&rdquo;</span></p>
+<p><span><span>要注册该服务，请打开命令行窗口并</span><span>使用可执行文件的完整路径</span><span>运行</span></span>InstallUtil.exe<span><span>。</span><span>您可能需要&ldquo;以管理员身份&rdquo;运行命令行窗口才能注册服务。</span></span></p>
+<pre><code>C <span class="code-preprocessor">：\ Windows \ Microsoft.NET \ Framework \ v4.0.30319&gt; InstallUtil.exe&ldquo;D：\ DebuggableWindowsService \ src \ bin \ Release \ DebuggableWindowsService.exe&rdquo;</span></pre>
+<p><span>要卸载服务，请使用/ u选项运行相同的命令。</span></p>
+<pre><code>C <span class="code-preprocessor">：\ Windows \ Microsoft.NET \ Framework \ v4.0.30319&gt; InstallUtil.exe / u&ldquo;D：\ DebuggableWindowsService \ src \ bin \ Release \ DebuggableWindowsService.exe&rdquo;</span></pre>
+<p><strong>9-在调试模式下运行应用程序以查看日志输出和调试</strong></p>
+<p><span>下面是在调试模式下运行应用程序时显示的示例输出。</span></p>
+<p><img src="./images/使用C＃调试Windows服务模板项目3.png" alt="使用C＃调试Windows服务模板项目" width="925px" height="418px" /></p>
+<p>关于Windows服务的重要说明</p>
+<p><span><span>Windows Service应用程序在几个方面与其他常规应用程序不同。</span><span>因此，应用程序在调试（控制台应用程序模式）和发布（Windows服务模式）模式下的行为可能不同。</span></span></p>
+<p><strong>首先，</strong><span><span>当您在调试模式下运行应用程序时，其工作目录将是可执行文件所在的路径。</span><span>例如&ldquo;&nbsp;</span></span>D：\ DebuggableWindowsService \ src \ bin \ Release \ DebuggableWindowsService.exe<span>&nbsp;&rdquo;</span></p>
+<p><span>但是，当您使用InstallUtil.exe或安装应用程序安装它并从Windows服务管理应用程序运行它时，其工作目录将是&ldquo;&nbsp;</span>C：\ Windows \ System32<span>&nbsp;&rdquo;或&ldquo;&nbsp;</span>C：\ Windows \ SysWOW64<span>&nbsp;&rdquo;，具体取决于您的服务是64位32d无论是在32位还是64位Windows上运行。</span></p>
+<p><span><span>如果要在安装目录中读取或写入文件而不是系统目录，则可以在启动时使用工作目录。</span><span>例如;</span></span></p>
+<pre><code>Environment.CurrentDirectory = Path.GetDirectoryName（Assembly.GetExecutingAssembly（）。Location）;</pre>
+<p><strong>其次，</strong><span><span>&nbsp;Windows服务可以使用除登录用户之外的其他用户帐户运行。</span><span>当应用程序rusn作为真正的Windows服务时，某些在调试模式下运行的操作可能无法运行。</span><span>这些操作的示例是访问目录或网络路径，打开端口......</span></span></p>
+<p><strong>第三，</strong><span><span>&nbsp;Windows服务没有用户界面，通常无法显示用户界面。</span><span>Windows操作系统阻止了他们对显卡的访问。</span><span>遗憾的是，无法使用Windows服务中的强大GPU。</span><span>要了解有关此限制的更多信息，请搜索&ldquo;会话0隔离&rdquo;。</span></span></p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

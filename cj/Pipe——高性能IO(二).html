@@ -1,0 +1,380 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Pipe——高性能IO(二)' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Pipe——高性能IO(二)</center></div><div class='banquan'>原文出处:本文由博客园博主yswenli提供。<br/>
+原文连接:https://www.cnblogs.com/yswenli/p/11937246.html</div><br>
+    <p><a href="https://zhuanlan.zhihu.com/p/39223648" target="_blank">Pipelines - .NET中的新IO API指引（一）</a></p>
+<p><a href="https://zhuanlan.zhihu.com/p/39969692" target="_blank">Pipelines - .NET中的新IO API指引（二）</a></p>
+<p>关于<a href="system.io.pipelines:%20.NET%E9%AB%98%E6%80%A7%E8%83%BDIO" target="_blank">System.IO.Pipelines</a>的一篇说明</p>
+<p><a title="https://www.cnblogs.com/yswenli/p/11810317.html" href="https://www.cnblogs.com/yswenli/p/11810317.html" target="_blank">System.IO.Pipelines: .NET高性能IO</a></p>
+<p>System.IO.Pipelines 是对IO的统一抽象，文件、com口、网络等等，重点在于让调用者注意力集中在读、写缓冲区上，典型的就是 IDuplexPipe中的Input Output。</p>
+<p>可以理解为将IO类抽象为读、写两个缓冲区。</p>
+<p>目前官方实现还处于preview状态，作者使用Socket和NetworkStream 实现了一个&nbsp;<a href="https://github.com/mgravell/Pipelines.Sockets.Unofficial.git" target="_blank">Pipelines.Sockets.Unofficial</a></p>
+<p>作者在前两篇中提到使用System.IO.Pipelines 改造StackExchange.Redis,在本篇中作者采用了改造现有的SimplSockets库来说明System.IO.Pipelines的使用。&nbsp;</p>
+<p><a href="https://github.com/mgravell/simplsockets" target="_blank">文章中的代码</a>（<span class="css-truncate css-truncate-target"><a id="7d0882796fbade01c37dc56528c948f8-932ecf9dcac1db34855d2510a1ece31077d4c106" class="js-navigation-open" title="SimplPipelines" href="https://github.com/mgravell/simplsockets/tree/master/SimplPipelines">SimplPipelines，</a><a id="02bf9f6185829ce6a31b6fd7dd719399-3e73aa8ba2e4045ec3aa1ed8bd053b0504254577" class="js-navigation-open" title="KestrelServer" href="https://github.com/mgravell/simplsockets/tree/master/KestrelServer">KestrelServer</a>&nbsp;）</span></p>
+<div>
+<h2>## SimplSockets说明</h2>
++ 可以单纯的发送（Send），也可以完成请求/响应处理（SendRecieve）<br />+ 同步Api<br />+ 提供简单的帧协议封装消息数据<br />+ 使用byte[]<br />+ 服务端可以向所有客户端广播消息<br />+ 有心跳检测等等</div>
+<div>&nbsp;&nbsp;&nbsp; 属于非常典型的传统Socket库。</div>
+<div>
+<h2>## 作者的改造说明</h2>
+<div>
+<h3>### 对缓冲区数据进行处理的一些方案及选型</h3>
+
+&nbsp;&nbsp; 1. 使用byte[]拷贝出来，作为独立的数据副本使用，简单易用但成本高（分配和复制）<br />&nbsp;&nbsp; 2. 使用 ReadOnlySequence&lt;byte&gt; ，零拷贝，快速但有限制。一旦在管道上执行Advance操作，数据将被回收。在有严格控制的服务端处理场景（数据不会逃离请求上下文）下可以使用，言下之意使用要求比较高。<br />&nbsp;&nbsp; 3. 作为2的扩展方案，将数据载荷的解析处理代码移至类库中（处理ReadOnlySequence&lt;byte&gt;），只需将解构完成的数据发布出来，也许需要一些自定义的structs 映射（map）一下。这里说的应该是直接将内存映射为Struct？<br />&nbsp;&nbsp; 4. 通过返回Memory&lt;byte&gt; 获取一份数据拷贝，也许需要从ArrayPool&lt;byte&gt;.Share 池中返回一个大数组；但是这样对调用者要求较高，需要返回池。并且从Memory&lt;T&gt; 获取一个T[]属于高级和不安全的操作。不安全，有风险。（ not all Memory&lt;T&gt; is based on T[]）<br />&nbsp;&nbsp; 5. 一个妥协方案，返回一个提供Memory&lt;T&gt;(Span&lt;T&gt;)的东西，并且使用一些明确的显而易见的Api给用户,这样用户就知道应该如何处理返回结果。比如IDisposable/using这种，在Dispose()被调用时将资源归还给池。<br />&nbsp;&nbsp;<br />&nbsp;&nbsp; 作者认为，设计一个通用的消息传递Api时，方案5更为合理，调用方可以保存一段时间的数据并且不会干扰到管道的正常工作，也可以很好的利用ArrayPool。如果调用者没有使用using也不会有什么大麻烦，只是效率会降低一些，就像使用方案1一样。<br />&nbsp;&nbsp;&nbsp;&nbsp; 但是方案的选择需要充分考虑你的实际场景，比如在StackExchange.Redis 客户端中使用的是方案3；在不允许数据离开请求上下文时使用方案2.。<br />&nbsp; 一旦选定方案，以后基本不可能再更改。</div>
+<div>&nbsp;&nbsp; 针对效率最高的方案2，作者提出的专业建议是 **使用ref struct** 。</div>
+<div>&nbsp;&nbsp; 此处选择的是方案5，与方案4的区别就是对Memory&lt;T&gt; 的处理，作者使用 System.Buffers.IMemoryOwner&lt;T&gt;接口<br />&nbsp;<br /><br />
+<div class="cnblogs_code">
+<pre><code> public interface IMemoryOwner&lt;T&gt; : IDisposable
+ {
+  Memory&lt;T&gt; Memory { get; }
+ }</pre>
+</div>
+<p>&nbsp;</p>
+</div>
+<div>&nbsp;&nbsp; 以下为实现代码，Dispose时归还借出的数组，并考虑线程安全，避免多次归还(very bad)。<br />&nbsp;&nbsp;
+<div class="cnblogs_code">
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/Pipe——高性能IO(二)0.png" alt="复制代码" /></a></span></div>
+<pre><code>private sealed class ArrayPoolOwner&lt;T&gt;:IMemoryOwner&lt;T&gt;{
+ private readonly int _length;
+ private T[] _oversized;
+ internal ArrayPoolOwner(T[] oversized,int length){
+  _length=length;
+  _oversized=oversized;
+ }
+ public Memory&lt;T&gt; Memory=&gt;new Memory&lt;T&gt;(GetArray(),0,_length);
+ private T[] GetArray()=&gt;Interlocked.CompareExchange(ref _oversized,null,null)
+  ?? throw new ObjectDisposedException(ToString());
+ public void Dispose(){
+  var arr=Interlocked.Exchange(ref _oversized,null);
+  if(arr!=null) ArrayPool&lt;T&gt;.Shared.Return(arr);
+ }
+}</pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/Pipe——高性能IO(二)0.png" alt="复制代码" /></a></span></div>
+</div>
+<p>&nbsp;</p>
+</div>
+<div>&nbsp; Dispose后如果再次调用Memory将会失败，即 使用时 using，不要再次使用。</div>
+<div><strong>**对ArrayPool的一些说明**</strong><br />+ 从ArrayPool借出的数组比你需要的要大，你给定的大小在ArrayPool看来属于下限（不可小于你给定的大小）,见：ArrayPool&lt;T&gt;.Shared.Rent(int minimumLength)；<br />+ 归还时数组默认不清空，因此你借出的数组内可能会有垃圾数据；如果需要清空，在归还时使用 ArrayPool&lt;T&gt;.Shared.Return(arr，true) ；</div>
+<div>&nbsp; 作者对ArrayPool的一些建议：&nbsp;<br />增加 IMemoryOwner&lt;T&gt; RentOwned(int length)，T[] Rent(int minimumLength) 及借出时清空数组，归还时清空数组的选项。</div>
+<div><br />&nbsp;这里的想法是通过IMemoryOwner&lt;T&gt;实现一种所有权的转移，典型调用方法如下<br />&nbsp;<br />
+<div class="cnblogs_code">
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/Pipe——高性能IO(二)0.png" alt="复制代码" /></a></span></div>
+<pre><code> void DoSomething(IMemoryOwner&lt;byte&gt; data){
+  using(data){
+       // ... other things here ...
+                DoTheThing(data.Memory);
+  }
+  // ... more things here ...
+ }</pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/Pipe——高性能IO(二)0.png" alt="复制代码" /></a></span></div>
+</div>
+<p>&nbsp;</p>
+&nbsp;通过ArrayPool的借、还机制避免频繁分配。</div>
+<div>&nbsp;</div>
+<div><strong>&nbsp;**作者的警告：**</strong><br />&nbsp;+ 不要把data.Memory 单独取出乱用，using完了就不要再操作它了（这种错误比较基础）<br />&nbsp;+ 有人会用MemoryMarshal搞出数组使用，作者认为可以实现一个 MemoryManager&lt;T&gt;（ArrayPoolOwner&lt;T&gt; : MemoryManager&lt;T&gt;, since MemoryManager&lt;T&gt; : IMemoryOwner&lt;T&gt;）让.Span如同.Memory一样失败。<br />&nbsp;---- 作者也挺纠结（周道）的 ：）。</div>
+<div>使用&nbsp; ReadOnlySequence&lt;T&gt; 填充ArrayPoolOwner（构造,实例化）<br />&nbsp;
+<div class="cnblogs_code">
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/Pipe——高性能IO(二)0.png" alt="复制代码" /></a></span></div>
+<pre><code>public static IMemoryOwner&lt;T&gt; Lease&lt;T&gt;(this ReadOnlySequence&lt;T&gt; source)
+    {
+        if (source.IsEmpty) return Empty&lt;T&gt;();
+        int len = checked((int)source.Length);
+        var arr = ArrayPool&lt;T&gt;.Shared.Rent(len);//借出
+        source.CopyTo(arr);
+        return new ArrayPoolOwner&lt;T&gt;(arr, len);//dispose时归还
+    }</pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/Pipe——高性能IO(二)0.png" alt="复制代码" /></a></span></div>
+</div>
+<p>&nbsp;</p>
+</div>
+<div>
+<h3>### 基本API</h3>
+&nbsp; 服务端和客户端虽然不同但代码有许多重叠的地方，比如都需要某种线程安全机制的写入，需要某种读循环来处理接收的数据，因此可以共用一个基类。<br />基类中使用IDuplexPipe（包括input，output两个管道）作为管道。<br />
+<div class="cnblogs_code">
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/Pipe——高性能IO(二)0.png" alt="复制代码" /></a></span></div>
+<pre><code>public abstract class SimplPipeline : IDisposable
+    {
+        private IDuplexPipe _pipe;
+        protected SimplPipeline(IDuplexPipe pipe)
+            =&gt; _pipe = pipe;
+        public void Dispose() =&gt; Close();
+        public void Close() {/* burn the pipe*/}
+    }</pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/Pipe——高性能IO(二)0.png" alt="复制代码" /></a></span></div>
+</div>
+<p>&nbsp;</p>
+</div>
+<div>首先，需要一种线程安全的写入机制并且不会过度阻塞调用方。在原SimplSockets（包括StackExchange.Redis v1）中使用消息队列来处理。调用方Send时同步的将消息入队，在将来的某刻，消息出队并写入到Socket中。此方式存在的问题<br />+ 有许多移动的部分<br />+ 与&ldquo;pipelines&rdquo;有些重复</div>
+<div>管道本身即是队列，本身具备输出（写、发送）缓冲区，没必要再增加一个队列，直接把数据写入管道即可。取消原有队列只有一些小的影响，在StackExchange.Redis v1 中使用队列完成优先级排序处理（队列跳转），作者表示不担心这一点。</div>
+<div><strong>**写入Api设计**</strong><br />&nbsp;+ 不一定时同步的<br />&nbsp;+ 调用方可以单纯的传入一段内存数据（ReadOnlyMember&lt;byte&gt;），或者是一个（IMemoryOwner&lt;byte&gt;）由Api写入后进行清理。<br />&nbsp; + 先假设读、写分开（暂不考虑响应）<br /><br />
+<div class="cnblogs_code">
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/Pipe——高性能IO(二)0.png" alt="复制代码" /></a></span></div>
+<pre><code>protected async ValueTask WriteAsync(IMemoryOwner&lt;byte&gt; payload, int messageId)//调用方不再使用payload，需要我们清理
+    {
+        using (payload)
+  {
+   await WriteAsync(payload.Memory, messageId);
+  }
+ }
+protected ValueTask WriteAsync(ReadOnlyMemory&lt;byte&gt; payload, int messageId);//调用方自己清理</pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/Pipe——高性能IO(二)0.png" alt="复制代码" /></a></span></div>
+</div>
+<p>&nbsp;</p>
+&nbsp;messageId标识一条消息，写入消息头部， 用于之后处理响应回复信息。<br />&nbsp;&nbsp;&nbsp;返回值使用ValueTask因为写入管道通常是同步的，只有管道执行Flush时才可能是异步的（大多数情况下也是同步的，除非在管道被备份时）。</div>
+<div>
+<h3>### 写入与错误</h3>
+
+首先需要保证单次写操作，lock在此不合适，因为它不能与异步操作很好的协同。考虑flush有可能是异步的，导致后续（continuation ）部分可能会在另外的线程上。这里使用与异步兼容的SemaphoreSlim。<br />下面是一条指南：**一般来说, 应用程序代码应针对可读性进行优化;库代码应针对性能进行优化。**<br />以下为机翻原文<br />&gt;&nbsp;<em>您可能同意也可能不同意这一点, 但这是我编写代码的一般指南。我的意思是,类库代码往往有一个单一的重点目的, 往往由一个人的经验可能是 "深刻的, 但不一定是 &nbsp;&nbsp; 广泛的" 维护;你的大脑专注于那个领域, 用奇怪的长度来优化代码是可以的。相反,应用程序代码往往涉及更多不同概念的管道-"宽但不一定深" (深度隐藏在各种库 &nbsp; &nbsp;&nbsp; 中)。应用程序代码通常具有更复杂和不可预知的交互, 因此重点应放在可维护和 "明显正确" 上。</em><br /><em>&nbsp; 基本上, 我在这里的观点是, 我倾向于把很多注意力集中在通常不会放入应用程序代码中的优化上, 因为我从经验和广泛的基准测试中知道它们真的很重要。所以。。。我要做一些看起来很奇怪的事情, 我希望你和我一起踏上这段旅程。</em></div>
+<div>&nbsp;</div>
+<div>&ldquo;明显正确&rdquo;的代码</div>
+<div>
+<div class="cnblogs_code">
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/Pipe——高性能IO(二)0.png" alt="复制代码" /></a></span></div>
+<pre><code>private readonly SemaphoreSlim _singleWriter= new SemaphoreSlim(1);
+protected async ValueTask WriteAsync(ReadOnlyMemory&lt;byte&gt; payload, int messageId)
+{
+    await _singleWriter.WaitAsync();
+    try
+    {
+        WriteFrameHeader(writer, payload.Length, messageId);
+        await writer.WriteAsync(payload);
+    }
+    finally
+    {
+        _singleWriter.Release();
+    }
+}</pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/Pipe——高性能IO(二)0.png" alt="复制代码" /></a></span></div>
+</div>
+<p>&nbsp;</p>
+</div>
+<div>这段代码没有任何问题，但是即便所有部分都是同步完成的，就会产生多余的状态机-------大概是 不是所有地方都需要异步处理 的意思。<br />通过两个问题进行重构<br />- 单次写入是否没有竞争？（无人争用）<br />- Flush是否为同步</div>
+<div>重构，将原WriteAsync 更名为 WriteAsyncSlowPath，增加新的WriteAsync</div>
+<div>作者的&ldquo;一些看起来很奇怪的&rdquo; 实现</div>
+<div>&nbsp;
+<div class="cnblogs_code">
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/Pipe——高性能IO(二)0.png" alt="复制代码" /></a></span></div>
+<pre><code>protected ValueTask WriteAsync(ReadOnlyMemory&lt;byte&gt; payload, int messageId)
+{
+    // try to get the conch; if not, switch to async
+//writer已经被占用，异步
+    if (!_singleWriter.Wait(0))
+        return WriteAsyncSlowPath(payload, messageId);
+    bool release = true;
+    try
+    {
+        WriteFrameHeader(writer, payload.Length, messageId);
+        var write = writer.WriteAsync(payload);
+        if (write.IsCompletedSuccessfully) return default;
+        release = false;
+        return AwaitFlushAndRelease(write);
+    }
+    finally
+    {
+        if (release) _singleWriter.Release();
+    }
+}
+async ValueTask AwaitFlushAndRelease(ValueTask&lt;FlushResult&gt; flush)
+{
+    try { await flush; }
+    finally { _singleWriter.Release(); }
+}</pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/Pipe——高性能IO(二)0.png" alt="复制代码" /></a></span></div>
+</div>
+<p>&nbsp;</p>
+三个地方<br />1. _singleWriter.Wait(0) 意味着writer处于空闲状态，没有其他人在调用<br />2. write.IsCompletedSuccessfully 意味着writer同步flush<br />3. 辅助方法 AwaitFlushAndRelease 处理异步flush情况<br />-------------------------------------------------------------------------------------
+<h3>### 协议头处理</h3>
+
+协议头由两个int组成，小端，第一个是长度，第二个是messageId，共8字节。<br />
+<div class="cnblogs_code">
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/Pipe——高性能IO(二)0.png" alt="复制代码" /></a></span></div>
+<pre><code>void WriteFrameHeader(PipeWriter writer, int length, int messageId)
+{
+    var span = writer.GetSpan(8);
+    BinaryPrimitives.WriteInt32LittleEndian(
+        span, length);
+    BinaryPrimitives.WriteInt32LittleEndian(
+        span.Slice(4), messageId);
+    writer.Advance(8);
+}</pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/Pipe——高性能IO(二)0.png" alt="复制代码" /></a></span></div>
+</div>
+<p><strong>&nbsp;</strong></p>
+</div>
+<div>
+<div><strong>### 管道客户端实现 发送</strong><br />&nbsp;<br />
+<div class="cnblogs_code">
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/Pipe——高性能IO(二)0.png" alt="复制代码" /></a></span></div>
+<pre><code>public class SimplPipelineClient : SimplPipeline
+{
+    public async Task&lt;IMemoryOwner&lt;byte&gt;&gt; SendReceiveAsync(ReadOnlyMemory&lt;byte&gt; message)
+    {
+        var tcs = new TaskCompletionSource&lt;IMemoryOwner&lt;byte&gt;&gt;();
+        int messageId;
+        lock (_awaitingResponses)
+        {
+            messageId = ++_nextMessageId;
+            if (messageId == 0) messageId = 1;
+            _awaitingResponses.Add(messageId, tcs);
+        }
+        await WriteAsync(message, messageId);
+        return await tcs.Task;
+    }
+    public async Task&lt;IMemoryOwner&lt;byte&gt;&gt; SendReceiveAsync(IMemoryOwner&lt;byte&gt; message)
+    {
+        using (message)
+        {
+            return await SendReceiveAsync(message.Memory);
+        }
+    }
+}</pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/Pipe——高性能IO(二)0.png" alt="复制代码" /></a></span></div>
+</div>
+<p>&nbsp;</p>
+- _awaitingResponses 是个字典，保存已经发送的消息，用于将来处理对某条（messageId）消息的回复。</div>
+<div><strong>### 接收循环</strong></div>
+<div>&nbsp;
+<div class="cnblogs_code">
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/Pipe——高性能IO(二)0.png" alt="复制代码" /></a></span></div>
+<pre><code>protected async Task StartReceiveLoopAsync(CancellationToken cancellationToken = default)
+{
+   try
+   {
+       while (!cancellationToken.IsCancellationRequested)
+       {
+           var readResult = await reader.ReadAsync(cancellationToken);
+           if (readResult.IsCanceled) break;
+           var buffer = readResult.Buffer;
+           var makingProgress = false;
+           while (TryParseFrame(ref buffer, out var payload, out var messageId))
+           {
+               makingProgress = true;
+               await OnReceiveAsync(payload, messageId);
+           }
+           reader.AdvanceTo(buffer.Start, buffer.End);
+           if (!makingProgress &amp;&amp; readResult.IsCompleted) break;
+       }
+       try { reader.Complete(); } catch { }
+   }
+   catch (Exception ex)
+   {
+       try { reader.Complete(ex); } catch { }
+   }
+}
+protected abstract ValueTask OnReceiveAsync(ReadOnlySequence&lt;byte&gt; payload, int messageId);</pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/Pipe——高性能IO(二)0.png" alt="复制代码" /></a></span></div>
+</div>
+<p>&nbsp;</p>
+</div>
+<div>接收缓冲区里什么时间会有什么东西由发送方和系统环境决定，因此延迟是必然的，所以这里全部按异步处理就好。<br />- TryParseFrame 读出缓冲区数据，根据帧格式解析出实际数据、id等<br />- OnRecieveAsync 处理数据,比如对于回复/响应的处理等<br />- reader中的数据读出后尽快Advance一下，通知管道你的读取进度；</div>
+<div>解析帧</div>
+<div>&nbsp;
+<div class="cnblogs_code">
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/Pipe——高性能IO(二)0.png" alt="复制代码" /></a></span></div>
+<pre><code>private bool TryParseFrame(
+    ref ReadOnlySequence&lt;byte&gt; input,
+    out ReadOnlySequence&lt;byte&gt; payload, out int messageId)
+{
+    if (input.Length &lt; 8)
+    {   // not enough data for the header
+        payload = default;
+        messageId = default;
+        return false;
+    }
+    int length;
+    if (input.First.Length &gt;= 8)
+    {   // already 8 bytes in the first segment
+        length = ParseFrameHeader(
+            input.First.Span, out messageId);
+    }
+    else
+    {   // copy 8 bytes into a local span
+        Span&lt;byte&gt; local = stackalloc byte[8];
+        input.Slice(0, 8).CopyTo(local);
+        length = ParseFrameHeader(
+            local, out messageId);
+    }
+    // do we have the "length" bytes?
+    if (input.Length &lt; length + 8)
+    {
+        payload = default;
+        return false;
+    }
+    // success!
+    payload = input.Slice(8, length);
+    input = input.Slice(payload.End);
+    return true;
+}</pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/Pipe——高性能IO(二)0.png" alt="复制代码" /></a></span></div>
+</div>
+<p>&nbsp;</p>
+</div>
+<div>缓冲区是不连续的，一段一段的，像链表一样，第一段就是input.First。<br />代码很简单，主要演示一些用法；<br />辅助方法<br />
+<div class="cnblogs_code">
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/Pipe——高性能IO(二)0.png" alt="复制代码" /></a></span></div>
+<pre><code>static int ParseFrameHeader(
+    ReadOnlySpan&lt;byte&gt; input, out int messageId)
+{
+    var length = BinaryPrimitives
+            .ReadInt32LittleEndian(input);
+    messageId = BinaryPrimitives
+            .ReadInt32LittleEndian(input.Slice(4));
+    return length;
+}</pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/Pipe——高性能IO(二)0.png" alt="复制代码" /></a></span></div>
+</div>
+<p>&nbsp;</p>
+<br />OnReceiveAsync<br />&nbsp;
+<div class="cnblogs_code">
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/Pipe——高性能IO(二)0.png" alt="复制代码" /></a></span></div>
+<pre><code>protected override ValueTask OnReceiveAsync(
+    ReadOnlySequence&lt;byte&gt; payload, int messageId)
+{
+    if (messageId != 0)
+    {   // request/response
+        TaskCompletionSource&lt;IMemoryOwner&lt;byte&gt;&gt; tcs;
+        lock (_awaitingResponses)
+        {
+            if (_awaitingResponses.TryGetValue(messageId, out tcs))
+            {
+                _awaitingResponses.Remove(messageId);
+            }
+        }
+        tcs?.TrySetResult(payload.Lease());
+    }
+    else
+    {   // unsolicited
+        MessageReceived?.Invoke(payload.Lease());
+    }
+    return default;
+}</pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/Pipe——高性能IO(二)0.png" alt="复制代码" /></a></span></div>
+</div>
+<p>&nbsp;</p>
+</div>
+<div><br />到此为止，其余部分主要是一些服务端和其他功能实现及benchmark。。。</div>
+
+</div>
+
+</div>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

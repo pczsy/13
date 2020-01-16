@@ -1,0 +1,107 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修实现一个简单的基于Token的身份认证' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>实现一个简单的基于Token的身份认证</center></div><div class='banquan'>原文出处:本文由博客园博主停车坐爱枫林晚提供。<br/>
+原文连接:https://www.cnblogs.com/zyskr/p/10725373.html</div><br>
+    <p>&nbsp; 这个例子是基于客户端与webapi进行进行交互的身份认证，当然也适用于其他情况下的身份认证。</p>
+<p><strong>&nbsp; 简单的交互过程：</strong></p>
+<p>&nbsp;<img src="./images/实现一个简单的基于Token的身份认证0.png" alt="" width="540" height="209" /></p>
+<p>1.首先输入用户名、密码进行登录操作</p>
+<p>2.服务器验证用户名、密码的正确性，验证通过之后，服务器对一个json字符串进行加密，加密的内容、加密方法可以自己确定。</p>
+<p>本次我加密的内容主要是用户名和登录时间，可根据需求添加其他加密内容，加密方法就是采用DES加密。然后将加密的后的字符串（Token）返回给到客户端，客户端需要自己保存起来。</p>
+<p>3.接下来，客户端的每次请求都需要带上这个Token。</p>
+<p>4.对于客户端的每次请求，服务器首先都要去获取Token，检查Token是否合法，并解密Token内容，检查Token是否过期等。</p>
+<p>&nbsp;</p>
+<p><strong>Token格式</strong></p>
+<p>&nbsp; 未加密之前的字符串是什么样的呢，我这里是最简单的格式，如下：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">{
+  </span><span style="color: #800000;">"</span><span style="color: #800000;">username</span><span style="color: #800000;">"</span>:<span style="color: #800000;">""</span>,<span style="color: #008000;">//</span><span style="color: #008000;">用户名</span>
+  <span style="color: #800000;">"</span><span style="color: #800000;">createtime</span><span style="color: #800000;">"</span>:<span style="color: #800000;">""</span><span style="color: #008000;">//</span><span style="color: #008000;">认证时间</span>
+}</pre>
+</div>
+<p>登录认证通过之后，把这个json格式的字符串进行加密生成字符串Token，返回给客户端。</p>
+<p>至于好处呢，服务器不需要保存会话状态，不用担心会话丢失，也可以减轻服务器压力，然后利用这种方式也方便部署分布式服务，将一个服务拆分成多个小服务，减轻单台服务器的压力。</p>
+<p>&nbsp;</p>
+<p>DES加解密算法</p>
+<p>&nbsp;这里只是一种加解密算法而已，根据需要自己选择合适的算法。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">const</span> <span style="color: #0000ff;">string</span> DESKey = <span style="color: #800000;">"</span><span style="color: #800000;">sddsdds</span><span style="color: #800000;">"</span>;<span style="color: #008000;">//</span><span style="color: #008000;">秘钥</span>
+<span style="color: #0000ff;">const</span> <span style="color: #0000ff;">string</span> DESIV = <span style="color: #800000;">"</span><span style="color: #800000;">errtertet</span><span style="color: #800000;">"</span>;<span style="color: #008000;">//</span><span style="color: #008000;">向量
+</span><span style="color: #008000;">//</span><span style="color: #008000;">加密</span>
+ <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> EncryptDES(<span style="color: #0000ff;">string</span> ToEncrypt, <span style="color: #0000ff;">string</span> DESKey, <span style="color: #0000ff;">string</span><span style="color: #000000;"> DESIV)
+     {
+        </span><span style="color: #0000ff;">using</span> (DESCryptoServiceProvider des = <span style="color: #0000ff;">new</span><span style="color: #000000;"> DESCryptoServiceProvider())
+           { </span><span style="color: #008000;">//</span><span style="color: #008000;">创建des实例</span>
+                <span style="color: #0000ff;">byte</span>[] inputByteArray = Encoding.UTF8.GetBytes(ToEncrypt);<span style="color: #008000;">//</span><span style="color: #008000;">将需要加密的内容转为字节</span>
+                des.Key = ASCIIEncoding.ASCII.GetBytes(DESKey);<span style="color: #008000;">//</span><span style="color: #008000;">秘钥</span>
+                des.IV = ASCIIEncoding.ASCII.GetBytes(DESIV);<span style="color: #008000;">//</span><span style="color: #008000;">向量</span>
+                System.IO.MemoryStream ms = <span style="color: #0000ff;">new</span> System.IO.MemoryStream();<span style="color: #008000;">//</span><span style="color: #008000;">创建流实例</span>
+                <span style="color: #0000ff;">using</span> (CryptoStream cs = <span style="color: #0000ff;">new</span><span style="color: #000000;"> CryptoStream(ms, des.CreateEncryptor(), CryptoStreamMode.Write))
+                {</span><span style="color: #008000;">//</span><span style="color: #008000;">把输出的内容通过第二个参数转换(加密)馈送到第一个参数ms</span>
+                    cs.Write(inputByteArray, <span style="color: #800080;">0</span><span style="color: #000000;">, inputByteArray.Length);
+                    cs.FlushFinalBlock();
+                    cs.Close();
+                }
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">转为Base64后输出</span>
+                <span style="color: #0000ff;">string</span> str =<span style="color: #000000;"> Convert.ToBase64String(ms.ToArray());
+                ms.Close();
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> str;<br />            }
+      } <br /><br /></span></pre>
+</div>
+<div class="cnblogs_code">
+<pre><code>   //解密<br /> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span>[] DecodeDES(<span style="color: #0000ff;">string</span> Paras, <span style="color: #0000ff;">string</span> DESKey, <span style="color: #0000ff;">string</span><span style="color: #000000;"> DESIV)
+      { 
+            </span><span style="color: #0000ff;">string</span> Str = <span style="color: #800000;">""</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">string</span>[] Ret = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">string</span>[<span style="color: #800080;">2</span>] { <span style="color: #800000;">""</span>,<span style="color: #800000;">""</span><span style="color: #000000;">};
+            </span><span style="color: #0000ff;">try</span><span style="color: #000000;">
+            {
+                </span><span style="color: #0000ff;">byte</span>[] inputByteArray =<span style="color: #000000;"> Convert.FromBase64String(Paras);
+                </span><span style="color: #0000ff;">using</span> (DESCryptoServiceProvider des = <span style="color: #0000ff;">new</span><span style="color: #000000;"> DESCryptoServiceProvider())
+                {
+                    des.Key </span>=<span style="color: #000000;"> ASCIIEncoding.ASCII.GetBytes(DESKey);
+                    des.IV </span>=<span style="color: #000000;"> ASCIIEncoding.ASCII.GetBytes(DESIV);
+                    System.IO.MemoryStream ms </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> System.IO.MemoryStream();
+                    </span><span style="color: #0000ff;">using</span> (CryptoStream cs = <span style="color: #0000ff;">new</span><span style="color: #000000;"> CryptoStream(ms, des.CreateDecryptor(), CryptoStreamMode.Write))
+                    {
+                        cs.Write(inputByteArray, </span><span style="color: #800080;">0</span><span style="color: #000000;">, inputByteArray.Length);
+                        cs.FlushFinalBlock();
+                        cs.Close();
+                    }
+                    Str </span>=<span style="color: #000000;"> Encoding.UTF8.GetString(ms.ToArray());
+                    ms.Close();
+                    Ret[</span><span style="color: #800080;">0</span>] = <span style="color: #800000;">"</span><span style="color: #800000;">1</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+                    Ret[</span><span style="color: #800080;">1</span>] =<span style="color: #000000;">Str;
+                }
+            }
+            </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception ex)
+            {
+                Ret[</span><span style="color: #800080;">0</span>] = <span style="color: #800000;">"</span><span style="color: #800000;">-1</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+                Ret[</span><span style="color: #800080;">1</span>] =<span style="color: #000000;"> ex.ToString();
+            }
+            </span><span style="color: #0000ff;">finally</span><span style="color: #000000;"> {           
+            }
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> Ret;
+    }</span></pre>
+</div>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

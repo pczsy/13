@@ -1,0 +1,225 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Quartz.Net实现作业定时调度详解' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Quartz.Net实现作业定时调度详解</center></div><div class='banquan'>原文出处:本文由博客园博主.NET快速开发框架提供。<br/>
+原文连接:https://www.cnblogs.com/huyong/p/11091089.html</div><br>
+    <p><img src="./images/Quartz.Net实现作业定时调度详解0.png" /></p>
+<h1 id="quartz.net介绍">1、Quartz.NET介绍</h1>
+<p>Quartz.NET是一个强大、开源、轻量的作业调度框架，你能够用它来为执行一个作业而创建简单的或复杂的作业调度。它有很多特征，如：数据库支持，集群，插件，支持cron-like表达式等等。非常适合在平时的工作中，定时轮询数据库同步，定时邮件通知，定时处理数据等。</p>
+<p>Quartz.NET允许开发人员根据时间间隔（或天）来调度作业。它实现了作业和触发器的多对多关系，还能把多个作业与不同的触发器关联。整合了 Quartz.NET的应用程序可以重用来自不同事件的作业，还可以为一个事件组合多个作业。</p>
+<p>官网：<a href="http://www.quartz-scheduler.net/" class="uri">http://www.quartz-scheduler.net/</a></p>
+<p>源码：<a href="https://github.com/quartznet/quartznet" class="uri">https://github.com/quartznet/quartznet</a></p>
+<p>示例：<a href="https://www.quartz-scheduler.net/documentation/quartz-3.x/quick-start.html" class="uri">https://www.quartz-scheduler.net/documentation/quartz-3.x/quick-start.html</a></p>
+<p>Quartz.NET是一个强大、开源、轻量的作业调度框架，是 OpenSymphony 的 Quartz API 的.NET移植，用C#改写，可用于winform和Web应用中。它灵活而不复杂,你能够用它来为执行一个作业而创建简单的或复杂的作业调度。Quartz.NET 3.0 已经开始支持 .NET Core/.NET Standard 2.0。<br />
+<img src="./images/Quartz.Net实现作业定时调度详解1.png" /></p>
+<p>Job 为作业的接口，JobDetail 用来描述 Job 的实现类及其它相关的静态信息；Trigger 作为作业的定时管理工具，一个 Trigger 只能对应一个作业实例，而一个作业实例可对应多个 Trigger ；Scheduler 做为定时任务容器，它包含了所有触发器和作业，每个 Scheduler 都存有 JobDetail 和 Trigger<br />
+的注册，一个 Scheduler 中可以注册多个 JobDetail 和多个 Trigger 。</p>
+<h1 id="依赖框架">2、依赖框架</h1>
+<p>引入框架的方法非常简单你可以直接用nuget管理包也可以在项目中添加引用。为了满足不同客户的需求，本文以最简单的方式来讲解在Visual Studio中如何正确使用Quartz.NET。</p>
+<h2 id="使用nuget添加使用">2.1、使用Nuget添加使用</h2>
+<h3 id="创建一个项目">2.1.0、创建一个项目</h3>
+<p>创建一个新项目，可以是ASP.NET MVC、WebForms、Winforms、.NET Core等多种.Net项目，这里使用的是VS2017，创建了一个控制台应用项目。</p>
+<p><img src="./images/Quartz.Net实现作业定时调度详解2.png" /></p>
+<p>要使用Quartz.NET我们需要安装Quartz.NET包，最简单的方式就是从Quartz.NET管网下载dll文件引用即可。本文我们使用Nuget进行dll文件的引用与管理。要使用Nuget必须确保已经安装过，最简单的方式是通过VS“工具”菜单查看是否有程序包管理控制台，如果有说明已经安装过，如下图所示。</p>
+<p><img src="./images/Quartz.Net实现作业定时调度详解3.png" /></p>
+<p>如果没有找到那我们就要进行安装。</p>
+<h3 id="安装nuget">2.1.2、安装Nuget</h3>
+<p>新版本的Visual Studio默认情况是安装了Nuget的，如Visual Studio 2015+，如果没有安装，打开VS菜单“工具”-&gt;&quot;扩展与更新&quot;。</p>
+<p><img src="./images/Quartz.Net实现作业定时调度详解4.png" /></p>
+<p>在扩展与更新中搜索“nuget”，可以新安装或卸载后升级。</p>
+<p><img src="./images/Quartz.Net实现作业定时调度详解5.png" /></p>
+<h3 id="使用nuget安装quartz.net">2.1.3、使用nuget安装Quartz.NET</h3>
+<p>点击“工具”-&gt;&quot;NuGet包管理器&quot;-&gt;“程序包管理器控制台”</p>
+<p><img src="./images/Quartz.Net实现作业定时调度详解6.png" /></p>
+<p>输入安装包的命令：</p>
+<pre><code><code>Install-Package Quartz</code></pre>
+<p>安装结果如下：</p>
+<p><img src="./images/Quartz.Net实现作业定时调度详解7.png" /></p>
+<p>时包管理器中就下载了需要的程序集与相关文件，同时程序中也添加了引用。</p>
+<p><img src="./images/Quartz.Net实现作业定时调度详解8.png" /></p>
+<h1 id="quartz.net应用">3、Quartz.NET应用</h1>
+<p>假定要实现每隔5秒钟向控制台记录当前时间。</p>
+<p>因为这是一个控制台应用，我想一启动时就开始该项工作，这里我们需要将代码写在static void Main(string[] args)方法中。</p>
+<h2 id="定义要执行的任务">3.1、定义要执行的任务</h2>
+<p>定义一个类，实现Quartz.IJob接口，实现方法Execute，TimeJob.cs文件的代码如下：</p>
+<pre><code><code>using System;
+using System.Threading.Tasks;
+
+namespace QuartzTest
+{
+    using Quartz;
+
+    public class TimeJob : IJob
+    {
+        /// &lt;summary&gt;
+        /// 作业调度定时执行的方法
+        /// &lt;/summary&gt;
+        /// &lt;param name=&quot;context&quot;&gt;&lt;/param&gt;
+        /// &lt;returns&gt;&lt;/returns&gt;
+        public async Task Execute(IJobExecutionContext context)
+        {
+            await Console.Out.WriteLineAsync(&quot;Hello QuartzNet...&quot; + DateTime.Now + Environment.NewLine);           
+        }
+    }
+}</code></pre>
+<h2 id="创建一个调度器">3.2、创建一个调度器</h2>
+<p>调度器负责管理与控制任务的执行，在Main方法中添加如下代码：</p>
+<pre><code><code>//调度器
+IScheduler scheduler;
+//调度器工厂
+ISchedulerFactory factory;
+
+//创建一个调度器
+factory = new StdSchedulerFactory();
+scheduler = factory.GetScheduler();
+scheduler.Start();</code></pre>
+<h2 id="创建一个任务对象">3.3、创建一个任务对象</h2>
+<p>这个任务对象就是我们将要执行的工作，job1是名称，group1是组名。<br />
+//2、创建一个任务<br />
+IJobDetail job = JobBuilder.Create<TimeJob>().WithIdentity(&quot;job1&quot;, &quot;group1&quot;).Build();</p>
+<h2 id="创建一个触发器">3.4、创建一个触发器</h2>
+<p>触发器定义了什么时间任务开始或每隔多久执行一次。</p>
+<pre><code><code>//3、创建一个触发器
+//DateTimeOffset runTime = DateBuilder.EvenMinuteDate(DateTimeOffset.UtcNow);
+ITrigger trigger = TriggerBuilder.Create()
+    .WithIdentity(&quot;trigger1&quot;, &quot;group1&quot;)
+    .WithCronSchedule(&quot;0/5 * * * * ?&quot;)     //5秒执行一次
+    .Build();</code></pre>
+<h2 id="将任务与触发器添加到调度器中并执行">3.5、将任务与触发器添加到调度器中并执行</h2>
+<pre><code><code>//4、将任务与触发器添加到调度器中
+scheduler.ScheduleJob(job, trigger);
+//5、开始执行
+scheduler.Start();</code></pre>
+<h2 id="运行结果">3.6、运行结果</h2>
+<p><img src="./images/Quartz.Net实现作业定时调度详解9.png" /></p>
+<h2 id="main方法完整代码">3.7 Main方法完整代码</h2>
+<pre><code><code>using Quartz;
+using Quartz.Impl;
+using System;
+
+namespace QuartzTest
+{
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            //1、调度器
+            ISchedulerFactory sf = new StdSchedulerFactory();
+            IScheduler sched = sf.GetScheduler();
+            //2、创建一个任务
+            IJobDetail job = JobBuilder.Create&lt;TimeJob&gt;()
+              .WithIdentity(&quot;job1&quot;, &quot;group1&quot;)
+              .Build();
+
+            //3、创建一个触发器
+            //DateTimeOffset runTime = DateBuilder.EvenMinuteDate(DateTimeOffset.UtcNow);
+            ITrigger trigger = TriggerBuilder.Create()
+                .WithIdentity(&quot;trigger1&quot;, &quot;group1&quot;)
+                .WithCronSchedule(&quot;0/5 * * * * ?&quot;)     //5秒执行一次                                                      
+                .Build();
+
+            sched.ScheduleJob(job, trigger);
+            //启动任务
+            sched.Start();
+        }
+    }
+}</code></pre>
+<h1 id="quartz的cron表达式">4、Quartz的cron表达式</h1>
+<p>　Cron表达式是一个字符串，字符串以5或6个空格隔开，分为6或7个域，每一个域代表一个含义，Cron有如下两种语法格式：</p>
+<p>　　（1） Seconds Minutes Hours DayofMonth Month DayofWeek Year</p>
+<p>　　（2）Seconds Minutes Hours DayofMonth Month DayofWeek</p>
+<p>结构</p>
+<p>　　corn从左到右（用空格隔开）：秒 分 小时 月份中的日期 月份 星期中的日期 年份（可为空）</p>
+<p>　　例  &quot;0 0 12 ? * WED&quot; 在每星期三下午12:00 执行（年份通常 省略）</p>
+<p>Cron各字段的含义</p>
+<p><img src="./images/Quartz.Net实现作业定时调度详解10.png" /></p>
+<p>通配符说明</p>
+<p>星号(*)：可用在所有字段中，表示对应时间域的每一个时刻，例如， 在分钟字段时，表示“每分钟”；</p>
+<p>问号(?)：该字符只在日期和星期字段中使用，它通常指定为“无意义的值”，相当于点位符；</p>
+<p>减号(-)：表达一个范围，如在小时字段中使用“10-12”，则表示从10到12点，即10,11,12；</p>
+<p>逗号(,)：表达一个列表值，如在星期字段中使用“MON,WED,FRI”，则表示星期一，星期三和星期五；</p>
+<p>斜杠(/)：x/y表达一个等步长序列，x为起始值，y为增量步长值。如在分钟字段中使用0/15，则表示为0,15,30和45秒，而5/15在分钟字段中表示5,20,35,50，你也可以使用*/y，它等同于0/y；</p>
+<p>L：该字符只在日期和星期字段中使用，代表“Last”的意思，但它在两个字段中意思不同。L在日期字段中，表示这个月份的最后一天，如一月的31号，非闰年二月的28号；如果L用在星期中，则表示星期六，等同于7。但是，如果L出现在星期字段里，而且在前面有一个数值X，则表示“这个月的最后X天”，例如，6L表示该月的最后星期五；</p>
+<p>W：该字符只能出现在日期字段里，是对前导日期的修饰，表示离该日期最近的工作日。例如15W表示离该月15号最近的工作日，如果该月15号是星期六，则匹配14号星期五；如果15日是星期日，则匹配16号星期一；如果15号是星期二，那结果就是15号星期二。但必须注意关联的匹配日期不能够跨月，如你指定1W，如果1号是星期六，结果匹配的是3号星期一，而非上个月最后的那天。W字符串只能指定单一日期，而不能指定日期范围；</p>
+<p>LW组合：在日期字段可以组合使用LW，它的意思是当月的最后一个工作日；</p>
+<p>井号(#)：该字符只能在星期字段中使用，表示当月某个工作日。如6#3表示当月的第三个星期五(6表示星期五，#3表示当前的第三个)，而4#5表示当月的第五个星期三，假设当月没有第五个星期三，忽略不触发；</p>
+<p>C：该字符只在日期和星期字段中使用，代表“Calendar”的意思。它的意思是计划所关联的日期，如果日期没有被关联，则相当于日历中所有日期。例如5C在日期字段中就相当于日历5日以后的第一天。1C在星期字段中相当于星期日后的第一天。</p>
+<p>Cron表达式对特殊字符的大小写不敏感，对代表星期的缩写英文大小写也不敏感。</p>
+<p>一些例子：</p>
+<p>表示式 说明</p>
+<p>0 0 12 * * ? 每天12点运行</p>
+<p>0 15 10 ? * * 每天10:15运行</p>
+<p>0 15 10 * * ? 每天10:15运行</p>
+<p>0 15 10 * * ? * 每天10:15运行</p>
+<p>0 15 10 * * ? 2008 在2008年的每天10：15运行</p>
+<p>0 * 14 * * ? 每天14点到15点之间每分钟运行一次，开始于14:00，结束于14:59。</p>
+<p>0 0/5 14 * * ? 每天14点到15点每5分钟运行一次，开始于14:00，结束于14:55。</p>
+<p>0 0/5 14,18 * * ? 每天14点到15点每5分钟运行一次，此外每天18点到19点每5钟也运行一次。</p>
+<p>0 0-5 14 * * ? 每天14:00点到14:05，每分钟运行一次。</p>
+<p>0 10,44 14 ? 3 WED 3月每周三的14:10分到14:44，每分钟运行一次。</p>
+<p>0 15 10 ? * MON-FRI 每周一，二，三，四，五的10:15分运行。</p>
+<p>0 15 10 15 * ? 每月15日10:15分运行。</p>
+<p>0 15 10 L * ? 每月最后一天10:15分运行。</p>
+<p>0 15 10 ? * 6L 每月最后一个星期五10:15分运行。</p>
+<p>0 15 10 ? * 6L 2007-2009 在2007,2008,2009年每个月的最后一个星期五的10:15分运行。</p>
+<p>0 15 10 ? * 6#3 每月第三个星期五的10:15分运行。</p>
+<p>注意：</p>
+<p>（1）有些子表达式能包含一些范围或列表</p>
+<p>　　例如：子表达式（天（星期））可以为 “MON-FRI”，“MON，WED，FRI”，“MON-WED,SAT”</p>
+<p>“*”字符代表所有可能的值</p>
+<p>　　因此，“<em>”在子表达式（月）里表示每个月的含义，“</em>”在子表达式（天（星期））表示星期的每一天</p>
+<p>　　“/”字符用来指定数值的增量 <br />
+　　例如：在子表达式（分钟）里的“0/15”表示从第0分钟开始，每15分钟 <br />
+在子表达式（分钟）里的“3/20”表示从第3分钟开始，每20分钟（它和“3，23，43”）的含义一样</p>
+<p>　　“？”字符仅被用于天（月）和天（星期）两个子表达式，表示不指定值 <br />
+　　当2个子表达式其中之一被指定了值以后，为了避免冲突，需要将另一个子表达式的值设为“？”</p>
+<p>　　“L” 字符仅被用于天（月）和天（星期）两个子表达式，它是单词“last”的缩写 <br />
+　　但是它在两个子表达式里的含义是不同的。 <br />
+　　在天（月）子表达式中，“L”表示一个月的最后一天 <br />
+　　在天（星期）自表达式中，“L”表示一个星期的最后一天，也就是SAT</p>
+<p>　　如果在“L”前有具体的内容，它就具有其他的含义了</p>
+<p>　　例如：“6L”表示这个月的倒数第６天，“FRIL”表示这个月的最一个星期五 <br />
+　　注意：在使用“L”参数时，不要指定列表或范围，因为这会导致问题</p>
+<p>表达式生成器<br />
+有很多的cron表达式在线生成器，这里给大家推荐几款<br />
+<a href="http://www.pdtools.net/tools/becron.jsp" class="uri">http://www.pdtools.net/tools/becron.jsp</a></p>
+<p>或者</p>
+<p><a href="http://cron.qqe2.com/" class="uri">http://cron.qqe2.com/</a></p>
+<h2 id="其他文章参考">5、其他文章参考</h2>
+<ul>
+<li><p><a href="http://blog.rdiframework.net/article/216">微信公众号开发系列-玩转微信开发-目录汇总</a></p></li>
+<li><p><a href="http://blog.rdiframework.net/article/190">RDIFramework.NET — 基于.NET的快速信息化系统开发框架 — 系列目录</a></p></li>
+<li><p><a href="http://blog.rdiframework.net/article/169">RDIFramework.NET ━ .NET快速信息化系统开发框架 ━ 工作流程组件介绍</a></p></li>
+<li><p><a href="http://blog.rdiframework.net/article/189">RDIFramework.NET框架SOA解决方案（集Windows服务、WinForm形式与IIS形式发布）-分布式应用</a></p></li>
+<li><p><a href="http://blog.rdiframework.net/article/199">RDIFramework.NET代码生成器全新V3.5版本发布-重大升级</a></p></li>
+</ul>
+<hr />
+<p>一路走来数个年头，感谢RDIFramework.NET框架的支持者与使用者，大家可以通过下面的地址了解详情。</p>
+<p>RDIFramework.NET官方网站：<a href="http://www.rdiframework.net/" class="uri">http://www.rdiframework.net/</a></p>
+<p>RDIFramework.NET官方博客：<a href="http://blog.rdiframework.net/" class="uri">http://blog.rdiframework.net/</a></p>
+<p>同时需要说明的，以后的所有技术文章以官方网站为准，欢迎大家收藏！</p>
+<p>RDIFramework.NET框架由专业团队长期打造、一直在更新、一直在升级，请放心使用！</p>
+<p>欢迎关注RDIFramework.net框架官方公众微信（微信号：guosisoft），及时了解最新动态。</p>
+<p>扫描二维码立即关注</p>
+<p><img src="./images/Quartz.Net实现作业定时调度详解11.png" alt="file" /></p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

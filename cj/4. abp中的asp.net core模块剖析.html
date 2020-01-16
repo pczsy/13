@@ -1,0 +1,265 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修4. abp中的asp.net core模块剖析' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>4. abp中的asp.net core模块剖析</center></div><div class='banquan'>原文出处:本文由博客园博主又见阿郎提供。<br/>
+原文连接:https://www.cnblogs.com/zhiyong-ITNote/p/12002766.html</div><br>
+    <h6 id="相关模块">相关模块</h6>
+<ol>
+<li>AbpAspNetCoreModule</li>
+<li>AbpAspNetCoreMvcModule</li>
+<li>AbpAspNetCoreMvcContractsModule</li>
+</ol>
+<p>abp通过这三个模块加载并配置了 asp.net core。，最主要的就是AbpAspNetCoreMvcModule模块类，abp如何基于aspnet core构建自己的控制器和AppServices，就是在这个类中。</p>
+<ul>
+<li><p>AbpAspNetCoreMvcModule<br />
+将AbpAspNetCoreMvcConventionalRegister类添加到ConventionalRegistrarList列表中，该类主要是用来注入依赖及获取服务生命周期的。</p>
+<pre><code><code>  public override void PreConfigureServices(ServiceConfigurationContext context)
+  {
+      context.Services.AddConventionalRegistrar(new AbpAspNetCoreMvcConventionalRegistrar());
+  }</code></pre>
+<p>接下来就是重点，在ConfigureServices方法中配置视图和控制器，当然是基于 asp.net core mvc。首先配置Razor：</p>
+<pre><code><code>  context.Services.Insert(0,
+      ServiceDescriptor.Singleton&lt;IConfigureOptions&lt;RazorViewEngineOptions&gt;&gt;(
+          new ConfigureOptions&lt;RazorViewEngineOptions&gt;(options =&gt;
+              {
+                  options.FileProviders.Add(
+                      new RazorViewEngineVirtualFileProvider(
+                          context.Services.GetSingletonInstance&lt;IObjectAccessor&lt;IServiceProvider&gt;&gt;()
+                      )
+                  );
+              }
+          )
+      )
+  );
+</code></pre>
+<p>配置Api描述符：</p>
+<pre><code><code>  Configure&lt;ApiDescriptionModelOptions&gt;(options =&gt;
+  {
+      options.IgnoredInterfaces.AddIfNotContains(typeof(IAsyncActionFilter));
+      options.IgnoredInterfaces.AddIfNotContains(typeof(IFilterMetadata));
+      options.IgnoredInterfaces.AddIfNotContains(typeof(IActionFilter));
+  });</code></pre>
+<p>可以看到 aspnetcore mvc中的过滤器接口，我们将其添加到了Api描述模型选项类中。下面就是注入MVC：</p>
+<pre><code><code>  var mvcCoreBuilder = context.Services.AddMvcCore();
+  var mvcBuilder = context.Services.AddMvc()
+      .AddDataAnnotationsLocalization(options =&gt;
+      {
+          options.DataAnnotationLocalizerProvider = (type, factory) =&gt;
+          {
+              var resourceType = abpMvcDataAnnotationsLocalizationOptions.AssemblyResources.GetOrDefault(type.Assembly);
+              return factory.Create(resourceType ?? type);
+          };
+      })
+      .AddViewLocalization();</code></pre>
+<p>使用DI创建控制器，使用的是aspnet core默认的控制器激活器ServiceBasedControllerActivator类：</p>
+<pre><code><code>  //Use DI to create controllers
+  context.Services.Replace(ServiceDescriptor.Transient&lt;IControllerActivator, ServiceBasedControllerActivator&gt;());</code></pre>
+<p>abp提供了一个基于约定的控制器特性提供器类，这个类是基于 aspnetcore mvc的ControllerFeatureProvider构建自己的控制器，并检索判断控制器。</p>
+<pre><code><code>  //Add feature providers
+  var partManager = context.Services.GetSingletonInstance&lt;ApplicationPartManager&gt;();
+  var application = context.Services.GetSingletonInstance&lt;IAbpApplication&gt;();
+
+  partManager.FeatureProviders.Add(new AbpConventionalControllerFeatureProvider(application));</code></pre>
+<p>该类源码：</p>
+<pre><code><code>  public class AbpConventionalControllerFeatureProvider : ControllerFeatureProvider
+  {
+      private readonly IAbpApplication _application;
+
+      public AbpConventionalControllerFeatureProvider(IAbpApplication application)
+      {
+          _application = application;
+      }
+
+      protected override bool IsController(TypeInfo typeInfo)
+      {
+          //TODO: Move this to a lazy loaded field for efficiency.
+          if (_application.ServiceProvider == null)
+          {
+              return false;
+          }
+
+          var configuration = _application.ServiceProvider
+              .GetRequiredService&lt;IOptions&lt;AbpAspNetCoreMvcOptions&gt;&gt;().Value
+              .ConventionalControllers
+              .ConventionalControllerSettings
+              .GetSettingOrNull(typeInfo.AsType());
+
+          return configuration != null;
+      }
+  }</code></pre>
+<p>由上，abp会基于aspnetcore mvc配置abp的mvc模块，特别是Controller的创建。从代码里面可以看出获取到AbpAspNetCoreMvcOptions的服务再去检索规约的控制器。由此返回是否是控制器。AbpAspNetCoreMvcOptions类是Abp对aspnet core mvc的一个封装，源码如下：</p>
+<pre><code><code>  public class AbpAspNetCoreMvcOptions
+  {
+      public ConventionalControllerOptions ConventionalControllers { get; }
+
+      public AbpAspNetCoreMvcOptions()
+      {
+          ConventionalControllers = new ConventionalControllerOptions();
+      }
+  }
+
+  //规约控制器集合
+  public class ConventionalControllerOptions
+  {
+      public ConventionalControllerSettingList ConventionalControllerSettings { get; }
+
+      public List&lt;Type&gt; FormBodyBindingIgnoredTypes { get; }
+
+      public ConventionalControllerOptions()
+      {
+          ConventionalControllerSettings = new ConventionalControllerSettingList();
+
+          FormBodyBindingIgnoredTypes = new List&lt;Type&gt;
+          {
+              typeof(IFormFile)
+          };
+      }
+
+      public ConventionalControllerOptions Create(Assembly assembly, [CanBeNull] Action&lt;ConventionalControllerSetting&gt; optionsAction = null)
+      {
+          var setting = new ConventionalControllerSetting(assembly, ModuleApiDescriptionModel.DefaultRootPath); // DefaultRootPath = app，abp路由就是以这个app开头的。
+          optionsAction?.Invoke(setting);
+          setting.Initialize();
+          ConventionalControllerSettings.Add(setting);
+          return this;
+      }
+  }</code></pre>
+<p>AbpAspNetCoreMvcOptions实际上是通过ConventionalControllerOptions来完成规约的配置，来实现自定义的路由以及动态API。</p></li>
+<li><p>AspNetCoreDescriptionModelProvider</p>
+<p>abp是如何aspnet core创建自己的API的呢？有这么一个类AspNetCoreDescriptionModelProvider，这个类就是提供了aspnet core的描述模型，源码如下：</p>
+<pre><code><code>  public class AspNetCoreApiDescriptionModelProvider : IApiDescriptionModelProvider, ITransientDependency
+  {
+      public ILogger&lt;AspNetCoreApiDescriptionModelProvider&gt; Logger { get; set; }
+
+      private readonly IApiDescriptionGroupCollectionProvider _descriptionProvider;
+      private readonly AbpAspNetCoreMvcOptions _options;
+      private readonly ApiDescriptionModelOptions _modelOptions;
+
+      public AspNetCoreApiDescriptionModelProvider(
+          IApiDescriptionGroupCollectionProvider descriptionProvider,
+          IOptions&lt;AbpAspNetCoreMvcOptions&gt; options,
+          IOptions&lt;ApiDescriptionModelOptions&gt; modelOptions)
+      {
+          _descriptionProvider = descriptionProvider;
+          _options = options.Value;
+          _modelOptions = modelOptions.Value;
+
+          Logger = NullLogger&lt;AspNetCoreApiDescriptionModelProvider&gt;.Instance;
+      }
+
+      public ApplicationApiDescriptionModel CreateApiModel()
+      {
+          //TODO: Can cache the model?
+
+          var model = ApplicationApiDescriptionModel.Create();
+
+          foreach (var descriptionGroupItem in _descriptionProvider.ApiDescriptionGroups.Items)
+          {
+              foreach (var apiDescription in descriptionGroupItem.Items)
+              {
+                  if (!apiDescription.ActionDescriptor.IsControllerAction())
+                  {
+                      continue;
+                  }
+
+                  AddApiDescriptionToModel(apiDescription, model);
+              }
+          }
+
+          return model;
+      }
+
+      private void AddApiDescriptionToModel(ApiDescription apiDescription, ApplicationApiDescriptionModel model)
+      {
+          var controllerType = apiDescription.ActionDescriptor.AsControllerActionDescriptor().ControllerTypeInfo.AsType();
+          var setting = FindSetting(controllerType);
+
+          var moduleModel = model.GetOrAddModule(GetRootPath(controllerType, setting));
+
+          var controllerModel = moduleModel.GetOrAddController(controllerType.FullName, CalculateControllerName(controllerType, setting), controllerType, _modelOptions.IgnoredInterfaces);
+
+          var method = apiDescription.ActionDescriptor.GetMethodInfo();
+
+          var uniqueMethodName = GetUniqueActionName(method);
+          if (controllerModel.Actions.ContainsKey(uniqueMethodName))
+          {
+              Logger.LogWarning($&quot;Controller &#39;{controllerModel.ControllerName}&#39; contains more than one action with name &#39;{uniqueMethodName}&#39; for module &#39;{moduleModel.RootPath}&#39;. Ignored: &quot; + method);
+              return;
+          }
+
+          Logger.LogDebug($&quot;ActionApiDescriptionModel.Create: {controllerModel.ControllerName}.{uniqueMethodName}&quot;);
+          var actionModel = controllerModel.AddAction(uniqueMethodName, ActionApiDescriptionModel.Create(
+              uniqueMethodName,
+              method,
+              apiDescription.RelativePath,
+              apiDescription.HttpMethod,
+              GetSupportedVersions(controllerType, method, setting)
+          ));
+
+          AddParameterDescriptionsToModel(actionModel, method, apiDescription);
+      }
+
+      private static string CalculateControllerName(Type controllerType, ConventionalControllerSetting setting)
+      {
+          var controllerName = controllerType.Name.RemovePostFix(&quot;Controller&quot;).RemovePostFix(ApplicationService.CommonPostfixes);
+
+          if (setting?.UrlControllerNameNormalizer != null)
+          {
+              controllerName = setting.UrlControllerNameNormalizer(new UrlControllerNameNormalizerContext(setting.RootPath, controllerName));
+          }
+
+          return controllerName;
+      }
+  }</code></pre>
+<p>这个类为我们提供了从Action到Controller的描述，构建了abp自己的api。它的调用有两个地方，一个是AbpApiDefinitionController，一个是ProxyScriptManager，前者是定义Abp的api控制器定义的地方，后者则是生成代理脚本的地方，abp的示例项目BookStore中会调用接口Abp/ServiceProxyScript生成一个js文件，这个js文件里面就是api的url地址，前端通过访问这个api地址来访问appservice等后端方法。源码如下：</p>
+<pre><code><code>  [Area(&quot;Abp&quot;)]
+  [Route(&quot;Abp/ServiceProxyScript&quot;)]
+  [DisableAuditing]
+  public class AbpServiceProxyScriptController : AbpController
+  {
+      private readonly IProxyScriptManager _proxyScriptManager;
+
+      public AbpServiceProxyScriptController(IProxyScriptManager proxyScriptManager)
+      {
+          _proxyScriptManager = proxyScriptManager;
+      }
+
+      [HttpGet]
+      [Produces(&quot;text/javascript&quot;, &quot;text/plain&quot;)]
+      public string GetAll(ServiceProxyGenerationModel model)
+      {
+          model.Normalize();
+          return _proxyScriptManager.GetScript(model.CreateOptions());
+      }
+  }</code></pre></li>
+<li><p>AbpHttpModule模块<br />
+Abp创建jquery代理脚本生成器，主要用来生产api提供给前端访问</p>
+<pre><code><code>  public override void ConfigureServices(ServiceConfigurationContext context)
+  {
+      Configure&lt;AbpApiProxyScriptingOptions&gt;(options =&gt;
+      {
+          options.Generators[JQueryProxyScriptGenerator.Name] = typeof(JQueryProxyScriptGenerator);
+      });
+  }</code></pre></li>
+</ul>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

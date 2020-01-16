@@ -1,0 +1,308 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修拿 C# 搞函数式编程 - 2' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>拿 C# 搞函数式编程 - 2</center></div><div class='banquan'>原文出处:本文由博客园博主hez2010提供。<br/>
+原文连接:https://www.cnblogs.com/hez2010/p/12008677.html</div><br>
+    <p>前一阵子在写 CPU，导致一直没有什么时间去做其他的事情，现在好不容易做完闲下来了，我又可以水文章了哈哈哈哈哈。</p>
+<p>有关 FP 的类型部分我打算放到明年再讲，因为现有的 C# 虽然有一个&nbsp;<code>pattern matching expressions</code>，但是没有&nbsp;<code>discriminated unions</code>&nbsp;和&nbsp;<code>records</code>，只能说是个半残废，要实现 FP 那一套的类型异常的复杂。西卡西，<code>discriminated unions</code>&nbsp;和&nbsp;<code>records</code>&nbsp;这两个东西官方已经定到 C# 9 了，所以等明年 C# 9 发布了之后我再继续说这部分的内容。</p>
+<p>另外，<code>concepts</code>（<code>type classes</code>）、<code>traits</code>&nbsp;、<code>intersect &amp; sum types</code>&nbsp;和高阶类型也可能会随着 C# 9、10 一并到来。因此到时候再讲才会讲得更爽。另外吹一波&nbsp;<code>traits</code>类型系统，同样是图灵完备的类型系统，在表达力上要比<code>OOP</code>强太多，欢迎大家入坑，比如 Rust 和未来的 C#。</p>
+<p>这一部分我们介绍一下&nbsp;<code>Functor</code>、<code>Applicative</code>和&nbsp;<code>Monad</code>&nbsp;都是些什么。</p>
+<p>本文试图直观地讲，目的是让读者能比较容易的理解，而不是准确知道其概念如何，因此会尽量避免使用一些专用的术语，如范畴学、数学、&lambda; 计算等等里面的东西。感兴趣的话建议参考其他更专业的资料。</p>
+<h2>Functor</h2>
+<p>Functor 也叫做函子。想象一下这样一件事情：</p>
+<p>现在我们有一个纯函数&nbsp;<code>IsOdd</code></p>
+<div class="highlight">
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">bool</span> IsOdd(<span style="color: #0000ff;">int</span> value) =&gt; (value &amp; <span style="color: #800080;">1</span>) == <span style="color: #800080;">1</span>;</pre>
+</div>
+<p>这个纯函数只干一件事情：判断输入是不是奇数。</p>
+</div>
+<p>那么现在问题来了，如果我们有一个整数列表，要怎么去做上面这件事情呢？</p>
+<p>可能会有人说这太简单了，这样就可：</p>
+<div class="highlight">
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> list = <span style="color: #0000ff;">new</span> List&lt;<span style="color: #0000ff;">int</span>&gt;<span style="color: #000000;">();
+</span><span style="color: #0000ff;">return</span> list.Select(IsOdd).ToList();</pre>
+</div>
+<p>上面这句干了件什么事情呢？其实就是：我们将&nbsp;<code>IsOdd</code>&nbsp;函数应用到了列表中的每一个元素上，将产生的新的列表返回。</p>
+</div>
+<p>现在我们做一次抽象，我们将这个列表想象成一个箱子<code>M</code>，那么我们的需要干的事情就是：把一个装着&nbsp;<code>A</code>&nbsp;类型东西的箱子变成一个装着&nbsp;<code>B</code>&nbsp;类型东西的箱子（<code>A</code>、<code>B</code>类型可相同），即&nbsp;<code>fmap</code>函数，而做这个变化的方法就是：进入箱子<code>M</code>，把里面的<code>A</code>变成<code>B</code>。</p>
+<p>它分别接收一个把东西从<code>A</code>变成<code>B</code>的函数、一个装着<code>A</code>的<code>M</code>，产生一个装着<code>B</code>的<code>M</code>。</p>
+<div class="highlight">
+<div class="cnblogs_code">
+<pre><code>M&lt;B&gt; Fmap(<span style="color: #0000ff;">this</span> M&lt;A&gt; input, Func&lt;A, B&gt; func);</pre>
+</div>
+<p>你暂且可以简单地认为，判断一个箱子是不是&nbsp;<code>Functor</code>，就是判断它有没有&nbsp;<code>fmap</code>这个操作。</p>
+</div>
+<h2>Maybe</h2>
+<p>我们应该都接触过 C# 的&nbsp;<code>Nullable&lt;T&gt;</code>类型，比如&nbsp;<code>Nullable&lt;int&gt; t</code>，或者写成&nbsp;<code>int? t</code>，这个t，当里面的值为&nbsp;<code>null</code>&nbsp;时，它为&nbsp;<code>null</code>，否则他为包含的值。</p>
+<p>此时我们把这个&nbsp;<code>Nullable&lt;T&gt;</code>想象成这个箱子&nbsp;<code>M</code>。那么我们可以这么说，这个<code>M</code>有两种形式，一种是&nbsp;<code>Just&lt;T&gt;</code>，表示有值，且值在&nbsp;<code>Just</code>&nbsp;里面存放；另一种是&nbsp;<code>Nothing</code>，表示没有值。</p>
+<p>用 Haskell 写这个<code>Nullable&lt;T&gt;</code>类型定义的话，大概长这个样子：</p>
+<div class="highlight">
+<div class="cnblogs_code">
+<pre><code>data Nullable x = Just x | Nothing</pre>
+</div>
+<p>而之所以这个<code>Nullable&lt;T&gt;</code>既可能是&nbsp;<code>Nothing</code>，又可能是&nbsp;<code>Just&lt;T&gt;</code>，只是因为 C# 的 BCL 中包含相关的隐式转换而已。</p>
+</div>
+<p>由于自带的&nbsp;<code>Nullable&lt;T&gt;</code>不太好具体讲我们的各种实现，且只接受值类型的数据，因此我们自己实现一个<code>Maybe&lt;T&gt;</code>：</p>
+<div class="highlight">
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> Maybe&lt;T&gt; <span style="color: #0000ff;">where</span><span style="color: #000000;"> T : notnull
+{
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">readonly</span><span style="color: #000000;"> T innerValue;
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">bool</span> HasValue { <span style="color: #0000ff;">get</span>; } = <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+    </span><span style="color: #0000ff;">public</span> T Value =&gt; HasValue ? innerValue : <span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> InvalidOperationException();
+
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> Maybe(T value)
+    {
+        </span><span style="color: #0000ff;">if</span> (value <span style="color: #0000ff;">is</span> <span style="color: #0000ff;">null</span>) <span style="color: #0000ff;">return</span><span style="color: #000000;">;
+        innerValue </span>=<span style="color: #000000;"> value;
+        HasValue </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+    }
+
+    </span><span style="color: #0000ff;">public</span> Maybe(Maybe&lt;T&gt;<span style="color: #000000;"> value)
+    {
+        </span><span style="color: #0000ff;">if</span> (!value.HasValue) <span style="color: #0000ff;">return</span><span style="color: #000000;">;
+        innerValue </span>=<span style="color: #000000;"> value.Value;
+        HasValue </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+    }
+
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> Maybe() { }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">implicit</span> <span style="color: #0000ff;">operator</span> Maybe&lt;T&gt;(T value) =&gt; <span style="color: #0000ff;">new</span> Maybe&lt;T&gt;<span style="color: #000000;">(value);
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> Maybe&lt;T&gt; Nothing() =&gt; <span style="color: #0000ff;">new</span> Maybe&lt;T&gt;<span style="color: #000000;">();
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">override</span> <span style="color: #0000ff;">string</span> ToString() =&gt; HasValue ? Value.ToString() : <span style="color: #800000;">"</span><span style="color: #800000;">Nothing</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+}</span></pre>
+</div>
+<p>对于&nbsp;<code>Maybe&lt;T&gt;</code>，我们可以写一下它的&nbsp;<code>fmap</code>函数：</p>
+</div>
+<div class="highlight">
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> Maybe&lt;B&gt; Fmap&lt;A, B&gt;(<span style="color: #0000ff;">this</span> Maybe&lt;A&gt; input, Func&lt;A, B&gt;<span style="color: #000000;"> func)
+    </span>=&gt; input <span style="color: #0000ff;">switch</span><span style="color: #000000;">
+    {
+        </span><span style="color: #0000ff;">null</span> =&gt; Maybe&lt;B&gt;<span style="color: #000000;">.Nothing(),
+        { HasValue: </span><span style="color: #0000ff;">true</span> } =&gt; <span style="color: #0000ff;">new</span> Maybe&lt;B&gt;<span style="color: #000000;">(func(input.Value)),
+        _ </span>=&gt; Maybe&lt;B&gt;<span style="color: #000000;">.Nothing()
+    };
+
+Maybe</span>&lt;<span style="color: #0000ff;">int</span>&gt; t1 = <span style="color: #800080;">7</span><span style="color: #000000;">;
+Maybe</span>&lt;<span style="color: #0000ff;">int</span>&gt; t2 = Maybe&lt;<span style="color: #0000ff;">int</span>&gt;<span style="color: #000000;">.Nothing();
+Func</span>&lt;<span style="color: #0000ff;">int</span>, <span style="color: #0000ff;">bool</span>&gt; func = x =&gt; (x &amp; <span style="color: #800080;">1</span>) == <span style="color: #800080;">1</span><span style="color: #000000;">;
+t1.Fmap(func); </span><span style="color: #008000;">//</span><span style="color: #008000;"> Just True</span>
+t2.Fmap(func); <span style="color: #008000;">//</span><span style="color: #008000;"> Nothing</span></pre>
+</div>
+</div>
+<h2>Applicative</h2>
+<p>有了上面的东西，现在我们说说&nbsp;<code>Applicative</code>&nbsp;是干什么的。</p>
+<p>你可以非常容易的发现，如果你为&nbsp;<code>Maybe&lt;T&gt;</code>实现一个 fmap，那么你可以说&nbsp;<code>Maybe&lt;T&gt;</code>就是一个&nbsp;<code>Functor</code>。</p>
+<p>那&nbsp;<code>Applicative</code>&nbsp;也差不多，首先<code>Applicative</code>是继承自<code>Functor</code>的，所以<code>Applicative</code>本身就具有了&nbsp;<code>fmap</code>。另外在&nbsp;<code>Applicative</code>中，我们有两个分别叫做<code>pure</code>和&nbsp;<code>apply</code>的函数。</p>
+<p><code>pure</code>干的事情很简单，就是把东西装到箱子里：</p>
+<div class="highlight">
+<div class="cnblogs_code">
+<pre><code>M&lt;T&gt; Pure&lt;T&gt;(T input);</pre>
+</div>
+<p>那&nbsp;<code>apply</code>&nbsp;干了件什么事情呢？想象一下这件事情，此时我们把之前所说的那个用于变换的函数（<code>Func&lt;A, B&gt;</code>）也装到了箱子当中，变成了<code>M&lt;Func&lt;A, B&gt;&gt;</code>，那么<code>apply</code>所做的就是下面这件事情：</p>
+</div>
+<div class="highlight">
+<div class="cnblogs_code">
+<pre><code>M&lt;B&gt; Apply(<span style="color: #0000ff;">this</span> M&lt;A&gt; input, M&lt;Func&lt;A, B&gt;&gt; func);</pre>
+</div>
+<p>看起来和&nbsp;<code>fmap</code>没有太大的区别，唯一的不同就是我们把<code>func</code>也装到了箱子<code>M</code>里面。</p>
+</div>
+<p>以&nbsp;<code>Maybe&lt;T&gt;</code>为例实现&nbsp;<code>apply</code>：</p>
+<div class="highlight">
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> Maybe&lt;B&gt; Apply&lt;A, B&gt;(<span style="color: #0000ff;">this</span> Maybe&lt;A&gt; input, Maybe&lt;Func&lt;A, B&gt;&gt;<span style="color: #000000;"> func)
+    </span>=&gt; (input, func) <span style="color: #0000ff;">switch</span><span style="color: #000000;">
+    {
+        _ when input </span><span style="color: #0000ff;">is</span> <span style="color: #0000ff;">null</span> || func <span style="color: #0000ff;">is</span> <span style="color: #0000ff;">null</span> =&gt; Maybe&lt;B&gt;<span style="color: #000000;">.Nothing(),
+        ({ HasValue: </span><span style="color: #0000ff;">true</span> }, { HasValue: <span style="color: #0000ff;">true</span> }) =&gt; <span style="color: #0000ff;">new</span> Maybe&lt;B&gt;<span style="color: #000000;">(func.Value(input.Value)),
+        _ </span>=&gt; Maybe&lt;B&gt;<span style="color: #000000;">.Nothing()
+    };</span></pre>
+</div>
+<p>然后我们就可以干这件事情了：</p>
+</div>
+<div class="highlight">
+<div class="cnblogs_code">
+<pre><code>Maybe&lt;<span style="color: #0000ff;">int</span>&gt; input = <span style="color: #800080;">3</span><span style="color: #000000;">;
+Maybe</span>&lt;Func&lt;<span style="color: #0000ff;">int</span>, <span style="color: #0000ff;">bool</span>&gt;&gt; isOdd = <span style="color: #0000ff;">new</span> Func&lt;<span style="color: #0000ff;">int</span>, <span style="color: #0000ff;">bool</span>&gt;(x =&gt; (x &amp; <span style="color: #800080;">1</span>) == <span style="color: #800080;">1</span><span style="color: #000000;">);
+
+input.Apply(isOdd); </span><span style="color: #008000;">//</span><span style="color: #008000;"> Just True</span></pre>
+</div>
+<p>我们的这个函数&nbsp;<code>isOdd</code>本身可能是&nbsp;<code>Nothing</code>，当&nbsp;<code>input</code>和<code>isOdd</code>任何一个为<code>Nothing</code>的时候，结果都是<code>Nothing</code>，否则是<code>Just</code>，并且将值存到这个&nbsp;<code>Just</code>里面。</p>
+</div>
+<h2>Monad</h2>
+<p>Monad 继承自 Applicative，并另外包含几个额外的操作：<code>returns</code>、<code>bind</code>和<code>then</code>。</p>
+<p><code>returns</code>干的事情和上面的<code>Applicative</code>中<code>pure</code>干的事情没有区别。</p>
+<div class="highlight">
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> Maybe&lt;A&gt; Returns&lt;A&gt;(<span style="color: #0000ff;">this</span> A input) =&gt; <span style="color: #0000ff;">new</span> Maybe&lt;A&gt;(input);</pre>
+</div>
+<p><code>bind</code>干这么一件事情 ：</p>
+</div>
+<div class="highlight">
+<div class="cnblogs_code">
+<pre><code>M&lt;B&gt; Bind&lt;A, B&gt;(<span style="color: #0000ff;">this</span> M&lt;A&gt; input, Func&lt;A, M&lt;B&gt;&gt; func);</pre>
+</div>
+<p>它用一个装在&nbsp;<code>M</code>中的<code>A</code>，和一个<code>A -&gt; M&lt;B&gt;</code>这样的函数，产生一个<code>M&lt;B&gt;</code>。</p>
+</div>
+<p><code>then</code>用来充当胶水的作用，将一个个操作连接起来：</p>
+<div class="highlight">
+<div class="cnblogs_code">
+<pre><code>M&lt;B&gt; Then(<span style="color: #0000ff;">this</span> M&lt;A&gt; a, M&lt;B&gt; b);</pre>
+</div>
+<p>为什么说这是充当胶水的作用呢？想象一下如果我们有两个&nbsp;<code>Monad</code>，那么使用&nbsp;<code>then</code>，就可以将上一个&nbsp;<code>Monad</code>和下一个<code>Monad</code>利用函数组合起来将其连接，而不是写为两行语句。</p>
+</div>
+<p>实现以上操作：</p>
+<div class="highlight">
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> Maybe&lt;B&gt; Bind&lt;A, B&gt;(<span style="color: #0000ff;">this</span> Maybe&lt;A&gt; input, Func&lt;A, Maybe&lt;B&gt;&gt;<span style="color: #000000;"> func)
+    </span>=&gt; input <span style="color: #0000ff;">switch</span><span style="color: #000000;">
+    {
+        { HasValue: </span><span style="color: #0000ff;">true</span> } =&gt;<span style="color: #000000;"> func(input.Value),
+        _ </span>=&gt; Maybe&lt;B&gt;<span style="color: #000000;">.Nothing()
+    };
+
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> Maybe&lt;B&gt; Then&lt;A, B&gt;(<span style="color: #0000ff;">this</span> Maybe&lt;A&gt; input, Maybe&lt;B&gt; next) =&gt; next;</pre>
+</div>
+</div>
+<h2>完整<code>Maybe&lt;T&gt;</code>实现</h2>
+<div class="highlight">
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> Maybe&lt;T&gt; <span style="color: #0000ff;">where</span><span style="color: #000000;"> T : notnull
+{
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">readonly</span><span style="color: #000000;"> T innerValue;
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">bool</span> HasValue { <span style="color: #0000ff;">get</span>; } = <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+    </span><span style="color: #0000ff;">public</span> T Value =&gt; HasValue ? innerValue : <span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> InvalidOperationException();
+
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> Maybe(T value)
+    {
+        </span><span style="color: #0000ff;">if</span> (value <span style="color: #0000ff;">is</span> <span style="color: #0000ff;">null</span>) <span style="color: #0000ff;">return</span><span style="color: #000000;">;
+        innerValue </span>=<span style="color: #000000;"> value;
+        HasValue </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+    }
+
+    </span><span style="color: #0000ff;">public</span> Maybe(Maybe&lt;T&gt;<span style="color: #000000;"> value)
+    {
+        </span><span style="color: #0000ff;">if</span> (!value.HasValue) <span style="color: #0000ff;">return</span><span style="color: #000000;">;
+        innerValue </span>=<span style="color: #000000;"> value.Value;
+        HasValue </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+    }
+
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> Maybe() { }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">implicit</span> <span style="color: #0000ff;">operator</span> Maybe&lt;T&gt;(T value) =&gt; <span style="color: #0000ff;">new</span> Maybe&lt;T&gt;<span style="color: #000000;">(value);
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> Maybe&lt;T&gt; Nothing() =&gt; <span style="color: #0000ff;">new</span> Maybe&lt;T&gt;<span style="color: #000000;">();
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">override</span> <span style="color: #0000ff;">string</span> ToString() =&gt; HasValue ? Value.ToString() : <span style="color: #800000;">"</span><span style="color: #800000;">Nothing</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+}
+
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> MaybeExtensions
+{
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> Maybe&lt;B&gt; Fmap&lt;A, B&gt;(<span style="color: #0000ff;">this</span> Maybe&lt;A&gt; input, Func&lt;A, B&gt;<span style="color: #000000;"> func)
+        </span>=&gt; input <span style="color: #0000ff;">switch</span><span style="color: #000000;">
+        {
+            </span><span style="color: #0000ff;">null</span> =&gt; Maybe&lt;B&gt;<span style="color: #000000;">.Nothing(),
+            { HasValue: </span><span style="color: #0000ff;">true</span> } =&gt; <span style="color: #0000ff;">new</span> Maybe&lt;B&gt;<span style="color: #000000;">(func(input.Value)),
+            _ </span>=&gt; Maybe&lt;B&gt;<span style="color: #000000;">.Nothing()
+        };
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> Maybe&lt;B&gt; Apply&lt;A, B&gt;(<span style="color: #0000ff;">this</span> Maybe&lt;A&gt; input, Maybe&lt;Func&lt;A, B&gt;&gt;<span style="color: #000000;"> func)
+        </span>=&gt; (input, func) <span style="color: #0000ff;">switch</span><span style="color: #000000;">
+        {
+            _ when input </span><span style="color: #0000ff;">is</span> <span style="color: #0000ff;">null</span> || func <span style="color: #0000ff;">is</span> <span style="color: #0000ff;">null</span> =&gt; Maybe&lt;B&gt;<span style="color: #000000;">.Nothing(),
+            ({ HasValue: </span><span style="color: #0000ff;">true</span> }, { HasValue: <span style="color: #0000ff;">true</span> }) =&gt; <span style="color: #0000ff;">new</span> Maybe&lt;B&gt;<span style="color: #000000;">(func.Value(input.Value)),
+            _ </span>=&gt; Maybe&lt;B&gt;<span style="color: #000000;">.Nothing()
+        };
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> Maybe&lt;A&gt; Returns&lt;A&gt;(<span style="color: #0000ff;">this</span> A input) =&gt; <span style="color: #0000ff;">new</span> Maybe&lt;A&gt;<span style="color: #000000;">(input);
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> Maybe&lt;B&gt; Bind&lt;A, B&gt;(<span style="color: #0000ff;">this</span> Maybe&lt;A&gt; input, Func&lt;A, Maybe&lt;B&gt;&gt;<span style="color: #000000;"> func)
+        </span>=&gt; input <span style="color: #0000ff;">switch</span><span style="color: #000000;">
+        {
+            { HasValue: </span><span style="color: #0000ff;">true</span> } =&gt;<span style="color: #000000;"> func(input.Value),
+            _ </span>=&gt; Maybe&lt;B&gt;<span style="color: #000000;">.Nothing()
+        };
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> Maybe&lt;B&gt; Then&lt;A, B&gt;(<span style="color: #0000ff;">this</span> Maybe&lt;A&gt; input, Maybe&lt;B&gt; next) =&gt;<span style="color: #000000;"> next;
+}</span></pre>
+</div>
+</div>
+<p>以上方法可以自行柯里化后使用，以及我调换了一些参数顺序便于使用，所以可能和定义有所出入。</p>
+<h2>有哪些常见的 Monads</h2>
+<ul>
+<li>Maybe</li>
+<li>Either</li>
+<li>Try</li>
+<li>Reader</li>
+<li>Writer</li>
+<li>State</li>
+<li>IO</li>
+<li>List</li>
+<li>......</li>
+</ul>
+<h2>C# 中有哪些 Monads</h2>
+<ul>
+<li><code>Task&lt;T&gt;</code></li>
+<li><code>Nullable&lt;T&gt;</code></li>
+<li><code>IEnumerable&lt;T&gt;</code>+<code>SelectMany</code></li>
+<li>......</li>
+</ul>
+<h2>为什么需要 Monads</h2>
+<p>想象一下，现在世界上只有一种函数：纯函数。它接收一个参数，并且对于每一个参数值，给出固定的返回值，即&nbsp;<code>f(x)</code>对于相同参数恒不变。</p>
+<p>那现在问题来了，如果我需要可空的值&nbsp;<code>Maybe</code>或者随机数<code>Random</code>等等，前者除了值本身之外，还带有一个是否有值的状态，而后者还跟计算机的运行环境、时间等随机数种子的因素有关。如果我们所有的函数都是纯函数，那么我们如何用一个函数去产生&nbsp;<code>Maybe</code>&nbsp;和&nbsp;<code>Random</code>&nbsp;呢？</p>
+<p>前者可能只需要给函数增加一个参数：是否有值，然而后者呢？牵扯到时间、硬件、环境等等一切和产生随机数种子有关的状态，我们当然可以将所有状态都当作参数传入，然后生成一个随机数，那更复杂的，<code>IO</code>如何处理？</p>
+<p>这类函数都是与环境和状态密切相关的，状态是可变的，并不能简单的由参数做映射产生固定的结果，即这类函数具有副作用。但是，我们可以将状态和值打包起来装在箱子里，这个箱子即&nbsp;<code>Monad</code>，这样我们所有涉及到副作用的操作都可以在这个箱子内部完成，将可变的状态隔离在其中，而对外则为一个单体，仍然保持了其不变性。</p>
+<p>以随机数&nbsp;<code>Random</code>为例，我们想给随机数加 1。（下面的代码我就用 Haskell 放飞自我了）</p>
+<p>我们现在已经有两个函数，<code>nextRandom</code>用于产生一个&nbsp;<code>Random Int</code>，<code>plusOne</code>用于给一个&nbsp;<code>Int</code>&nbsp;加 1：</p>
+<div class="highlight">
+<div class="cnblogs_code">
+<pre><code>nextRandom :: Random Int <span style="color: #008000;">//</span><span style="color: #008000;"> 返回值类型为 Random Int</span>
+plusOne :: Int -&gt; Int <span style="color: #008000;">//</span><span style="color: #008000;"> 参数类型为 Int，返回值类型为 Int</span></pre>
+</div>
+<p>然后我们有&nbsp;<code>bind</code>和<code>returns</code>操作，那我们只需要利用着两个操作将我们已有的两个函数组合即可：</p>
+</div>
+<div class="highlight">
+<div class="cnblogs_code">
+<pre><code>bind (nextRandom (returns plusOne))</pre>
+</div>
+<p>利用符号表示即为：</p>
+</div>
+<div class="highlight">
+<div class="cnblogs_code">
+<pre><code>nextRandom &gt;&gt;= plusOne</pre>
+</div>
+<p>这样我们将状态等带有副作用的操作全部隔离在了 Monad 中，我们接触到的东西都是不变的，并且满足&nbsp;<code>f(g(x)) = g(f(x))</code>！</p>
+</div>
+<p>当然这个例子使用<code>Monad</code>的<code>bind</code>操作纯属小题大做，此例子中只需要利用<code>Functor</code>的&nbsp;<code>fmap</code>操作能搞定：</p>
+<div class="highlight">
+<div class="cnblogs_code">
+<pre><code>fmap plusOne nextRandom</pre>
+</div>
+<p>利用符号表示即为：</p>
+</div>
+<div class="highlight">
+<div class="cnblogs_code">
+<pre><code>plusOne &lt;$&gt; nextRandom</pre>
+</div>
+</div>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

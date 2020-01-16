@@ -1,0 +1,162 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C# 封装SqlHelper' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C# 封装SqlHelper</center></div><div class='banquan'>原文出处:本文由博客园博主鳕鱼堡提供。<br/>
+原文连接:https://www.cnblogs.com/xueyubao/p/11402945.html</div><br>
+    <p>老师在讲C#实战项目时所使用的SqlHelper，使用的数据库是SQL Server</p>
+<p><strong>注意，连接数据库的连接字符串需要在配置文件中设置好</strong></p>
+<pre><code><code>&lt;appSettings&gt;
+    &lt;add key = &quot;connString&quot; value=&quot;data source = .; database = CourseSelectionInfo; integrated security = true&quot;/&gt;
+&lt;/appSettings&gt;</code></pre>
+<pre class="c#"><code>public class SqLHelper
+{
+    #region 连接字符串connString
+    private static string connString;
+    static DBHelper()
+    {
+        connString = ConfigurationManager.AppSettings[&quot;connString&quot;];
+    }
+    #endregion
+
+    #region 增删改int ExcuteNonQuery(string cmdText, CommandType cmdType, params SqlParameter[] parameters)
+    /// &lt;summary&gt;
+    /// 增删改
+    /// &lt;/summary&gt;
+    /// &lt;param name=&quot;cmdText&quot;&gt;sql&lt;/param&gt;
+    /// &lt;param name=&quot;cmdType&quot;&gt;&lt;/param&gt;
+    /// &lt;param name=&quot;parameters&quot;&gt;参数&lt;/param&gt;
+    /// &lt;returns&gt;修改了几行&lt;/returns&gt;
+    public static int ExcuteNonQuery(string cmdText, CommandType cmdType, params SqlParameter[] parameters)
+    {
+        using (SqlConnection connection = new SqlConnection(connString))
+        {
+            using (SqlCommand cmd = new SqlCommand(cmdText, connection))
+            {
+                cmd.CommandType = cmdType;
+                connection.Open();
+                if (parameters.Length &gt; 0)
+                {
+                    cmd.Parameters.AddRange(parameters);
+                }
+                return cmd.ExecuteNonQuery();
+            }
+        }
+    }
+    #endregion
+
+    #region 获取一个数据 T ExcuteScalar&lt;T&gt;(string cmdText,  CommandType cmdType, params SqlParameter[] parameters)
+    /// &lt;summary&gt;
+    /// 获取一个数据&lt;T&gt;
+    /// &lt;/summary&gt;
+    /// &lt;typeparam name=&quot;T&quot;&gt;数据类型&lt;/typeparam&gt;
+    /// &lt;param name=&quot;cmdText&quot;&gt;sql&lt;/param&gt;
+    /// &lt;param name=&quot;cmdType&quot;&gt;&lt;/param&gt;
+    /// &lt;param name=&quot;parameters&quot;&gt;参数&lt;/param&gt;
+    /// &lt;returns&gt;任意类型的数据&lt;/returns&gt;
+    public static T ExcuteScalar&lt;T&gt;(string cmdText, CommandType cmdType, params SqlParameter[] parameters)
+    {
+        using (SqlConnection connection = new SqlConnection(connString))
+        {
+            using (SqlCommand cmd = new SqlCommand(cmdText, connection))
+            {
+                cmd.CommandType = cmdType;
+                connection.Open();
+                if (parameters.Length &gt; 0)
+                {
+                    cmd.Parameters.AddRange(parameters);
+                }
+                return (T)cmd.ExecuteScalar();
+            }
+        }
+    }
+    #endregion
+
+    #region 读取数据表SqlDataReader ExcuteReader(string cmdText, CommandType cmdType, params SqlParameter[] parameters)
+    /// &lt;summary&gt;
+    /// 读取数据表
+    /// &lt;/summary&gt;
+    /// &lt;param name=&quot;cmdText&quot;&gt;sql&lt;/param&gt;
+    /// &lt;param name=&quot;cmdType&quot;&gt;&lt;/param&gt;
+    /// &lt;param name=&quot;parameters&quot;&gt;参数&lt;/param&gt;
+    /// &lt;returns&gt;SqlDataReader&lt;/returns&gt;
+    public static SqlDataReader ExcuteReader(string cmdText, CommandType cmdType, params SqlParameter[] parameters)
+    {
+        SqlConnection connection = new SqlConnection(connString);
+            using (SqlCommand cmd = new SqlCommand(cmdText, connection))
+            {
+                cmd.CommandType = cmdType;
+                connection.Open();
+                if (parameters.Length &gt; 0)
+                {
+                    cmd.Parameters.AddRange(parameters);
+                }
+                return cmd.ExecuteReader(CommandBehavior.CloseConnection);
+            }
+    }
+    #endregion
+
+    #region 临时数据库DataSet GetDataSet(string cmdText, CommandType cmdType, params SqlParameter[] parameters)
+    /// &lt;summary&gt;
+    /// 获取临时数据库
+    /// &lt;/summary&gt;
+    /// &lt;param name=&quot;cmdText&quot;&gt;&lt;/param&gt;
+    /// &lt;param name=&quot;cmdType&quot;&gt;&lt;/param&gt;
+    /// &lt;param name=&quot;parameters&quot;&gt;&lt;/param&gt;
+    /// &lt;returns&gt;&lt;/returns&gt;
+    public static DataSet GetDataSet(string cmdText, CommandType cmdType, params SqlParameter[] parameters)
+    {
+        DataSet ds = new DataSet();
+        using (SqlConnection connection = new SqlConnection(connString))
+        {
+            using (SqlCommand cmd = new SqlCommand(cmdText, connection))
+            {
+                cmd.CommandType = cmdType;
+                using (SqlDataAdapter adapter = new SqlDataAdapter(cmd))
+                {
+                    if (parameters.Length &gt; 0)
+                    {
+                        adapter.SelectCommand.Parameters.AddRange(parameters);
+                    }
+                    adapter.Fill(ds);
+                }
+            }
+        }
+        return ds;
+    }
+    #endregion
+
+    #region 临时数据表DataTable GetDataTable(string cmdText, CommandType cmdType, params SqlParameter[] parameters)
+    /// &lt;summary&gt;
+    /// 获取临时数据表
+    /// &lt;/summary&gt;
+    /// &lt;param name=&quot;cmdText&quot;&gt;sql&lt;/param&gt;
+    /// &lt;param name=&quot;cmdType&quot;&gt;&lt;/param&gt;
+    /// &lt;param name=&quot;parameters&quot;&gt;参数&lt;/param&gt;
+    /// &lt;returns&gt;&lt;/returns&gt;
+    public static DataTable GetDataTable(string cmdText, CommandType cmdType, params SqlParameter[] parameters)
+    {
+        return GetDataSet(cmdText, cmdType, parameters).Tables[0];
+    }
+    #endregion
+}</code></pre>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

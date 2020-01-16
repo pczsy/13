@@ -1,0 +1,732 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修c#自定义ORM框架---（泛型&amp;反射&amp;实体类扩展属性&lt;附带通用增、删、查、改&gt;）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>c#自定义ORM框架---（泛型&amp;反射&amp;实体类扩展属性&lt;附带通用增、删、查、改&gt;）</center></div><div class='banquan'>原文出处:本文由博客园博主害羞的青蛙提供。<br/>
+原文连接:https://www.cnblogs.com/ShyFrog/p/10931170.html</div><br>
+    <h2 style="text-align: left;"><span style="font-family: 'Microsoft YaHei'; color: #ff0000;">该教材主要是运用到泛型、反射和实体类扩展属性</span></h2>
+<p style="text-align: left;">步骤一、建立扩展属性类</p>
+<p style="text-align: left;">实体类扩展属性要继承Attribute基类完成</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #000000;">[AttributeUsage(AttributeTargets.Property)]
+</span><span style="color: #008080;"> 2</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> FieldAttribute : Attribute
+</span><span style="color: #008080;"> 3</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;"> 4</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;"> 5</span>         <span style="color: #808080;">///</span><span style="color: #008000;">是否为主键（true/false）
+</span><span style="color: #008080;"> 6</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;"> 7</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">bool</span> PropertyKey { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+</span><span style="color: #008080;"> 8</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;"> 9</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 是否为自动增长（true/false）
+</span><span style="color: #008080;">10</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">11</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">bool</span> Identity { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+</span><span style="color: #008080;">12</span>     }</pre>
+</div>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #000000;">[AttributeUsage(AttributeTargets.Class)]
+</span><span style="color: #008080;">2</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> TableAttribute:Attribute
+</span><span style="color: #008080;">3</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;">4</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">5</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 数据库表名
+</span><span style="color: #008080;">6</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">7</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> TableName { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+</span><span style="color: #008080;">8</span>     }</pre>
+</div>
+<p>步骤二、创建实体类并引用扩展实体类属性</p>
+<pre><code><span style="color: #339966; font-size: 16px;">注意：<br />[Serializable]<span style="color: #000000;">表示实体类可被序列化</span><br /></span></pre>
+<pre><code><span style="font-size: 16px;"><span style="color: #339966;">[Table(TableName = "emesc.Dome")]</span>表示引入的扩展属性名并且数据库名为emesc.Dome</span></pre>
+<pre><code></pre>
+<pre><code><span style="font-size: 16px;"><span style="color: #339966;">[Field(PropertyKey = true)]</span>表示是否为主键</span></pre>
+<pre><code><span style="color: #339966; font-size: 16px;">&nbsp;</span></pre>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> [Table(TableName = <span style="color: #800000;">"</span><span style="color: #800000;">emesc.Dome</span><span style="color: #800000;">"</span><span style="color: #000000;">)]
+</span><span style="color: #008080;"> 2</span> <span style="color: #000000;">    [Serializable]
+</span><span style="color: #008080;"> 3</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Dome
+</span><span style="color: #008080;"> 4</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;"> 5</span>         [Field(PropertyKey = <span style="color: #0000ff;">true</span><span style="color: #000000;">)]
+</span><span style="color: #008080;"> 6</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> EMP_NO { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+</span><span style="color: #008080;"> 7</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> EMP_NAME { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+</span><span style="color: #008080;"> 8</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> EMP_DESC { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+</span><span style="color: #008080;"> 9</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> TYPE { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+</span><span style="color: #008080;">10</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> EMP_RANK { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+</span><span style="color: #008080;">11</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> EMP_PASS { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+</span><span style="color: #008080;">12</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">object </span>FACTORY_CODE { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+</span><span style="color: #008080;">13</span>         <span style="color: #0000ff;">public</span> DateTime QUIT_DATE { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+</span><span style="color: #008080;">14</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">object</span> CALENDAR_CODE { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+</span><span style="color: #008080;">15</span>     }</pre>
+</div>
+<p>步骤三、创建BaseClass 该Class主要是用来封装ORM框架的通用方法（增、删、查、改）</p>
+<p><span style="font-family: 'Microsoft YaHei';">　　1.反射出实体类所有字段属性</span></p>
+<p><span style="font-family: 'Microsoft YaHei';">　　注意：反射实体类字段主要运用到<span style="color: #339966;">PropertyInfo[]</span>和泛型<span style="color: #339966;">T</span></span></p>
+<p><span style="font-family: 'Microsoft YaHei';"><span style="color: #339966;">　　　　　　PropertyInfo[] <span style="color: #000000;">主要反射实体类字段属性</span></span></span></p>
+<p><span style="font-family: 'Microsoft YaHei';"><span style="color: #339966;">　　　　　　T 主<span style="color: #000000;">要是用来传递实体类对象</span></span></span></p>
+<p><span style="font-family: 'Microsoft YaHei';"><span style="color: #339966;"><span style="color: #000000;">　　</span></span></span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">string</span> GetClassType&lt;T&gt;<span style="color: #000000;">(T modelName) {
+</span><span style="color: #008080;"> 2</span>             <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+</span><span style="color: #008080;"> 3</span>             StringBuilder type= <span style="color: #0000ff;">new</span><span style="color: #000000;"> StringBuilder();
+</span><span style="color: #008080;"> 4</span>             PropertyInfo[]  props = modelName.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance);<span style="color: #008000;">//</span><span style="color: #008000;">抓取泛型類的字段屬性;</span>
+<span style="color: #008080;"> 5</span>             <span style="color: #0000ff;">foreach</span> ( PropertyInfo Info <span style="color: #0000ff;">in</span><span style="color: #000000;"> props) {
+</span><span style="color: #008080;"> 6</span>                 //<span style="color: #0000ff;">if</span> ((Info.GetValue(modelName,<span style="color: #0000ff;">null</span>) + <span style="color: #800000;">""</span>).Equals(<span style="color: #800000;">""</span>)|| (Info.GetValue(modelName, <span style="color: #0000ff;">null</span>) + <span style="color: #800000;">""</span>).Equals(<span style="color: #0000ff;">null</span>)) <span style="color: #0000ff;">continue</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 7</span>                 //<span style="color: #0000ff;">if</span> (Info.PropertyType.Name.StartsWith(<span style="color: #800000;">"</span><span style="color: #800000;">DateTime</span><span style="color: #800000;">"</span><span style="color: #000000;">))
+</span><span style="color: #008080;"> 8</span> <span style="color: #000000;">                //{
+</span><span style="color: #008080;"> 9</span>                 //    <span style="color: #0000ff;">if</span> (Convert.ToDateTime(Info.GetValue(modelName, <span style="color: #0000ff;">null</span>)) == DateTime.MinValue) <span style="color: #0000ff;">continue</span>;<span style="color: #008000;">//</span><span style="color: #008000;">判斷時間是否為最小時間 ;</span>
+<span style="color: #008080;">10</span> <span style="color: #000000;">                //}
+</span><span style="color: #008080;">11</span>                 type.Append(Info.Name+<span style="color: #800000;">"</span><span style="color: #800000;">,</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">12</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">13</span>             <span style="color: #0000ff;">return</span> type.ToString().Substring(<span style="color: #800080;">0</span>, Start.Length - <span style="color: #800080;">1</span><span style="color: #000000;">);//拼接所有字段属性名
+</span><span style="color: #008080;">14</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">15</span>             <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception ex)
+</span><span style="color: #008080;">16</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">17</span>                 <span style="color: #0000ff;">throw</span><span style="color: #000000;"> ex;
+</span><span style="color: #008080;">18</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">19</span>         }</pre>
+</div>
+<p><span style="font-family: 'Microsoft YaHei';">　　2.反射扩展类字段属性</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span>  <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;"> 2</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 获取实体类中的唯一id和对应的表名
+</span><span style="color: #008080;"> 3</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;"> 4</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;typeparam name="T"&gt;&lt;/typeparam&gt;</span>
+<span style="color: #008080;"> 5</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="modelName"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;"> 6</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+<span style="color: #008080;"> 7</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> List&lt;<span style="color: #0000ff;">string</span>&gt; GetModelFeature&lt;T&gt;<span style="color: #000000;">(T modelName) {
+</span><span style="color: #008080;"> 8</span>             <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+</span><span style="color: #008080;"> 9</span>             List&lt;<span style="color: #0000ff;">string</span>&gt; list = <span style="color: #0000ff;">new</span> List&lt;<span style="color: #0000ff;">string</span>&gt;<span style="color: #000000;">();
+</span><span style="color: #008080;">10</span>             <span style="color: #0000ff;">var</span> info= modelName.GetType().GetCustomAttributes(<span style="color: #0000ff;">typeof</span>(TableAttribute), <span style="color: #0000ff;">false</span><span style="color: #000000;">);
+</span><span style="color: #008080;">11</span>             <span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">var</span> item <span style="color: #0000ff;">in</span><span style="color: #000000;"> info)
+</span><span style="color: #008080;">12</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">13</span>                 TableAttribute attr = item <span style="color: #0000ff;">as</span><span style="color: #000000;"> TableAttribute;
+</span><span style="color: #008080;">14</span>                 <span style="color: #0000ff;">if</span> (attr != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+</span><span style="color: #008080;">15</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">16</span>                     <span style="color: #0000ff;">string</span> tableName = attr.TableName;<span style="color: #008000;">//</span><span style="color: #008000;">表名只有获取一次</span>
+<span style="color: #008080;">17</span> <span style="color: #000000;">                    list.Add(tableName);
+</span><span style="color: #008080;">18</span>                     <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+</span><span style="color: #008080;">19</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">20</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">21</span>             PropertyInfo[] props = modelName.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance);<span style="color: #008000;">//</span><span style="color: #008000;">抓取泛型類的字段屬性;</span>
+<span style="color: #008080;">22</span>             <span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">var</span> item <span style="color: #0000ff;">in</span><span style="color: #000000;"> props)
+</span><span style="color: #008080;">23</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">24</span>                 <span style="color: #0000ff;">object</span>[] objAttrs = item.GetCustomAttributes(<span style="color: #0000ff;">typeof</span>(FieldAttribute), <span style="color: #0000ff;">true</span><span style="color: #000000;">);
+</span><span style="color: #008080;">25</span>                 <span style="color: #0000ff;">if</span> (objAttrs.Length &gt; <span style="color: #800080;">0</span><span style="color: #000000;">)
+</span><span style="color: #008080;">26</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">27</span>                     FieldAttribute attr = objAttrs[<span style="color: #800080;">0</span>] <span style="color: #0000ff;">as</span><span style="color: #000000;"> FieldAttribute;
+</span><span style="color: #008080;">28</span>                     <span style="color: #0000ff;">if</span> (attr.PropertyKey == <span style="color: #0000ff;">true</span><span style="color: #000000;">)
+</span><span style="color: #008080;">29</span> <span style="color: #000000;">                    {
+</span><span style="color: #008080;">30</span>                         list.Add(item.Name+<span style="color: #800000;">"</span><span style="color: #800000;"> = '</span><span style="color: #800000;">"</span>+ item.GetValue(modelName,<span style="color: #0000ff;">null</span>)+<span style="color: #800000;">"</span><span style="color: #800000;">'</span><span style="color: #800000;">"</span>);<span style="color: #008000;">//</span><span style="color: #008000;">抓取筛选条件</span>
+<span style="color: #008080;">31</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">32</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">33</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">34</span>             <span style="color: #0000ff;">return</span><span style="color: #000000;"> list;
+</span><span style="color: #008080;">35</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">36</span>             <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception ex)
+</span><span style="color: #008080;">37</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">38</span>                 <span style="color: #0000ff;">throw</span><span style="color: #000000;"> ex;
+</span><span style="color: #008080;">39</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">40</span>         }</pre>
+</div>
+<p><span style="font-family: 'Microsoft YaHei';">　　</span></p>
+<p><span style="font-family: 'Microsoft YaHei';">3. 编写通用增删查改方法 insert、update、delete、Query(select)方法</span></p>
+<p><span style="font-family: 'Microsoft YaHei';">　　　通用方法编写思维引导：当我们在对数据库进行操作时我们发现不管怎么对数据库操作都少不了<span style="color: #ff0000;">表名</span>、<span style="color: #ff0000;">字段名</span>和<span style="color: #ff0000;">值 <span style="color: #000000;">那么我们可以封装函数用来存储字段名和值</span></span></span></p>
+<p><span style="font-family: 'Microsoft YaHei';"><span style="color: #ff0000;"><span style="color: #000000;">　　　如：<span style="color: #ff0000;">insert into 表名 (字段名) values(值)</span></span></span></span></p>
+<p><span style="font-family: 'Microsoft YaHei'; color: #ff0000;">　　　　　update set 字段名=&lsquo;值&rsquo;&nbsp;from&nbsp;表名 where&nbsp;字段名=&lsquo;值&rsquo;</span></p>
+<p><span style="font-family: 'Microsoft YaHei'; color: #ff0000;">　　　　　delete 表名 where&nbsp;字段名=&lsquo;值&rsquo;</span></p>
+<p><span style="font-family: 'Microsoft YaHei'; color: #ff0000;">　　　　　select 字段名 from 表名 where&nbsp;字段名=&lsquo;值</span></p>
+<p><span style="font-family: 'Microsoft YaHei';"><span style="color: #ff0000;"><span style="color: #000000;">　　　　　存储字段名代码<span style="color: #ff0000;">（核心代码）：</span></span></span></span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">string</span> GetNumericField&lt;T&gt;<span style="color: #000000;">(T modelName)
+</span><span style="color: #008080;"> 2</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 3</span>             <span style="color: #0000ff;">try</span>
+<span style="color: #008080;"> 4</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 5</span>                 StringBuilder Start = <span style="color: #0000ff;">new</span><span style="color: #000000;"> StringBuilder();
+</span><span style="color: #008080;"> 6</span>                 PropertyInfo[] props = modelName.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance);<span style="color: #008000;">//</span><span style="color: #008000;">抓取泛型類的字段屬性;</span>
+<span style="color: #008080;"> 7</span>                 <span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">var</span> item <span style="color: #0000ff;">in</span><span style="color: #000000;"> props)
+</span><span style="color: #008080;"> 8</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;"> 9</span>                  Start.Append(item.Name + <span style="color: #800000;">"</span><span style="color: #800000;">,</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">10</span> 
+<span style="color: #008080;">11</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">12</span>                 <span style="color: #0000ff;">return</span> Start.ToString().Substring(<span style="color: #800080;">0</span>, Start.Length - <span style="color: #800080;">1</span><span style="color: #000000;">);
+</span><span style="color: #008080;">13</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">14</span>             <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception ex)
+</span><span style="color: #008080;">15</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">16</span>                 <span style="color: #0000ff;">throw</span><span style="color: #000000;"> ex;
+</span><span style="color: #008080;">17</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">18</span>         }</pre>
+</div>
+<p>　　　　存储值代码<span style="color: #ff0000;">（核心代码）：</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">string</span> GetValues&lt;T&gt;<span style="color: #000000;">(T modelName)
+</span><span style="color: #008080;"> 2</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 3</span>             <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+</span><span style="color: #008080;"> 4</span>             StringBuilder End = <span style="color: #0000ff;">new</span><span style="color: #000000;"> StringBuilder();
+</span><span style="color: #008080;"> 5</span>             PropertyInfo[] props = modelName.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance);<span style="color: #008000;">//</span><span style="color: #008000;">抓取泛型類的字段屬性;</span>
+<span style="color: #008080;"> 6</span>             <span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">var</span> item <span style="color: #0000ff;">in</span><span style="color: #000000;"> props)
+</span><span style="color: #008080;"> 7</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 8</span>                 <span style="color: #0000ff;">if</span> ((item.GetValue(modelName, <span style="color: #0000ff;">null</span>) + <span style="color: #800000;">""</span>).Equals(<span style="color: #800000;">""</span>) || (item.GetValue(modelName, <span style="color: #0000ff;">null</span>) + <span style="color: #800000;">""</span>).Equals(<span style="color: #0000ff;">null</span>)) <span style="color: #0000ff;">continue</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 9</span>                 <span style="color: #0000ff;">if</span> (item.PropertyType.Name.StartsWith(<span style="color: #800000;">"</span><span style="color: #800000;">String</span><span style="color: #800000;">"</span>))<span style="color: #008000;">//</span><span style="color: #008000;">判斷字段類型</span>
+<span style="color: #008080;">10</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">11</span>                     End.Append(<span style="color: #800000;">"</span><span style="color: #800000;"> and </span><span style="color: #800000;">"</span> + item.Name + <span style="color: #800000;">"</span><span style="color: #800000;"> = '</span><span style="color: #800000;">"</span> + item.GetValue(modelName, <span style="color: #0000ff;">null</span>) + <span style="color: #800000;">"</span><span style="color: #800000;">'</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">12</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">13</span>                 <span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (item.PropertyType.Name.StartsWith(<span style="color: #800000;">"</span><span style="color: #800000;">DateTime</span><span style="color: #800000;">"</span>))<span style="color: #008000;">//</span><span style="color: #008000;">判斷字段的屬性是否為時間類型</span><span style="color: #008000;">//</span><span style="color: #008000;">判斷字段類型</span>
+<span style="color: #008080;">14</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">15</span>                     <span style="color: #0000ff;">if</span> (Convert.ToDateTime(item.GetValue(modelName, <span style="color: #0000ff;">null</span>)) ==<span style="color: #000000;"> DateTime.MinValue)
+</span><span style="color: #008080;">16</span> <span style="color: #000000;">                    {
+</span><span style="color: #008080;">17</span>                         <span style="color: #0000ff;">continue</span><span style="color: #000000;">;
+</span><span style="color: #008080;">18</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">19</span>                     <span style="color: #0000ff;">else</span>
+<span style="color: #008080;">20</span> <span style="color: #000000;">                    {
+</span><span style="color: #008080;">21</span>                         End.Append(<span style="color: #800000;">"</span><span style="color: #800000;"> and </span><span style="color: #800000;">"</span> + item.Name + <span style="color: #800000;">"</span><span style="color: #800000;"> = '</span><span style="color: #800000;">"</span> + item.GetValue(modelName, <span style="color: #0000ff;">null</span>) + <span style="color: #800000;">"</span><span style="color: #800000;">'</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">22</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">23</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">24</span>                 <span style="color: #0000ff;">else</span>
+<span style="color: #008080;">25</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">26</span>                     End.Append(<span style="color: #800000;">"</span><span style="color: #800000;"> and </span><span style="color: #800000;">"</span> + item.Name + <span style="color: #800000;">"</span><span style="color: #800000;"> = </span><span style="color: #800000;">"</span> + item.GetValue(modelName, <span style="color: #0000ff;">null</span>) + <span style="color: #800000;">""</span><span style="color: #000000;">);
+</span><span style="color: #008080;">27</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">28</span> 
+<span style="color: #008080;">29</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">30</span>             <span style="color: #0000ff;">return</span><span style="color: #000000;"> End.ToString();
+</span><span style="color: #008080;">31</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">32</span>             <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception ex)
+</span><span style="color: #008080;">33</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">34</span>                 <span style="color: #0000ff;">throw</span><span style="color: #000000;"> ex;
+</span><span style="color: #008080;">35</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">36</span>         }</pre>
+</div>
+<p>下图为完整版的通用增删改的代码：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">  1</span>  <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">  2</span>     <span style="color: #808080;">///</span><span style="color: #008000;"> 最低兼容.net 4.0（該ORM緊支持對單表操作）
+</span><span style="color: #008080;">  3</span>     <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;para&gt;</span><span style="color: #008000;">開發時間：2019/5/27</span><span style="color: #808080;">&lt;/para&gt;</span>
+<span style="color: #008080;">  4</span>     <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;para&gt;</span><span style="color: #008000;">開發人員：会害羞的青蛙</span><span style="color: #808080;">&lt;/para&gt;</span>
+<span style="color: #008080;">  5</span>     <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">  6</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> BaseFunction
+</span><span style="color: #008080;">  7</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;">  8</span>         DBHelper DB = <span style="color: #0000ff;">new</span><span style="color: #000000;"> DBHelper();
+</span><span style="color: #008080;">  9</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;"> 10</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 添加數據（數據錄入時必須將時間轉換為DateTime）
+</span><span style="color: #008080;"> 11</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;"> 12</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;typeparam name="T"&gt;&lt;/typeparam&gt;</span>
+<span style="color: #008080;"> 13</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="modelName"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;"> 14</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="dbName"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;"> 15</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+<span style="color: #008080;"> 16</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">int</span> Save&lt;T&gt;<span style="color: #000000;">(T modelName) {
+</span><span style="color: #008080;"> 17</span>             <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+</span><span style="color: #008080;"> 18</span>             List&lt;<span style="color: #0000ff;">string</span>&gt; list =<span style="color: #000000;"> GetModelFeature(modelName);
+</span><span style="color: #008080;"> 19</span>             <span style="color: #0000ff;">string</span> dbName = list[<span style="color: #800080;">0</span><span style="color: #000000;">];
+</span><span style="color: #008080;"> 20</span>             StringBuilder SQL = <span style="color: #0000ff;">new</span> StringBuilder(<span style="color: #800000;">"</span><span style="color: #800000;">insert into </span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 21</span>             StringBuilder End = <span style="color: #0000ff;">new</span><span style="color: #000000;"> StringBuilder();
+</span><span style="color: #008080;"> 22</span>             SQL.Append(dbName + <span style="color: #800000;">"</span><span style="color: #800000;"> (</span><span style="color: #800000;">"</span>+ GetSaveStart(modelName)+<span style="color: #800000;">"</span><span style="color: #800000;">) values (</span><span style="color: #800000;">"</span>+ GetSaveEnd(modelName) + <span style="color: #800000;">"</span><span style="color: #800000;">)</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 23</span>             <span style="color: #0000ff;">return</span><span style="color: #000000;"> DBHelper.ExecuteNonQuery(SQL.ToString().Trim().ToUpper());
+</span><span style="color: #008080;"> 24</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 25</span>             <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception ex)
+</span><span style="color: #008080;"> 26</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 27</span>                 <span style="color: #0000ff;">throw</span><span style="color: #000000;"> ex;
+</span><span style="color: #008080;"> 28</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 29</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 30</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;"> 31</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 添加數據（數據錄入時必須將時間轉換為DateTime）
+</span><span style="color: #008080;"> 32</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;para&gt;</span><span style="color: #008000;">connectionString為自定義數據庫連接地址支持不同數據庫操作</span><span style="color: #808080;">&lt;/para&gt;</span>
+<span style="color: #008080;"> 33</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;"> 34</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;typeparam name="T"&gt;&lt;/typeparam&gt;</span>
+<span style="color: #008080;"> 35</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="modelName"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;"> 36</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="dbName"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;"> 37</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+<span style="color: #008080;"> 38</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">int</span> Save&lt;T&gt;(T modelName,<span style="color: #0000ff;">string</span><span style="color: #000000;"> connectionString)
+</span><span style="color: #008080;"> 39</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 40</span>             <span style="color: #0000ff;">try</span>
+<span style="color: #008080;"> 41</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 42</span>                 List&lt;<span style="color: #0000ff;">string</span>&gt; list =<span style="color: #000000;"> GetModelFeature(modelName);
+</span><span style="color: #008080;"> 43</span>                 <span style="color: #0000ff;">string</span> dbName = list[<span style="color: #800080;">0</span><span style="color: #000000;">];
+</span><span style="color: #008080;"> 44</span>                 StringBuilder SQL = <span style="color: #0000ff;">new</span> StringBuilder(<span style="color: #800000;">"</span><span style="color: #800000;">insert into </span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 45</span>                 StringBuilder End = <span style="color: #0000ff;">new</span><span style="color: #000000;"> StringBuilder();
+</span><span style="color: #008080;"> 46</span>                 SQL.Append(dbName + <span style="color: #800000;">"</span><span style="color: #800000;"> (</span><span style="color: #800000;">"</span> + GetSaveStart(modelName) + <span style="color: #800000;">"</span><span style="color: #800000;">) values (</span><span style="color: #800000;">"</span> + GetSaveEnd(modelName) + <span style="color: #800000;">"</span><span style="color: #800000;">)</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 47</span>                 <span style="color: #0000ff;">return</span><span style="color: #000000;"> DBHelper.ExecuteNonQuery(SQL.ToString().Trim().ToUpper(), connectionString);
+</span><span style="color: #008080;"> 48</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 49</span>             <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception ex)
+</span><span style="color: #008080;"> 50</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 51</span>                 <span style="color: #0000ff;">throw</span><span style="color: #000000;"> ex;
+</span><span style="color: #008080;"> 52</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 53</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 54</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;"> 55</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 根据主键ID修改數據（若没有主键请在实体类定义一个主键，數據編輯時必須將時間轉換為DateTime）
+</span><span style="color: #008080;"> 56</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;"> 57</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;typeparam name="T"&gt;&lt;/typeparam&gt;</span>
+<span style="color: #008080;"> 58</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="modelName"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;"> 59</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="dbName"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;"> 60</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+<span style="color: #008080;"> 61</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">int</span> Update&lt;T&gt;<span style="color: #000000;">(T modelName)
+</span><span style="color: #008080;"> 62</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 63</span>             <span style="color: #0000ff;">try</span><span style="color: #000000;"> { 
+</span><span style="color: #008080;"> 64</span>             List&lt;<span style="color: #0000ff;">string</span>&gt; list =<span style="color: #000000;"> GetModelFeature(modelName);
+</span><span style="color: #008080;"> 65</span>             <span style="color: #0000ff;">string</span> dbName = list[<span style="color: #800080;">0</span>];<span style="color: #008000;">//</span><span style="color: #008000;">數據庫名</span>
+<span style="color: #008080;"> 66</span>             StringBuilder SQL = <span style="color: #0000ff;">new</span> StringBuilder(<span style="color: #800000;">"</span><span style="color: #800000;">update </span><span style="color: #800000;">"</span>+ dbName + <span style="color: #800000;">"</span><span style="color: #800000;"> set </span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 67</span>             StringBuilder End = <span style="color: #0000ff;">new</span><span style="color: #000000;"> StringBuilder();
+</span><span style="color: #008080;"> 68</span>             SQL.Append(GetEditStart(modelName) +<span style="color: #800000;">"</span><span style="color: #800000;"> where </span><span style="color: #800000;">"</span> + list[<span style="color: #800080;">1</span><span style="color: #000000;">]);
+</span><span style="color: #008080;"> 69</span>             <span style="color: #0000ff;">return</span><span style="color: #000000;"> DBHelper.ExecuteNonQuery(SQL.ToString().Trim().ToUpper());
+</span><span style="color: #008080;"> 70</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 71</span>             <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception ex)
+</span><span style="color: #008080;"> 72</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 73</span>                 <span style="color: #0000ff;">throw</span><span style="color: #000000;"> ex;
+</span><span style="color: #008080;"> 74</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 75</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 76</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;"> 77</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 根据主键ID修改數據（若没有主键请在实体类定义一个主键，數據編輯時必須將時間轉換為DateTime）
+</span><span style="color: #008080;"> 78</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;para&gt;</span><span style="color: #008000;">connectionString為自定義數據庫連接地址支持不同數據庫操作</span><span style="color: #808080;">&lt;/para&gt;</span>
+<span style="color: #008080;"> 79</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;"> 80</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;typeparam name="T"&gt;&lt;/typeparam&gt;</span>
+<span style="color: #008080;"> 81</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="modelName"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;"> 82</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="dbName"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;"> 83</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+<span style="color: #008080;"> 84</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">int</span> Update&lt;T&gt;(T modelName, <span style="color: #0000ff;">string</span><span style="color: #000000;"> connectionString)
+</span><span style="color: #008080;"> 85</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 86</span>             <span style="color: #0000ff;">try</span>
+<span style="color: #008080;"> 87</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 88</span>                 List&lt;<span style="color: #0000ff;">string</span>&gt; list =<span style="color: #000000;"> GetModelFeature(modelName);
+</span><span style="color: #008080;"> 89</span>                 <span style="color: #0000ff;">string</span> dbName = list[<span style="color: #800080;">0</span>];<span style="color: #008000;">//</span><span style="color: #008000;">數據庫名</span>
+<span style="color: #008080;"> 90</span>                 StringBuilder SQL = <span style="color: #0000ff;">new</span> StringBuilder(<span style="color: #800000;">"</span><span style="color: #800000;">update </span><span style="color: #800000;">"</span> + dbName + <span style="color: #800000;">"</span><span style="color: #800000;"> set </span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 91</span>                 StringBuilder End = <span style="color: #0000ff;">new</span><span style="color: #000000;"> StringBuilder();
+</span><span style="color: #008080;"> 92</span>                 SQL.Append(GetEditStart(modelName) + <span style="color: #800000;">"</span><span style="color: #800000;"> where </span><span style="color: #800000;">"</span> + list[<span style="color: #800080;">1</span><span style="color: #000000;">]);
+</span><span style="color: #008080;"> 93</span>                 <span style="color: #0000ff;">return</span><span style="color: #000000;"> DBHelper.ExecuteNonQuery(SQL.ToString().Trim().ToUpper(), connectionString);
+</span><span style="color: #008080;"> 94</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 95</span>             <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception ex)
+</span><span style="color: #008080;"> 96</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 97</span>                 <span style="color: #0000ff;">throw</span><span style="color: #000000;"> ex;
+</span><span style="color: #008080;"> 98</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 99</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">100</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">101</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 根据主键ID删除数据（若没有主键请在实体类定义一个主键）
+</span><span style="color: #008080;">102</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">103</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;typeparam name="T"&gt;&lt;/typeparam&gt;</span>
+<span style="color: #008080;">104</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="modelName"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;">105</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+<span style="color: #008080;">106</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">int</span> Delete&lt;T&gt;<span style="color: #000000;">(T modelName)
+</span><span style="color: #008080;">107</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">108</span>             <span style="color: #0000ff;">try</span><span style="color: #000000;"> { 
+</span><span style="color: #008080;">109</span>             List&lt;<span style="color: #0000ff;">string</span>&gt; list =<span style="color: #000000;"> GetModelFeature(modelName);
+</span><span style="color: #008080;">110</span>             <span style="color: #0000ff;">string</span> dbName = list[<span style="color: #800080;">0</span>];<span style="color: #008000;">//</span><span style="color: #008000;">數據庫名</span>
+<span style="color: #008080;">111</span>             <span style="color: #0000ff;">string</span> primaryKey = <span style="color: #0000ff;">string</span><span style="color: #000000;">.Empty;
+</span><span style="color: #008080;">112</span>             <span style="color: #0000ff;">string</span> primaryValue = <span style="color: #0000ff;">string</span><span style="color: #000000;">.Empty;
+</span><span style="color: #008080;">113</span>             PropertyInfo[] props = modelName.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance);<span style="color: #008000;">//</span><span style="color: #008000;">抓取泛型類的字段屬性;</span>
+<span style="color: #008080;">114</span>             <span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">var</span> item <span style="color: #0000ff;">in</span><span style="color: #000000;"> props)
+</span><span style="color: #008080;">115</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">116</span>                 <span style="color: #0000ff;">object</span>[] objAttrs = item.GetCustomAttributes(<span style="color: #0000ff;">typeof</span>(FieldAttribute), <span style="color: #0000ff;">true</span><span style="color: #000000;">);
+</span><span style="color: #008080;">117</span>                 <span style="color: #0000ff;">if</span> (objAttrs.Length &gt; <span style="color: #800080;">0</span><span style="color: #000000;">)
+</span><span style="color: #008080;">118</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">119</span>                     FieldAttribute attr = objAttrs[<span style="color: #800080;">0</span>] <span style="color: #0000ff;">as</span><span style="color: #000000;"> FieldAttribute;
+</span><span style="color: #008080;">120</span>                     <span style="color: #0000ff;">if</span> (attr.PropertyKey == <span style="color: #0000ff;">true</span><span style="color: #000000;">)
+</span><span style="color: #008080;">121</span> <span style="color: #000000;">                    {
+</span><span style="color: #008080;">122</span>                         primaryKey =<span style="color: #000000;"> item.Name;
+</span><span style="color: #008080;">123</span>                         primaryValue = item.GetValue(modelName, <span style="color: #0000ff;">null</span>)+<span style="color: #800000;">""</span><span style="color: #000000;">;
+</span><span style="color: #008080;">124</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">125</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">126</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">127</span>             <span style="color: #0000ff;">if</span> (primaryValue==<span style="color: #800000;">""</span>) { <span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> Exception(<span style="color: #800000;">"</span><span style="color: #800000;">主键不能为空！</span><span style="color: #800000;">"</span><span style="color: #000000;">); }
+</span><span style="color: #008080;">128</span>             StringBuilder SQL = <span style="color: #0000ff;">new</span> StringBuilder(<span style="color: #800000;">"</span><span style="color: #800000;">delete </span><span style="color: #800000;">"</span> + dbName+ <span style="color: #800000;">"</span><span style="color: #800000;"> where </span><span style="color: #800000;">"</span> + primaryKey+<span style="color: #800000;">"</span><span style="color: #800000;">='</span><span style="color: #800000;">"</span>+ primaryValue + <span style="color: #800000;">"</span><span style="color: #800000;">'</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">129</span>             <span style="color: #0000ff;">return</span><span style="color: #000000;"> DBHelper.ExecuteNonQuery(SQL.ToString().Trim().ToUpper());
+</span><span style="color: #008080;">130</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">131</span>             <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception ex)
+</span><span style="color: #008080;">132</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">133</span>                 <span style="color: #0000ff;">throw</span><span style="color: #000000;"> ex;
+</span><span style="color: #008080;">134</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">135</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">136</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">137</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 根据主键ID删除数据（若没有主键请在实体类定义一个主键）
+</span><span style="color: #008080;">138</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;para&gt;</span><span style="color: #008000;">connectionString為自定義數據庫連接地址支持不同數據庫操作</span><span style="color: #808080;">&lt;/para&gt;</span>
+<span style="color: #008080;">139</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">140</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;typeparam name="T"&gt;&lt;/typeparam&gt;</span>
+<span style="color: #008080;">141</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="modelName"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;">142</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+<span style="color: #008080;">143</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">int</span> Delete&lt;T&gt;(T modelName, <span style="color: #0000ff;">string</span><span style="color: #000000;"> connectionString)
+</span><span style="color: #008080;">144</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">145</span>             <span style="color: #0000ff;">try</span>
+<span style="color: #008080;">146</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">147</span>                 List&lt;<span style="color: #0000ff;">string</span>&gt; list =<span style="color: #000000;"> GetModelFeature(modelName);
+</span><span style="color: #008080;">148</span>                 <span style="color: #0000ff;">string</span> dbName = list[<span style="color: #800080;">0</span>];<span style="color: #008000;">//</span><span style="color: #008000;">數據庫名</span>
+<span style="color: #008080;">149</span>                 <span style="color: #0000ff;">string</span> primaryKey = <span style="color: #0000ff;">string</span><span style="color: #000000;">.Empty;
+</span><span style="color: #008080;">150</span>                 <span style="color: #0000ff;">string</span> primaryValue = <span style="color: #0000ff;">string</span><span style="color: #000000;">.Empty;
+</span><span style="color: #008080;">151</span>                 PropertyInfo[] props = modelName.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance);<span style="color: #008000;">//</span><span style="color: #008000;">抓取泛型類的字段屬性;</span>
+<span style="color: #008080;">152</span>                 <span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">var</span> item <span style="color: #0000ff;">in</span><span style="color: #000000;"> props)
+</span><span style="color: #008080;">153</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">154</span>                     <span style="color: #0000ff;">object</span>[] objAttrs = item.GetCustomAttributes(<span style="color: #0000ff;">typeof</span>(FieldAttribute), <span style="color: #0000ff;">true</span><span style="color: #000000;">);
+</span><span style="color: #008080;">155</span>                     <span style="color: #0000ff;">if</span> (objAttrs.Length &gt; <span style="color: #800080;">0</span><span style="color: #000000;">)
+</span><span style="color: #008080;">156</span> <span style="color: #000000;">                    {
+</span><span style="color: #008080;">157</span>                         FieldAttribute attr = objAttrs[<span style="color: #800080;">0</span>] <span style="color: #0000ff;">as</span><span style="color: #000000;"> FieldAttribute;
+</span><span style="color: #008080;">158</span>                         <span style="color: #0000ff;">if</span> (attr.PropertyKey == <span style="color: #0000ff;">true</span><span style="color: #000000;">)
+</span><span style="color: #008080;">159</span> <span style="color: #000000;">                        {
+</span><span style="color: #008080;">160</span>                             primaryKey =<span style="color: #000000;"> item.Name;
+</span><span style="color: #008080;">161</span>                             primaryValue = item.GetValue(modelName, <span style="color: #0000ff;">null</span>) + <span style="color: #800000;">""</span><span style="color: #000000;">;
+</span><span style="color: #008080;">162</span> <span style="color: #000000;">                        }
+</span><span style="color: #008080;">163</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">164</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">165</span>                 <span style="color: #0000ff;">if</span> (primaryValue == <span style="color: #800000;">""</span>) { <span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> Exception(<span style="color: #800000;">"</span><span style="color: #800000;">主键不能为空！</span><span style="color: #800000;">"</span><span style="color: #000000;">); }
+</span><span style="color: #008080;">166</span>                 StringBuilder SQL = <span style="color: #0000ff;">new</span> StringBuilder(<span style="color: #800000;">"</span><span style="color: #800000;">delete </span><span style="color: #800000;">"</span> + dbName + <span style="color: #800000;">"</span><span style="color: #800000;"> where </span><span style="color: #800000;">"</span> + primaryKey + <span style="color: #800000;">"</span><span style="color: #800000;">='</span><span style="color: #800000;">"</span> + primaryValue + <span style="color: #800000;">"</span><span style="color: #800000;">'</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">167</span>                 <span style="color: #0000ff;">return</span><span style="color: #000000;"> DBHelper.ExecuteNonQuery(SQL.ToString().Trim().ToUpper(), connectionString);
+</span><span style="color: #008080;">168</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">169</span>             <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception ex)
+</span><span style="color: #008080;">170</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">171</span>                 <span style="color: #0000ff;">throw</span><span style="color: #000000;"> ex;
+</span><span style="color: #008080;">172</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">173</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">174</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">175</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 查询所有结果  modelName（实体类）
+</span><span style="color: #008080;">176</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">177</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;typeparam name="T"&gt;&lt;/typeparam&gt;</span>
+<span style="color: #008080;">178</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="modelName"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;">179</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+<span style="color: #008080;">180</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> DataTable QueryList&lt;T&gt;<span style="color: #000000;">(T modelName) {
+</span><span style="color: #008080;">181</span>             <span style="color: #0000ff;">try</span><span style="color: #000000;"> { 
+</span><span style="color: #008080;">182</span>             List&lt;<span style="color: #0000ff;">string</span>&gt; list =<span style="color: #000000;"> GetModelFeature(modelName);
+</span><span style="color: #008080;">183</span>             <span style="color: #0000ff;">string</span> dbName = list[<span style="color: #800080;">0</span>];<span style="color: #008000;">//</span><span style="color: #008000;">數據庫名</span>
+<span style="color: #008080;">184</span>             StringBuilder Start = <span style="color: #0000ff;">new</span><span style="color: #000000;"> StringBuilder();
+</span><span style="color: #008080;">185</span> <span style="color: #000000;">            Start.Append(GetQueryStart(modelName));
+</span><span style="color: #008080;">186</span>             StringBuilder End = <span style="color: #0000ff;">new</span><span style="color: #000000;"> StringBuilder();
+</span><span style="color: #008080;">187</span> <span style="color: #000000;">            End.Append(GetQueryEnd(modelName));
+</span><span style="color: #008080;">188</span>             <span style="color: #0000ff;">string</span> SQL = <span style="color: #800000;">"</span><span style="color: #800000;">SELECT </span><span style="color: #800000;">"</span> + Start + <span style="color: #800000;">"</span><span style="color: #800000;"> FROM </span><span style="color: #800000;">"</span> + dbName + <span style="color: #800000;">"</span><span style="color: #800000;"> WHERE 1=1</span><span style="color: #800000;">"</span> +<span style="color: #000000;"> End;
+</span><span style="color: #008080;">189</span>             <span style="color: #0000ff;">return</span><span style="color: #000000;"> DBHelper.GetMultipleResults(SQL.ToString().Trim().ToUpper());
+</span><span style="color: #008080;">190</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">191</span>             <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception ex)
+</span><span style="color: #008080;">192</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">193</span>                 <span style="color: #0000ff;">throw</span><span style="color: #000000;"> ex;
+</span><span style="color: #008080;">194</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">195</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">196</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">197</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 查询所有结果  modelName（实体类）
+</span><span style="color: #008080;">198</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;para&gt;</span><span style="color: #008000;">connectionString為自定義數據庫連接地址支持不同數據庫操作</span><span style="color: #808080;">&lt;/para&gt;</span>
+<span style="color: #008080;">199</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">200</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;typeparam name="T"&gt;&lt;/typeparam&gt;</span>
+<span style="color: #008080;">201</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="modelName"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;">202</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+<span style="color: #008080;">203</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> DataTable QueryList&lt;T&gt;(T modelName, <span style="color: #0000ff;">string</span><span style="color: #000000;"> connectionString)
+</span><span style="color: #008080;">204</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">205</span>             <span style="color: #0000ff;">try</span>
+<span style="color: #008080;">206</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">207</span>                 List&lt;<span style="color: #0000ff;">string</span>&gt; list =<span style="color: #000000;"> GetModelFeature(modelName);
+</span><span style="color: #008080;">208</span>                 <span style="color: #0000ff;">string</span> dbName = list[<span style="color: #800080;">0</span>];<span style="color: #008000;">//</span><span style="color: #008000;">數據庫名</span>
+<span style="color: #008080;">209</span>                 StringBuilder Start = <span style="color: #0000ff;">new</span><span style="color: #000000;"> StringBuilder();
+</span><span style="color: #008080;">210</span> <span style="color: #000000;">                Start.Append(GetQueryStart(modelName));
+</span><span style="color: #008080;">211</span>                 StringBuilder End = <span style="color: #0000ff;">new</span><span style="color: #000000;"> StringBuilder();
+</span><span style="color: #008080;">212</span> <span style="color: #000000;">                End.Append(GetQueryEnd(modelName));
+</span><span style="color: #008080;">213</span>                 <span style="color: #0000ff;">string</span> SQL = <span style="color: #800000;">"</span><span style="color: #800000;">SELECT </span><span style="color: #800000;">"</span> + Start + <span style="color: #800000;">"</span><span style="color: #800000;"> FROM </span><span style="color: #800000;">"</span> + dbName + <span style="color: #800000;">"</span><span style="color: #800000;"> WHERE 1=1</span><span style="color: #800000;">"</span> +<span style="color: #000000;"> End;
+</span><span style="color: #008080;">214</span>                 <span style="color: #0000ff;">return</span><span style="color: #000000;"> DBHelper.GetMultipleResults(SQL.ToString().Trim().ToUpper(), connectionString);
+</span><span style="color: #008080;">215</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">216</span>             <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception ex)
+</span><span style="color: #008080;">217</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">218</span>                 <span style="color: #0000ff;">throw</span><span style="color: #000000;"> ex;
+</span><span style="color: #008080;">219</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">220</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">221</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">222</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 查询所有结果（包含分页）modelName（实体类），page（当前页），linmt（当前页的总条数），count（结果集总条数）
+</span><span style="color: #008080;">223</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">224</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;typeparam name="T"&gt;&lt;/typeparam&gt;</span>
+<span style="color: #008080;">225</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="modelName"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;">226</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="page"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;">227</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="linmt"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;">228</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+<span style="color: #008080;">229</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> DataTable QueryList&lt;T&gt;(T modelName, <span style="color: #0000ff;">int</span> page, <span style="color: #0000ff;">int</span> linmt ,<span style="color: #0000ff;">out</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> count)
+</span><span style="color: #008080;">230</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">231</span>             <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">232</span>                 List&lt;<span style="color: #0000ff;">string</span>&gt; list =<span style="color: #000000;"> GetModelFeature(modelName);
+</span><span style="color: #008080;">233</span>                 <span style="color: #0000ff;">string</span> dbName = list[<span style="color: #800080;">0</span>];<span style="color: #008000;">//</span><span style="color: #008000;">數據庫名</span>
+<span style="color: #008080;">234</span>                 StringBuilder Start = <span style="color: #0000ff;">new</span><span style="color: #000000;"> StringBuilder();
+</span><span style="color: #008080;">235</span> <span style="color: #000000;">                Start.Append(GetQueryStart(modelName));
+</span><span style="color: #008080;">236</span>                 StringBuilder StartToPagination = <span style="color: #0000ff;">new</span><span style="color: #000000;"> StringBuilder();
+</span><span style="color: #008080;">237</span> <span style="color: #000000;">                StartToPagination.Append(GetQueryStartToPagination(modelName));
+</span><span style="color: #008080;">238</span>                 StringBuilder End = <span style="color: #0000ff;">new</span><span style="color: #000000;"> StringBuilder();
+</span><span style="color: #008080;">239</span> <span style="color: #000000;">                End.Append(GetQueryEnd(modelName));
+</span><span style="color: #008080;">240</span> 
+<span style="color: #008080;">241</span>                 count = Convert.ToInt32(DBHelper.GetMultipleResults(<span style="color: #800000;">"</span><span style="color: #800000;">SELECT COUNT(*) AS COUNTNUM FROM </span><span style="color: #800000;">"</span> + dbName+<span style="color: #800000;">"</span><span style="color: #800000;"> WHERE 1=1 </span><span style="color: #800000;">"</span>+ End).Rows[<span style="color: #800080;">0</span>][<span style="color: #800000;">"</span><span style="color: #800000;">COUNTNUM</span><span style="color: #800000;">"</span><span style="color: #000000;">]);
+</span><span style="color: #008080;">242</span>                 <span style="color: #0000ff;">string</span> SQL = <span style="color: #800000;">"</span><span style="color: #800000;">SELECT </span><span style="color: #800000;">"</span> + StartToPagination + <span style="color: #800000;">"</span><span style="color: #800000;"> FROM (SELECT ROWNUM AS NUM ,</span><span style="color: #800000;">"</span> + Start + <span style="color: #800000;">"</span><span style="color: #800000;"> FROM </span><span style="color: #800000;">"</span> + dbName + <span style="color: #800000;">"</span><span style="color: #800000;"> WHERE 1=1</span><span style="color: #800000;">"</span> + End + <span style="color: #800000;">"</span><span style="color: #800000;"> AND ROWNUM&lt;=</span><span style="color: #800000;">"</span> + linmt + <span style="color: #800000;">"</span><span style="color: #800000;">*</span><span style="color: #800000;">"</span> + page + <span style="color: #800000;">"</span><span style="color: #800000;">) WHERE NUM&gt;</span><span style="color: #800000;">"</span> + linmt + <span style="color: #800000;">"</span><span style="color: #800000;">*(</span><span style="color: #800000;">"</span> + page + <span style="color: #800000;">"</span><span style="color: #800000;">-1) </span><span style="color: #800000;">"</span><span style="color: #000000;">;
+</span><span style="color: #008080;">243</span>                 <span style="color: #0000ff;">return</span><span style="color: #000000;"> DBHelper.GetMultipleResults(SQL.ToString().Trim().ToUpper());
+</span><span style="color: #008080;">244</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">245</span>             <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception ex) {
+</span><span style="color: #008080;">246</span>                 <span style="color: #0000ff;">throw</span><span style="color: #000000;"> ex;
+</span><span style="color: #008080;">247</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">248</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">249</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">250</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 查询所有结果（包含分页）modelName（实体类），page（当前页），linmt（当前页的总条数），count（结果集总条数）
+</span><span style="color: #008080;">251</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;para&gt;</span><span style="color: #008000;">connectionString為自定義數據庫連接地址支持不同數據庫操作</span><span style="color: #808080;">&lt;/para&gt;</span>
+<span style="color: #008080;">252</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">253</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;typeparam name="T"&gt;&lt;/typeparam&gt;</span>
+<span style="color: #008080;">254</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="modelName"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;">255</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="page"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;">256</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="linmt"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;">257</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+<span style="color: #008080;">258</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> DataTable QueryList&lt;T&gt;(T modelName, <span style="color: #0000ff;">string</span> connectionString, <span style="color: #0000ff;">int</span> page, <span style="color: #0000ff;">int</span> linmt, <span style="color: #0000ff;">out</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> count)
+</span><span style="color: #008080;">259</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">260</span>             <span style="color: #0000ff;">try</span>
+<span style="color: #008080;">261</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">262</span>                 List&lt;<span style="color: #0000ff;">string</span>&gt; list =<span style="color: #000000;"> GetModelFeature(modelName);
+</span><span style="color: #008080;">263</span>                 <span style="color: #0000ff;">string</span> dbName = list[<span style="color: #800080;">0</span>];<span style="color: #008000;">//</span><span style="color: #008000;">數據庫名</span>
+<span style="color: #008080;">264</span>                 StringBuilder Start = <span style="color: #0000ff;">new</span><span style="color: #000000;"> StringBuilder();
+</span><span style="color: #008080;">265</span> <span style="color: #000000;">                Start.Append(GetQueryStart(modelName));
+</span><span style="color: #008080;">266</span>                 StringBuilder StartToPagination = <span style="color: #0000ff;">new</span><span style="color: #000000;"> StringBuilder();
+</span><span style="color: #008080;">267</span> <span style="color: #000000;">                StartToPagination.Append(GetQueryStartToPagination(modelName));
+</span><span style="color: #008080;">268</span>                 StringBuilder End = <span style="color: #0000ff;">new</span><span style="color: #000000;"> StringBuilder();
+</span><span style="color: #008080;">269</span> <span style="color: #000000;">                End.Append(GetQueryEnd(modelName));
+</span><span style="color: #008080;">270</span> 
+<span style="color: #008080;">271</span>                 count = Convert.ToInt32(DBHelper.GetMultipleResults(<span style="color: #800000;">"</span><span style="color: #800000;">SELECT COUNT(*) AS COUNTNUM FROM </span><span style="color: #800000;">"</span> + dbName + <span style="color: #800000;">"</span><span style="color: #800000;"> WHERE 1=1 </span><span style="color: #800000;">"</span> + End).Rows[<span style="color: #800080;">0</span>][<span style="color: #800000;">"</span><span style="color: #800000;">COUNTNUM</span><span style="color: #800000;">"</span><span style="color: #000000;">]);
+</span><span style="color: #008080;">272</span>                 <span style="color: #0000ff;">string</span> SQL = <span style="color: #800000;">"</span><span style="color: #800000;">SELECT </span><span style="color: #800000;">"</span> + StartToPagination + <span style="color: #800000;">"</span><span style="color: #800000;"> FROM (SELECT ROWNUM AS NUM ,</span><span style="color: #800000;">"</span> + Start + <span style="color: #800000;">"</span><span style="color: #800000;"> FROM </span><span style="color: #800000;">"</span> + dbName + <span style="color: #800000;">"</span><span style="color: #800000;"> WHERE 1=1</span><span style="color: #800000;">"</span> + End + <span style="color: #800000;">"</span><span style="color: #800000;"> AND ROWNUM&lt;=</span><span style="color: #800000;">"</span> + linmt + <span style="color: #800000;">"</span><span style="color: #800000;">*</span><span style="color: #800000;">"</span> + page + <span style="color: #800000;">"</span><span style="color: #800000;">) WHERE NUM&gt;</span><span style="color: #800000;">"</span> + linmt + <span style="color: #800000;">"</span><span style="color: #800000;">*(</span><span style="color: #800000;">"</span> + page + <span style="color: #800000;">"</span><span style="color: #800000;">-1) </span><span style="color: #800000;">"</span><span style="color: #000000;">;
+</span><span style="color: #008080;">273</span>                 <span style="color: #0000ff;">return</span><span style="color: #000000;"> DBHelper.GetMultipleResults(SQL.ToString().Trim().ToUpper(), connectionString);
+</span><span style="color: #008080;">274</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">275</span>             <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception ex)
+</span><span style="color: #008080;">276</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">277</span>                 <span style="color: #0000ff;">throw</span><span style="color: #000000;"> ex;
+</span><span style="color: #008080;">278</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">279</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">280</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">281</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 获取实体类中的唯一id和对应的表名
+</span><span style="color: #008080;">282</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">283</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;typeparam name="T"&gt;&lt;/typeparam&gt;</span>
+<span style="color: #008080;">284</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="modelName"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;">285</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+<span style="color: #008080;">286</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> List&lt;<span style="color: #0000ff;">string</span>&gt; GetModelFeature&lt;T&gt;<span style="color: #000000;">(T modelName) {
+</span><span style="color: #008080;">287</span>             <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">288</span>             List&lt;<span style="color: #0000ff;">string</span>&gt; list = <span style="color: #0000ff;">new</span> List&lt;<span style="color: #0000ff;">string</span>&gt;<span style="color: #000000;">();
+</span><span style="color: #008080;">289</span>             <span style="color: #0000ff;">var</span> info= modelName.GetType().GetCustomAttributes(<span style="color: #0000ff;">typeof</span>(TableAttribute), <span style="color: #0000ff;">false</span><span style="color: #000000;">);
+</span><span style="color: #008080;">290</span>             <span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">var</span> item <span style="color: #0000ff;">in</span><span style="color: #000000;"> info)
+</span><span style="color: #008080;">291</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">292</span>                 TableAttribute attr = item <span style="color: #0000ff;">as</span><span style="color: #000000;"> TableAttribute;
+</span><span style="color: #008080;">293</span>                 <span style="color: #0000ff;">if</span> (attr != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+</span><span style="color: #008080;">294</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">295</span>                     <span style="color: #0000ff;">string</span> tableName = attr.TableName;<span style="color: #008000;">//</span><span style="color: #008000;">表名只有获取一次</span>
+<span style="color: #008080;">296</span> <span style="color: #000000;">                    list.Add(tableName);
+</span><span style="color: #008080;">297</span>                     <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+</span><span style="color: #008080;">298</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">299</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">300</span>             PropertyInfo[] props = modelName.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance);<span style="color: #008000;">//</span><span style="color: #008000;">抓取泛型類的字段屬性;</span>
+<span style="color: #008080;">301</span>             <span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">var</span> item <span style="color: #0000ff;">in</span><span style="color: #000000;"> props)
+</span><span style="color: #008080;">302</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">303</span>                 <span style="color: #0000ff;">object</span>[] objAttrs = item.GetCustomAttributes(<span style="color: #0000ff;">typeof</span>(FieldAttribute), <span style="color: #0000ff;">true</span><span style="color: #000000;">);
+</span><span style="color: #008080;">304</span>                 <span style="color: #0000ff;">if</span> (objAttrs.Length &gt; <span style="color: #800080;">0</span><span style="color: #000000;">)
+</span><span style="color: #008080;">305</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">306</span>                     FieldAttribute attr = objAttrs[<span style="color: #800080;">0</span>] <span style="color: #0000ff;">as</span><span style="color: #000000;"> FieldAttribute;
+</span><span style="color: #008080;">307</span>                     <span style="color: #0000ff;">if</span> (attr.PropertyKey == <span style="color: #0000ff;">true</span><span style="color: #000000;">)
+</span><span style="color: #008080;">308</span> <span style="color: #000000;">                    {
+</span><span style="color: #008080;">309</span>                         list.Add(item.Name+<span style="color: #800000;">"</span><span style="color: #800000;"> = '</span><span style="color: #800000;">"</span>+ item.GetValue(modelName,<span style="color: #0000ff;">null</span>)+<span style="color: #800000;">"</span><span style="color: #800000;">'</span><span style="color: #800000;">"</span>);<span style="color: #008000;">//</span><span style="color: #008000;">抓取筛选条件</span>
+<span style="color: #008080;">310</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">311</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">312</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">313</span>             <span style="color: #0000ff;">return</span><span style="color: #000000;"> list;
+</span><span style="color: #008080;">314</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">315</span>             <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception ex)
+</span><span style="color: #008080;">316</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">317</span>                 <span style="color: #0000ff;">throw</span><span style="color: #000000;"> ex;
+</span><span style="color: #008080;">318</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">319</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">320</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">321</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 獲取起始字段
+</span><span style="color: #008080;">322</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">323</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;typeparam name="T"&gt;&lt;/typeparam&gt;</span>
+<span style="color: #008080;">324</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="modelName"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;">325</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+<span style="color: #008080;">326</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">string</span> GetSaveStart&lt;T&gt;<span style="color: #000000;">(T modelName) {
+</span><span style="color: #008080;">327</span>             <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">328</span>             StringBuilder Start = <span style="color: #0000ff;">new</span><span style="color: #000000;"> StringBuilder();
+</span><span style="color: #008080;">329</span>             PropertyInfo[]  props = modelName.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance);<span style="color: #008000;">//</span><span style="color: #008000;">抓取泛型類的字段屬性;</span>
+<span style="color: #008080;">330</span>             <span style="color: #0000ff;">foreach</span> ( PropertyInfo Info <span style="color: #0000ff;">in</span><span style="color: #000000;"> props) {
+</span><span style="color: #008080;">331</span>                 <span style="color: #0000ff;">if</span> ((Info.GetValue(modelName,<span style="color: #0000ff;">null</span>) + <span style="color: #800000;">""</span>).Equals(<span style="color: #800000;">""</span>)|| (Info.GetValue(modelName, <span style="color: #0000ff;">null</span>) + <span style="color: #800000;">""</span>).Equals(<span style="color: #0000ff;">null</span>)) <span style="color: #0000ff;">continue</span><span style="color: #000000;">;
+</span><span style="color: #008080;">332</span>                 <span style="color: #0000ff;">if</span> (Info.PropertyType.Name.StartsWith(<span style="color: #800000;">"</span><span style="color: #800000;">DateTime</span><span style="color: #800000;">"</span><span style="color: #000000;">))
+</span><span style="color: #008080;">333</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">334</span>                     <span style="color: #0000ff;">if</span> (Convert.ToDateTime(Info.GetValue(modelName, <span style="color: #0000ff;">null</span>)) == DateTime.MinValue) <span style="color: #0000ff;">continue</span>;<span style="color: #008000;">//</span><span style="color: #008000;">判斷時間是否為最小時間 ;</span>
+<span style="color: #008080;">335</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">336</span>                 Start.Append(Info.Name+<span style="color: #800000;">"</span><span style="color: #800000;">,</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">337</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">338</span>             <span style="color: #0000ff;">return</span> Start.ToString().Substring(<span style="color: #800080;">0</span>, Start.Length - <span style="color: #800080;">1</span><span style="color: #000000;">);
+</span><span style="color: #008080;">339</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">340</span>             <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception ex)
+</span><span style="color: #008080;">341</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">342</span>                 <span style="color: #0000ff;">throw</span><span style="color: #000000;"> ex;
+</span><span style="color: #008080;">343</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">344</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">345</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">346</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 獲取字段對應的結果
+</span><span style="color: #008080;">347</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">348</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;typeparam name="T"&gt;&lt;/typeparam&gt;</span>
+<span style="color: #008080;">349</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="modelName"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;">350</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+<span style="color: #008080;">351</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">string</span> GetSaveEnd&lt;T&gt;<span style="color: #000000;">(T modelName)
+</span><span style="color: #008080;">352</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">353</span>             <span style="color: #0000ff;">try</span><span style="color: #000000;"> { 
+</span><span style="color: #008080;">354</span>             StringBuilder End = <span style="color: #0000ff;">new</span><span style="color: #000000;"> StringBuilder();
+</span><span style="color: #008080;">355</span>             PropertyInfo[] props = modelName.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance);<span style="color: #008000;">//</span><span style="color: #008000;">抓取泛型類的字段屬性;</span>
+<span style="color: #008080;">356</span>             <span style="color: #0000ff;">foreach</span> (PropertyInfo Info <span style="color: #0000ff;">in</span><span style="color: #000000;"> props)
+</span><span style="color: #008080;">357</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">358</span>                 <span style="color: #0000ff;">if</span> ((Info.GetValue(modelName, <span style="color: #0000ff;">null</span>) + <span style="color: #800000;">""</span>).Equals(<span style="color: #800000;">""</span>) || (Info.GetValue(modelName, <span style="color: #0000ff;">null</span>) + <span style="color: #800000;">""</span>).Equals(<span style="color: #0000ff;">null</span>)) <span style="color: #0000ff;">continue</span><span style="color: #000000;">;
+</span><span style="color: #008080;">359</span>                 
+<span style="color: #008080;">360</span>                 <span style="color: #0000ff;">if</span> (Info.PropertyType.Name.StartsWith(<span style="color: #800000;">"</span><span style="color: #800000;">String</span><span style="color: #800000;">"</span>))<span style="color: #008000;">//</span><span style="color: #008000;">判斷字段類型</span>
+<span style="color: #008080;">361</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">362</span>                     End.Append(<span style="color: #800000;">"</span><span style="color: #800000;">'</span><span style="color: #800000;">"</span> + Info.GetValue(modelName, <span style="color: #0000ff;">null</span>) + <span style="color: #800000;">"</span><span style="color: #800000;">',</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">363</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">364</span>                 <span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (Info.PropertyType.Name.StartsWith(<span style="color: #800000;">"</span><span style="color: #800000;">DateTime</span><span style="color: #800000;">"</span>))<span style="color: #008000;">//</span><span style="color: #008000;">判斷字段類型</span>
+<span style="color: #008080;">365</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">366</span>                     <span style="color: #0000ff;">if</span> (Convert.ToDateTime(Info.GetValue(modelName, <span style="color: #0000ff;">null</span>)) == DateTime.MinValue)<span style="color: #008000;">//</span><span style="color: #008000;">判斷時間是否為最小時間</span>
+<span style="color: #008080;">367</span> <span style="color: #000000;">                    {
+</span><span style="color: #008080;">368</span>                         <span style="color: #0000ff;">continue</span><span style="color: #000000;">;
+</span><span style="color: #008080;">369</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">370</span>                     <span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">371</span>                      End.Append(<span style="color: #800000;">"</span><span style="color: #800000;">to_date('</span><span style="color: #800000;">"</span> + ((DateTime)(Info.GetValue(modelName, <span style="color: #0000ff;">null</span>))).ToString(<span style="color: #800000;">"</span><span style="color: #800000;">yyyy-MM-dd HH:mm:ss</span><span style="color: #800000;">"</span>) + <span style="color: #800000;">"</span><span style="color: #800000;">','YYYY-MM-DD HH24:MI:SS'),</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">372</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">373</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">374</span>                 <span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">375</span>                     End.Append(Info.GetValue(modelName, <span style="color: #0000ff;">null</span>) + <span style="color: #800000;">"</span><span style="color: #800000;">,</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">376</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">377</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">378</span>             <span style="color: #0000ff;">return</span> End.ToString().Substring(<span style="color: #800080;">0</span>, End.Length - <span style="color: #800080;">1</span><span style="color: #000000;">);
+</span><span style="color: #008080;">379</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">380</span>             <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception ex)
+</span><span style="color: #008080;">381</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">382</span>                 <span style="color: #0000ff;">throw</span><span style="color: #000000;"> ex;
+</span><span style="color: #008080;">383</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">384</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">385</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">386</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 重新定義分頁後的查詢字段並且格式化DateTime樣式
+</span><span style="color: #008080;">387</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">388</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;typeparam name="T"&gt;&lt;/typeparam&gt;</span>
+<span style="color: #008080;">389</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="modelName"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;">390</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+<span style="color: #008080;">391</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">string</span> GetQueryStartToPagination&lt;T&gt;<span style="color: #000000;">(T modelName) {
+</span><span style="color: #008080;">392</span>             <span style="color: #0000ff;">try</span><span style="color: #000000;"> { 
+</span><span style="color: #008080;">393</span>             StringBuilder Start = <span style="color: #0000ff;">new</span><span style="color: #000000;"> StringBuilder();
+</span><span style="color: #008080;">394</span>             PropertyInfo[] props = modelName.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance);<span style="color: #008000;">//</span><span style="color: #008000;">抓取泛型類的字段屬性;</span>
+<span style="color: #008080;">395</span>             <span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">var</span> item <span style="color: #0000ff;">in</span><span style="color: #000000;"> props)
+</span><span style="color: #008080;">396</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">397</span>                     <span style="color: #0000ff;">if</span> (item.PropertyType.Name.StartsWith(<span style="color: #800000;">"</span><span style="color: #800000;">DateTime</span><span style="color: #800000;">"</span>))<span style="color: #008000;">//</span><span style="color: #008000;">判斷字段的屬性是否為時間類型</span>
+<span style="color: #008080;">398</span> <span style="color: #000000;">                    {
+</span><span style="color: #008080;">399</span>                         Start.Append(<span style="color: #800000;">"</span><span style="color: #800000;">TO_CHAR(</span><span style="color: #800000;">"</span> + item.Name + <span style="color: #800000;">"</span><span style="color: #800000;">,'YYYY-MM-DD HH:mm:ss') AS </span><span style="color: #800000;">"</span> + item.Name + <span style="color: #800000;">"</span><span style="color: #800000;">,</span><span style="color: #800000;">"</span>);<span style="color: #008000;">//</span><span style="color: #008000;">格式化時間</span>
+<span style="color: #008080;">400</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">401</span>                     <span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">402</span>                         Start.Append(item.Name + <span style="color: #800000;">"</span><span style="color: #800000;">,</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">403</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">404</span>                         
+<span style="color: #008080;">405</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">406</span>             <span style="color: #0000ff;">return</span> Start.ToString().Substring(<span style="color: #800080;">0</span>, Start.Length - <span style="color: #800080;">1</span><span style="color: #000000;">);
+</span><span style="color: #008080;">407</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">408</span>             <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception ex)
+</span><span style="color: #008080;">409</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">410</span>                 <span style="color: #0000ff;">throw</span><span style="color: #000000;"> ex;
+</span><span style="color: #008080;">411</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">412</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">413</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">string</span> GetQueryStart&lt;T&gt;<span style="color: #000000;">(T modelName)
+</span><span style="color: #008080;">414</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">415</span>             <span style="color: #0000ff;">try</span>
+<span style="color: #008080;">416</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">417</span>                 StringBuilder Start = <span style="color: #0000ff;">new</span><span style="color: #000000;"> StringBuilder();
+</span><span style="color: #008080;">418</span>                 PropertyInfo[] props = modelName.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance);<span style="color: #008000;">//</span><span style="color: #008000;">抓取泛型類的字段屬性;</span>
+<span style="color: #008080;">419</span>                 <span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">var</span> item <span style="color: #0000ff;">in</span><span style="color: #000000;"> props)
+</span><span style="color: #008080;">420</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">421</span>                  Start.Append(item.Name + <span style="color: #800000;">"</span><span style="color: #800000;">,</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">422</span> 
+<span style="color: #008080;">423</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">424</span>                 <span style="color: #0000ff;">return</span> Start.ToString().Substring(<span style="color: #800080;">0</span>, Start.Length - <span style="color: #800080;">1</span><span style="color: #000000;">);
+</span><span style="color: #008080;">425</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">426</span>             <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception ex)
+</span><span style="color: #008080;">427</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">428</span>                 <span style="color: #0000ff;">throw</span><span style="color: #000000;"> ex;
+</span><span style="color: #008080;">429</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">430</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">431</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">string</span> GetQueryEnd&lt;T&gt;<span style="color: #000000;">(T modelName)
+</span><span style="color: #008080;">432</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">433</span>             <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">434</span>             StringBuilder End = <span style="color: #0000ff;">new</span><span style="color: #000000;"> StringBuilder();
+</span><span style="color: #008080;">435</span>             PropertyInfo[] props = modelName.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance);<span style="color: #008000;">//</span><span style="color: #008000;">抓取泛型類的字段屬性;</span>
+<span style="color: #008080;">436</span>             <span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">var</span> item <span style="color: #0000ff;">in</span><span style="color: #000000;"> props)
+</span><span style="color: #008080;">437</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">438</span>                 <span style="color: #0000ff;">if</span> ((item.GetValue(modelName, <span style="color: #0000ff;">null</span>) + <span style="color: #800000;">""</span>).Equals(<span style="color: #800000;">""</span>) || (item.GetValue(modelName, <span style="color: #0000ff;">null</span>) + <span style="color: #800000;">""</span>).Equals(<span style="color: #0000ff;">null</span>)) <span style="color: #0000ff;">continue</span><span style="color: #000000;">;
+</span><span style="color: #008080;">439</span>                 <span style="color: #0000ff;">if</span> (item.PropertyType.Name.StartsWith(<span style="color: #800000;">"</span><span style="color: #800000;">String</span><span style="color: #800000;">"</span>))<span style="color: #008000;">//</span><span style="color: #008000;">判斷字段類型</span>
+<span style="color: #008080;">440</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">441</span>                     End.Append(<span style="color: #800000;">"</span><span style="color: #800000;"> and </span><span style="color: #800000;">"</span> + item.Name + <span style="color: #800000;">"</span><span style="color: #800000;"> = '</span><span style="color: #800000;">"</span> + item.GetValue(modelName, <span style="color: #0000ff;">null</span>) + <span style="color: #800000;">"</span><span style="color: #800000;">'</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">442</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">443</span>                 <span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (item.PropertyType.Name.StartsWith(<span style="color: #800000;">"</span><span style="color: #800000;">DateTime</span><span style="color: #800000;">"</span>))<span style="color: #008000;">//</span><span style="color: #008000;">判斷字段的屬性是否為時間類型</span><span style="color: #008000;">//</span><span style="color: #008000;">判斷字段類型</span>
+<span style="color: #008080;">444</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">445</span>                     <span style="color: #0000ff;">if</span> (Convert.ToDateTime(item.GetValue(modelName, <span style="color: #0000ff;">null</span>)) ==<span style="color: #000000;"> DateTime.MinValue)
+</span><span style="color: #008080;">446</span> <span style="color: #000000;">                    {
+</span><span style="color: #008080;">447</span>                         <span style="color: #0000ff;">continue</span><span style="color: #000000;">;
+</span><span style="color: #008080;">448</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">449</span>                     <span style="color: #0000ff;">else</span>
+<span style="color: #008080;">450</span> <span style="color: #000000;">                    {
+</span><span style="color: #008080;">451</span>                         End.Append(<span style="color: #800000;">"</span><span style="color: #800000;"> and </span><span style="color: #800000;">"</span> + item.Name + <span style="color: #800000;">"</span><span style="color: #800000;"> = '</span><span style="color: #800000;">"</span> + item.GetValue(modelName, <span style="color: #0000ff;">null</span>) + <span style="color: #800000;">"</span><span style="color: #800000;">'</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">452</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">453</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">454</span>                 <span style="color: #0000ff;">else</span>
+<span style="color: #008080;">455</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">456</span>                     End.Append(<span style="color: #800000;">"</span><span style="color: #800000;"> and </span><span style="color: #800000;">"</span> + item.Name + <span style="color: #800000;">"</span><span style="color: #800000;"> = </span><span style="color: #800000;">"</span> + item.GetValue(modelName, <span style="color: #0000ff;">null</span>) + <span style="color: #800000;">""</span><span style="color: #000000;">);
+</span><span style="color: #008080;">457</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">458</span> 
+<span style="color: #008080;">459</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">460</span>             <span style="color: #0000ff;">return</span><span style="color: #000000;"> End.ToString();
+</span><span style="color: #008080;">461</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">462</span>             <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception ex)
+</span><span style="color: #008080;">463</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">464</span>                 <span style="color: #0000ff;">throw</span><span style="color: #000000;"> ex;
+</span><span style="color: #008080;">465</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">466</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">467</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">468</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 编辑起始内容
+</span><span style="color: #008080;">469</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">470</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;typeparam name="T"&gt;&lt;/typeparam&gt;</span>
+<span style="color: #008080;">471</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="modelName"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;">472</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+<span style="color: #008080;">473</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">string</span> GetEditStart&lt;T&gt;<span style="color: #000000;">(T modelName) {
+</span><span style="color: #008080;">474</span>             <span style="color: #0000ff;">try</span><span style="color: #000000;"> { 
+</span><span style="color: #008080;">475</span>             StringBuilder Start = <span style="color: #0000ff;">new</span><span style="color: #000000;"> StringBuilder();
+</span><span style="color: #008080;">476</span>             PropertyInfo[] props = modelName.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance);<span style="color: #008000;">//</span><span style="color: #008000;">抓取泛型類的字段屬性;</span>
+<span style="color: #008080;">477</span>             <span style="color: #0000ff;">foreach</span> (PropertyInfo Info <span style="color: #0000ff;">in</span><span style="color: #000000;"> props)
+</span><span style="color: #008080;">478</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">479</span>                 <span style="color: #0000ff;">object</span>[] objAttrs = Info.GetCustomAttributes(<span style="color: #0000ff;">typeof</span>(FieldAttribute), <span style="color: #0000ff;">true</span><span style="color: #000000;">);
+</span><span style="color: #008080;">480</span>                 <span style="color: #0000ff;">if</span> (objAttrs.Length &gt; <span style="color: #800080;">0</span><span style="color: #000000;">)
+</span><span style="color: #008080;">481</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">482</span>                     FieldAttribute attr = objAttrs[<span style="color: #800080;">0</span>] <span style="color: #0000ff;">as</span><span style="color: #000000;"> FieldAttribute;
+</span><span style="color: #008080;">483</span>                     <span style="color: #0000ff;">if</span> (attr.PropertyKey == <span style="color: #0000ff;">true</span>) <span style="color: #0000ff;">continue</span>;<span style="color: #008000;">//</span><span style="color: #008000;">判断自定义特性中的主键</span>
+<span style="color: #008080;">484</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">485</span>                 <span style="color: #0000ff;">if</span> ((Info.GetValue(modelName, <span style="color: #0000ff;">null</span>) + <span style="color: #800000;">""</span>).Equals(<span style="color: #800000;">""</span>) || (Info.GetValue(modelName, <span style="color: #0000ff;">null</span>) + <span style="color: #800000;">""</span>).Equals(<span style="color: #0000ff;">null</span>)) <span style="color: #0000ff;">continue</span><span style="color: #000000;">;
+</span><span style="color: #008080;">486</span> 
+<span style="color: #008080;">487</span>                 <span style="color: #0000ff;">if</span> (Info.PropertyType.Name.StartsWith(<span style="color: #800000;">"</span><span style="color: #800000;">String</span><span style="color: #800000;">"</span>))<span style="color: #008000;">//</span><span style="color: #008000;">判斷字段類型</span>
+<span style="color: #008080;">488</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">489</span>                     Start.Append(Info.Name + <span style="color: #800000;">"</span><span style="color: #800000;">='</span><span style="color: #800000;">"</span> + Info.GetValue(modelName, <span style="color: #0000ff;">null</span>) + <span style="color: #800000;">"</span><span style="color: #800000;">',</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">490</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">491</span>                 <span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (Info.PropertyType.Name.StartsWith(<span style="color: #800000;">"</span><span style="color: #800000;">DateTime</span><span style="color: #800000;">"</span>))<span style="color: #008000;">//</span><span style="color: #008000;">判斷字段類型</span>
+<span style="color: #008080;">492</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">493</span>                     <span style="color: #0000ff;">if</span> (Convert.ToDateTime(Info.GetValue(modelName, <span style="color: #0000ff;">null</span>)) == DateTime.MinValue)<span style="color: #008000;">//</span><span style="color: #008000;">判斷時間是否為最小時間</span>
+<span style="color: #008080;">494</span> <span style="color: #000000;">                    {
+</span><span style="color: #008080;">495</span>                         <span style="color: #0000ff;">continue</span><span style="color: #000000;">;
+</span><span style="color: #008080;">496</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">497</span>                     <span style="color: #0000ff;">else</span>
+<span style="color: #008080;">498</span> <span style="color: #000000;">                    {
+</span><span style="color: #008080;">499</span>                         Start.Append(Info.Name+<span style="color: #800000;">"</span><span style="color: #800000;">=to_date('</span><span style="color: #800000;">"</span> + ((DateTime)(Info.GetValue(modelName, <span style="color: #0000ff;">null</span>))).ToString(<span style="color: #800000;">"</span><span style="color: #800000;">yyyy-MM-dd HH:mm:ss</span><span style="color: #800000;">"</span>) + <span style="color: #800000;">"</span><span style="color: #800000;">','YYYY-MM-DD HH24:MI:SS'),</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">500</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">501</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">502</span>                 <span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">503</span>                     Start.Append(Info.Name + <span style="color: #800000;">"</span><span style="color: #800000;">=</span><span style="color: #800000;">"</span> + Info.GetValue(modelName, <span style="color: #0000ff;">null</span>) + <span style="color: #800000;">"</span><span style="color: #800000;">,</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">504</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">505</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">506</span>             <span style="color: #0000ff;">return</span> Start.ToString().Substring(<span style="color: #800080;">0</span>, Start.Length - <span style="color: #800080;">1</span><span style="color: #000000;">);
+</span><span style="color: #008080;">507</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">508</span>             <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception ex)
+</span><span style="color: #008080;">509</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">510</span>                 <span style="color: #0000ff;">throw</span><span style="color: #000000;"> ex;
+</span><span style="color: #008080;">511</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">512</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">513</span>     }</pre>
+</div>
+<p>　</p>
+<p>　　<span style="font-size: 18pt;"><strong><span style="color: #ff0000; font-family: 'Microsoft YaHei';">警告</span></strong></span>：严禁以商用名义贩卖此代码</p>
+<p>　　代码紧提供学习使用，若要转载此教程备注原创者：<span style="color: #ff0000;">会害羞的青蛙</span></p>
+<p>　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

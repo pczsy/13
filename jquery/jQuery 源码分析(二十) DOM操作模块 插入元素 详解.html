@@ -1,0 +1,241 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修jQuery 源码分析(二十) DOM操作模块 插入元素 详解' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>jQuery 源码分析(二十) DOM操作模块 插入元素 详解</center></div><div class='banquan'>原文出处:本文由博客园博主大沙漠提供。<br/>
+原文连接:https://www.cnblogs.com/greatdesert/p/11732436.html</div><br>
+    <p>jQuery的DOM操作模块封装了DOM模型的insertBefore()、appendChild()、removeChild()、cloneNode()、replaceChild()等原生方法。分为5个子模块来实现:插入元素、删除元素、复制元素、替换元素和包裹元素，本节讲解第一个子模块:插入元素</p>
+<p>插入元素模块可用于新增DOM节点，修改文本节点等，API如下:</p>
+<ul>
+<li>append(content)&nbsp;&nbsp; &nbsp;&nbsp;　 ;在被选元素子节点的末尾插入指定内容，内部调用appendChild(elem)方法&nbsp;&nbsp; &nbsp;;<span style="color: #ff0000;">content可以是HTML代码、函数(返回html代码)、DOM元素 或 jQuery对象，下同</span></li>
+<li>prepend(content)&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp; ;在被选元素子节点的头部插入指定内容</li>
+<li>before(content)&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp; &nbsp; ;在匹配元素集合的每个元素之前插入content。</li>
+<li>after(content)&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ;在匹配元素集合的每个元素之后插入内容</li>
+<li>appendTo(target)&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;;将匹配元素中的每个元素插入目标元素末尾&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;;内部调用append()方法&nbsp;&nbsp; &nbsp;;这四个方法执行后都会调用pushStack()方法，匹配的是全部插入的DOM对象引用。</li>
+<li>prependTo(target)&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; ;将匹配元素中的每个元素插入目标元素开头&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;;内部调用prepeng()方法</li>
+<li>insertBefore(target)&nbsp;&nbsp; &nbsp; ;将匹配元素中的每个元素插入目标元素之前&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;;内部调用before()方法</li>
+<li>insertAfter(target)&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;;将匹配元素中的每个元素插入目标元素之后&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;;内部调用after()方法</li>
+</ul>
+<p>上面的前四个后面四个是一一对应的，例如:</p>
+<p class="hwi">&nbsp;writer by:大沙漠 QQ:22969969</p>
+<div class="cnblogs_code">
+<pre><code>$('#d').append('&lt;p&gt;1&lt;/p&gt;'<span style="color: #000000;">)       
+$(</span>'&lt;p&gt;1&lt;/p&gt;').appendTo($('#d'));      <span style="color: #008000;">//</span><span style="color: #008000;">这两条代码的作用是相同的</span></pre>
+</div>
+<p>其它几个API也是同样的作用:prepend和prependTo、before和insertBefore、after和insertAfter都是一样的。</p>
+<p>举个栗子:</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;!</span><span style="color: #ff00ff;">DOCTYPE html</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">html </span><span style="color: #ff0000;">lang</span><span style="color: #0000ff;">="en"</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">head</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">meta </span><span style="color: #ff0000;">charset</span><span style="color: #0000ff;">="UTF-8"</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">title</span><span style="color: #0000ff;">&gt;</span>Document<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">title</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script </span><span style="color: #ff0000;">src</span><span style="color: #0000ff;">="http://libs.baidu.com/jquery/1.7.1/jquery.min.js"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">head</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">body</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="d"</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">p </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="p"</span><span style="color: #0000ff;">&gt;</span>Hello,World!<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">p</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">h1</span><span style="color: #0000ff;">&gt;</span>insertBefore测试<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">h1</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">h2</span><span style="color: #0000ff;">&gt;</span>insertAfter测试<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">h2</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">button </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="b1"</span><span style="color: #0000ff;">&gt;</span>append测试<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">button</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">button </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="b2"</span><span style="color: #0000ff;">&gt;</span>prepend测试<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">button</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">button </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="b3"</span><span style="color: #0000ff;">&gt;</span>before测试<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">button</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">button </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="b4"</span><span style="color: #0000ff;">&gt;</span>insertAfter测试<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">button</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span><span style="background-color: #f5f5f5; color: #000000;">    
+        $(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">#b1</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">).click(()</span><span style="background-color: #f5f5f5; color: #000000;">=&gt;</span><span style="background-color: #f5f5f5; color: #000000;">{                
+            $(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">#d</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">).append(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">&lt;p&gt;append测试&lt;/p&gt;</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">)        </span><span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;">在div元素的子节点末尾添加一个&lt;p&gt;1&lt;/p&gt;节点，这里的参数是一个html代码</span>
+<span style="background-color: #f5f5f5; color: #000000;">        })
+        $(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">#b2</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">).click(()</span><span style="background-color: #f5f5f5; color: #000000;">=&gt;</span><span style="background-color: #f5f5f5; color: #000000;">{
+            $(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">#d</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">).prepend(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">&lt;p&gt;prepend测试&lt;/p&gt;</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">)      </span><span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;">在div元素的子节点头部添加一个&lt;p&gt;2&lt;/p&gt;节点，这里的参数是一个html代码</span>
+<span style="background-color: #f5f5f5; color: #000000;">        })
+        $(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">#b3</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">).click(()</span><span style="background-color: #f5f5f5; color: #000000;">=&gt;</span><span style="background-color: #f5f5f5; color: #000000;">{
+            $(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">h1</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">).insertBefore(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">#d</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">)                 </span><span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;">在div元素元素之前添加$('h1')元素，这里的参数是一个jQuery对象</span>
+<span style="background-color: #f5f5f5; color: #000000;">        })  
+        $(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">#b4</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">).click(()</span><span style="background-color: #f5f5f5; color: #000000;">=&gt;</span><span style="background-color: #f5f5f5; color: #000000;">{
+            $(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">h2</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">).insertAfter($(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">#d</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">))                </span><span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;">在div元素元素之后添加$('h2')元素，这里的参数也是一个jQuery对象</span>
+<span style="background-color: #f5f5f5; color: #000000;">        })
+    </span><span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">body</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">html</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<p>&nbsp;渲染如下:</p>
+<p><img src="./images/jQuery 源码分析(二十) DOM操作模块 插入元素 详解0.png" alt="" /></p>
+<p>对应的DOM树如下:</p>
+<p>&nbsp;<img src="./images/jQuery 源码分析(二十) DOM操作模块 插入元素 详解1.png" alt="" /></p>
+<p>&nbsp; 我们定义了四个按钮，分别在div的子节点之前、子节点默认，div之前位置和div之后位置插入一个DOM元素，每个按钮点击一次，执行后页面如下:</p>
+<p>&nbsp;<img src="./images/jQuery 源码分析(二十) DOM操作模块 插入元素 详解2.png" alt="" /></p>
+<p>对应的DOM树如下:</p>
+<p><img src="./images/jQuery 源码分析(二十) DOM操作模块 插入元素 详解3.png" alt="" /></p>
+<p>&nbsp;</p>
+<p><strong><span style="font-size: 18pt;">源码分析</span></strong></p>
+<hr />
+<p>append、prepend、before和after的实现如下:</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">jQuery.fn.extend({
+    append: </span><span style="color: #0000ff;">function</span>() {        <span style="color: #008000;">//</span><span style="color: #008000;">在被选元素子节点的末尾插入指定内容，内部调用appendChild(elem)方法</span>
+        <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span>.domManip(arguments, <span style="color: #0000ff;">true</span>, <span style="color: #0000ff;">function</span><span style="color: #000000;">( elem ) {
+            </span><span style="color: #0000ff;">if</span> ( <span style="color: #0000ff;">this</span>.nodeType === 1<span style="color: #000000;"> ) {
+                </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.appendChild( elem );
+            }
+        });
+    },
+
+    prepend: </span><span style="color: #0000ff;">function</span>() {        <span style="color: #008000;">//</span><span style="color: #008000;">在被选元素子节点的头部插入指定内容，内部调用insertBefore( elem, this.firstChild )方法</span>
+        <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span>.domManip(arguments, <span style="color: #0000ff;">true</span>, <span style="color: #0000ff;">function</span><span style="color: #000000;">( elem ) {
+            </span><span style="color: #0000ff;">if</span> ( <span style="color: #0000ff;">this</span>.nodeType === 1<span style="color: #000000;"> ) {
+                </span><span style="color: #0000ff;">this</span>.insertBefore( elem, <span style="color: #0000ff;">this</span><span style="color: #000000;">.firstChild );
+            }
+        });
+    },
+
+    before: </span><span style="color: #0000ff;">function</span>() {        <span style="color: #008000;">//</span><span style="color: #008000;">在匹配元素集合的每个元素之前插入内容</span>
+        <span style="color: #0000ff;">if</span> ( <span style="color: #0000ff;">this</span>[0] &amp;&amp; <span style="color: #0000ff;">this</span>[0].parentNode ) {            <span style="color: #008000;">//</span><span style="color: #008000;">如果该元素有父元素</span>
+            <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span>.domManip(arguments, <span style="color: #0000ff;">false</span>, <span style="color: #0000ff;">function</span><span style="color: #000000;">( elem ) {
+                </span><span style="color: #0000ff;">this</span>.parentNode.insertBefore( elem, <span style="color: #0000ff;">this</span><span style="color: #000000;"> );
+            });
+        } </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span><span style="color: #000000;"> ( arguments.length ) {
+            </span><span style="color: #0000ff;">var</span> set =<span style="color: #000000;"> jQuery.clean( arguments );
+            set.push.apply( set, </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.toArray() );
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span>.pushStack( set, "before"<span style="color: #000000;">, arguments );
+        }
+    },
+    after: </span><span style="color: #0000ff;">function</span>() {            <span style="color: #008000;">//</span><span style="color: #008000;">在匹配元素集合的每个元素之后插入内容</span>
+        <span style="color: #0000ff;">if</span> ( <span style="color: #0000ff;">this</span>[0] &amp;&amp; <span style="color: #0000ff;">this</span>[0].parentNode ) {             <span style="color: #008000;">//</span><span style="color: #008000;">如果该元素有父元素</span>
+            <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span>.domManip(arguments, <span style="color: #0000ff;">false</span>, <span style="color: #0000ff;">function</span><span style="color: #000000;">( elem ) {
+                </span><span style="color: #0000ff;">this</span>.parentNode.insertBefore( elem, <span style="color: #0000ff;">this</span><span style="color: #000000;">.nextSibling );
+            });
+        } </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span><span style="color: #000000;"> ( arguments.length ) {
+            </span><span style="color: #0000ff;">var</span> set = <span style="color: #0000ff;">this</span>.pushStack( <span style="color: #0000ff;">this</span>, "after"<span style="color: #000000;">, arguments );
+            set.push.apply( set, jQuery.clean(arguments) );
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> set;
+        }
+    },
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">略</span><span style="color: #008000;">*/</span><span style="color: #000000;">
+})</span></pre>
+</div>
+<p>可以看到内部都调用了domManip这个函数，执行时第一个传入arguments，也就是我们调用append、prepend等传入的参数，domManip会把参数转化为一个DOM对象，然后调用参数3，参数3负责执行最后的DOM操作，domManip实现如下:</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">jQuery.fn.extend({
+    domManip: </span><span style="color: #0000ff;">function</span>( args, table, callback ) {            <span style="color: #008000;">//</span><span style="color: #008000;">jQuery插入元素实现的核心，负责转换html代码为DOM元素，然后调用传入的回调函数插入DOM元素</span>
+        <span style="color: #0000ff;">var</span><span style="color: #000000;"> results, first, fragment, parent,
+            value </span>= args[0],                                    <span style="color: #008000;">//</span><span style="color: #008000;">例如$().append()的第一个参数,比如:,&lt;p&gt;123&lt;/p&gt;</span>
+            scripts = [];                                        <span style="color: #008000;">//</span><span style="color: #008000;">存储args[0]里的script脚本</span>
+
+        <span style="color: #008000;">//</span><span style="color: #008000;"> We can't cloneNode fragments that contain checked, in WebKit</span>
+        <span style="color: #0000ff;">if</span> ( !jQuery.support.checkClone &amp;&amp; arguments.length === 3 &amp;&amp; <span style="color: #0000ff;">typeof</span> value === "string" &amp;&amp;<span style="color: #000000;"> rchecked.test( value ) ) {
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span>.each(<span style="color: #0000ff;">function</span><span style="color: #000000;">() {
+                jQuery(</span><span style="color: #0000ff;">this</span>).domManip( args, table, callback, <span style="color: #0000ff;">true</span><span style="color: #000000;"> );
+            });
+        }
+
+        </span><span style="color: #0000ff;">if</span> ( jQuery.isFunction(value) ) {                        <span style="color: #008000;">//</span><span style="color: #008000;">如果args[0]是函数，则遍历匹配元素集合，执行args[0]函数，并把返回值作为参数，再次遍历执行domManip()函数</span>
+            <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span>.each(<span style="color: #0000ff;">function</span><span style="color: #000000;">(i) {
+                </span><span style="color: #0000ff;">var</span> self = jQuery(<span style="color: #0000ff;">this</span><span style="color: #000000;">);    
+                args[</span>0] = value.call(<span style="color: #0000ff;">this</span>, i, table ? self.html() : undefined);        <span style="color: #008000;">//</span><span style="color: #008000;">在每个元素上执行该函数，返回一个DOM元素</span>
+                self.domManip( args, table, callback );                                    <span style="color: #008000;">//</span><span style="color: #008000;">迭代调用.domMapnip()方法</span>
+<span style="color: #000000;">            });
+        }
+
+        </span><span style="color: #0000ff;">if</span> ( <span style="color: #0000ff;">this</span>[0] ) {                                        <span style="color: #008000;">//</span><span style="color: #008000;">如果至少有一个匹配元素</span>
+            parent = value &amp;&amp;<span style="color: #000000;"> value.parentNode;
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> If we're in a fragment, just use that instead of building a new one</span>
+            <span style="color: #0000ff;">if</span> ( jQuery.support.parentNode &amp;&amp; parent &amp;&amp; parent.nodeType === 11 &amp;&amp; parent.childNodes.length === <span style="color: #0000ff;">this</span><span style="color: #000000;">.length ) {
+                results </span>= { fragment: parent };                            <span style="color: #008000;">//</span><span style="color: #008000;">在1.7.1中jQuery.support.parentNode方法未定义，所以这段代码不会执行，在1.8中已经移除这段代码。</span>
+<span style="color: #000000;">
+            } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+                results </span>= jQuery.buildFragment( args, <span style="color: #0000ff;">this</span>, scripts );    <span style="color: #008000;">//</span><span style="color: #008000;">调用buildFragment()把html代码转换为DOM元素。返回一个对象。对象里的fragment属性包含了转换后的DOM元素，cacheable表示缓存状态，指示了该HTML元素是否可以缓存</span>
+<span style="color: #000000;">            }
+
+            fragment </span>= results.fragment;                                <span style="color: #008000;">//</span><span style="color: #008000;">fragment是转换后的DOM元素</span>
+
+            <span style="color: #0000ff;">if</span> ( fragment.childNodes.length === 1 ) {                    <span style="color: #008000;">//</span><span style="color: #008000;">如果文档片段只有一个子元素</span>
+                first = fragment = fragment.firstChild;                        <span style="color: #008000;">//</span><span style="color: #008000;">重置变量fragment为子元素，因为插入单个子元素比插入含有单个子元素的文档片段会稍快些。</span>
+            } <span style="color: #0000ff;">else</span><span style="color: #000000;"> {    
+                first </span>= fragment.firstChild;                            <span style="color: #008000;">//</span><span style="color: #008000;">否则把first作为第一个子节点。</span>
+<span style="color: #000000;">            }
+
+            </span><span style="color: #0000ff;">if</span> ( first ) {                                                <span style="color: #008000;">//</span><span style="color: #008000;">如果子节点存在</span>
+                table = table &amp;&amp; jQuery.nodeName( first, "tr" );            <span style="color: #008000;">//</span><span style="color: #008000;">如果table参数为true，且first是tr节点，那么设置table为true,否则为false。</span>
+
+                <span style="color: #0000ff;">for</span> ( <span style="color: #0000ff;">var</span> i = 0, l = <span style="color: #0000ff;">this</span>.length, lastIndex = l - 1; i &lt; l; i++ ) {    <span style="color: #008000;">//</span><span style="color: #008000;">遍历当前匹配的元素</span>
+                    callback.call(                                             <span style="color: #008000;">//</span><span style="color: #ff0000;">执行callback函数，上下文是每个匹配元素，即callback函数内的this指针。参数是转换后的DOM元素，即传给callback的参数，也就是append、prepend等试下内部执行doMainip()传递的参数3这个函数</span>
+                        table ?<span style="color: #000000;">
+                            root(</span><span style="color: #0000ff;">this</span>[i], first) :                             <span style="color: #008000;">//</span><span style="color: #008000;">修正目标对象，如果待插入元素是tr元素，则调用函数root()检查当前元素(容器元素)是否是table元素，如果是则返回tr元素的父元素tbody作为目标元素。</span>
+                            <span style="color: #0000ff;">this</span>[i],                                        <span style="color: #008000;">//</span><span style="color: #008000;">否则把匹配元素作为call的第一个参数，即this指针。</span>
+                        <span style="color: #008000;">//</span><span style="color: #008000;"> Make sure that we do not leak memory by inadvertently discarding</span>
+                        <span style="color: #008000;">//</span><span style="color: #008000;"> the original fragment (which might have attached data) instead of</span>
+                        <span style="color: #008000;">//</span><span style="color: #008000;"> using it; in addition, use the original fragment object for the last</span>
+                        <span style="color: #008000;">//</span><span style="color: #008000;"> item instead of first because it can end up being emptied incorrectly</span>
+                        <span style="color: #008000;">//</span><span style="color: #008000;"> in certain situations (Bug #8070).</span>
+                        <span style="color: #008000;">//</span><span style="color: #008000;"> Fragments from the fragment cache must always be cloned and never used</span>
+                        <span style="color: #008000;">//</span><span style="color: #008000;"> in place.</span>
+                        results.cacheable || ( l &gt; 1 &amp;&amp; i &lt; lastIndex ) ?     <span style="color: #008000;">//</span><span style="color: #008000;">修正待插入元素，如果返回的文档片段是可缓存的或者不能缓存但是当前匹配元素大于1个且当前操作不是操作最后一个匹配元素时，总是插入该文档片段的副本。</span>
+                            jQuery.clone( fragment, <span style="color: #0000ff;">true</span>, <span style="color: #0000ff;">true</span> ) :                 <span style="color: #008000;">//</span><span style="color: #008000;">则总是插入该文档片段的副本,调用jQuery.clone深度复制事件和数据</span>
+                            fragment                                             <span style="color: #008000;">//</span><span style="color: #008000;">否则插入文档本身</span>
+<span style="color: #000000;">                    ); 
+                }
+            }
+
+            </span><span style="color: #0000ff;">if</span> ( scripts.length ) {                                         <span style="color: #008000;">//</span><span style="color: #008000;">执行转换后的DOM目标元素的script元素</span>
+                jQuery.each( scripts, evalScript );                             <span style="color: #008000;">//</span><span style="color: #008000;">jQuery.buildFragment()和jQuery.clean()利用浏览器的innerHTML机制把HTML代码转换为DOM元素，但是转换后的script元素并不会自动加载和执行，需要手动处理。</span>
+<span style="color: #000000;">            }
+        }
+
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span>;                                             <span style="color: #008000;">//</span><span style="color: #008000;">返回匹配元素集合，以支持链式操作。</span>
+<span style="color: #000000;">    }
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">略</span><span style="color: #008000;">*/</span><span style="color: #000000;">
+})</span></pre>
+</div>
+<p>buildFragment是用于将html代码转换为对应的DOM节点的，它首先尝试从缓存中获取对应的DOM对象，如果没有缓存则通过document.createDocumentFragment创建一个文档碎片，然后则再调用$.clean将html代码转换为一个DOM对象(通过设置innerHTML来实现的)，代码比较多，不再贴了。</p>
+<p>对于appendTo、prependTo、insertBefore和insertAfter来说，它们在会<span style="color: #ff0000;">在内部定义一个临时的jQuery对象</span>，然后再调用对应的append、prepend、before和after来实现的，如下:</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">jQuery.each({
+    appendTo: </span>"append"<span style="color: #000000;">,
+    prependTo: </span>"prepend"<span style="color: #000000;">,
+    insertBefore: </span>"before"<span style="color: #000000;">,
+    insertAfter: </span>"after"<span style="color: #000000;">,
+    replaceAll: </span>"replaceWith"<span style="color: #000000;">
+}, </span><span style="color: #0000ff;">function</span><span style="color: #000000;">( name, original ) {
+    jQuery.fn[ name ] </span>= <span style="color: #0000ff;">function</span>( selector ) {        <span style="color: #008000;">//</span><span style="color: #008000;">给jQuery添加appendTo、prependTo、insertBefore、insertAfter、replaceAll方法    name是要添加的方法名，如appendTo,original标识对应的已有方法名，如append</span>
+        <span style="color: #0000ff;">var</span> ret =<span style="color: #000000;"> [],         
+            insert </span>= jQuery( selector ),                            <span style="color: #008000;">//</span><span style="color: #ff0000;">构造一个jQuery对象，指向目标元素集合，这就是内部的临时的jQuery对象</span>
+            parent = <span style="color: #0000ff;">this</span>.length === 1 &amp;&amp; <span style="color: #0000ff;">this</span>[0].parentNode;        <span style="color: #008000;">//</span><span style="color: #008000;">如果操作的html只有一个顶级节点，则把parent设置为父元素引用，否则设为false     ;比如:$('&lt;p&gt;222&lt;/p&gt;').appendTo('#dd');</span>
+
+        <span style="color: #0000ff;">if</span> ( parent &amp;&amp; parent.nodeType === 11 &amp;&amp; parent.childNodes.length === 1 &amp;&amp; insert.length === 1 ) {    <span style="color: #008000;">//</span><span style="color: #008000;">如果待插入元素只有一个，并且是在文档片段中，同时目标元素也只有一个，</span>
+            insert[ original ]( <span style="color: #0000ff;">this</span>[0] );                                                                        <span style="color: #008000;">//</span><span style="color: #008000;">则直接将待插入元素插入目标元素，不需要遍历目标元素集合。这样速度稍快一点。</span>
+            <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+
+        } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+            </span><span style="color: #0000ff;">for</span> ( <span style="color: #0000ff;">var</span> i = 0, l = insert.length; i &lt; l; i++ ) {                <span style="color: #008000;">//</span><span style="color: #008000;">遍历目标元素集合，循环体内insert[i]是每一个目标元素</span>
+                <span style="color: #0000ff;">var</span> elems = ( i &gt; 0 ? <span style="color: #0000ff;">this</span>.clone(<span style="color: #0000ff;">true</span>) : <span style="color: #0000ff;">this</span> ).get();        <span style="color: #008000;">//</span><span style="color: #008000;">elems是要插入的元素集合，第一次插入的是待插入元素集合，之后插入的则是它的副本。调用对应的已经有方法名插入elems元素</span>
+                jQuery( insert[i] )[ original ]( elems );                        <span style="color: #008000;">//</span><span style="color: #008000;">调用目标元素的original方法，参数是elems        </span>
+                ret =<span style="color: #000000;"> ret.concat( elems );
+            }
+
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span>.pushStack( ret, name, insert.selector );            <span style="color: #008000;">//</span><span style="color: #008000;">用包含了待插入元素集合和它的副本的数组ret构造一个新jQuery对象并返回。</span>
+<span style="color: #000000;">        }
+    };
+});</span></pre>
+</div>
+<p>通过代码可以看到appendTo、prependTo、insertBefore和insertAfter只是对append、prepend、before和after的一个封装而已。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,273 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Mybatis的PageHelper分页插件的PageInfo的属性参数，成员变量的解释,以及页面模板' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Mybatis的PageHelper分页插件的PageInfo的属性参数，成员变量的解释,以及页面模板</center></div><div class='banquan'>原文出处:本文由博客园博主故事我忘了&#176;提供。<br/>
+原文连接:https://www.cnblogs.com/jsccc520/p/12000730.html</div><br>
+    <div style="text-align:right">作者:<font color="brown">故事我忘了<sup>￠</sup></font><br/>个人微信公众号:<font color="blue">程序猿的月光宝盒</font><br/><img src="./images/Mybatis的PageHelper分页插件的PageInfo的属性参数，成员变量的解释,以及页面模板0.png"  width="15%"/></div>
+<hr>
+<pre><code><code>//当前页
+private int pageNum;
+//每页的数量
+private int pageSize;
+//当前页的数量
+private int size;
+//总页数
+private int pages;
+//第一页
+private int firstPage;
+//上一页
+private int prePage;
+//下一页
+private int nextPage;
+//总记录数
+private long total;
+
+//由于startRow和endRow不常用，这里说个具体的用法
+//可以在页面中&quot;显示startRow到endRow 共size条数据&quot;
+//当前页面第一个元素在数据库中的行号
+private int startRow;
+//当前页面最后一个元素在数据库中的行号
+private int endRow;
+
+//结果集
+private List&lt;T&gt; list;
+ 
+//是否为第一页
+private boolean isFirstPage = false;
+//是否为最后一页
+private boolean isLastPage = false;
+//是否有前一页
+private boolean hasPreviousPage = false;
+//是否有下一页
+private boolean hasNextPage = false;
+//导航页码数
+private int navigatePages;
+//所有导航页号
+private int[] navigatepageNums;
+//导航条上的第一页
+private int navigateFirstPage;
+//导航条上的最后一页
+private int navigateLastPage;</code></pre>
+<h1 id="项目中使用了mybatis的pagehelper分页插件后的js文件">项目中使用了Mybatis的PageHelper分页插件后的js文件</h1>
+<pre class="js"><code>/**
+ * 初始化首页数据
+ */
+function initData(pageNo) {
+    //清空原来的数据,找到第一个以外的tr,并移除,用 :gt()
+    $(&quot;tr:gt(0)&quot;).remove();
+    $.ajax({
+        url: &quot;showInvi.do&quot;,
+        type: &quot;post&quot;,
+        dataType: &quot;json&quot;,
+        data: {&quot;pageNo&quot;: pageNo},
+        async: true,
+        success: function (obj) {
+            console.log(obj);
+            if (obj.size === 0) {//如果没有数据
+                var str = `
+                    &lt;tr&gt;
+                        &lt;td colspan=&quot;5&quot;&gt;没有符合条件的数据&lt;/td&gt;
+                    &lt;/tr&gt;
+                `;
+                $(&quot;#dataTble&quot;).append(str);
+                $(&quot;p&quot;).html(&quot;&quot;);
+            } else {
+                $.each(obj.list, function (i) {
+                    var str = `
+            &lt;tr&gt;
+                &lt;td&gt;${obj.list[i].title}&lt;/td&gt;
+                &lt;td&gt;${obj.list[i].summary}&lt;/td&gt;
+                &lt;td&gt;${obj.list[i].author}&lt;/td&gt;
+                &lt;td&gt;${obj.list[i].createdate}&lt;/td&gt;
+                &lt;td&gt;
+                    &lt;a href=&quot;/showReply.html?invid=${obj.list[i].id}&quot;&gt;查看回复&lt;/a&gt;||&lt;a href=&quot;javascript:void(0);&quot; onclick=&quot;del(${obj.list[i].id},&#39;${obj.list[i].title}&#39;);&quot;&gt;删除&lt;/a&gt;
+                &lt;/td&gt;
+            &lt;/tr&gt;          
+                `;
+                    $(&quot;#dataTble&quot;).append(str);
+                });
+                $(&quot;tr:gt(0):odd&quot;).attr(&quot;style&quot;, &quot;background-color:#90EE90&quot;);
+                //分页,我是放在一个p标签里
+                var pageFoot = $(&quot;p&quot;);
+
+                //在分页前,清空原来分页的内容
+                pageFoot.html(&quot;&quot;);
+                var pageStr = &quot;&quot;;
+                if (obj.total === 0) {//如果没有数据,就不显示分页条
+                    return;
+                }
+                if (obj.isFirstPage &amp;&amp; obj.hasNextPage) {//如果是第一页,并且还有下一页
+                    pageStr = `
+                &lt;a href=&quot;javascript:void(0);&quot; style=&quot;text-decoration: none;color: grey;cursor:no-drop;&quot;&gt;首&amp;nbsp;页&lt;/a&gt;|
+                &lt;a href=&quot;javascript:void(0);&quot; style=&quot;text-decoration: none;color: grey;cursor:no-drop;&quot;&gt;&lt;&lt; 上一页&lt;/a&gt;|
+                &lt;a href=&quot;javascript:void(0);&quot; onclick=&quot;initData(${obj.nextPage});&quot;&gt;下一页&gt;&gt;&lt;/a&gt;|
+                &lt;a href=&quot;javascript:void(0);&quot; onclick=&quot;initData(${obj.pages});&quot;&gt;尾&amp;nbsp;页&lt;/a&gt;
+                `
+                } else if (obj.isFirstPage &amp;&amp; !obj.hasNextPage) {//如果是第一页,并且没有下一页
+                    pageStr = ``//nothing to do
+                } else if (!obj.isFirstPage &amp;&amp; obj.hasNextPage) {//如果不是第一页,并且还有下一页
+                    pageStr = `
+                &lt;a href=&quot;javascript:void(0);&quot; onclick=&quot;initData(1)&quot;&gt;首&amp;nbsp;页&lt;/a&gt;|
+                &lt;a href=&quot;javascript:void(0);&quot; onclick=&quot;initData(${obj.prePage});&quot;&gt;&lt;&lt; 上一页&lt;/a&gt;|
+                &lt;a href=&quot;javascript:void(0);&quot; onclick=&quot;initData(${obj.nextPage});&quot;&gt;下一页&gt;&gt;&lt;/a&gt;|
+                &lt;a href=&quot;javascript:void(0);&quot; onclick=&quot;initData(${obj.pages});&quot;&gt;尾&amp;nbsp;页&lt;/a&gt;
+                `
+                } else if (!obj.isFirstPage &amp;&amp; !obj.hasNextPage) {//如果不是第一页,且没有下一页
+                    pageStr = `
+                &lt;a href=&quot;javascript:void(0);&quot; onclick=&quot;initData(${obj.firstPage});&quot;&gt;首&amp;nbsp;页&lt;/a&gt;|
+                &lt;a href=&quot;javascript:void(0);&quot; onclick=&quot;initData(${obj.prePage});&quot;&gt;&lt;&lt; 上一页&lt;/a&gt;|
+                &lt;a href=&quot;javascript:void(0);&quot; style=&quot;text-decoration: none;color: grey;cursor:no-drop;&quot;&gt;下一页&gt;&gt;&lt;/a&gt;|
+                &lt;a href=&quot;javascript:void(0);&quot; style=&quot;text-decoration: none;color: grey;cursor:no-drop;&quot;&gt;尾&amp;nbsp;页&lt;/a&gt;
+                `
+                }
+                pageStr += `
+            第&amp;nbsp;
+                ${obj.pageNum}
+                页/共
+                ${obj.pages}
+                页(${obj.total}条)
+            `;
+                pageFoot.append(pageStr);
+            }
+        }, error: function () {
+            alert(&quot;initData error&quot;);
+        }
+    })
+}</code></pre>
+<p>基本上分页部分可以作为模板</p>
+<p>他对应的html</p>
+<hr/>
+<pre class="html"><code>&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot;&gt;
+    &lt;title&gt;Title&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;center&gt;
+    &lt;h1&gt;帖子列表&lt;/h1&gt;
+    &lt;hr/&gt;
+    &lt;form id=&quot;findInvis&quot;&gt;
+        帖子标题:
+        &lt;input title=&quot;请输入帖子标题&quot; name=&quot;title&quot;&gt;
+        &lt;!--input的类型还是submit--&gt;
+        &lt;input type=&quot;submit&quot; value=&quot;搜索&quot; &gt;
+    &lt;/form&gt;
+    &lt;div id=&quot;infos&quot;&gt;
+        &lt;br/&gt;
+        &lt;table border=&quot;1&quot; style=&quot;width: 100%;text-align: center&quot; id=&quot;dataTble&quot;&gt;
+            &lt;tr style=&quot;background-color: #6FABC1;&quot;&gt;
+                &lt;td&gt;标题&lt;/td&gt;
+                &lt;td&gt;内容摘要&lt;/td&gt;
+                &lt;td&gt;作者&lt;/td&gt;
+                &lt;td&gt;发布时间&lt;/td&gt;
+                &lt;td&gt;操作&lt;/td&gt;
+            &lt;/tr&gt;
+        &lt;/table&gt;
+        &lt;p&gt;&lt;/p&gt;
+    &lt;/div&gt;
+&lt;/center&gt;
+&lt;script rel=&quot;script&quot; type=&quot;text/javascript&quot; src=&quot;js/jquery-1.11.2.min.js&quot;&gt;&lt;/script&gt;
+&lt;script rel=&quot;script&quot; type=&quot;text/javascript&quot; src=&quot;js/list.js&quot;&gt;&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+<hr/>
+<p>对应的ServiceImpl</p>
+<pre><code><code>@Override
+    public PageInfo&lt;Map&lt;String, Object&gt;&gt; selectByPrimaryKey(Integer invid,Integer pageNo) {
+        PageHelper.startPage(pageNo,4);
+        List&lt;Map&lt;String, Object&gt;&gt; maps = replyDetailMapper.selectByPrimaryKey(invid);
+        return new PageInfo&lt;&gt; (maps);
+    }</code></pre>
+<p>对应的Controller,是标注<code>@RestController</code>的</p>
+<pre><code><code>@RequestMapping(&quot;/showInvi.do&quot;)
+    public PageInfo&lt;Map&lt;String, Object&gt;&gt; selectByTitle(Invitation invitation,Integer pageNo) {
+        return invitationService.selectByTitle(invitation,pageNo);
+    }</code></pre>
+<p>页面分页模板部分</p>
+<pre><code><code> success : function(obj) {
+            console.log(obj);
+            var strData =&quot;&quot;;
+            //在循环的前面清空标题以下的所有行
+            //获取行&gt;1的那行.调用移除方法
+            $(&quot;tr:gt(1)&quot;).remove();
+            $.each(obj.list,function (i) {
+             strData +=`
+                    &lt;tr&gt;
+                        &lt;th&gt;${obj.list[i].id}&lt;/th&gt;
+                        &lt;th&gt;${obj.list[i].name}&lt;/th&gt;
+                        &lt;th&gt;${obj.list[i].age}&lt;/th&gt;
+                        &lt;th&gt;${obj.list[i].gender}&lt;/th&gt;
+                        &lt;th&gt;${obj.list[i].telephone}&lt;/th&gt;
+                        &lt;th&gt;${obj.list[i].email}&lt;/th&gt;
+                        &lt;th&gt;${obj.list[i].cname}&lt;/th&gt;
+                        &lt;th&gt;
+                            &lt;a href=&quot;updates.html?id=${obj.list[i].id}&quot;&gt;更新&lt;/a&gt;
+                            &lt;a href=&quot;javascript:void(0);&quot; onclick=&quot;del(${obj.list[i].id})&quot;&gt;删除&lt;/a&gt;
+                        &lt;/th&gt;
+                    &lt;/tr&gt;
+                `;
+            });
+            //找到table,并拼接
+            $(&quot;table&quot;).append(strData);
+            //分页
+            //在分页前,清空原来分页的内容
+            $(&quot;p&quot;).html(&quot;&quot;);
+            var pageStr = &quot;&quot;;
+            if (obj.total === 0) {//如果没有数据,就不显示分页条
+                return;
+            }
+            if (obj.isFirstPage &amp;&amp; obj.hasNextPage) {//如果是第一页,并且还有下一页
+                pageStr = `
+                &lt;a href=&quot;javascript:void(0);&quot; style=&quot;text-decoration: none;color: grey;cursor:no-drop;&quot;&gt;首&amp;nbsp;页&lt;/a&gt;|
+                &lt;a href=&quot;javascript:void(0);&quot; style=&quot;text-decoration: none;color: grey;cursor:no-drop;&quot;&gt;&lt;&lt; 上一页&lt;/a&gt;|
+                &lt;a href=&quot;javascript:void(0);&quot; onclick=&quot;initData(${obj.nextPage});&quot;&gt;下一页&gt;&gt;&lt;/a&gt;|
+                &lt;a href=&quot;javascript:void(0);&quot; onclick=&quot;initData(${obj.pages});&quot;&gt;尾&amp;nbsp;页&lt;/a&gt;
+                `
+            } else if (obj.isFirstPage &amp;&amp; !obj.hasNextPage) {//如果是第一页,并且没有下一页
+                pageStr = ``//nothing to do
+            } else if (!obj.isFirstPage &amp;&amp; obj.hasNextPage) {//如果不是第一页,并且还有下一页
+                pageStr = `
+                &lt;a href=&quot;javascript:void(0);&quot; onclick=&quot;initData(1)&quot;&gt;首&amp;nbsp;页&lt;/a&gt;|
+                &lt;a href=&quot;javascript:void(0);&quot; onclick=&quot;initData(${obj.prePage});&quot;&gt;&lt;&lt; 上一页&lt;/a&gt;|
+                &lt;a href=&quot;javascript:void(0);&quot; onclick=&quot;initData(${obj.nextPage});&quot;&gt;下一页&gt;&gt;&lt;/a&gt;|
+                &lt;a href=&quot;javascript:void(0);&quot; onclick=&quot;initData(${obj.pages});&quot;&gt;尾&amp;nbsp;页&lt;/a&gt;
+                `
+            } else if (!obj.isFirstPage &amp;&amp; !obj.hasNextPage) {//如果不是第一页,且没有下一页
+                pageStr = `
+                &lt;a href=&quot;javascript:void(0);&quot; onclick=&quot;initData(${obj.firstPage});&quot;&gt;首&amp;nbsp;页&lt;/a&gt;|
+                &lt;a href=&quot;javascript:void(0);&quot; onclick=&quot;initData(${obj.prePage});&quot;&gt;&lt;&lt; 上一页&lt;/a&gt;|
+                &lt;a href=&quot;javascript:void(0);&quot; style=&quot;text-decoration: none;color: grey;cursor:no-drop;&quot;&gt;下一页&gt;&gt;&lt;/a&gt;|
+                &lt;a href=&quot;javascript:void(0);&quot; style=&quot;text-decoration: none;color: grey;cursor:no-drop;&quot;&gt;尾&amp;nbsp;页&lt;/a&gt;
+                `
+            }
+            pageStr += `
+            第&amp;nbsp;
+                ${obj.pageNum}
+                页/共
+                ${obj.pages}
+                页(${obj.total}条)
+            `;
+            $(&quot;p&quot;).append(pageStr);
+        },</code></pre>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

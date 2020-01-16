@@ -1,0 +1,130 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C# 设计模式-单例模式' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C# 设计模式-单例模式</center></div><div class='banquan'>原文出处:本文由博客园博主Tulip123提供。<br/>
+原文连接:https://www.cnblogs.com/guhuazhen/p/11121872.html</div><br>
+    <h2>C# 单例模式</h2>
+<p><span style="font-size: 14px; font-family: 宋体;"><strong>1、定义：单例模式就是保证在整个应用程序的生命周期中，在任何时刻，被指定的类只有一个实例，并为客户程序提供一个获取该实例的全局访问点。</strong></span></p>
+<pre><code><span style="font-family: 宋体; font-size: 14px;">首先来明确一个问题，那就是在某些情况下，有些对象，我们只需要一个就可以了。<br /></span></pre>
+<p><strong><span style="font-family: 宋体; font-size: 14px;">2、单例模式的优点有：</span></strong></p>
+<p>（1）实例控制：单例模式会阻止其他对象实例化其自己的单例对象的副本，从而确保所有对象都访问唯一实例。</p>
+<p>（2）灵活性：因为类控制了实例化过程，所以类可以灵活更改实例化过程。</p>
+<p><strong><span style="font-family: 宋体; font-size: 14px;">3、单例模式的缺点有：</span></strong></p>
+<p>（1）开销：虽然数量很少，但如果每次对象请求引用时都要检查是否存在类的实例，将仍然需要一些开销。可以通过使用静态初始化解决此问题。</p>
+<p>（2）可能的开发混淆：使用单例对象（尤其在类库中定义的对象）时，开发人员必须记住自己不能使用new关键字实例化对象。因为可能无法访问库源代码，因此应用程序开发人员可能会意外发现自己无法直接实例化此类。</p>
+<p><strong><span style="font-size: 14px; font-family: 宋体;">4、举个栗子：</span></strong></p>
+<p><span style="font-size: 14px; font-family: 宋体;">一台计算机上可以连好几个打印机，但是这个计算机上的打印程序只能有一个，这里就可以通过单例模式来避免两个打印作业同时输出到打印机中，即在整个的打印过程中我只有一个打印程序的实例。其实生活中也有多类似的例子，比如操作ATM机的时候，存钱和取钱的操作是不能同时做的，只能一个一个来完成；</span></p>
+<p><span style="font-size: 14px; font-family: 宋体;"><strong>5.代码解析</strong></span></p>
+<p><span style="font-size: 14px; font-family: 宋体;"><strong>第一种</strong> 最简单，但没有考虑线程安全，在多线程时可能会出问题.代码如下</span></p>
+<p>解析如下：</p>
+<p>　　1）首先，该Singleton的构造函数必须是私有的，以保证客户程序不会通过new（）操作产生一个实例，达到实现单例的目的；</p>
+<p>　　2）因为静态变量的生命周期跟整个应用程序的生命周期是一样的，所以可以定义一个私有的静态全局变量instance来保存该类的唯一实例；</p>
+<p>　　3）必须提供一个全局函数访问获得该实例，并且在该函数提供控制实例数量的功能，即通过if语句判断instance是否已被实例化，如果没有则可以同new（）创建一个实例；否则，直接向客户返回一个实例。</p>
+<p>　　在这种经典模式下，没有考虑线程并发获取实例问题，即可能出现两个线程同时获取instance实例，且此时其为null时，就会出现两个线程分别创建了instance，违反了单例规则。因此，下面代码修改。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Singleton
+{
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span><span style="color: #000000;"> Singleton instance;
+
+        </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> Singleton()
+        {
+        
+        }
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span><span style="color: #000000;"> Singleton GetInstance()
+        {
+                </span><span style="color: #0000ff;">if</span>(instance==<span style="color: #0000ff;">null</span><span style="color: #000000;">)
+                {
+                        instance</span>=<span style="color: #0000ff;">new</span><span style="color: #000000;"> Singleton();
+                }
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> instance;
+        }
+}</span></pre>
+</div>
+<p><strong>第二种</strong> 为多线程下的单例模式，考虑了线程安全,代码如下：</p>
+<p><span style="font-size: 14px; font-family: 宋体;">解析如下：</span></p>
+<p><span style="font-size: 14px; font-family: 宋体;">　　使用了双重锁方式较好地解决了多线程下的单例模式实现。先看内层的if语句块，使用这个语句块时，先进行加锁操作，保证只有一个线程可以访问该语句块，进而保证只创建了一个实例。</span></p>
+<p><span style="font-size: 14px; font-family: 宋体;">　　再看外层的if语句块，这使得每个线程欲获取实例时不必每次都得加锁，因为只有实例为空时（即需要创建一个实例），才需加锁创建，若果已存在一个实例，就直接返回该实例，节省了性能开销。</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Singleton
+{
+       </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span><span style="color: #000000;"> Singleton instance;
+       </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">object</span> _lock=<span style="color: #0000ff;">new</span> <span style="color: #0000ff;">object</span><span style="color: #000000;">();
+
+       </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> Singleton()
+       {
+
+       }
+       </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span><span style="color: #000000;"> Singleton GetInstance()
+       {
+               </span><span style="color: #0000ff;">if</span>(instance==<span style="color: #0000ff;">null</span><span style="color: #000000;">)
+               {
+                      </span><span style="color: #0000ff;">lock</span><span style="color: #000000;">(_lock)
+                      {
+                             </span><span style="color: #0000ff;">if</span>(instance==<span style="color: #0000ff;">null</span><span style="color: #000000;">)
+                             {
+                                     instance</span>=<span style="color: #0000ff;">new</span><span style="color: #000000;"> Singleton();
+                             }
+                      }
+               }
+               </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> instance;
+       }
+}</span></pre>
+</div>
+<p><strong>第三种 饿汉模式</strong></p>
+<p>Eager Singleton(饿汉式单例类)，其静态成员在类加载时就被初始化，此时类的私有构造函数被调用，单例类的唯一实例就被创建</p>
+<p>这种模式的特点是自己主动实例，代码如下</p>
+<p>使用的readonly关键可以跟static一起使用，用于指定该常量是类别级的，它的初始化交由静态构造函数实现，并可以在运行时编译。在这种模式下，无需自己解决线程安全性问题，CLR会给我们解决。由此可以看到这个类被加载时，会自动实例化这个类，而不用在第一次调用GetInstance()后才实例化出唯一的单例对象。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">sealed</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Singleton
+{
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">readonly</span> Singleton instance=<span style="color: #0000ff;">new</span><span style="color: #000000;"> Singleton();
+ 
+        </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> Singleton()
+        {
+        }
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span><span style="color: #000000;"> Singleton GetInstance()
+        {
+               </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> instance;
+        }
+}</span></pre>
+</div>
+<p><strong>第四种 懒汉模式</strong></p>
+<p>&nbsp;Lazy Singleton（懒汉式单例类），其类的唯一实例在真正调用时才被创建，而不是类加载时就被创建。所以Lazy Singleton不是线程安全的。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Singleton<br />{ 
+</span><span style="color: #0000ff;">    private</span> <span style="color: #0000ff;">static</span> Singleton singleton = <span style="color: #0000ff;">null</span><span style="color: #000000;">; 
+</span><span style="color: #0000ff;">    public</span> <span style="color: #0000ff;">static</span><span style="color: #000000;"> Singleton getInstance(){ 
+</span><span style="color: #0000ff;">       if</span>(singleton==<span style="color: #0000ff;">null</span><span style="color: #000000;">){ 
+                singleton </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Singleton(); 
+          } 
+</span><span style="color: #0000ff;">     return</span><span style="color: #000000;"> singleton; 
+    } <br />} </span></pre>
+</div>
+<p><span style="font-family: 宋体; font-size: 16px;"><strong>总结：</strong></span></p>
+<p>单例中懒汉和饿汉的本质区别在于以下几点：</p>
+<p>1、饿汉式是<a class="baidu-highlight" href="https://www.baidu.com/s?wd=%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8&amp;tn=SE_PcZhidaonwhc_ngpagmjz&amp;rsv_dl=gh_pc_zhidao" target="_blank">线程安全</a>的,在类创建的同时就已经创建好一个静态的对象供系统使用,以后不在改变。懒汉式如果在创建实例对象时不加上synchronized则会导致对对象的访问不是<a class="baidu-highlight" href="https://www.baidu.com/s?wd=%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8&amp;tn=SE_PcZhidaonwhc_ngpagmjz&amp;rsv_dl=gh_pc_zhidao" target="_blank">线程安全</a>的。</p>
+<p>2、从实现方式来讲他们最大的区别就是懒汉式是延时加载,他是在需要的时候才创建对象,而饿汉式在虚拟机启动的时候就会创建，饿汉式无需关注多线程问题，写法简单明了，能用则用。但是它是加载类时创建实例。所以如果是一个<a class="baidu-highlight" href="https://www.baidu.com/s?wd=%E5%B7%A5%E5%8E%82%E6%A8%A1%E5%BC%8F&amp;tn=SE_PcZhidaonwhc_ngpagmjz&amp;rsv_dl=gh_pc_zhidao" target="_blank">工厂模式</a>，缓存了很多实例，那么就得考虑效率问题，因为这个类一加载则把所有实例不管用不用一块创建。</p>
+<p>3、两者建立单例对象的时间不同。&ldquo;懒汉式&rdquo;是在你真正用到的时候才去建这个单例对象，&ldquo;饿汉式&rdquo;是在不管用不用得上，一开始就建立这个单例对象。</p>
+<p>&nbsp;<strong>ok，今天的分享到这了，如果有疑问的可以留言，讲的不对的欢迎指出！！！</strong></p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

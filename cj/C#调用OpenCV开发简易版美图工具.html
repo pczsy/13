@@ -1,0 +1,228 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C#调用OpenCV开发简易版美图工具' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C#调用OpenCV开发简易版美图工具</center></div><div class='banquan'>原文出处:本文由博客园博主kiba518提供。<br/>
+原文连接:https://www.cnblogs.com/kiba/p/11321438.html</div><br>
+    <p style="width: 100%; background: #4169E1; color: #ffffff; height: 50px; font-size: 30px; line-height: 50px;"><strong>前言</strong></p>
+<p>在C#调用OpenCV其实非常简单，因为C#中有很多OPenCV的开源类库。</p>
+<p>本文主要介绍在WPF项目中使用OpenCVSharp3-AnyCPU开源类库处理图片，下面我们先来做开发前的准备工作。</p>
+<p style="width: 100%; background: #4169E1; color: #ffffff; height: 50px; font-size: 30px; line-height: 50px;"><strong>准备工作</strong></p>
+<p>首先，我们先创建一个WPF项目。</p>
+<p>然后，在Nuget上搜索OpenCVSharp，如下图：</p>
+<p><img src="./images/C#调用OpenCV开发简易版美图工具0.png" alt="" /></p>
+<p>接着，我们选择OpenCVSharp3-AnyCPU选项进行安装&nbsp;。</p>
+<p>安装了OpenCVSharp3-AnyCPU后，我们的项目会自动引入4个类库，如下图：&nbsp;</p>
+<p><img src="./images/C#调用OpenCV开发简易版美图工具1.png" alt="" /></p>
+<p>&nbsp;到这里，我们的准备工作就完成了，非常简单。</p>
+<p style="width: 100%; background: #4169E1; color: #ffffff; height: 50px; font-size: 30px; line-height: 50px;"><strong>C#中应用OPenCV</strong></p>
+<p>现在，我们进入项目，进行OPenCV的调用。</p>
+<p>我们先引入OpenCV相关的命名空间，如下：</p>
+<div class="cnblogs_Highlighter">
+<pre><code>using OpenCvSharp;
+using OpenCvSharp.Extensions;
+</pre>
+</div>
+<p>然后我们在项目中使用Mat类来进行图片操作。</p>
+<p>----------------------------------------------------------------------------------------------------</p>
+<p><strong>红蓝颜色通道互换</strong></p>
+<p>在OPenCV里，Mat类是非常重要的，它是处理图片的入口。</p>
+<p>现在，我们先做一个简单的图片操作，红蓝通道颜色互换，代码如下：</p>
+<div class="cnblogs_Highlighter">
+<pre><code>Mat mat = new Mat(@"..\..\Images\ocv02.jpg", ImreadModes.Unchanged);
+for (var y = 0; y &lt; mat.Height; y++)
+{
+    for (var x = 0; x &lt; mat.Width; x++)
+    {
+        Vec3b color = mat.Get&lt;Vec3b&gt;(y, x);
+        var temp = color.Item0;
+        color.Item0 = color.Item2; //B 转 R
+        color.Item2 = temp;        //R 转 B
+        mat.Set(y, x, color);
+    }
+}
+var mem = mat.ToMemoryStream();
+BitmapImage bmp = new BitmapImage();
+bmp.BeginInit();
+bmp.StreamSource = mem;
+bmp.EndInit();
+imgOutput.Source = bmp;
+mat.Dispose();/// 该方法在mat里被重写了，可以释放资源，可以放心调用
+</pre>
+</div>
+<p>效果图如下：</p>
+<p><img src="./images/C#调用OpenCV开发简易版美图工具2.png" alt="" /></p>
+<p>可以看到，我们成功的处理了图片的红蓝通道颜色互换。</p>
+<p>现在我们再多做一些OpenCV的操作。</p>
+<p><strong>腐蚀</strong></p>
+<p>代码如下：</p>
+<div class="cnblogs_Highlighter">
+<pre><code>using (var src = new Mat(@"..\..\Images\ocv02.jpg", ImreadModes.AnyDepth | ImreadModes.AnyColor))
+{
+    Cv2.Erode(src, src, new Mat());
+    var mem = src.ToMemoryStream();
+    BitmapImage bmp = new BitmapImage();
+    bmp.BeginInit();
+    bmp.StreamSource = mem;
+    bmp.EndInit();
+    imgOutput.Source = bmp; 
+}
+</pre>
+</div>
+<p>效果图如下：</p>
+<p><img src="./images/C#调用OpenCV开发简易版美图工具3.png" alt="" /></p>
+<p><strong>反转</strong></p>
+<p><strong>代码如下：</strong></p>
+<div class="cnblogs_Highlighter">
+<pre><code>using (var src = new Mat(@"..\..\Images\ocv02.jpg", ImreadModes.AnyDepth | ImreadModes.AnyColor))
+{
+    using (var dst = new Mat())//复制以后处理
+    {
+        Cv2.BitwiseNot(src, dst, new Mat());
+        var mem = dst.ToMemoryStream();
+        BitmapImage bmp = new BitmapImage();
+        bmp.BeginInit();
+        bmp.StreamSource = mem;
+        bmp.EndInit();
+        imgOutput.Source = bmp;
+    }
+}
+</pre>
+</div>
+<p>效果图如下：</p>
+<p><img src="./images/C#调用OpenCV开发简易版美图工具4.png" alt="" /></p>
+<p><strong>亮度&mdash;变暗</strong></p>
+<p>代码如下：</p>
+<div class="cnblogs_Highlighter">
+<pre><code>BitmapImage bmpSource = new BitmapImage(new Uri("pack://application:,,,/images/ocv02.jpg" )); 
+Mat mat = bmpSource.ToMat();
+for (var y = 0; y &lt; mat.Height; y++)
+{
+    for (var x = 0; x &lt; mat.Width; x++)
+    {
+        Vec3b color = mat.Get&lt;Vec3b&gt;(y, x);
+        int item0 = color.Item0;
+        int item1 = color.Item1;
+        int item2 = color.Item2;
+        #region  变暗
+        item0 -= 60;
+        item1 -= 60;
+        item2 -= 60;
+        if (item0 &lt; 0)
+            item0 = 0;
+        if (item1 &lt; 0)
+            item1 = 0;
+        if (item2 &lt; 0)
+            item2 = 0;
+        #endregion
+        #region  变亮
+        //item0 += 80;
+        //item1 += 80;
+        //item2 += 80;
+        //if (item0 &gt; 255)
+        //    item0 = 255;
+        //if (item1 &gt; 255)
+        //    item1 = 255;
+        //if (item2 &gt; 255)
+        //    item2 = 255;
+        #endregion
+
+        color.Item0 = (byte)item0;
+        color.Item1 = (byte)item1;
+        color.Item2 = (byte)item2;
+        mat.Set(y, x, color);
+    }
+}
+var mem = mat.ToMemoryStream();
+BitmapImage bmp = new BitmapImage();
+bmp.BeginInit();
+bmp.StreamSource = mem;
+bmp.EndInit();
+imgOutput.Source = bmp;
+mat.Dispose();/// 该方法在mat里被重写了，可以释放资源，可以放心调用
+</pre>
+</div>
+<p>可以看到，这里的代码稍微有点特别。</p>
+<p>我们通过BitmapImage导入图片后，直接使用BitmapImage的对象的ToMat方法，把BitmapImage转换成了Mat类的对象。</p>
+<p>这个ToMat方法，我们需要特别留意一下，因为他并不是BitmapImage类的方法，它是一个扩展方法，只有我们引用了OpenCvSharp命名空间，BitmapImage和Bitmap对象才会增加扩展方法ToMat。</p>
+<p>效果图如下：</p>
+<p><img src="./images/C#调用OpenCV开发简易版美图工具5.png" alt="" /></p>
+<p><strong>顶点变化</strong></p>
+<p>代码如下:</p>
+<div class="cnblogs_Highlighter">
+<pre><code>using (var src = new Mat(@"..\..\Images\ocv02.jpg", ImreadModes.AnyDepth | ImreadModes.AnyColor))
+{
+    using (var dst = new Mat())//复制以后处理
+    {   
+        //设置原图变换顶点
+       List&lt; Point2f&gt; AffinePoints0  =new List&lt;Point2f&gt;() { new Point2f(100, 50), new Point2f(100, 390), new Point2f(600, 50) };
+        //设置目标图像变换顶点
+        List&lt;Point2f&gt; AffinePoints1 = new List&lt;Point2f&gt;() { new Point2f(200, 100), new Point2f(200, 330), new Point2f(500, 50) };
+        //计算变换矩阵
+        Mat Trans =Cv2.GetAffineTransform(AffinePoints0, AffinePoints1);
+        //矩阵仿射变换
+        Cv2.WarpAffine(src, dst, Trans,new OpenCvSharp.Size() { Height= src.Cols, Width= src.Rows }); 
+        var mem = dst.ToMemoryStream();
+        BitmapImage bmp = new BitmapImage();
+        bmp.BeginInit();
+        bmp.StreamSource = mem;
+        bmp.EndInit();
+        imgOutput.Source = bmp;
+    }
+}
+</pre>
+</div>
+<p>效果图如下：</p>
+<p><img src="./images/C#调用OpenCV开发简易版美图工具6.png" alt="" /></p>
+<p><strong>美颜磨皮 双边滤波</strong></p>
+<p>代码如下：</p>
+<div class="cnblogs_Highlighter">
+<pre><code>using (var src = new Mat(@"..\..\Images\ocv02.jpg", ImreadModes.AnyDepth | ImreadModes.AnyColor))
+{
+    using (var dst = new Mat())//复制以后处理
+    {
+        Cv2.BilateralFilter(src, dst, 15, 35d, 35d);
+        var mem = dst.ToMemoryStream();
+        BitmapImage bmp = new BitmapImage();
+        bmp.BeginInit();
+        bmp.StreamSource = mem;
+        bmp.EndInit();
+        imgOutput.Source = bmp;
+    }
+}
+</pre>
+</div>
+<p>效果图如下：</p>
+<p><img src="./images/C#调用OpenCV开发简易版美图工具7.png" alt="" /></p>
+<p>----------------------------------------------------------------------------------------------------</p>
+<p>大家可以看到，图片中有很多OpenCV的特效处理，而文章中只是介绍了几个，这是因为其他处理和文章中的特效处理的方法大同小异，所以就只列举了这几个。</p>
+<p>有兴趣的朋友可以自行下载代码学习。</p>
+<p>----------------------------------------------------------------------------------------------------</p>
+<p>到此C#调用OpenCV开发简易版美图工具就讲完了。</p>
+<p>代码已经传到Github上了，欢迎大家下载。</p>
+<p style="border: 2px solid #73bf00; padding: 10px 40px; background: #ccff80; border-radius: 15px; -moz-border-radius: 15px;">Github地址：<a href="https://github.com/kiba518/WpfOpenCV" target="_blank">https://github.com/kiba518/WpfOpenCV</a></p>
+<p>----------------------------------------------------------------------------------------------------</p>
+<p>注：此文章为原创，任何形式的转载都请联系作者获得授权并注明出处！<br />若您觉得这篇文章还不错，请点击下方的<span style="color: #ff0000;">【<strong>推荐】</strong></span>，非常感谢！<br />本文已独家授权给脚本之家（ID:jb51net）公众号发布！
+</p>
+<p><a href="https://www.cnblogs.com/kiba/p/11321438.html" target="_blank">https://www.cnblogs.com/kiba/p/11321438.html</a></p>
+<p>&nbsp;<img src="./images/C#调用OpenCV开发简易版美图工具8.png" alt="" /></p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

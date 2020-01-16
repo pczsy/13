@@ -1,0 +1,125 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C# Mqtt 断线重连' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C# Mqtt 断线重连</center></div><div class='banquan'>原文出处:本文由博客园博主三人行工作室提供。<br/>
+原文连接:https://www.cnblogs.com/timeddd/p/11435450.html</div><br>
+    <blockquote>
+<p>在通过 MqttClient 客户端连接之后，在服务端服务重启时，客户端如果没有重连机制，则无法再接收到订阅的消息。</p>
+</blockquote>
+<p>使用的 Mqtt 组件为：M2Mqtt.Net.dll</p>
+<h3 id="一些特性发现">一些特性发现</h3>
+<p>（1）如果提供的服务端地址是不可解析的，会引发异常无法实例化 MqttClient 对象。<br />
+（2）Connect 无法连接时会引发异常，IsConnected 为 false。<br />
+（3）服务端断开会触发客户端的 ConnectionClosed 事件，IsConnected 为 false。<br />
+（4）重新 Connect 需要重新 Subscribe 订阅主题。<br />
+（5）MqttClient.Subscribe 第一个参数为订阅主题数组，第二个为相应的 qosLevel，两个数组长度必须一致，否则会异常。</p>
+<h3 id="重连流程控制">重连流程控制</h3>
+<p><img src="./images/C# Mqtt 断线重连0.png" /></p>
+<h3 id="主要代码实现">主要代码实现</h3>
+<h4 id="线程主体">（1）线程主体</h4>
+<pre><code><code>// 自动重连主体
+private void _TryContinueConnect()
+{
+    if (IsConnected) return;
+
+    Thread retryThread = new Thread(new ThreadStart(delegate
+    {
+        while (_MqttClient == null || !_MqttClient.IsConnected)
+        {
+            if (_ToClose) break;
+
+            if (_MqttClient == null)
+            {
+                _BuildClient();
+                Thread.Sleep(3000);
+                continue;
+            }
+
+            try
+            {
+                _TryCount++;
+                _Connect(); 
+            }
+            catch (Exception ce)
+            {
+                Debug.WriteLine(&quot;re connect exception:&quot; + ce.Message);
+            }
+
+            // 如果还没连接不符合结束条件则睡2秒
+            if (!_MqttClient.IsConnected)
+            {
+                Thread.Sleep(2000);
+            }
+        }
+    }));
+            
+    retryThread.Start();
+}</code></pre>
+<h4 id="实例化部分">（2）实例化部分</h4>
+<pre><code><code>// 实例化客户端
+private void _BuildClient()
+{
+    try
+    {
+        _MqttClient = new MqttClient(_MqttServer);
+    }
+    catch (Exception e)
+    {
+        Debug.WriteLine(&quot;build client error:&quot; + e.Message);
+        return;
+    }
+
+    // 消息到达事件绑定
+    _MqttClient.MqttMsgPublishReceived += client_MqttMsgPublishReceived;
+
+    // 连接断开事件绑定
+    _MqttClient.ConnectionClosed += (sender, e) =&gt;
+    {
+        if (!_ToClose)
+        {
+            // 尝试重连
+            _TryContinueConnect();
+        }
+    };
+}</code></pre>
+<h4 id="尝试连接部分">（3）尝试连接部分</h4>
+<pre><code><code>// 发起一次连接，连接成功则订阅相关主题 
+private void _Connect()
+{
+    if (String.IsNullOrEmpty(_MqttUsername))
+    {
+        var b = _MqttClient.Connect(_MqttClientId);
+    }
+    else
+    {
+        var b = _MqttClient.Connect(_MqttClientId, _MqttUsername, _MqttUserpass);
+    } 
+
+    if (_MqttClient.IsConnected)
+    {
+        _MqttClient.Subscribe(new string[] { &quot;topic1&quot;, &quot;topic2&quot; },
+            new byte[] { MqttMsgBase.QOS_LEVEL_AT_MOST_ONCE, MqttMsgBase.QOS_LEVEL_AT_MOST_ONCE });
+    }
+}</code></pre>
+<p>实测效果不错，其中延时时间可以适当调整。</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

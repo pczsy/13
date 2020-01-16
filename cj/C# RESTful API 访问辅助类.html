@@ -1,0 +1,166 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C# RESTful API 访问辅助类' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C# RESTful API 访问辅助类</center></div><div class='banquan'>原文出处:本文由博客园博主三人行工作室提供。<br/>
+原文连接:https://www.cnblogs.com/timeddd/p/11126278.html</div><br>
+    <p><img src="./images/C# RESTful API 访问辅助类0.png" /></p>
+<blockquote>
+<p>REST 全称是 Representational State Transfer，有人说它是一种风格，并非一种标准，个人觉得挺有道理。它本身并没有创造新的技术、组件与服务，更像是告诉大家如何更好地使用现有Web标准中的一些准则和约束，也不可否认，RESTFul 是目前最流行的 API 设计规范，用于 Web 数据接口的设计。</p>
+</blockquote>
+<p>RESTful 风格的 API，在 HTTP 协议上使用的是标准 HTTP 方法，GET、PUT、POST 和 DELETE 等。</p>
+<h3 id="常用实践">常用实践</h3>
+<p>（1）API 返回结果通常为 JSON 形式，请求的头部属性 Accept 通常设置为 application/json</p>
+<p>（2）请求的 Body 数据部分使用 JSON 形式</p>
+<p>（3）鉴权信息使用 JWT 等形式的授权码方式，放在请求头部属性中传输，属性名称自定义，如 auth，token 等等</p>
+<h3 id="辅助类设计">辅助类设计</h3>
+<p><strong>（1）属性定义</strong></p>
+<p>定义属性：TokenHeaderName</p>
+<p>上述实践描述中，自定义部分为鉴权信息在头部属性中的名称，定义该属性表示这个名称。</p>
+<p>定义属性：DefaultToken</p>
+<p>考虑到鉴权信息在某些场景下可初始为一个固定值，定义该属性在默认情况下使用。</p>
+<p>具体定义如下：</p>
+<pre><code><code>// 鉴权 token 的请求头属性名称
+public String TokenHeaderName { get; set; }
+
+// 默认的鉴权 token 信息
+public String DefaultToken { get; set; }</code></pre>
+<p><strong>（2）方法定义</strong></p>
+<p>方法定义跟标准的 HTTP 方法一致，这里定义常用的 Get、Put、Post、Delete 方法。</p>
+<p>再抽取其中会重复的部分形成一些私有方法来复用，再重载一些方法使得可以应用默认参数值。</p>
+<p><strong>（2.1）构造方法</strong></p>
+<p>构造时可以指定鉴权头部属性名和 token，也可以不指定。</p>
+<pre><code><code>public RestApiVisitHelper()
+{
+
+}
+
+// 构造时设置鉴权 token 的请求头属性名称
+public RestApiVisitHelper(String tokenHeaderName)
+{
+    TokenHeaderName = tokenHeaderName;
+}
+
+// 构造时设置鉴权 token 的请求头属性名称，以及默认的 token 值
+public RestApiVisitHelper(String tokenHeaderName, String defaultToken){
+    TokenHeaderName = tokenHeaderName;
+    DefaultToken = defaultToken;
+}  </code></pre>
+<p><strong>（2.2）访问所需辅助方法</strong></p>
+<p>（2.2.1） 创建 WebClient，设置好相关属性，包括鉴权头部信息</p>
+<pre><code><code>// 创建 WebClient 并设置好 token 信息
+private WebClient CreateWebClient(String token)
+{
+    System.Net.ServicePointManager.ServerCertificateValidationCallback = ((sender, certificate, chain, sslPolicyErrors) =&gt; true);
+    System.Net.WebClient webClientObj = new System.Net.WebClient();
+    webClientObj.Headers.Add(&quot;Accept&quot;, &quot;application/json&quot;);
+    if (!String.IsNullOrEmpty(TokenHeaderName) &amp;&amp; !String.IsNullOrEmpty(token))
+    {
+        webClientObj.Headers.Add(TokenHeaderName, token);
+    }
+    webClientObj.Encoding = Encoding.UTF8;
+    return webClientObj;
+}</code></pre>
+<p>（2.2.2）将查询参数格式化拼接成最终 url</p>
+<pre><code><code>// 将查询参数格式化拼接到 url 上形成最终的访问地址
+private String FormatUrl(String apiUrl, Hashtable queryParams)
+{
+    String queryString = &quot;&quot;;
+    foreach (var k in queryParams.Keys)
+    {
+        if (!String.IsNullOrEmpty(queryString))
+        {
+            queryString += &quot;&amp;&quot;;
+        }
+        queryString += String.Format(&quot;{0}={1}&quot;, k, queryParams[k]);
+    }
+    if (!String.IsNullOrEmpty(queryString))
+    {
+        apiUrl += &quot;?&quot; + queryString;
+    }
+    return apiUrl;
+}</code></pre>
+<p>（2.2.3）异常统一处理</p>
+<p>出现请求异常时，可以统一进行处理，具体返回结果可自行定义。</p>
+<pre><code><code>// 异常时返回的信息：应该根据实际需要进行返回
+private String WhenError(Exception e)
+{
+    JObject result = new JObject();
+    result[&quot;err_code&quot;] = -1;  
+    if (e is WebException)
+    {
+        var we = (WebException)e;
+        if (we.Response != null)  // 如果有输出则仍然返回实际输出
+        {
+            return new StreamReader(we.Response.GetResponseStream()).ReadToEnd();
+        }
+        else
+        {                    
+            result[&quot;err_msg&quot;] = we.Message;
+        }
+    }
+    else
+    { 
+        result[&quot;err_msg&quot;] = e.Message; 
+    }
+    return result.ToString(Newtonsoft.Json.Formatting.None);
+}</code></pre>
+<p><strong>（2.3）公开方法具体实现</strong></p>
+<p>有了以上辅助方法，实现代码会变得简洁，且各个方法代码结构类似。以下以 Post 方法（包括重载） 为例展示基本实现。</p>
+<pre><code><code>/// &lt;summary&gt;
+/// Post Api 返回结果文本，使用默认的鉴权 token
+/// &lt;/summary&gt;
+/// &lt;param name=&quot;apiUrl&quot;&gt;&lt;/param&gt;
+/// &lt;param name=&quot;queryParams&quot;&gt;&lt;/param&gt;
+/// &lt;param name=&quot;body&quot;&gt;&lt;/param&gt;
+/// &lt;returns&gt;&lt;/returns&gt;
+public String Post(string apiUrl, Hashtable queryParams, JObject body)
+{
+    return Post(apiUrl, queryParams, body, DefaultToken);
+}
+
+/// &lt;summary&gt;
+/// Post Api 返回结果文本
+/// &lt;/summary&gt;
+/// &lt;param name=&quot;apiUrl&quot;&gt;&lt;/param&gt;
+/// &lt;param name=&quot;queryParams&quot;&gt;&lt;/param&gt;
+/// &lt;param name=&quot;body&quot;&gt;&lt;/param&gt;
+/// &lt;param name=&quot;token&quot;&gt;&lt;/param&gt;
+/// &lt;returns&gt;&lt;/returns&gt;
+public String Post(string apiUrl, Hashtable queryParams, JObject body, String token)
+{
+    System.Net.WebClient webClientObj = CreateWebClient(token);
+
+    apiUrl = FormatUrl(apiUrl, queryParams);
+    try
+    {
+        String result = webClientObj.UploadString(apiUrl, &quot;POST&quot;, body.ToString(Newtonsoft.Json.Formatting.None));
+        return result;
+    }
+    catch (Exception ce)
+    {
+        return WhenError(ce);
+    }
+}</code></pre>
+<h3 id="完整源码">完整源码</h3>
+<p><a href="https://github.com/triplestudio/helloworld/blob/master/RestApiVisitHelper.cs" class="uri">https://github.com/triplestudio/helloworld/blob/master/RestApiVisitHelper.cs</a></p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

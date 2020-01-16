@@ -1,0 +1,187 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C#使用Consul集群进行服务注册与发现' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C#使用Consul集群进行服务注册与发现</center></div><div class='banquan'>原文出处:本文由博客园博主kiba518提供。<br/>
+原文连接:https://www.cnblogs.com/kiba/p/11941731.html</div><br>
+    <p style="width: 100%; background: #4169E1; color: #ffffff; height: 50px; font-size: 30px; line-height: 50px;"><strong>前言</strong></p>
+<p>我个人觉得，中间件的部署与使用是非常难记忆的；也就是说，如果两次使用中间件的时间间隔比较长，那基本上等于要重新学习使用。</p>
+<p>所以，我觉得学习中间件的文章，越详细越好；因为，这对作者而言也是一份珍贵的备忘资料。</p>
+<p style="width: 100%; background: #4169E1; color: #ffffff; height: 50px; font-size: 30px; line-height: 50px;"><strong>Consul简介</strong></p>
+<p>Consul一个什么，我想大家通过搜索引擎一定可以搜索到；所以，我就不在重复他的官方描述了。</p>
+<p>这里，我为大家提供一个更加好理解的描述。</p>
+<p><strong>Consul是什么？</strong></p>
+<p>Consul本质上是一个Socket通信中间件。</p>
+<p>它主要实现了两个功能，服务注册与发现与自身的负载均衡的集群。</p>
+<p>我们可以把他理解为一个没有界面的应用程序，因为没有界面，所以想启动Consul就只能使用命令行了；也因为没有界面，一旦使用命令行启动了Consul，那么，执行该命令行的cmd.exe程序，就成了Consul的宿主了；一旦关闭Cmd窗口，Consul就停止运行了。</p>
+<p><strong>服务注册与发现的本质是什么？</strong></p>
+<p>其实服务注册与发现的原理很简单。</p>
+<p>当我们在本机运行Consul时，他会自动监听8500端口；然后我们通过一个开源类库（这个开源类库可以在nuget上检索到，文章下面会介绍），调用其下不同的方法来向这个Consul进程发送TCP消息，来注册服务或者发现服务。</p>
+<p>Consul进程在接收到注册消息时，就把注册的服务信息存储到本地磁盘或内存（因为我没有具体去调查Consul存储数据是否使用了数据库，但我们都知道数据库的数据也是保存在本地磁盘的，所以，它肯定是把数据存进磁盘或者内存中了）。</p>
+<p><strong>数据中心</strong></p>
+<p>Consul存储数据的地方，官方为其命名为数据中心，也就是上面说的保存我们注册的服务信息的本地磁盘或者内存。</p>
+<p><strong>Consul提供负载均衡的集群</strong></p>
+<p>Consul的集群也很好理解，在我们成功启动Consul以后，它除了监听8500端口以外，它还监听了一个8031端口。</p>
+<p>这个8031端口就是用于Consul集群相互通信的。</p>
+<p>我们都知道集群是要两台以上的电脑的，所以，我们就必须找到两台或以上的电脑安装Consul中间件。</p>
+<p>然后，使用Consul的命令行，将两台电脑连接到一起，这样集群就形成了。</p>
+<p>在集群内每台电脑上安装的Consul中间件，我们统称为服务器代理（Agent）；当集群启动后，会在多个代理服务器之间选举出一个Leader。</p>
+<p>选举Leader自然就是服务器代理之间的通信了，也就是通过上面提到的8031端口通信的。</p>
+<p>选举了Leader，服务器代理就可以将自身的负载信息发送给Leader了，这样客户端调用Consul检索服务数据时，就可以去性能最优的那台机器上获取信息了。（注：这个就是举例说明，并非Consul的负载均衡的真实处理模式）</p>
+<p style="width: 100%; background: #4169E1; color: #ffffff; height: 50px; font-size: 30px; line-height: 50px;"><strong>Consul代理服务器安装</strong></p>
+<p>首先，去官网下载Consul，官网下载地址<a href="https://www.consul.io/downloads.html" target="_blank">https://www.consul.io/downloads.html</a></p>
+<p>拉到网站的最下方，选择Window64-bit的Consul下载，如下图：</p>
+<p><img src="./images/C#使用Consul集群进行服务注册与发现0.png" alt="" /></p>
+<p>下载完成后，我们得到一个压缩包consul_1.6.2_windows_amd64.zip；解压缩后，得到consul.exe文件，如下图：</p>
+<p><img src="./images/C#使用Consul集群进行服务注册与发现1.png" alt="" /></p>
+<p>因为我们要使用命令行来运行consul，所以，我们将consul.exe所在的目录添加进环境变量，这样，当我们在CMD窗口中执行consul的相关命令时，系统就会自动将这个些命令发送给consul.exe文件执行了。</p>
+<p>配置环境变量如下图所示：</p>
+<p><img src="./images/C#使用Consul集群进行服务注册与发现2.png" alt="" /></p>
+<p>&nbsp;配置完环境变量，我们打开一个cmd的命令行窗口，然后输入consul来确认我们的环境变量是否配置成功，如下图：</p>
+<p><img src="./images/C#使用Consul集群进行服务注册与发现3.png" alt="" /></p>
+<p>看到图中的信息，就代表我们的consul的环境变量配置成功了，已经可以运行了。</p>
+<p>接下来，我们在这个cmd窗体中输入consul的命令来启动consul服务器代理，命令如下：</p>
+<div class="cnblogs_Highlighter">
+<pre><code>consul agent -server -ui -bootstrap-expect=1 -data-dir=/tmp/consul -node=consul-1 -client=0.0.0.0 -bind=192.168.1.111 -datacenter=dc1
+</pre>
+</div>
+<p>命令解释如下：</p>
+<p>其实consul命令大家是可以在网络上搜到它们的定义的，不过我觉得解释的还是太官方，所以，我在这里提供了一份我认为更好的解释。</p>
+<p>consul agent：命令头，必须要有。</p>
+<p>-server：表面我们现在要启动服务器代理（agent）是服务模式的。Consul Agent的运行模式有两种，Server模式和Client模式。其区别简单来说就是Server模式的Agent可以被选举为Leader，而Client模式的不可以，当然还有其他区别，有兴趣大家可以自行了解。</p>
+<p>-ui：consul运行后，会提供一个http://127.0.0.1:8500/ui/的网站，里面存储了Consul Agent各个节点以及注册的服务等相关信息，即数据中心的网页形式体现。这个参数代表是否创建这个网站，这个参数与这个数据中心网站有关。</p>
+<p>bind：本机的ip地址，集群内其他代理服务器可以通过这个ip来访问这台电脑的consul代理服务器。</p>
+<p>bootstrap-expect：是集群启动条件，指当服务器端模式（Server模式）的代理达到这个数目后，才开始运行。</p>
+<p>data-dir：是存放数据中心数据的，该目录必须是稳定的，系统重启后也继续存在的。</p>
+<p>datacenter：当前agent的中心数据的名称，默认是dc1。</p>
+<p>node：节点在集群中的名称，在一个集群中必须是唯一的，默认是该节点的主机名（代表一个机器）。</p>
+<p>client：本地ip地址，这里使用 0.0.0.0 ，就表示这个服务器所有IP都可以，即当这台电脑有俩ip，192.168.1.111和192.168.1.112，那么通过这俩IP都可以访问到这台机器的consul代理服务器。</p>
+<p>----------------------------------------------------------------------------------------------------</p>
+<p>运行该命令，如下图所示：</p>
+<p><img src="./images/C#使用Consul集群进行服务注册与发现4.png" alt="" /></p>
+<p>可以看到，我们的Consul代理服务已经成功运行了。</p>
+<p>现在，我们在去另一台电脑，打开cmd窗口，运行如下consul命令：</p>
+<div class="cnblogs_code">
+<pre><code>consul agent -server -ui -bootstrap-expect=<span style="color: #800080;">1</span> -data-dir=d:\consul -node=consul-<span style="color: #800080;">2</span> -client=<span style="color: #800080;">0.0</span>.<span style="color: #800080;">0.0</span> -bind=<span style="color: #800080;">192.168</span>.<span style="color: #800080;">80.112</span> -datacenter=dc1&nbsp;-join 192.168.80.111</pre>
+</div>
+<p>可以看到，我们在命令行最后面追加了一个join 192.168.80.111；通过这个命令，我们把这台电脑的代理服务器成功的加入到了上文中的consul集群。</p>
+<p style="width: 100%; background: #4169E1; color: #ffffff; height: 50px; font-size: 30px; line-height: 50px;"><strong>服务注册与发现</strong></p>
+<p><strong>Consul的服务注册</strong></p>
+<p>首先，我们创建一个WebAPI，这里为使用了Core框架创建了一个Web API，为了方便测试，我就直接拿本地的VisualStudio启动测试了。</p>
+<p>创建WebAPI后，我们在Nuget中查找Consul的Net版本类库。</p>
+<p>在Nuget中搜索Consul，然后选中下图中的选项进行安装。</p>
+<p><img src="./images/C#使用Consul集群进行服务注册与发现5.png" alt="" /></p>
+<p>然后，我们在Startup文件中，增加一个函数，如下：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> RegisterConsul()
+{
+    </span><span style="color: #0000ff;">var</span> consulClient = <span style="color: #0000ff;">new</span> ConsulClient(p =&gt; { p.Address = <span style="color: #0000ff;">new</span> Uri($<span style="color: #800000;">"</span><span style="color: #800000;">http://127.0.0.1:8500</span><span style="color: #800000;">"</span>); });<span style="color: #008000;">//</span><span style="color: #008000;">请求注册的 Consul 地址
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">这里的这个ip 就是本机的ip，这个端口8500 这个是默认注册服务端口 </span>
+    <span style="color: #0000ff;">var</span> httpCheck = <span style="color: #0000ff;">new</span><span style="color: #000000;"> AgentServiceCheck()
+    {
+        DeregisterCriticalServiceAfter </span>= TimeSpan.FromSeconds(<span style="color: #800080;">5</span>),<span style="color: #008000;">//</span><span style="color: #008000;">服务启动多久后注册</span>
+        Interval = TimeSpan.FromSeconds(<span style="color: #800080;">10</span>),<span style="color: #008000;">//</span><span style="color: #008000;">间隔固定的时间访问一次，</span><span style="color: #008000; text-decoration: underline;">https://localhost</span><span style="color: #008000;">:44308/api/Health</span>
+        HTTP = $<span style="color: #800000;">"</span><span style="color: #800000;">https://localhost:44308/api/Health</span><span style="color: #800000;">"</span>,<span style="color: #008000;">//</span><span style="color: #008000;">健康检查地址 &nbsp;44308是visualstudio启动的端口</span>
+        Timeout = TimeSpan.FromSeconds(<span style="color: #800080;">5</span><span style="color: #000000;">)
+    };
+     
+    </span><span style="color: #0000ff;">var</span> registration = <span style="color: #0000ff;">new</span><span style="color: #000000;"> AgentServiceRegistration()
+    {
+        Checks </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;">[] { httpCheck }, 
+        ID </span>=<span style="color: #000000;"> Guid.NewGuid().ToString(),
+        Name </span>= <span style="color: #800000;">"</span><span style="color: #800000;">test1</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+        Address </span>= <span style="color: #800000;">"</span><span style="color: #800000;">https://localhost/</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+        Port </span>= <span style="color: #800080;">44308</span><span style="color: #000000;">,
+        
+    };
+
+    consulClient.Agent.ServiceRegister(registration).Wait();</span><span style="color: #008000;">//</span><span style="color: #008000;">注册服务 
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">consulClient.Agent.ServiceDeregister(registration.ID).Wait();</span><span style="color: #008000;">//</span><span style="color: #008000;">registration.ID是guid
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">当服务停止时需要取消服务注册，不然，下次启动服务时，会再注册一个服务。
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">但是，如果该服务长期不启动，那consul会自动删除这个服务，大约2，3分钟就会删了 </span>
+<span style="color: #000000;">
+}</span></pre>
+</div>
+<p>然后在Configure中调用这个方法，这样，当我们调试或运行这个项目时，就会自动将这个Webapi注册到Consul里了。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> Configure(IApplicationBuilder app, IWebHostEnvironment env)
+{
+    </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (env.IsDevelopment())
+    {
+        app.UseDeveloperExceptionPage();
+    }
+    
+    app.UseHttpsRedirection();
+
+    app.UseRouting();
+
+    app.UseAuthorization();
+
+    app.UseEndpoints(endpoints </span>=&gt;<span style="color: #000000;">
+    {
+        endpoints.MapControllers();
+    });
+    RegisterConsul();</span><span style="color: #008000;">//</span><span style="color: #008000;">注册本服务到consul集群</span>
+<span style="color: #000000;">  
+}</span></pre>
+</div>
+<p>服务注册完后，可以访问本地数据中心的网站【http://127.0.0.1:8500/ui/dc1/services】来查看注册服务的状态。</p>
+<p><strong>Consul服务发现</strong></p>
+<p>服务注册完成后，我们再创建一个控制台项目来进行服务发现。</p>
+<p>创建完成项目后，也需要引用consul类库，同服务端一样在Nuget中搜索。</p>
+<p>编写代码如下：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+{
+    </span><span style="color: #0000ff;">var</span> consulClient = <span style="color: #0000ff;">new</span> ConsulClient(x =&gt; x.Address = <span style="color: #0000ff;">new</span> Uri($<span style="color: #800000;">"</span><span style="color: #800000;">http://192.168.1.178:8500</span><span style="color: #800000;">"</span>));<span style="color: #008000;">//</span><span style="color: #008000;">请求注册的 Consul 地址</span>
+    <span style="color: #0000ff;">var</span> ret =<span style="color: #000000;"> consulClient.Agent.Services();
+     
+    </span><span style="color: #0000ff;">var</span> allServer =<span style="color: #000000;"> ret.GetAwaiter().GetResult();
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">这个是个dictionary的返回值，他的key是string类型，就是8500/ui上services的instance的id</span>
+    <span style="color: #0000ff;">var</span> allServerDic =<span style="color: #000000;"> allServer.Response;
+    </span><span style="color: #0000ff;">var</span> test1 =<span style="color: #000000;"> allServerDic.First();
+    </span><span style="color: #0000ff;">string</span> name = test1.Value.Service;<span style="color: #008000;">//</span><span style="color: #008000;">服务名,就是注册的那个test1</span>
+    <span style="color: #0000ff;">string</span> serverAddress =<span style="color: #000000;"> test1.Value.Address; 
+    </span><span style="color: #0000ff;">int</span> serverPort =<span style="color: #000000;"> test1.Value.Port;
+    Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">serverAddress:{serverAddress}==serverPort{serverPort}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">我们可以在客户端启动的时候，调用一下consul来查找服务
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">比如，我们可以在服务集合里查找 服务名叫test1的服务 然后在调用它
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">这样，当服务器改变了test1的ip和端口，我们依然可以在集群里找他test1新的ip和端口了</span>
+<span style="color: #000000;">    Console.ReadKey();
+}</span></pre>
+</div>
+<p>运行结果如下：</p>
+<p><img src="./images/C#使用Consul集群进行服务注册与发现6.png" alt="" /></p>
+<p>可以看到，我们已经成功调用了Consul，也成功的获取到了服务信息。&nbsp;</p>
+<p>----------------------------------------------------------------------------------------------------</p>
+<p>其实Consul除了服务注册与查询，还可以进行Key-Value存储，也就是说，这个是一个分布式Key-Value存储集群。</p>
+<p>Key-Value存储的用法在Github已经有例子了，网址：<a href="https://github.com/PlayFab/consuldotnet" target="_blank">https://github.com/PlayFab/consuldotnet</a>。</p>
+<p>----------------------------------------------------------------------------------------------------</p>
+<p>C#使用Consul进行服务注册与发现就讲完了。</p>
+<p>代码已经传到Github上了，欢迎大家下载。</p>
+<p style="border: 2px solid #73bf00; padding: 10px 40px; background: #ccff80; border-radius: 15px; -moz-border-radius: 15px;">Github地址：<a href="https://github.com/kiba518/KibaConsul" target="_blank">https://github.com/kiba518/KibaConsul</a></p>
+<p>----------------------------------------------------------------------------------------------------</p>
+<p>注：此文章为原创，任何形式的转载都请联系作者获得授权并注明出处！<br />若您觉得这篇文章还不错，请点击下方的<span style="color: #ff0000;">【<strong>推荐】</strong></span>，非常感谢！</p>
+<p><a href="https://www.cnblogs.com/kiba/p/11703073.html" target="_blank">https://www.cnblogs.com/kiba/p/11703073.html</a></p>
+<p>&nbsp;<img src="./images/C#使用Consul集群进行服务注册与发现7.png" alt="" /></p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

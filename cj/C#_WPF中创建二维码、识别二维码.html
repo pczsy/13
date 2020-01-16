@@ -1,0 +1,191 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C#_WPF中创建二维码、识别二维码' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C#_WPF中创建二维码、识别二维码</center></div><div class='banquan'>原文出处:本文由博客园博主begrateful提供。<br/>
+原文连接:https://www.cnblogs.com/wendj/p/10789877.html</div><br>
+    <p><span style="font-size: 16px;"><strong>第三方库：</strong></span></p>
+<p>　　WPFMediaKit.dll (<a id="cb_post_title_url" class="postTitle2" href="https://www.cnblogs.com/ningrongjiang/archive/2013/06/10/3130657.html">WPFMediaKit摄像头处理</a>)</p>
+<p>　　zing.dll</p>
+<p><img src="./images/C#_WPF中创建二维码、识别二维码0.png" alt="" /></p>
+<p>&nbsp;</p>
+<p><strong><span style="font-size: 16px;">NuGet安装这两个第三方dll</span></strong></p>
+<p>&nbsp;<img src="./images/C#_WPF中创建二维码、识别二维码1.png" alt="" /></p>
+<p><img src="./images/C#_WPF中创建二维码、识别二维码2.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><strong><span style="font-size: 16px;">项目截图预览：</span></strong></p>
+<p><img src="./images/C#_WPF中创建二维码、识别二维码3.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;项目代码：</p>
+<div class="cnblogs_Highlighter">
+<pre><code>using System;
+using System.Collections.Generic;
+using System.Drawing;
+using System.IO;
+using System.Linq;
+using System.Runtime.InteropServices;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Data;
+using System.Windows.Documents;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using System.Windows.Navigation;
+using System.Windows.Shapes;
+using System.Windows.Threading;
+using WPFMediaKit.DirectShow.Controls;
+using ZXing;
+using ZXing.Common;
+using ZXing.QrCode.Internal;
+
+namespace QRcode
+{
+    /// &lt;summary&gt;
+    /// MainWindow.xaml 的交互逻辑
+    /// &lt;/summary&gt;
+    public partial class MainWindow : Window
+    {
+
+        /// &lt;summary&gt;
+        /// ZXING 二维码扫描类
+        /// &lt;/summary&gt;
+        BarcodeReader codeReader = new BarcodeReader();
+
+        /// &lt;summary&gt;
+        /// 定时器
+        /// &lt;/summary&gt;
+        DispatcherTimer cameraTimer = new DispatcherTimer();
+
+        public MainWindow()
+        {
+            InitializeComponent();
+
+            // 配置的摄像头名称
+            var camera = "Lenovo EasyCamera";
+            if (MultimediaUtil.VideoInputNames.Contains(camera))
+            {
+                //控件制定摄像头
+                vce.VideoCaptureSource = camera;
+                cameraTimer.IsEnabled = false;
+                cameraTimer.Interval = new TimeSpan(200); //执行间隔0.2秒
+                cameraTimer.Tick += cameraTimer_Tick;
+
+            }
+
+
+        }
+        /// &lt;summary&gt;
+        /// 计时器方法
+        /// &lt;/summary&gt;
+        /// &lt;param name="sender"&gt;&lt;/param&gt;
+        /// &lt;param name="e"&gt;&lt;/param&gt;
+        private void cameraTimer_Tick(object sender, EventArgs e)
+        {
+            RenderTargetBitmap bmp = new RenderTargetBitmap((int)vce.ActualWidth, (int)vce.ActualHeight, 96, 96, PixelFormats.Default);
+            vce.Measure(vce.RenderSize);
+            vce.Arrange(new Rect(vce.RenderSize));
+            bmp.Render(vce);
+            BitmapEncoder encoder = new JpegBitmapEncoder();
+            encoder.Frames.Add(BitmapFrame.Create(bmp));
+            using (MemoryStream ms = new MemoryStream())
+            {
+                encoder.Save(ms);
+                Bitmap btiMap = new Bitmap(ms);
+                var result = codeReader.Decode(btiMap);//解析条码
+                if (result != null)
+                {
+                    // 1:停止识别
+                    cameraTimer.Stop();
+                    vce.Play(); 
+                    MessageBox.Show($"识别内容为：{result}");
+
+                }
+            }
+        }
+
+        private void BtnShiBie_Click(object sender, RoutedEventArgs e)
+        {
+            cameraTimer.Start();
+        }
+
+        private void BtnShnegCeng_Click(object sender, RoutedEventArgs e)
+        {
+           var codimg= Create("hello world!!");
+            imgQR.Source = ChangeBitmapToImageSource(codimg);
+        }
+        /// &lt;summary&gt;
+        /// 创建二维码
+        /// &lt;/summary&gt;
+        /// &lt;param name="msg"&gt;二维码中保存的信息&lt;/param&gt;
+        /// &lt;returns&gt;&lt;/returns&gt;
+        public static Bitmap Create(string msg)
+        {
+            MultiFormatWriter writer = new MultiFormatWriter();
+            Dictionary&lt;EncodeHintType, object&gt; hint = new Dictionary&lt;EncodeHintType, object&gt;();
+            //设置二维码为utf-8编码
+            hint.Add(EncodeHintType.CHARACTER_SET, "utf-8");
+            //设置纠错等级， 高
+            hint.Add(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.H);
+            BitMatrix bm = writer.encode(msg, BarcodeFormat.QR_CODE, 200, 120, hint);
+            BarcodeWriter barcodeWriter = new BarcodeWriter();
+            Bitmap bitmap = barcodeWriter.Write(bm);
+            string codePath = Directory.GetCurrentDirectory() + "/code.jpg";
+            if (File.Exists(codePath))
+                File.Delete(codePath);
+            bitmap.Save(codePath);
+            return bitmap;
+        }
+        /// &lt;summary&gt;
+        /// 从bitmap转换成ImageSource
+        /// &lt;/summary&gt;
+        /// &lt;param name="icon"&gt;&lt;/param&gt;
+        /// &lt;returns&gt;&lt;/returns&gt;
+        public static ImageSource ChangeBitmapToImageSource(Bitmap bitmap)
+        {
+            IntPtr hBitmap = bitmap.GetHbitmap();
+
+            ImageSource wpfBitmap = System.Windows.Interop.Imaging.CreateBitmapSourceFromHBitmap(
+                hBitmap,
+                IntPtr.Zero,
+                Int32Rect.Empty,
+                BitmapSizeOptions.FromEmptyOptions());
+
+            if (!DeleteObject(hBitmap))
+            {
+                throw new System.ComponentModel.Win32Exception();
+            }
+            return wpfBitmap;
+        }
+
+        [DllImport("gdi32.dll", SetLastError = true)]
+        private static extern bool DeleteObject(IntPtr hObject);
+    }
+}
+</pre>
+</div>
+<p>　　</p>
+<p>&nbsp;项目源代码地址：<a href="https://download.csdn.net/download/qingchundaima/11151083">https://download.csdn.net/download/qingchundaima/11151083</a></p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

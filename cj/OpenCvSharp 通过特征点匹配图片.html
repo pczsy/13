@@ -1,0 +1,201 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修OpenCvSharp 通过特征点匹配图片' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>OpenCvSharp 通过特征点匹配图片</center></div><div class='banquan'>原文出处:本文由博客园博主StupidsCat提供。<br/>
+原文连接:https://www.cnblogs.com/StupidsCat/p/11453088.html</div><br>
+    <p>现在的手游基本都是重复操作,一个动作要等好久,结束之后继续另一个动作.很麻烦,所以动起了自己写一个游戏辅助的心思.</p>
+<p>这个辅助本身没什么难度,就是通过不断的截图,然后从这个截图中找出预先截好的能代表相应动作的按钮或者触发条件的小图.</p>
+<p>找到之后获取该子区域的左上角坐标,然后通过windows API调用鼠标或者键盘做操作就行了.</p>
+<p>这里面最难的也就是找图了,因为要精准找图,而且最好能适应不同的分辨率下找图,所以在模板匹配的基础上,就有了SIFT和SURF的特征点找图方式.</p>
+<p>在写的过程中查找资料,大都是C++ 或者python的, 很少有原生的C#实现, 所以我就直接拿来翻译过来了(稍作改动).</p>
+<p><strong>SIFT算法</strong></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span><span style="color: #000000;"> Bitmap MatchPicBySift(Bitmap imgSrc, Bitmap imgSub)
+        {
+            </span><span style="color: #0000ff;">using</span> (Mat matSrc =<span style="color: #000000;"> imgSrc.ToMat())
+            </span><span style="color: #0000ff;">using</span> (Mat matTo =<span style="color: #000000;"> imgSub.ToMat())
+            </span><span style="color: #0000ff;">using</span> (Mat matSrcRet = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Mat())
+            </span><span style="color: #0000ff;">using</span> (Mat matToRet = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Mat())
+            {
+                KeyPoint[] keyPointsSrc, keyPointsTo;
+                </span><span style="color: #0000ff;">using</span> (<span style="color: #0000ff;">var</span> sift =<span style="color: #000000;"> OpenCvSharp.XFeatures2D.SIFT.Create())
+                {
+                    sift.DetectAndCompute(matSrc, </span><span style="color: #0000ff;">null</span>, <span style="color: #0000ff;">out</span><span style="color: #000000;"> keyPointsSrc, matSrcRet);
+                    sift.DetectAndCompute(matTo, </span><span style="color: #0000ff;">null</span>, <span style="color: #0000ff;">out</span><span style="color: #000000;"> keyPointsTo, matToRet);
+                }
+                </span><span style="color: #0000ff;">using</span> (<span style="color: #0000ff;">var</span> bfMatcher = <span style="color: #0000ff;">new</span><span style="color: #000000;"> OpenCvSharp.BFMatcher())
+                {
+                    </span><span style="color: #0000ff;">var</span> matches = bfMatcher.KnnMatch(matSrcRet, matToRet, k: <span style="color: #800080;">2</span><span style="color: #000000;">);
+
+                    </span><span style="color: #0000ff;">var</span> pointsSrc = <span style="color: #0000ff;">new</span> List&lt;Point2f&gt;<span style="color: #000000;">();
+                    </span><span style="color: #0000ff;">var</span> pointsDst = <span style="color: #0000ff;">new</span> List&lt;Point2f&gt;<span style="color: #000000;">();
+                    </span><span style="color: #0000ff;">var</span> goodMatches = <span style="color: #0000ff;">new</span> List&lt;DMatch&gt;<span style="color: #000000;">();
+                    </span><span style="color: #0000ff;">foreach</span> (DMatch[] items <span style="color: #0000ff;">in</span> matches.Where(x =&gt; x.Length &gt; <span style="color: #800080;">1</span><span style="color: #000000;">))
+                    {
+                        </span><span style="color: #0000ff;">if</span> (items[<span style="color: #800080;">0</span>].Distance &lt; <span style="color: #800080;">0.5</span> * items[<span style="color: #800080;">1</span><span style="color: #000000;">].Distance)
+                        {
+                            pointsSrc.Add(keyPointsSrc[items[</span><span style="color: #800080;">0</span><span style="color: #000000;">].QueryIdx].Pt);
+                            pointsDst.Add(keyPointsTo[items[</span><span style="color: #800080;">0</span><span style="color: #000000;">].TrainIdx].Pt);
+                            goodMatches.Add(items[</span><span style="color: #800080;">0</span><span style="color: #000000;">]);
+                            Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">{keyPointsSrc[items[0].QueryIdx].Pt.X}, {keyPointsSrc[items[0].QueryIdx].Pt.Y}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                        }
+                    }
+
+                    </span><span style="color: #0000ff;">var</span> outMat = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Mat();
+
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 算法RANSAC对匹配的结果做过滤</span>
+                    <span style="color: #0000ff;">var</span> pSrc =<span style="color: #000000;"> pointsSrc.ConvertAll(Point2fToPoint2d);
+                    </span><span style="color: #0000ff;">var</span> pDst =<span style="color: #000000;"> pointsDst.ConvertAll(Point2fToPoint2d);
+                    </span><span style="color: #0000ff;">var</span> outMask = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Mat();
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 如果原始的匹配结果为空, 则跳过过滤步骤</span>
+                    <span style="color: #0000ff;">if</span> (pSrc.Count &gt; <span style="color: #800080;">0</span> &amp;&amp; pDst.Count &gt; <span style="color: #800080;">0</span><span style="color: #000000;">)
+                        Cv2.FindHomography(pSrc, pDst, HomographyMethods.Ransac, mask: outMask);
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 如果通过RANSAC处理后的匹配点大于10个,才应用过滤. 否则使用原始的匹配点结果(匹配点过少的时候通过RANSAC处理后,可能会得到0个匹配点的结果).</span>
+                    <span style="color: #0000ff;">if</span> (outMask.Rows &gt; <span style="color: #800080;">10</span><span style="color: #000000;">)
+                    {
+                        </span><span style="color: #0000ff;">byte</span>[] maskBytes = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">byte</span>[outMask.Rows *<span style="color: #000000;"> outMask.Cols];
+                        outMask.GetArray(</span><span style="color: #800080;">0</span>, <span style="color: #800080;">0</span><span style="color: #000000;">, maskBytes);
+                        Cv2.DrawMatches(matSrc, keyPointsSrc, matTo, keyPointsTo, goodMatches, outMat, matchesMask: maskBytes, flags: DrawMatchesFlags.NotDrawSinglePoints);
+                    }
+                    </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+                        Cv2.DrawMatches(matSrc, keyPointsSrc, matTo, keyPointsTo, goodMatches, outMat, flags: DrawMatchesFlags.NotDrawSinglePoints);
+                    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> OpenCvSharp.Extensions.BitmapConverter.ToBitmap(outMat);
+                }
+            }
+        }</span></pre>
+</div>
+<p><strong>SURF算法</strong></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> Bitmap MatchPicBySurf(Bitmap imgSrc, Bitmap imgSub, <span style="color: #0000ff;">double</span> threshold = <span style="color: #800080;">400</span><span style="color: #000000;">)
+        {
+            </span><span style="color: #0000ff;">using</span> (Mat matSrc =<span style="color: #000000;"> imgSrc.ToMat())
+            </span><span style="color: #0000ff;">using</span> (Mat matTo =<span style="color: #000000;"> imgSub.ToMat())
+            </span><span style="color: #0000ff;">using</span> (Mat matSrcRet = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Mat())
+            </span><span style="color: #0000ff;">using</span> (Mat matToRet = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Mat())
+            {
+                KeyPoint[] keyPointsSrc, keyPointsTo;
+                </span><span style="color: #0000ff;">using</span> (<span style="color: #0000ff;">var</span> surf = OpenCvSharp.XFeatures2D.SURF.Create(threshold,<span style="color: #800080;">4</span>,<span style="color: #800080;">3</span>,<span style="color: #0000ff;">true</span>,<span style="color: #0000ff;">true</span><span style="color: #000000;">))
+                {
+                    surf.DetectAndCompute(matSrc, </span><span style="color: #0000ff;">null</span>, <span style="color: #0000ff;">out</span><span style="color: #000000;"> keyPointsSrc, matSrcRet);
+                    surf.DetectAndCompute(matTo, </span><span style="color: #0000ff;">null</span>, <span style="color: #0000ff;">out</span><span style="color: #000000;"> keyPointsTo, matToRet);
+                }
+               
+                </span><span style="color: #0000ff;">using</span> (<span style="color: #0000ff;">var</span> flnMatcher = <span style="color: #0000ff;">new</span><span style="color: #000000;"> OpenCvSharp.FlannBasedMatcher())
+                {
+                    </span><span style="color: #0000ff;">var</span> matches =<span style="color: #000000;"> flnMatcher.Match(matSrcRet, matToRet);
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">求最小最大距离</span>
+                    <span style="color: #0000ff;">double</span> minDistance = <span style="color: #800080;">1000</span>;<span style="color: #008000;">//</span><span style="color: #008000;">反向逼近</span>
+                    <span style="color: #0000ff;">double</span> maxDistance = <span style="color: #800080;">0</span><span style="color: #000000;">;
+                    </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; matSrcRet.Rows; i++<span style="color: #000000;">)
+                    {
+                        </span><span style="color: #0000ff;">double</span> distance =<span style="color: #000000;"> matches[i].Distance;
+                        </span><span style="color: #0000ff;">if</span> (distance &gt;<span style="color: #000000;"> maxDistance)
+                        {
+                            maxDistance </span>=<span style="color: #000000;"> distance;
+                        }
+                        </span><span style="color: #0000ff;">if</span> (distance &lt;<span style="color: #000000;"> minDistance)
+                        {
+                            minDistance </span>=<span style="color: #000000;"> distance;
+                        }
+                    }
+                    Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">max distance : {maxDistance}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                    Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">min distance : {minDistance}</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+
+                    </span><span style="color: #0000ff;">var</span> pointsSrc = <span style="color: #0000ff;">new</span> List&lt;Point2f&gt;<span style="color: #000000;">();
+                    </span><span style="color: #0000ff;">var</span> pointsDst = <span style="color: #0000ff;">new</span> List&lt;Point2f&gt;<span style="color: #000000;">();
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">筛选较好的匹配点</span>
+                    <span style="color: #0000ff;">var</span> goodMatches = <span style="color: #0000ff;">new</span> List&lt;DMatch&gt;<span style="color: #000000;">();
+                    </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; matSrcRet.Rows; i++<span style="color: #000000;">)
+                    {
+                        </span><span style="color: #0000ff;">double</span> distance =<span style="color: #000000;"> matches[i].Distance;
+                        </span><span style="color: #0000ff;">if</span> (distance &lt; Math.Max(minDistance * <span style="color: #800080;">2</span>, <span style="color: #800080;">0.02</span><span style="color: #000000;">))
+                        {
+                            pointsSrc.Add(keyPointsSrc[matches[i].QueryIdx].Pt);
+                            pointsDst.Add(keyPointsTo[matches[i].TrainIdx].Pt);
+                            </span><span style="color: #008000;">//</span><span style="color: #008000;">距离小于范围的压入新的DMatch</span>
+<span style="color: #000000;">                            goodMatches.Add(matches[i]);
+                        }
+                    }
+
+                    </span><span style="color: #0000ff;">var</span> outMat = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Mat();
+
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 算法RANSAC对匹配的结果做过滤</span>
+                    <span style="color: #0000ff;">var</span> pSrc =<span style="color: #000000;"> pointsSrc.ConvertAll(Point2fToPoint2d);
+                    </span><span style="color: #0000ff;">var</span> pDst =<span style="color: #000000;"> pointsDst.ConvertAll(Point2fToPoint2d);
+                    </span><span style="color: #0000ff;">var</span> outMask = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Mat();
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 如果原始的匹配结果为空, 则跳过过滤步骤</span>
+                    <span style="color: #0000ff;">if</span> (pSrc.Count &gt; <span style="color: #800080;">0</span> &amp;&amp; pDst.Count &gt; <span style="color: #800080;">0</span><span style="color: #000000;">)
+                        Cv2.FindHomography(pSrc, pDst, HomographyMethods.Ransac, mask: outMask);
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 如果通过RANSAC处理后的匹配点大于10个,才应用过滤. 否则使用原始的匹配点结果(匹配点过少的时候通过RANSAC处理后,可能会得到0个匹配点的结果).</span>
+                    <span style="color: #0000ff;">if</span> (outMask.Rows &gt; <span style="color: #800080;">10</span><span style="color: #000000;">)
+                    {
+                        </span><span style="color: #0000ff;">byte</span>[] maskBytes = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">byte</span>[outMask.Rows *<span style="color: #000000;"> outMask.Cols];
+                        outMask.GetArray(</span><span style="color: #800080;">0</span>, <span style="color: #800080;">0</span><span style="color: #000000;">, maskBytes);
+                        Cv2.DrawMatches(matSrc, keyPointsSrc, matTo, keyPointsTo, goodMatches, outMat, matchesMask: maskBytes, flags: DrawMatchesFlags.NotDrawSinglePoints);
+                    }
+                    </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+                        Cv2.DrawMatches(matSrc, keyPointsSrc, matTo, keyPointsTo, goodMatches, outMat, flags: DrawMatchesFlags.NotDrawSinglePoints);
+                    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> OpenCvSharp.Extensions.BitmapConverter.ToBitmap(outMat);
+                }
+            }
+        }</span></pre>
+</div>
+<p><strong><img src="./images/OpenCvSharp 通过特征点匹配图片0.png" alt="" /></strong></p>
+<p><strong>模板匹配</strong></p>
+<div class="cnblogs_code">
+<pre><code> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> System.Drawing.Point FindPicFromImage(Bitmap imgSrc, Bitmap imgSub, <span style="color: #0000ff;">double</span> threshold = <span style="color: #800080;">0.9</span><span style="color: #000000;">)
+        {
+            OpenCvSharp.Mat srcMat </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+            OpenCvSharp.Mat dstMat </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+            OpenCvSharp.OutputArray outArray </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">try</span><span style="color: #000000;">
+            {
+                srcMat </span>=<span style="color: #000000;"> imgSrc.ToMat();
+                dstMat </span>=<span style="color: #000000;"> imgSub.ToMat();
+                outArray </span>=<span style="color: #000000;"> OpenCvSharp.OutputArray.Create(srcMat);
+               
+                OpenCvSharp.Cv2.MatchTemplate(srcMat, dstMat, outArray, Common.templateMatchModes);
+                </span><span style="color: #0000ff;">double</span><span style="color: #000000;"> minValue, maxValue;
+                OpenCvSharp.Point location, point;
+                OpenCvSharp.Cv2.MinMaxLoc(OpenCvSharp.InputArray.Create(outArray.GetMat()), </span><span style="color: #0000ff;">out</span> minValue, <span style="color: #0000ff;">out</span> maxValue, <span style="color: #0000ff;">out</span> location, <span style="color: #0000ff;">out</span><span style="color: #000000;"> point);
+                Console.WriteLine(maxValue);
+                </span><span style="color: #0000ff;">if</span> (maxValue &gt;=<span style="color: #000000;"> threshold)
+                    </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> System.Drawing.Point(point.X, point.Y);
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> System.Drawing.Point.Empty;
+            }
+            </span><span style="color: #0000ff;">catch</span><span style="color: #000000;">(Exception ex)
+            {
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> System.Drawing.Point.Empty;
+            }
+            </span><span style="color: #0000ff;">finally</span><span style="color: #000000;">
+            {
+                </span><span style="color: #0000ff;">if</span> (srcMat != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+                    srcMat.Dispose();
+                </span><span style="color: #0000ff;">if</span> (dstMat != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+                    dstMat.Dispose();
+                </span><span style="color: #0000ff;">if</span> (outArray != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+                    outArray.Dispose();
+            }
+        }</span></pre>
+</div>
+<p><img src="./images/OpenCvSharp 通过特征点匹配图片1.png" alt="" /></p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,178 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修使用canvas通过js制作一个小型英雄抓怪兽的2D小游戏' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>使用canvas通过js制作一个小型英雄抓怪兽的2D小游戏</center></div><div class='banquan'>原文出处:本文由博客园博主蹉跎了岁月，血染了年华1提供。<br/>
+原文连接:https://www.cnblogs.com/laoqitong/p/10716880.html</div><br>
+    <h3 id="首先这是一个html">首先，这是一个HTML：</h3>
+<pre><code><code>&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+    &lt;meta charset=&quot;utf-8&quot;&gt;
+    &lt;title&gt;Simple Canvas Game&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+&lt;script src=&quot;../js/canvas.js&quot;&gt;&lt;/script&gt;</code></pre>
+<h3 id="然后是canvas.js的内容主要操作都在js中">然后，是canvas.js的内容，主要操作都在js中：</h3>
+<pre><code><code>var cvs = document.createElement(&#39;canvas&#39;); // 创建canvas标签
+var ctx = cvs.getContext(&#39;2d&#39;);
+
+cvs.width = 512;    // 设置canvas的宽度
+cvs.height = 480;   // 设置canvas的高度
+// cvs.style = &#39;border:1px solid #000;&#39;;   // 设置canvas样式
+document.body.appendChild(cvs); // 将新建的canvas渲染到页面
+// console.log(ctx);
+
+// 准备背景图片
+var bgReady = false;
+var bgImg = new Image();
+bgImg.onload = function () {
+    bgReady = true;
+}
+bgImg.src = &quot;../src/images/games/images/background.png&quot;;</code></pre>
+<p><img src="./images/使用canvas通过js制作一个小型英雄抓怪兽的2D小游戏0.png" alt="这是背景图片" /></p>
+<pre><code><code>// 准备英雄图片
+var heroReady = false;
+var heroImg = new Image();
+heroImg.onload = function () {
+    heroReady = true;
+}
+heroImg.src = &quot;../src/images/games/images/hero.png&quot;;</code></pre>
+<p><img src="./images/使用canvas通过js制作一个小型英雄抓怪兽的2D小游戏1.png" alt="这是英雄图片" /></p>
+<pre><code><code>// 准备怪兽图片
+var monsterReady = false;
+var monsterImg = new Image();
+monsterImg.onload = function () {
+    monsterReady = true;
+}
+monsterImg.src = &quot;../src/images/games/images/monster.png&quot;;</code></pre>
+<p><img src="./images/使用canvas通过js制作一个小型英雄抓怪兽的2D小游戏2.png" alt="这是怪兽图片" /></p>
+<pre><code><code>// 定义游戏对象
+var hero = {
+    speed: 256  // 控制英雄每秒移动多少像素
+}
+var monster = {};
+var monsterCaught = 0;  // 抓到的怪兽数量
+
+// 处理用户的键盘控制
+var keysDown = {};
+// 监听键盘按下事件
+addEventListener(&#39;keydown&#39;, function (e) {
+    keysDown[e.keyCode] = true;
+}, false);
+// 监听键盘抬起事件
+addEventListener(&#39;keyup&#39;, function (e) {
+    delete keysDown[e.keyCode];
+}, false);
+
+// 重开新一轮游戏的事件处理
+var reset = function () {
+    hero.x = cvs.width / 2;
+    hero.y = cvs.height / 2; // 英雄的初始坐标
+
+    monster.x = 32 + (Math.random() * (cvs.width - 64));
+    monster.y = 32 + (Math.random() * (cvs.height - 64));
+};
+
+// 更新游戏对象事件处理
+var update = function (modifier) {
+    if (87 in keysDown) {   // 键盘按下“W”
+        hero.y -= hero.speed * modifier;
+    }
+    if (83 in keysDown) {   //  键盘按下“S”
+        hero.y += hero.speed * modifier;
+    }
+    if (65 in keysDown) {   // 键盘按下“A”
+        hero.x -= hero.speed * modifier;
+    }
+    if (68 in keysDown) {   // 键盘按下“D”
+        hero.x += hero.speed * modifier;
+    }
+
+    // 碰到上下左右边界时
+    if (hero.x &lt; 0) { // 左边界
+        hero.x = cvs.width - 32;
+    } else if (hero.x &gt; cvs.width) {    // 右边界
+        hero.x = 0;
+    } else if (hero.y &lt; 0) {    // 上边界
+        hero.y = cvs.height - 32;
+    } else if (hero.y &gt; cvs.height) {    // 下边界 
+        hero.y = 0
+    }
+
+    // 判断是否抓住怪兽
+    if (
+        hero.x &lt;= (monster.x + 32) &amp;&amp;
+        monster.x &lt;= (hero.x + 32) &amp;&amp;
+        hero.y &lt;= (monster.y + 32) &amp;&amp;
+        monster.y &lt;= (hero.y + 32)
+    ) {
+        ++monsterCaught;
+        reset();
+    }
+}
+
+// 渲染物体
+var render = function () {
+    if (bgReady) {
+        ctx.drawImage(bgImg, 0, 0);
+    }
+    if (heroReady) {
+        ctx.drawImage(heroImg, hero.x, hero.y);
+    }
+    if (monsterReady) {
+        ctx.drawImage(monsterImg, monster.x, monster.y);
+    }
+
+    // 上色
+    ctx.fillStyle = &quot;rgb(250,250,250)&quot;;
+    ctx.font = &quot;24px Helvetica&quot;;
+    ctx.textAlign = &quot;left&quot;;
+    ctx.textBaseline = &quot;top&quot;;
+    ctx.fillText(&#39;抓到的怪兽数量：&#39; + monsterCaught, 32, 32);
+}
+
+// 主循环函数
+var main = function () {
+    var now = Date.now();
+
+    var delta = now - then;
+    update(delta / 1000);
+    render();
+    then = now;
+
+    var w = window;
+    requestAnimationFrame = w.requestAnimationFrame || w.webkitRequestAnimationFrame || w.msRequestAnimationFrame || w.mozRequestAnimationFrame;
+    requestAnimationFrame(main);
+};
+
+// 启动游戏
+var then = Date.now();
+reset();
+main();</code></pre>
+<p><img src="./images/使用canvas通过js制作一个小型英雄抓怪兽的2D小游戏3.png" alt="这是整个游戏运行的效果图" /></p>
+<p>初来博客园，还有许许多多不了解的地方，还请多多谅解。<br />
+成果展示：<a href="https://lqitong.github.io/canvas/" class="uri">https://lqitong.github.io/canvas/</a><br />
+资源都在我的 github 上边儿，有兴趣的博友可以上去看看：<a href="https://github.com/LQiTong/canvas" class="uri">https://github.com/LQiTong/canvas</a></p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

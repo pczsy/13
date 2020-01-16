@@ -1,0 +1,185 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修微信公众号开发：自定义菜单' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>微信公众号开发：自定义菜单</center></div><div class='banquan'>原文出处:本文由博客园博主艾三元提供。<br/>
+原文连接:https://www.cnblogs.com/i3yuan/p/10888418.html</div><br>
+    <p><span style="color: #2d94de; font-size: 18pt;">前言</span>:</p>
+<p>&nbsp; &nbsp; &nbsp; 回顾之前的<a title="公众号配置" href="https://www.cnblogs.com/i3yuan/p/10802410.html" target="_blank">微信公众号配置</a>和<a href="https://www.cnblogs.com/i3yuan/p/10850169.html" target="_blank">消息处理</a>的内容，我们已经掌握了如何配置服务器与微信公众号建立连接，也掌握了通过消息管理的方式，对用户的信息进行处理，完成公众号消息回复功能，实现公众号与用户之间的完整对话。而在本文将针对自定义菜单做简单的开发应用，微信公众平台具有自定义菜单的功能。开发者可利用该功能为公众账号的会话界面底部增加自定义菜单，用户点击菜单中的选项，可以调出相应的回复信息或网页链接。自定义菜单接口将为公众账号的信息展示空间提供更多可能性。</p>
+<p><span style="color: #2d94de; font-size: 18pt;">说明</span>：<span style="color: #2d94de; background-color: #888888;"><br /></span></p>
+<p><code>&nbsp;&nbsp;1、自定义菜单最多包括3个一级菜单，每个一级菜单最多包含5个二级菜单。<br />&nbsp;&nbsp;2、一级菜单最多4个汉字，二级菜单最多7个汉字，多出来的部分将会以&ldquo;...&rdquo;代替。<br />&nbsp;&nbsp;3、创建自定义菜单后，菜单的刷新策略是，在用户进入公众号会话页或公众号profile页时，如果发现上一次拉取菜单的请求在5分钟以前，就会拉取一下菜单，如果菜单有更新，就会刷新客户端的菜单。测试时可以尝试取消关注公众账号后再次关注，则可以看到创建后的效果。</code></p>
+<p><span style="color: #2d94de; font-size: 18pt;">类型</span>:</p>
+<p>&nbsp; &nbsp; &nbsp; 自定义菜单接口可实现多种类型按钮，如下：</p>
+<p><code>&nbsp;&nbsp;1、click：点击推事件用户点击click类型按钮后，微信服务器会通过消息接口推送消息类型为event的结构给开发者（参考消息接口指南），并且带上按钮中开发者填写的key值，开发者可以通过自定义的key值与用户进行交互；<br />&nbsp;&nbsp;2、view：跳转URL用户点击view类型按钮后，微信客户端将会打开开发者在按钮中填写的网页URL，可与网页授权获取用户基本信息接口结合，获得用户基本信息。<br />&nbsp;&nbsp;3、scancode_push：扫码推事件用户点击按钮后，微信客户端将调起扫一扫工具，完成扫码操作后显示扫描结果（如果是URL，将进入URL），且会将扫码的结果传给开发者，开发者可以下发消息。<br />&nbsp;&nbsp;4、scancode_waitmsg：扫码推事件且弹出&ldquo;消息接收中&rdquo;提示框用户点击按钮后，微信客户端将调起扫一扫工具，完成扫码操作后，将扫码的结果传给开发者，同时收起扫一扫工具，然后弹出&ldquo;消息接收中&rdquo;提示框，随后可能会收到开发者下发的消息。<br />&nbsp;&nbsp;5、pic_sysphoto：弹出系统拍照发图用户点击按钮后，微信客户端将调起系统相机，完成拍照操作后，会将拍摄的相片发送给开发者，并推送事件给开发者，同时收起系统相机，随后可能会收到开发者下发的消息。<br />&nbsp;&nbsp;6、pic_photo_or_album：弹出拍照或者相册发图用户点击按钮后，微信客户端将弹出选择器供用户选择&ldquo;拍照&rdquo;或者&ldquo;从手机相册选择&rdquo;。用户选择后即走其他两种流程。<br />&nbsp;&nbsp;7、pic_weixin：弹出微信相册发图器用户点击按钮后，微信客户端将调起微信相册，完成选择操作后，将选择的相片发送给开发者的服务器，并推送事件给开发者，同时收起相册，随后可能会收到开发者下发的消息。<br />&nbsp;&nbsp;8、location_select：弹出地理位置选择器用户点击按钮后，微信客户端将调起地理位置选择工具，完成选择操作后，将选择的地理位置发送给开发者的服务器，同时收起位置选择工具，随后可能会收到开发者下发的消息。<br />&nbsp;&nbsp;9、media_id：下发消息（除文本消息）用户点击media_id类型按钮后，微信服务器会将开发者填写的永久素材id对应的素材下发给用户，永久素材类型可以是图片、音频、视频、图文消息。请注意：永久素材id必须是在&ldquo;素材管理/新增永久素材&rdquo;接口上传后获得的合法id。<br />&nbsp;&nbsp;10、view_limited：跳转图文消息URL用户点击view_limited类型按钮后，微信客户端将打开开发者在按钮中填写的永久素材id对应的图文消息URL，永久素材类型只支持图文消息。请注意：永久素材id必须是在&ldquo;素材管理/新增永久素材&rdquo;接口上传后获得的合法id。</code></p>
+<p><span style="color: #2d94de; font-size: 18pt;">&nbsp;资源</span>：</p>
+<p><code>&nbsp;&nbsp;1、借助Senparc.Weixin SDK<br /></code></p>
+<p><code>&nbsp;&nbsp;2、只需要前端和控制器，不需要数据库<br /></code></p>
+<p><span style="color: #2d94de; font-size: 18pt;">开始</span>:</p>
+<p><span style="font-family: 楷体; font-size: 14pt;">控制器</span>：</p>
+<p>&nbsp; &nbsp; &nbsp;&nbsp;新建一个UserMessageHandler.cs，实现编辑菜单，获取菜单，删除菜单</p>
+<p>1、编辑(新增)菜单</p>
+<div class="cnblogs_code">
+<pre><code>        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 编辑新增菜单
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="resultFull"&gt;</span><span style="color: #008000;">获取菜单的完整结果</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="MenuMatchRule"&gt;</span><span style="color: #008000;">个性化菜单规则</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+<span style="color: #000000;">        [HttpPost]
+        </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> ActionResult CreateMenu(GetMenuResultFull resultFull, MenuMatchRule MenuMatchRule)
+        {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> 使用appid 和appsecret 向微信凭证获取接口请求access_token</span>
+            <span style="color: #0000ff;">string</span> AccessToken = Senparc.Weixin.MP.CommonAPIs.CommonApi.GetToken(AppId, AppSecret).access_token;  <span style="color: #008000;">//</span><span style="color: #008000;">获取AccessToken值</span>
+            <span style="color: #0000ff;">var</span> IsAddCondidional = MenuMatchRule != <span style="color: #0000ff;">null</span> &amp;&amp; !<span style="color: #000000;">MenuMatchRule.CheckAllNull();
+            </span><span style="color: #0000ff;">var</span> apiName = <span style="color: #0000ff;">string</span>.Format(<span style="color: #800000;">"</span><span style="color: #800000;">使用接口：{0}。</span><span style="color: #800000;">"</span>, (IsAddCondidional ? <span style="color: #800000;">"</span><span style="color: #800000;">个性化菜单接口</span><span style="color: #800000;">"</span> : <span style="color: #800000;">"</span><span style="color: #800000;">普通自定义菜单接口</span><span style="color: #800000;">"</span><span style="color: #000000;">));
+            </span><span style="color: #0000ff;">try</span><span style="color: #000000;">
+            {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">重新整理按钮信息</span>
+                WxJsonResult result = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+                IButtonGroupBase buttonGroup </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+                </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (IsAddCondidional)
+                {
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">个性化接口
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">微信公众平台新增了个性化菜单接口，开发者可以通过该接口，让公众号的不同用户群体看到不一样的自定义菜单</span>
+                    buttonGroup = Senparc.Weixin.MP.CommonAPIs.CommonApi.GetMenuFromJsonResult(resultFull, <span style="color: #0000ff;">new</span><span style="color: #000000;"> ConditionalButtonGroup()).menu;
+                    </span><span style="color: #0000ff;">var</span> ConditionalButtonGroup = buttonGroup <span style="color: #0000ff;">as</span><span style="color: #000000;"> ConditionalButtonGroup;
+                    ConditionalButtonGroup.matchrule </span>=<span style="color: #000000;"> MenuMatchRule;
+                    result </span>=<span style="color: #000000;"> Senparc.Weixin.MP.CommonAPIs.CommonApi.CreateMenuConditional(AccessToken, ConditionalButtonGroup);
+                    apiName </span>+= <span style="color: #0000ff;">string</span>.Format(<span style="color: #800000;">"</span><span style="color: #800000;">menuid：{0}。</span><span style="color: #800000;">"</span>, (result <span style="color: #0000ff;">as</span><span style="color: #000000;"> CreateMenuConditionalResult).menuid);
+                }
+                </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+                {
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">普通接口</span>
+                    buttonGroup = Senparc.Weixin.MP.CommonAPIs.CommonApi.GetMenuFromJsonResult(resultFull, <span style="color: #0000ff;">new</span><span style="color: #000000;"> ButtonGroup()).menu;
+                    result </span>=<span style="color: #000000;"> Senparc.Weixin.MP.CommonAPIs.CommonApi.CreateMenu(AccessToken, buttonGroup);
+                }
+
+                </span><span style="color: #0000ff;">var</span> json = <span style="color: #0000ff;">new</span><span style="color: #000000;">
+                {
+                    Success </span>= result.errmsg == <span style="color: #800000;">"</span><span style="color: #800000;">ok</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+                    Message </span>= <span style="color: #800000;">"</span><span style="color: #800000;">菜单更新成功。</span><span style="color: #800000;">"</span> +<span style="color: #000000;"> apiName
+                };
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> Json(json);
+            }
+            </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception ex)
+            {
+                </span><span style="color: #0000ff;">var</span> json = <span style="color: #0000ff;">new</span> { Success = <span style="color: #0000ff;">false</span>, Message = <span style="color: #0000ff;">string</span>.Format(<span style="color: #800000;">"</span><span style="color: #800000;">更新失败：{0}。{1}</span><span style="color: #800000;">"</span><span style="color: #000000;">, ex.Message, apiName) };
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> Json(json);
+            }
+        }</span></pre>
+</div>
+<p>2、获取菜单</p>
+<div class="cnblogs_code">
+<pre><code>        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 获取菜单
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">public</span><span style="color: #000000;"> ActionResult GetMenu()
+        {
+            </span><span style="color: #0000ff;">string</span> AccessToken = Senparc.Weixin.MP.CommonAPIs.CommonApi.GetToken(AppId, AppSecret).access_token;  <span style="color: #008000;">//</span><span style="color: #008000;">获取AccessToken值</span>
+            <span style="color: #0000ff;">var</span> result =<span style="color: #000000;"> Senparc.Weixin.MP.CommonAPIs.CommonApi.GetMenu(AccessToken);
+            </span><span style="color: #0000ff;">if</span> (result == <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+            {
+                </span><span style="color: #0000ff;">return</span> Json(<span style="color: #0000ff;">new</span> { error = <span style="color: #800000;">"</span><span style="color: #800000;">菜单不存在或验证失败！</span><span style="color: #800000;">"</span><span style="color: #000000;"> }, JsonRequestBehavior.AllowGet);
+            }
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> Json(result, JsonRequestBehavior.AllowGet);
+        }</span></pre>
+</div>
+<p>3、删除菜单</p>
+<div class="cnblogs_code">
+<pre><code>        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 删除菜单
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">public</span><span style="color: #000000;"> ActionResult DeleteMenu()
+        {
+            </span><span style="color: #0000ff;">try</span><span style="color: #000000;">
+            {
+                </span><span style="color: #0000ff;">string</span> AccessToken = Senparc.Weixin.MP.CommonAPIs.CommonApi.GetToken(AppId, AppSecret).access_token;  <span style="color: #008000;">//</span><span style="color: #008000;">获取AccessToken值</span>
+                <span style="color: #0000ff;">var</span> result =<span style="color: #000000;"> Senparc.Weixin.MP.CommonAPIs.CommonApi.DeleteMenu(AccessToken);
+                </span><span style="color: #0000ff;">var</span> json = <span style="color: #0000ff;">new</span><span style="color: #000000;">
+                {
+                    Success </span>= result.errmsg == <span style="color: #800000;">"</span><span style="color: #800000;">ok</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+                    Message </span>=<span style="color: #000000;"> result.errmsg
+                };
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> Json(json, JsonRequestBehavior.AllowGet);
+            }
+            </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception ex)
+            {
+                </span><span style="color: #0000ff;">var</span> json = <span style="color: #0000ff;">new</span> { Success = <span style="color: #0000ff;">false</span>, Message =<span style="color: #000000;"> ex.Message };
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> Json(json, JsonRequestBehavior.AllowGet);
+            }
+        }
+    }</span></pre>
+</div>
+<p>借助<a href="https://www.cnblogs.com/szw/p/weixin-conditional-menu.html" target="_blank">Senparc.Weixin SDK</a>，快速的完成了对普通菜单和个性化菜单的实现。</p>
+<p><span style="font-size: 14pt; font-family: 楷体;">前端界面</span>：</p>
+<p>在前端页面中，我们可以将页面设计为这种布局的样式</p>
+<p><img src="./images/微信公众号开发：自定义菜单0.png" alt="" /></p>
+<p>请求示例：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">{
+    </span><span style="color: #800000;">"</span><span style="color: #800000;">button</span><span style="color: #800000;">"</span><span style="color: #000000;">: [
+        {
+            </span><span style="color: #800000;">"</span><span style="color: #800000;">name</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">灌篮高手</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+            </span><span style="color: #800000;">"</span><span style="color: #800000;">sub_button</span><span style="color: #800000;">"</span><span style="color: #000000;">: [
+                {
+                    </span><span style="color: #800000;">"</span><span style="color: #800000;">type</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">view</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+                    </span><span style="color: #800000;">"</span><span style="color: #800000;">url</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">https://www.cnblogs.com/i3yuan/</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+                    </span><span style="color: #800000;">"</span><span style="color: #800000;">name</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">陵南高中</span><span style="color: #800000;">"</span><span style="color: #000000;">
+                },
+                {
+                    </span><span style="color: #800000;">"</span><span style="color: #800000;">type</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">view</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+                    </span><span style="color: #800000;">"</span><span style="color: #800000;">url</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">https://www.cnblogs.com/i3yuan/</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+                    </span><span style="color: #800000;">"</span><span style="color: #800000;">name</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">海南高中</span><span style="color: #800000;">"</span><span style="color: #000000;">
+                },
+                {
+                    </span><span style="color: #800000;">"</span><span style="color: #800000;">type</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">view</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+                    </span><span style="color: #800000;">"</span><span style="color: #800000;">url</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">https://www.cnblogs.com/i3yuan/</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+                    </span><span style="color: #800000;">"</span><span style="color: #800000;">name</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">湘北高中</span><span style="color: #800000;">"</span><span style="color: #000000;">
+                }
+            ]
+        },
+        {
+            </span><span style="color: #800000;">"</span><span style="color: #800000;">name</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">漫画集</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+            </span><span style="color: #800000;">"</span><span style="color: #800000;">sub_button</span><span style="color: #800000;">"</span><span style="color: #000000;">: [
+                {
+                    </span><span style="color: #800000;">"</span><span style="color: #800000;">type</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">view</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+                    </span><span style="color: #800000;">"</span><span style="color: #800000;">url</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">https://www.cnblogs.com/i3yuan/</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+                    </span><span style="color: #800000;">"</span><span style="color: #800000;">name</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">趣味漫画</span><span style="color: #800000;">"</span><span style="color: #000000;">
+                }
+            ]
+        },
+        {
+            </span><span style="color: #800000;">"</span><span style="color: #800000;">type</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">view</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+            </span><span style="color: #800000;">"</span><span style="color: #800000;">url</span><span style="color: #800000;">"</span>: <span style="color: #800000;">""</span><span style="color: #000000;">,
+            </span><span style="color: #800000;">"</span><span style="color: #800000;">name</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">个人中心</span><span style="color: #800000;">"</span><span style="color: #000000;">
+        }
+    ]
+}</span></pre>
+</div>
+<p><span style="font-size: 18pt; color: #2d94de;">&nbsp;效果</span>：</p>
+<p><img src="./images/微信公众号开发：自定义菜单1.png" alt="" width="261" height="454" /></p>
+<p><span style="color: #2d94de; font-size: 18pt;">总结</span>：</p>
+<p>1.公众号菜单分为个性化菜单和普通菜单，普通菜单是关注之后就可以查看的，而个性化菜单是根据条件才能看到的（条件：用户标签、性别、手机操作系统、地区、语言），个性化菜单更好实现灵活的业务运营</p>
+<p>2.通过开源项目中的Senparc.Weixin SDK，快速的完成菜单的编辑、获取、删除，只需将前端生成的菜单内容转换为对应的json格式，后台获取内容，实现菜单功能</p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

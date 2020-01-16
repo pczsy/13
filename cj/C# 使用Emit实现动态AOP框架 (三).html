@@ -1,0 +1,439 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C# 使用Emit实现动态AOP框架 (三)' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C# 使用Emit实现动态AOP框架 (三)</center></div><div class='banquan'>原文出处:本文由博客园博主Asccode提供。<br/>
+原文连接:https://www.cnblogs.com/accode/p/10903042.html</div><br>
+    <h1>&nbsp; &nbsp;&nbsp;&nbsp;目 &nbsp;录</h1>
+<p><a id="homepage1_HomePageDays_DaysList_ctl01_DayList_TitleUrl_2" class="postTitle2" href="https://www.cnblogs.com/accode/p/10900711.html">C# 使用Emit实现动态AOP框架 (一)</a></p>
+<p><a id="homepage1_HomePageDays_DaysList_ctl01_DayList_TitleUrl_1" class="postTitle2" href="https://www.cnblogs.com/accode/p/10901128.html">C# 使用Emit实现动态AOP框架 (二)</a></p>
+<p><a id="homepage1_HomePageDays_DaysList_ctl01_DayList_TitleUrl_0" class="postTitle2" href="https://www.cnblogs.com/accode/p/10903042.html">C# 使用Emit实现动态AOP框架 (三)</a></p>
+<p><a id="homepage1_HomePageDays_DaysList_ctl00_DayList_TitleUrl_1" class="postTitle2" href="https://www.cnblogs.com/accode/p/10906431.html">C# 使用Emit实现动态AOP框架 进阶篇之异常处理</a></p>
+<p><a id="homepage1_HomePageDays_DaysList_ctl00_DayList_TitleUrl_0" class="postTitle2" href="https://www.cnblogs.com/accode/p/10907202.html">C# 使用Emit实现动态AOP框架 进阶篇之优化</a></p>
+<p>准备工作完成后，DynamicProxy类就可以开始了。</p>
+<h2><span style="color: #3366ff; font-family: 'Microsoft YaHei'; font-size: 15px;">创建代理对象 Create</span></h2>
+<p><span style="color: #3366ff; font-family: 'Microsoft YaHei'; font-size: 15px;">&nbsp; &nbsp; 创建代理对象主要分为五步：</span></p>
+<p><span style="color: #3366ff; font-family: 'Microsoft YaHei'; font-size: 15px;">&nbsp; &nbsp;(1)、获取被代理类型构造函数参数列表</span></p>
+<pre><code>   Type[] parameterTypes = parameters == null ? Type.EmptyTypes : parameters.Select(p =&gt;<span> p.GetType()).ToArray();<br /><br /></span><span style="color: #3366ff; font-family: 'Microsoft YaHei'; font-size: 15px;"> (2)、根据构造函数参数列表创建代理类型</span></pre>
+<pre><code>    Type proxyType =<span> CreateProxyType(srcType, parameterTypes);<br /><br /><span style="font-family: 'Microsoft YaHei'; font-size: 15px; color: #3366ff;"> (3)、使用动态方法生成创建代理类型实例的委托</span></span></pre>
+<pre><code>    CreateFunc&lt;T&gt;<span>(proxyType, parameterTypes)<br /><br /><span style="font-family: 'Microsoft YaHei'; font-size: 15px; color: #3366ff;"> (4)、生成ProxyType对象，存入代理类型字典，以备二次调用</span><br /></span></pre>
+<pre><code><span>     obj = new ProxyType&lt;T&gt;(srcType.FullName, signature, CreateFunc&lt;T&gt;<span>(proxyType, parameterTypes));
+
+     func_Dictionary.Add(srcType.FullName + "(" + signature + ")"<span>, obj);<br /><br /></span></span></span><span style="font-family: 'Microsoft YaHei'; font-size: 15px; color: #3366ff;">(5)、通过委托生成代理对象</span></pre>
+<pre><code><span>     Func&lt;object[], T&gt; func = (obj as ProxyType&lt;T&gt;<span>).CreateFunc;
+
+      if (func == null<span>)
+           throw new Exception("unknown exception"<span>);
+
+      return<span> func(parameters);<br /><br /></span></span></span></span></span></pre>
+<div class="cnblogs_code" onclick="cnblogs_code_show('eb927dff-b1e6-41db-a0a1-e37eac97b3ac')"><img id="code_img_closed_eb927dff-b1e6-41db-a0a1-e37eac97b3ac" class="code_img_closed" src="./images/C# 使用Emit实现动态AOP框架 (三)0.png" alt="" /><img id="code_img_opened_eb927dff-b1e6-41db-a0a1-e37eac97b3ac" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('eb927dff-b1e6-41db-a0a1-e37eac97b3ac',event)" src="./images/C# 使用Emit实现动态AOP框架 (三)1.png" alt="" />
+<div id="cnblogs_code_open_eb927dff-b1e6-41db-a0a1-e37eac97b3ac" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;"> 1</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;"> 2</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 创建代理类型
+</span><span style="color: #008080;"> 3</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;"> 4</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="srcType"&gt;</span><span style="color: #008000;">类型</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;"> 5</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="parameterTypes"&gt;</span><span style="color: #008000;">参数</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;"> 6</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+<span style="color: #008080;"> 7</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span><span style="color: #000000;"> Type CreateProxyType(Type srcType, Type[] parameterTypes)
+</span><span style="color: #008080;"> 8</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 9</span>             XNet.XCore.XDynamic.BuilderCollection bc = <span style="color: #0000ff;">new</span><span style="color: #000000;"> XDynamic.BuilderCollection
+</span><span style="color: #008080;">10</span>                                                        (srcType.Name + <span style="color: #800000;">"</span><span style="color: #800000;">_Aop_Assmely</span><span style="color: #800000;">"</span>, srcType.Name + <span style="color: #800000;">"</span><span style="color: #800000;">_Aop_Module</span><span style="color: #800000;">"</span>, srcType.Name + <span style="color: #800000;">"</span><span style="color: #800000;">_Proxy</span><span style="color: #800000;">"</span><span style="color: #000000;">, srcType, parameterTypes);
+</span><span style="color: #008080;">11</span> 
+<span style="color: #008080;">12</span> 
+<span style="color: #008080;">13</span>             <span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">var</span> propertyInfo <span style="color: #0000ff;">in</span><span style="color: #000000;"> srcType.GetProperties())
+</span><span style="color: #008080;">14</span> <span style="color: #000000;">                OverrideProperty(bc.DynamicTypeBuilder, propertyInfo);
+</span><span style="color: #008080;">15</span> 
+<span style="color: #008080;">16</span>             <span style="color: #008000;">//</span><span style="color: #008000;">切入方法</span>
+<span style="color: #008080;">17</span>             MethodInfo[] methods = srcType.GetMethods(BindingFlags.Public |<span style="color: #000000;"> BindingFlags.Instance);
+</span><span style="color: #008080;">18</span> 
+<span style="color: #008080;">19</span>             <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; methods.Length; i++<span style="color: #000000;">)
+</span><span style="color: #008080;">20</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">21</span>                 <span style="color: #0000ff;">var</span> method =<span style="color: #000000;"> methods[i];
+</span><span style="color: #008080;">22</span> 
+<span style="color: #008080;">23</span>                 <span style="color: #0000ff;">if</span> (!method.IsPublic || !method.IsVirtual || XDynamic.IsObjectMethod(method)) <span style="color: #0000ff;">continue</span><span style="color: #000000;">;
+</span><span style="color: #008080;">24</span> 
+<span style="color: #008080;">25</span>                 <span style="color: #0000ff;">object</span>[] aspectAttributes = method.GetCustomAttributes(<span style="color: #0000ff;">typeof</span>(AspectAttribute), <span style="color: #0000ff;">false</span><span style="color: #000000;">);
+</span><span style="color: #008080;">26</span> 
+<span style="color: #008080;">27</span> <span style="color: #000000;">                OverrideMethod(bc.DynamicTypeBuilder, method, aspectAttributes);
+</span><span style="color: #008080;">28</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">29</span> 
+<span style="color: #008080;">30</span>             Type result =<span style="color: #000000;"> bc.DynamicTypeBuilder.CreateType();
+</span><span style="color: #008080;">31</span> 
+<span style="color: #008080;">32</span>             bc.DynamicAssemblyBuilder.Save(bc.AssemblyName.Name + <span style="color: #800000;">"</span><span style="color: #800000;">.dll</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">33</span> 
+<span style="color: #008080;">34</span>             <span style="color: #0000ff;">return</span><span style="color: #000000;"> result;
+</span><span style="color: #008080;">35</span>         }</pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp;</p>
+<h2><span style="color: #3366ff;"><span style="font-family: 'Microsoft YaHei'; font-size: 15px;">1.1、根据构造函数参数列表创建代理类</span><span style="font-family: 'Microsoft YaHei'; font-size: 15px;">型&nbsp;</span><span style="font-family: 'Microsoft YaHei'; font-size: 15px;">CreateProxyType</span></span></h2>
+<p><span style="color: #3366ff;"><span style="font-family: 'Microsoft YaHei'; font-size: 15px;">&nbsp;(1)、通过Emit生成动态程序集、动态模块以及动态类型</span></span>&nbsp;</p>
+<p>&nbsp; &nbsp; &nbsp;XNet.XCore.XDynamic.BuilderCollection bc = new XDynamic.BuilderCollection<br />&nbsp; &nbsp; &nbsp; &nbsp; (srcType.Name + "_Aop_Assmely", srcType.Name + "_Aop_Module", srcType.Name + "_Proxy", srcType, parameterTypes);</p>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 15px; color: #3366ff;">（2）、重写被切入的属性</span></p>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 15px; color: #3366ff;"><span style="font-family: 黑体;">&nbsp; </span><span style="color: #000000; font-family: 'Microsoft YaHei';">&nbsp;&nbsp;<span style="font-size: 14px;">OverrideProperty(bc.DynamicTypeBuilder, propertyInfo);</span></span></span></p>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 15px; color: #3366ff;">（3）、重写被切入的方法</span></p>
+<p>&nbsp;&nbsp; &nbsp; OverrideMethod(bc.DynamicTypeBuilder, method, aspectAttributes);</p>
+<p><span style="color: #3366ff; font-family: 'Microsoft YaHei'; font-size: 15px;">&nbsp;（4）、生成代理类型</span></p>
+<p>&nbsp; &nbsp; Type result = bc.DynamicTypeBuilder.CreateType();</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('fda74243-c9a4-4bd2-9a06-8d366edd85f0')"><img id="code_img_closed_fda74243-c9a4-4bd2-9a06-8d366edd85f0" class="code_img_closed" src="./images/C# 使用Emit实现动态AOP框架 (三)0.png" alt="" /><img id="code_img_opened_fda74243-c9a4-4bd2-9a06-8d366edd85f0" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('fda74243-c9a4-4bd2-9a06-8d366edd85f0',event)" src="./images/C# 使用Emit实现动态AOP框架 (三)1.png" alt="" />
+<div id="cnblogs_code_open_fda74243-c9a4-4bd2-9a06-8d366edd85f0" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;"> 1</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;"> 2</span>          <span style="color: #808080;">///</span><span style="color: #008000;"> 创建代理类型
+</span><span style="color: #008080;"> 3</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;"> 4</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="srcType"&gt;</span><span style="color: #008000;">类型</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;"> 5</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="parameterTypes"&gt;</span><span style="color: #008000;">参数</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;"> 6</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+<span style="color: #008080;"> 7</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span><span style="color: #000000;"> Type CreateProxyType(Type srcType, Type[] parameterTypes)
+</span><span style="color: #008080;"> 8</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 9</span>             XNet.XCore.XDynamic.BuilderCollection bc = <span style="color: #0000ff;">new</span><span style="color: #000000;"> XDynamic.BuilderCollection
+</span><span style="color: #008080;">10</span>                                                        (srcType.Name + <span style="color: #800000;">"</span><span style="color: #800000;">_Aop_Assmely</span><span style="color: #800000;">"</span>, srcType.Name + <span style="color: #800000;">"</span><span style="color: #800000;">_Aop_Module</span><span style="color: #800000;">"</span>, srcType.Name + <span style="color: #800000;">"</span><span style="color: #800000;">_Proxy</span><span style="color: #800000;">"</span><span style="color: #000000;">, srcType, parameterTypes);
+</span><span style="color: #008080;">11</span> 
+<span style="color: #008080;">12</span> 
+<span style="color: #008080;">13</span>             <span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">var</span> propertyInfo <span style="color: #0000ff;">in</span><span style="color: #000000;"> srcType.GetProperties())
+</span><span style="color: #008080;">14</span> <span style="color: #000000;">                OverrideProperty(bc.DynamicTypeBuilder, propertyInfo);
+</span><span style="color: #008080;">15</span> 
+<span style="color: #008080;">16</span>             <span style="color: #008000;">//</span><span style="color: #008000;">切入方法</span>
+<span style="color: #008080;">17</span>             MethodInfo[] methods = srcType.GetMethods(BindingFlags.Public |<span style="color: #000000;"> BindingFlags.Instance);
+</span><span style="color: #008080;">18</span> 
+<span style="color: #008080;">19</span>             <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; methods.Length; i++<span style="color: #000000;">)
+</span><span style="color: #008080;">20</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">21</span>                 <span style="color: #0000ff;">var</span> method =<span style="color: #000000;"> methods[i];
+</span><span style="color: #008080;">22</span> 
+<span style="color: #008080;">23</span>                 <span style="color: #0000ff;">if</span> (!method.IsPublic || !method.IsVirtual || XDynamic.IsObjectMethod(method)) <span style="color: #0000ff;">continue</span><span style="color: #000000;">;
+</span><span style="color: #008080;">24</span> 
+<span style="color: #008080;">25</span>                 <span style="color: #0000ff;">object</span>[] aspectAttributes = method.GetCustomAttributes(<span style="color: #0000ff;">typeof</span>(AspectAttribute), <span style="color: #0000ff;">false</span><span style="color: #000000;">);
+</span><span style="color: #008080;">26</span> 
+<span style="color: #008080;">27</span> <span style="color: #000000;">                OverrideMethod(bc.DynamicTypeBuilder, method, aspectAttributes);
+</span><span style="color: #008080;">28</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">29</span> 
+<span style="color: #008080;">30</span>             Type result =<span style="color: #000000;"> bc.DynamicTypeBuilder.CreateType();
+</span><span style="color: #008080;">31</span> 
+<span style="color: #008080;">32</span>             bc.DynamicAssemblyBuilder.Save(bc.AssemblyName.Name + <span style="color: #800000;">"</span><span style="color: #800000;">.dll</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">33</span> 
+<span style="color: #008080;">34</span>             <span style="color: #0000ff;">return</span><span style="color: #000000;"> result;
+</span><span style="color: #008080;">35</span>         }</pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp;</p>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 15px; color: #3366ff;">1.1.1&nbsp;重写被切入的属性&nbsp;OverrideProperty</span></p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('82901f4f-3a02-4a72-87ee-dfb2f1dfd982')"><img id="code_img_closed_82901f4f-3a02-4a72-87ee-dfb2f1dfd982" class="code_img_closed" src="./images/C# 使用Emit实现动态AOP框架 (三)0.png" alt="" /><img id="code_img_opened_82901f4f-3a02-4a72-87ee-dfb2f1dfd982" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('82901f4f-3a02-4a72-87ee-dfb2f1dfd982',event)" src="./images/C# 使用Emit实现动态AOP框架 (三)1.png" alt="" />
+<div id="cnblogs_code_open_82901f4f-3a02-4a72-87ee-dfb2f1dfd982" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;"> 1</span>        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;"> 2</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 重写被代理类的属性
+</span><span style="color: #008080;"> 3</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;"> 4</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="dynamicTypeBuilder"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;"> 5</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="info"&gt;</span><span style="color: #008000;">属性信息</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;"> 6</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="rangeType"&gt;</span><span style="color: #008000;">切面范围</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;"> 7</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="onEntryExit"&gt;</span><span style="color: #008000;">切面公共调用方法</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;"> 8</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> OverrideProperty(TypeBuilder dynamicTypeBuilder, PropertyInfo info)
+</span><span style="color: #008080;"> 9</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">10</span>             <span style="color: #008000;">//</span><span style="color: #008000;">不需要切入直接返回</span>
+<span style="color: #008080;">11</span>             <span style="color: #0000ff;">object</span>[] aspectAttributes = info.GetCustomAttributes(<span style="color: #0000ff;">typeof</span>(AspectAttribute), <span style="color: #0000ff;">false</span><span style="color: #000000;">);
+</span><span style="color: #008080;">12</span> 
+<span style="color: #008080;">13</span>             <span style="color: #0000ff;">if</span> (aspectAttributes.Length == <span style="color: #800080;">0</span>) <span style="color: #0000ff;">return</span><span style="color: #000000;">;
+</span><span style="color: #008080;">14</span> 
+<span style="color: #008080;">15</span>             PropertyBuilder dynamicPropertyBuilder = dynamicTypeBuilder.DefineProperty(info.Name, PropertyAttributes.HasDefault, info.PropertyType, <span style="color: #0000ff;">null</span><span style="color: #000000;">);
+</span><span style="color: #008080;">16</span> 
+<span style="color: #008080;">17</span>             <span style="color: #008000;">//</span><span style="color: #008000;">Getter Setter 方法标识</span>
+<span style="color: #008080;">18</span>             MethodAttributes getSetAttr = MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.HideBySig |<span style="color: #000000;"> MethodAttributes.Virtual;
+</span><span style="color: #008080;">19</span> 
+<span style="color: #008080;">20</span>             MethodBuilder getter = dynamicTypeBuilder.DefineMethod(<span style="color: #800000;">"</span><span style="color: #800000;">get_</span><span style="color: #800000;">"</span> +<span style="color: #000000;"> info.Name, getSetAttr, info.PropertyType, Type.EmptyTypes);
+</span><span style="color: #008080;">21</span> 
+<span style="color: #008080;">22</span>             ILGenerator getIL =<span style="color: #000000;"> getter.GetILGenerator();
+</span><span style="color: #008080;">23</span> 
+<span style="color: #008080;">24</span> <span style="color: #000000;">            ILGenerateProxyMethod(getIL, info.GetGetMethod(), Type.EmptyTypes, aspectAttributes);
+</span><span style="color: #008080;">25</span> 
+<span style="color: #008080;">26</span> 
+<span style="color: #008080;">27</span>             <span style="color: #008000;">//</span><span style="color: #008000;">覆盖自动生成的Getter</span>
+<span style="color: #008080;">28</span>             MethodInfo getMethod =<span style="color: #000000;"> info.GetGetMethod();
+</span><span style="color: #008080;">29</span> 
+<span style="color: #008080;">30</span>             <span style="color: #0000ff;">if</span> (getMethod != <span style="color: #0000ff;">null</span><span style="color: #000000;">) dynamicTypeBuilder.DefineMethodOverride(getter, getMethod);
+</span><span style="color: #008080;">31</span> 
+<span style="color: #008080;">32</span>             <span style="color: #008000;">//</span><span style="color: #008000;">给属性设置Get、Set方法</span>
+<span style="color: #008080;">33</span> <span style="color: #000000;">            dynamicPropertyBuilder.SetGetMethod(getter);
+</span><span style="color: #008080;">34</span> 
+<span style="color: #008080;">35</span> 
+<span style="color: #008080;">36</span>             <span style="color: #008000;">//</span><span style="color: #008000;">重写Set 方法</span>
+<span style="color: #008080;">37</span>             MethodBuilder setter = dynamicTypeBuilder.DefineMethod(<span style="color: #800000;">"</span><span style="color: #800000;">set_</span><span style="color: #800000;">"</span> + info.Name, getSetAttr, <span style="color: #0000ff;">typeof</span>(<span style="color: #0000ff;">void</span>), <span style="color: #0000ff;">new</span><span style="color: #000000;"> Type[] { info.PropertyType });
+</span><span style="color: #008080;">38</span> 
+<span style="color: #008080;">39</span>             ILGenerator setIL =<span style="color: #000000;"> setter.GetILGenerator();
+</span><span style="color: #008080;">40</span> 
+<span style="color: #008080;">41</span>             ILGenerateProxyMethod(setIL, info.GetSetMethod(), <span style="color: #0000ff;">new</span><span style="color: #000000;"> Type[] { info.PropertyType }, aspectAttributes);
+</span><span style="color: #008080;">42</span> 
+<span style="color: #008080;">43</span> 
+<span style="color: #008080;">44</span>             <span style="color: #008000;">//</span><span style="color: #008000;">覆盖自动生成的Setter</span>
+<span style="color: #008080;">45</span>             MethodInfo setMethod =<span style="color: #000000;"> info.GetSetMethod();
+</span><span style="color: #008080;">46</span> 
+<span style="color: #008080;">47</span>             <span style="color: #0000ff;">if</span> (setMethod != <span style="color: #0000ff;">null</span><span style="color: #000000;">) dynamicTypeBuilder.DefineMethodOverride(setter, setMethod);
+</span><span style="color: #008080;">48</span> 
+<span style="color: #008080;">49</span> <span style="color: #000000;">            dynamicPropertyBuilder.SetSetMethod(setter);
+</span><span style="color: #008080;">50</span>         }</pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p><span style="color: #3366ff; font-family: 'Microsoft YaHei'; font-size: 15px; line-height: 1.5;">1.1.2&nbsp;重写被切入的方法&nbsp;OverrideMethod</span></p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('73d2dad1-c668-4efa-be24-bee0e375e11b')"><img id="code_img_closed_73d2dad1-c668-4efa-be24-bee0e375e11b" class="code_img_closed" src="./images/C# 使用Emit实现动态AOP框架 (三)0.png" alt="" /><img id="code_img_opened_73d2dad1-c668-4efa-be24-bee0e375e11b" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('73d2dad1-c668-4efa-be24-bee0e375e11b',event)" src="./images/C# 使用Emit实现动态AOP框架 (三)1.png" alt="" />
+<div id="cnblogs_code_open_73d2dad1-c668-4efa-be24-bee0e375e11b" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;"> 1</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;"> 2</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 重写被代理类的指定方法
+</span><span style="color: #008080;"> 3</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;"> 4</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="typeBuilder"&gt;</span><span style="color: #008000;">类型</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;"> 5</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="src_Method"&gt;</span><span style="color: #008000;">被代理方法</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;"> 6</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="aspectAttributes"&gt;</span><span style="color: #008000;">代理特性集合</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;"> 7</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> OverrideMethod(TypeBuilder typeBuilder, MethodInfo src_Method, <span style="color: #0000ff;">object</span><span style="color: #000000;">[] aspectAttributes)
+</span><span style="color: #008080;"> 8</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 9</span>             <span style="color: #0000ff;">if</span> (aspectAttributes == <span style="color: #0000ff;">null</span> || aspectAttributes.Length == <span style="color: #800080;">0</span>) <span style="color: #0000ff;">return</span><span style="color: #000000;">;
+</span><span style="color: #008080;">10</span> 
+<span style="color: #008080;">11</span>             MethodAttributes attr = MethodAttributes.Public | MethodAttributes.Family | MethodAttributes.HideBySig |<span style="color: #000000;"> MethodAttributes.Virtual;
+</span><span style="color: #008080;">12</span> 
+<span style="color: #008080;">13</span>             <span style="color: #008000;">//</span><span style="color: #008000;">获取当前方法参数列表</span>
+<span style="color: #008080;">14</span>             Type[] paramTypes =<span style="color: #000000;"> XDynamic.GetMethodParameterTypes(src_Method);
+</span><span style="color: #008080;">15</span> 
+<span style="color: #008080;">16</span>             ILGenerator il =<span style="color: #000000;"> typeBuilder.DefineMethod(src_Method.Name, attr, src_Method.ReturnType, paramTypes).GetILGenerator();
+</span><span style="color: #008080;">17</span> 
+<span style="color: #008080;">18</span> <span style="color: #000000;">            ILGenerateProxyMethod(il, src_Method, paramTypes, aspectAttributes);
+</span><span style="color: #008080;">19</span>         }</pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 15px; color: #3366ff;">1.1.3 生成代理方法&nbsp;ILGenerateProxyMethod</span></p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('703b8df5-e58e-4298-b6d0-bd0dd5505916')"><img id="code_img_closed_703b8df5-e58e-4298-b6d0-bd0dd5505916" class="code_img_closed" src="./images/C# 使用Emit实现动态AOP框架 (三)0.png" alt="" /><img id="code_img_opened_703b8df5-e58e-4298-b6d0-bd0dd5505916" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('703b8df5-e58e-4298-b6d0-bd0dd5505916',event)" src="./images/C# 使用Emit实现动态AOP框架 (三)1.png" alt="" />
+<div id="cnblogs_code_open_703b8df5-e58e-4298-b6d0-bd0dd5505916" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;"> 1</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;"> 2</span>         <span style="color: #808080;">///</span> 
+<span style="color: #008080;"> 3</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;"> 4</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="il_ProxyMethod"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;"> 5</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="src_Method"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;"> 6</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="paramTypes"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;"> 7</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="aspectAttributes"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;"> 8</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> ILGenerateProxyMethod(ILGenerator il_ProxyMethod, MethodInfo src_Method, Type[] paramTypes, <span style="color: #0000ff;">object</span><span style="color: #000000;">[] aspectAttributes)
+</span><span style="color: #008080;"> 9</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">10</span>             <span style="color: #0000ff;">int</span> aspectCount =<span style="color: #000000;"> aspectAttributes.Length;
+</span><span style="color: #008080;">11</span> 
+<span style="color: #008080;">12</span>             <span style="color: #008000;">//</span><span style="color: #008000;">生成切面上下文</span>
+<span style="color: #008080;">13</span>             LocalBuilder aspectContext =<span style="color: #000000;"> CreateAspectContext(il_ProxyMethod, src_Method.Name, paramTypes);
+</span><span style="color: #008080;">14</span> 
+<span style="color: #008080;">15</span>             <span style="color: #008000;">//</span><span style="color: #008000;">申明临时存放切面对象和OnExit方法的变量</span>
+<span style="color: #008080;">16</span>             <span style="color: #0000ff;">var</span> aspectLocalBuilders = <span style="color: #0000ff;">new</span><span style="color: #000000;"> LocalBuilder[aspectCount];
+</span><span style="color: #008080;">17</span>             <span style="color: #0000ff;">var</span> onExit_Methods = <span style="color: #0000ff;">new</span><span style="color: #000000;"> MethodInfo[aspectCount];
+</span><span style="color: #008080;">18</span> 
+<span style="color: #008080;">19</span> 
+<span style="color: #008080;">20</span>             <span style="color: #008000;">//</span><span style="color: #008000;">初始化标记的切面对象，并调用切面对象的OnEntry方法</span>
+<span style="color: #008080;">21</span>             <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; aspectCount; i++<span style="color: #000000;">)
+</span><span style="color: #008080;">22</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">23</span>                 <span style="color: #008000;">//</span><span style="color: #008000;">创建一个切面对象</span>
+<span style="color: #008080;">24</span>                 <span style="color: #0000ff;">var</span> aspectType =<span style="color: #000000;"> aspectAttributes[i].GetType();
+</span><span style="color: #008080;">25</span>                 <span style="color: #0000ff;">var</span> aspect =<span style="color: #000000;"> il_ProxyMethod.DeclareLocal(aspectType);
+</span><span style="color: #008080;">26</span>                 ConstructorInfo constructor =<span style="color: #000000;"> aspectType.GetConstructor(Type.EmptyTypes);
+</span><span style="color: #008080;">27</span> 
+<span style="color: #008080;">28</span> <span style="color: #000000;">                il_ProxyMethod.Emit(OpCodes.Newobj, constructor);
+</span><span style="color: #008080;">29</span> <span style="color: #000000;">                il_ProxyMethod.Emit(OpCodes.Stloc, aspect);
+</span><span style="color: #008080;">30</span> 
+<span style="color: #008080;">31</span>                 <span style="color: #0000ff;">var</span> onEntry_method = aspectType.GetMethod(<span style="color: #800000;">"</span><span style="color: #800000;">OnEntry</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">32</span>                 onExit_Methods[i] = aspectType.GetMethod(<span style="color: #800000;">"</span><span style="color: #800000;">OnExit</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">33</span> 
+<span style="color: #008080;">34</span>                 <span style="color: #008000;">//</span><span style="color: #008000;">调用BeforeInvoke</span>
+<span style="color: #008080;">35</span> <span style="color: #000000;">                il_ProxyMethod.Emit(OpCodes.Ldloc, aspect);
+</span><span style="color: #008080;">36</span> <span style="color: #000000;">                il_ProxyMethod.Emit(OpCodes.Ldloc, aspectContext);
+</span><span style="color: #008080;">37</span> <span style="color: #000000;">                il_ProxyMethod.Emit(OpCodes.Callvirt, onEntry_method);
+</span><span style="color: #008080;">38</span> <span style="color: #000000;">                il_ProxyMethod.Emit(OpCodes.Nop);
+</span><span style="color: #008080;">39</span> 
+<span style="color: #008080;">40</span>                 aspectLocalBuilders[i] =<span style="color: #000000;"> aspect;
+</span><span style="color: #008080;">41</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">42</span> 
+<span style="color: #008080;">43</span>             <span style="color: #008000;">//</span><span style="color: #008000;">类对象，参数值依次入栈</span>
+<span style="color: #008080;">44</span>             <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt;= paramTypes.Length; i++<span style="color: #000000;">)
+</span><span style="color: #008080;">45</span> <span style="color: #000000;">                il_ProxyMethod.Emit(OpCodes.Ldarg, i);
+</span><span style="color: #008080;">46</span> 
+<span style="color: #008080;">47</span>             <span style="color: #008000;">//</span><span style="color: #008000;">调用基类的方法</span>
+<span style="color: #008080;">48</span> <span style="color: #000000;">            il_ProxyMethod.Emit(OpCodes.Call, src_Method);
+</span><span style="color: #008080;">49</span> 
+<span style="color: #008080;">50</span> 
+<span style="color: #008080;">51</span>             <span style="color: #008000;">//</span><span style="color: #008000;">定义返回值</span>
+<span style="color: #008080;">52</span>             LocalBuilder result = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+</span><span style="color: #008080;">53</span> 
+<span style="color: #008080;">54</span>             <span style="color: #008000;">//</span><span style="color: #008000;">如果有返回值，保存返回值到局部变量</span>
+<span style="color: #008080;">55</span>             <span style="color: #0000ff;">if</span> (src_Method.ReturnType != <span style="color: #0000ff;">typeof</span>(<span style="color: #0000ff;">void</span><span style="color: #000000;">))
+</span><span style="color: #008080;">56</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">57</span>                 result =<span style="color: #000000;"> il_ProxyMethod.DeclareLocal(src_Method.ReturnType);
+</span><span style="color: #008080;">58</span> <span style="color: #000000;">                il_ProxyMethod.Emit(OpCodes.Stloc, result);
+</span><span style="color: #008080;">59</span> 
+<span style="color: #008080;">60</span>                 <span style="color: #008000;">//</span><span style="color: #008000;">给AspectContext的属性Result赋值</span>
+<span style="color: #008080;">61</span>                 <span style="color: #0000ff;">var</span> resultSetMethod = <span style="color: #0000ff;">typeof</span>(AspectContext).GetMethod(<span style="color: #800000;">"</span><span style="color: #800000;">set_Result</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">62</span>                 il_ProxyMethod.Emit(OpCodes.Ldloc, aspectContext); <span style="color: #008000;">//</span><span style="color: #008000;">加载AspectContext局部变量</span>
+<span style="color: #008080;">63</span>                 il_ProxyMethod.Emit(OpCodes.Ldloc, result);<span style="color: #008000;">//</span><span style="color: #008000;">加载返回值</span>
+<span style="color: #008080;">64</span> <span style="color: #000000;">                il_ProxyMethod.Emit(OpCodes.Box, src_Method.ReturnType);
+</span><span style="color: #008080;">65</span>                 il_ProxyMethod.Emit(OpCodes.Call, resultSetMethod);<span style="color: #008000;">//</span><span style="color: #008000;">赋值</span>
+<span style="color: #008080;">66</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">67</span> 
+<span style="color: #008080;">68</span>             <span style="color: #008000;">//</span><span style="color: #008000;">调用横切对象的OnExit方法</span>
+<span style="color: #008080;">69</span>             <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; aspectCount; i++<span style="color: #000000;">)
+</span><span style="color: #008080;">70</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">71</span> <span style="color: #000000;">                il_ProxyMethod.Emit(OpCodes.Ldloc, aspectLocalBuilders[i]);
+</span><span style="color: #008080;">72</span> <span style="color: #000000;">                il_ProxyMethod.Emit(OpCodes.Ldloc, aspectContext);
+</span><span style="color: #008080;">73</span> <span style="color: #000000;">                il_ProxyMethod.Emit(OpCodes.Callvirt, onExit_Methods[i]);
+</span><span style="color: #008080;">74</span> <span style="color: #000000;">                il_ProxyMethod.Emit(OpCodes.Nop);
+</span><span style="color: #008080;">75</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">76</span> 
+<span style="color: #008080;">77</span>             <span style="color: #008000;">//</span><span style="color: #008000;">如果有返回值，则把返回值压栈</span>
+<span style="color: #008080;">78</span>             <span style="color: #0000ff;">if</span> (result != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+</span><span style="color: #008080;">79</span> <span style="color: #000000;">                il_ProxyMethod.Emit(OpCodes.Ldloc, result);
+</span><span style="color: #008080;">80</span> 
+<span style="color: #008080;">81</span>             il_ProxyMethod.Emit(OpCodes.Ret);<span style="color: #008000;">//</span><span style="color: #008000;">返回</span>
+<span style="color: #008080;">82</span>         }</pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p><span style="color: #3366ff; font-family: 'Microsoft YaHei'; font-size: 15px;">1.1.4&nbsp;生成切面上下文对象 CreateAspectContext</span></p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('e2419eb8-9b7e-4de2-b088-d34c1ab7b4dd')"><img id="code_img_closed_e2419eb8-9b7e-4de2-b088-d34c1ab7b4dd" class="code_img_closed" src="./images/C# 使用Emit实现动态AOP框架 (三)0.png" alt="" /><img id="code_img_opened_e2419eb8-9b7e-4de2-b088-d34c1ab7b4dd" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('e2419eb8-9b7e-4de2-b088-d34c1ab7b4dd',event)" src="./images/C# 使用Emit实现动态AOP框架 (三)1.png" alt="" />
+<div id="cnblogs_code_open_e2419eb8-9b7e-4de2-b088-d34c1ab7b4dd" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;"> 1</span>   <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;"> 2</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 生成切面上下文对象
+</span><span style="color: #008080;"> 3</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;"> 4</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="il"&gt;&lt;/param&gt;</span>
+<span style="color: #008080;"> 5</span>         <span style="color: #808080;">///</span>  <span style="color: #808080;">&lt;param name="methodName"&gt;</span><span style="color: #008000;">方法名称</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;"> 6</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="paramTypes"&gt;</span><span style="color: #008000;">参数类型</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;"> 7</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+<span style="color: #008080;"> 8</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> LocalBuilder CreateAspectContext(ILGenerator il, <span style="color: #0000ff;">string</span><span style="color: #000000;"> methodName, Type[] paramTypes)
+</span><span style="color: #008080;"> 9</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">10</span>             <span style="color: #008000;">//</span><span style="color: #008000;">AspectContext.ParameterArgs 类型为 object[]
+</span><span style="color: #008080;">11</span> 
+<span style="color: #008080;">12</span>             <span style="color: #008000;">//</span><span style="color: #008000;">声明一个类型为object的局部数组</span>
+<span style="color: #008080;">13</span>             il.DeclareLocal(<span style="color: #0000ff;">typeof</span>(<span style="color: #0000ff;">object</span><span style="color: #000000;">[]));
+</span><span style="color: #008080;">14</span>             <span style="color: #008000;">//</span><span style="color: #008000;">数组长度入栈</span>
+<span style="color: #008080;">15</span> <span style="color: #000000;">            il.Emit(OpCodes.Ldc_I4, paramTypes.Length);
+</span><span style="color: #008080;">16</span>             <span style="color: #008000;">//</span><span style="color: #008000;">生成新数组</span>
+<span style="color: #008080;">17</span>             il.Emit(OpCodes.Newarr, <span style="color: #0000ff;">typeof</span>(<span style="color: #0000ff;">object</span><span style="color: #000000;">));
+</span><span style="color: #008080;">18</span>             <span style="color: #008000;">//</span><span style="color: #008000;">赋值给局部数组变量</span>
+<span style="color: #008080;">19</span> <span style="color: #000000;">            il.Emit(OpCodes.Stloc_0);
+</span><span style="color: #008080;">20</span> 
+<span style="color: #008080;">21</span>             <span style="color: #008000;">//</span><span style="color: #008000;">遍历参数，并存入数组</span>
+<span style="color: #008080;">22</span>             <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; paramTypes.Length; i++<span style="color: #000000;">)
+</span><span style="color: #008080;">23</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">24</span>                 il.Emit(OpCodes.Ldloc_0);<span style="color: #008000;">//</span><span style="color: #008000;">数组入栈</span>
+<span style="color: #008080;">25</span>                 il.Emit(OpCodes.Ldc_I4, i);<span style="color: #008000;">//</span><span style="color: #008000;">数组下标入栈</span>
+<span style="color: #008080;">26</span>                 il.Emit(OpCodes.Ldarg, i + <span style="color: #800080;">1</span>);<span style="color: #008000;">//</span><span style="color: #008000;">按下标加载对应的参数</span>
+<span style="color: #008080;">27</span>                 <span style="color: #0000ff;">if</span> (paramTypes[i].IsValueType)<span style="color: #008000;">//</span><span style="color: #008000;">参数为值类型，装箱</span>
+<span style="color: #008080;">28</span> <span style="color: #000000;">                    il.Emit(OpCodes.Box, paramTypes[i]);
+</span><span style="color: #008080;">29</span>                 il.Emit(OpCodes.Stelem_Ref);<span style="color: #008000;">//</span><span style="color: #008000;">将参数存入数组</span>
+<span style="color: #008080;">30</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">31</span> 
+<span style="color: #008080;">32</span>             <span style="color: #008000;">//</span><span style="color: #008000;">获取AspectContext构造函数</span>
+<span style="color: #008080;">33</span>             Type aspectContextType = <span style="color: #0000ff;">typeof</span><span style="color: #000000;">(AspectContext);
+</span><span style="color: #008080;">34</span>             ConstructorInfo info = aspectContextType.GetConstructor(<span style="color: #0000ff;">new</span> Type[] { <span style="color: #0000ff;">typeof</span>(<span style="color: #0000ff;">object</span>), <span style="color: #0000ff;">typeof</span>(<span style="color: #0000ff;">string</span>), <span style="color: #0000ff;">typeof</span>(<span style="color: #0000ff;">object</span><span style="color: #000000;">[]) });
+</span><span style="color: #008080;">35</span> 
+<span style="color: #008080;">36</span>             <span style="color: #008000;">//</span><span style="color: #008000;">生成一个AspectContext 对象</span>
+<span style="color: #008080;">37</span>             il.Emit(OpCodes.Ldarg_0);<span style="color: #008000;">//</span><span style="color: #008000;">加载调用对象</span>
+<span style="color: #008080;">38</span>             il.Emit(OpCodes.Ldstr, methodName);<span style="color: #008000;">//</span><span style="color: #008000;">加载方法名称</span>
+<span style="color: #008080;">39</span>             il.Emit(OpCodes.Ldloc_0);<span style="color: #008000;">//</span><span style="color: #008000;">加载由参数生成的局部数组变量</span>
+<span style="color: #008080;">40</span> <span style="color: #000000;">            il.Emit(OpCodes.Newobj, info);
+</span><span style="color: #008080;">41</span> 
+<span style="color: #008080;">42</span>             <span style="color: #008000;">//</span><span style="color: #008000;">声明一个AspectContext局部变量</span>
+<span style="color: #008080;">43</span>             LocalBuilder aspectContext =<span style="color: #000000;"> il.DeclareLocal(aspectContextType);
+</span><span style="color: #008080;">44</span> <span style="color: #000000;">            il.Emit(OpCodes.Stloc, aspectContext);
+</span><span style="color: #008080;">45</span> 
+<span style="color: #008080;">46</span>             <span style="color: #0000ff;">return</span><span style="color: #000000;"> aspectContext;
+</span><span style="color: #008080;">47</span>         }</pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<h2><span style="color: #3366ff; font-family: 'Microsoft YaHei'; font-size: 15px; line-height: 1.5;">1.2&nbsp;</span><span style="color: #3366ff; font-family: 'Microsoft YaHei'; font-size: 15px; line-height: 1.5;">使用动态方法生成创建代理类型实例的委托</span></h2>
+<div class="cnblogs_code" onclick="cnblogs_code_show('887b68ff-f616-4aca-97f2-9aea31111ca4')"><img id="code_img_closed_887b68ff-f616-4aca-97f2-9aea31111ca4" class="code_img_closed" src="./images/C# 使用Emit实现动态AOP框架 (三)0.png" alt="" /><img id="code_img_opened_887b68ff-f616-4aca-97f2-9aea31111ca4" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('887b68ff-f616-4aca-97f2-9aea31111ca4',event)" src="./images/C# 使用Emit实现动态AOP框架 (三)1.png" alt="" />
+<div id="cnblogs_code_open_887b68ff-f616-4aca-97f2-9aea31111ca4" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;"> 1</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;"> 2</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 生成创建代理类型实例的委托
+</span><span style="color: #008080;"> 3</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;"> 4</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;typeparam name="T"&gt;</span><span style="color: #008000;">被代理类型</span><span style="color: #808080;">&lt;/typeparam&gt;</span>
+<span style="color: #008080;"> 5</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="proxyType"&gt;</span><span style="color: #008000;">代理类型</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;"> 6</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="parameterTypes"&gt;</span><span style="color: #008000;">代理类型构造函数参数类型</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;"> 7</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+<span style="color: #008080;"> 8</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> Func&lt;<span style="color: #0000ff;">object</span>[], T&gt; CreateFunc&lt;T&gt;<span style="color: #000000;">(Type proxyType, Type[] parameterTypes)
+</span><span style="color: #008080;"> 9</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">10</span>             DynamicMethod method = <span style="color: #0000ff;">new</span> DynamicMethod(proxyType.Name + <span style="color: #800000;">"</span><span style="color: #800000;">_CF</span><span style="color: #800000;">"</span>, <span style="color: #0000ff;">typeof</span>(T), <span style="color: #0000ff;">new</span> Type[] { <span style="color: #0000ff;">typeof</span>(<span style="color: #0000ff;">object</span>[]) }, <span style="color: #0000ff;">true</span><span style="color: #000000;">);
+</span><span style="color: #008080;">11</span> 
+<span style="color: #008080;">12</span>             <span style="color: #0000ff;">var</span> il =<span style="color: #000000;"> method.GetILGenerator();
+</span><span style="color: #008080;">13</span> 
+<span style="color: #008080;">14</span>             <span style="color: #008000;">//</span><span style="color: #008000;">根据T类型的构造函数参数列表，依次将 object[] parameters 中对应的值加载到堆栈（并做相应类型转换），以被T类型的构造函数使用</span>
+<span style="color: #008080;">15</span>             <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; parameterTypes.Length; i++<span style="color: #000000;">)
+</span><span style="color: #008080;">16</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">17</span>                 
+<span style="color: #008080;">18</span> <span style="color: #000000;">                il.Emit(OpCodes.Ldarg_0);
+</span><span style="color: #008080;">19</span> <span style="color: #000000;">                il.Emit(OpCodes.Ldc_I4, i);
+</span><span style="color: #008080;">20</span> <span style="color: #000000;">                il.Emit(OpCodes.Ldelem_Ref);
+</span><span style="color: #008080;">21</span> 
+<span style="color: #008080;">22</span>                 <span style="color: #0000ff;">if</span><span style="color: #000000;"> (parameterTypes[i].IsValueType)
+</span><span style="color: #008080;">23</span>                     <span style="color: #008000;">//</span><span style="color: #008000;"> 如果是值类型，拆箱</span>
+<span style="color: #008080;">24</span> <span style="color: #000000;">                    il.Emit(OpCodes.Unbox_Any, parameterTypes[i]);
+</span><span style="color: #008080;">25</span>                 <span style="color: #0000ff;">else</span>
+<span style="color: #008080;">26</span>                     <span style="color: #008000;">//</span><span style="color: #008000;"> 如果是引用类型，转换</span>
+<span style="color: #008080;">27</span> <span style="color: #000000;">                    il.Emit(OpCodes.Castclass, parameterTypes[i]);
+</span><span style="color: #008080;">28</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">29</span> 
+<span style="color: #008080;">30</span>             ConstructorInfo info =<span style="color: #000000;"> proxyType.GetConstructor(parameterTypes);
+</span><span style="color: #008080;">31</span> 
+<span style="color: #008080;">32</span>             <span style="color: #0000ff;">if</span> (info == <span style="color: #0000ff;">null</span>) <span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> Exception(<span style="color: #800000;">"</span><span style="color: #800000;">代理类不存在，与指定参数列表相对应的构造函数。</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">33</span> 
+<span style="color: #008080;">34</span> <span style="color: #000000;">            il.Emit(OpCodes.Newobj, info);
+</span><span style="color: #008080;">35</span> <span style="color: #000000;">            il.Emit(OpCodes.Ret);
+</span><span style="color: #008080;">36</span> 
+<span style="color: #008080;">37</span>             <span style="color: #008000;">//</span><span style="color: #008000;">建立《生成指定类型T的实例》的委托</span>
+<span style="color: #008080;">38</span>             <span style="color: #0000ff;">return</span> method.CreateDelegate(<span style="color: #0000ff;">typeof</span>(Func&lt;<span style="color: #0000ff;">object</span>[], T&gt;)) <span style="color: #0000ff;">as</span> Func&lt;<span style="color: #0000ff;">object</span>[], T&gt;<span style="color: #000000;">;
+</span><span style="color: #008080;">39</span>         }</pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<h2><span style="font-family: 'Microsoft YaHei'; font-size: 15px; color: #3366ff;">1.3&nbsp;ProxyType类</span></h2>
+<div class="cnblogs_code" onclick="cnblogs_code_show('3b885046-e2f2-419e-896a-3c1c76ce4d8a')"><img id="code_img_closed_3b885046-e2f2-419e-896a-3c1c76ce4d8a" class="code_img_closed" src="./images/C# 使用Emit实现动态AOP框架 (三)0.png" alt="" /><img id="code_img_opened_3b885046-e2f2-419e-896a-3c1c76ce4d8a" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('3b885046-e2f2-419e-896a-3c1c76ce4d8a',event)" src="./images/C# 使用Emit实现动态AOP框架 (三)1.png" alt="" />
+<div id="cnblogs_code_open_3b885046-e2f2-419e-896a-3c1c76ce4d8a" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;"> 1</span>   <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> ProxyType&lt;T&gt;
+<span style="color: #008080;"> 2</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;"> 3</span>         <span style="color: #0000ff;">#region</span> 构造函数
+<span style="color: #008080;"> 4</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;"> 5</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 构造函数
+</span><span style="color: #008080;"> 6</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;"> 7</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="name"&gt;</span><span style="color: #008000;">类型名称</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;"> 8</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="parameterSignature"&gt;</span><span style="color: #008000;">构造函数参数签名</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;"> 9</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="createFunc"&gt;</span><span style="color: #008000;">创建被代理类型实例的委托</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;">10</span>         <span style="color: #0000ff;">public</span> ProxyType(<span style="color: #0000ff;">string</span> name, <span style="color: #0000ff;">string</span> parameterSignature, Func&lt;<span style="color: #0000ff;">object</span>[], T&gt;<span style="color: #000000;"> createFunc)
+</span><span style="color: #008080;">11</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">12</span>             Name = name; ParameterSignature = parameterSignature; CreateFunc =<span style="color: #000000;"> createFunc;
+</span><span style="color: #008080;">13</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">14</span>         <span style="color: #0000ff;">#endregion</span>
+<span style="color: #008080;">15</span> 
+<span style="color: #008080;">16</span>         <span style="color: #0000ff;">#region</span> 属性
+<span style="color: #008080;">17</span> 
+<span style="color: #008080;">18</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">19</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 名称
+</span><span style="color: #008080;">20</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">21</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> Name { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+</span><span style="color: #008080;">22</span> 
+<span style="color: #008080;">23</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">24</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 参数类型签名
+</span><span style="color: #008080;">25</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">26</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> ParameterSignature { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+</span><span style="color: #008080;">27</span> 
+<span style="color: #008080;">28</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">29</span>         <span style="color: #808080;">///</span><span style="color: #008000;"> 创建被代理类型实例的委托
+</span><span style="color: #008080;">30</span>         <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">31</span>         <span style="color: #0000ff;">public</span> Func&lt;<span style="color: #0000ff;">object</span>[], T&gt; CreateFunc { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+</span><span style="color: #008080;">32</span> 
+<span style="color: #008080;">33</span>         <span style="color: #0000ff;">#endregion</span>
+<span style="color: #008080;">34</span>     }</pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p><span style="line-height: 1.5;">&nbsp; 到此为止一个简单的Aop框架就完成了。下一篇会介绍一个下BuilderCollection类</span></p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

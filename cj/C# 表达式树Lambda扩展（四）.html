@@ -1,0 +1,215 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C# 表达式树Lambda扩展（四）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C# 表达式树Lambda扩展（四）</center></div><div class='banquan'>原文出处:本文由博客园博主园子的蜗牛提供。<br/>
+原文连接:https://www.cnblogs.com/snailblog/p/11525118.html</div><br>
+    <h2>一、前言</h2>
+<p>本来计算这篇文章在后面需要运用的时候写的，但是既然写到表达式的扩展呢，就一起写完吧。</p>
+<p>看到这个标题就有一种疑问，Lambda表达式本来就是表达式树，还需要怎么扩展？那就看看下面的内容，你就知道了。</p>
+<p>表达式系列目录</p>
+<p><a href="https://www.cnblogs.com/snailblog/p/11521043.html" target="_blank">C# 表达式树讲解（一）</a></p>
+<p><a href="https://www.cnblogs.com/snailblog/p/11521335.html" target="_blank">C# 表达式树遍历（二）</a></p>
+<p><a href="https://www.cnblogs.com/snailblog/p/11521359.html" target="_blank">C# 表达式树分页扩展（三）</a></p>
+<p>C# 表达式树Lambda扩展（四）</p>
+<h2>二、Lambda扩展</h2>
+<p>这里先不忙解答上面的问题，我们先看下这样一个应用场景。</p>
+<p>一个页面的请求，里面带有一些条件查询，请求类如下</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> ScoreRequest
+{
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> CourseName { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span>; }
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> StudentName { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span>; }
+}
+</pre>
+</div>
+<p>要求查询与课程名称和学生名称匹配的数据</p>
+<p>数据源我们就以上一例子的数据源</p>
+<p>数据源类</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('7c1c5bab-2858-4ba0-b00f-285fde640fa8')"><img id="code_img_closed_7c1c5bab-2858-4ba0-b00f-285fde640fa8" class="code_img_closed" src="./images/C# 表达式树Lambda扩展（四）0.png" alt="" /><img id="code_img_opened_7c1c5bab-2858-4ba0-b00f-285fde640fa8" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('7c1c5bab-2858-4ba0-b00f-285fde640fa8',event)" src="./images/C# 表达式树Lambda扩展（四）1.png" alt="" />
+<div id="cnblogs_code_open_7c1c5bab-2858-4ba0-b00f-285fde640fa8" class="cnblogs_code_hide">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> ScoreClass
+{
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> CourseName { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span>; }
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> StudentName { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span>; }
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">decimal</span> Score { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span>; }
+}
+</pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>添加数据</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('0202f065-a5f2-4a5d-996e-09abb4a3b60d')"><img id="code_img_closed_0202f065-a5f2-4a5d-996e-09abb4a3b60d" class="code_img_closed" src="./images/C# 表达式树Lambda扩展（四）0.png" alt="" /><img id="code_img_opened_0202f065-a5f2-4a5d-996e-09abb4a3b60d" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('0202f065-a5f2-4a5d-996e-09abb4a3b60d',event)" src="./images/C# 表达式树Lambda扩展（四）1.png" alt="" />
+<div id="cnblogs_code_open_0202f065-a5f2-4a5d-996e-09abb4a3b60d" class="cnblogs_code_hide">
+<pre><code>var datas = <span style="color: #0000ff;">new</span> List&lt;ScoreClass&gt;();
+datas.Add(<span style="color: #0000ff;">new</span> ScoreClass
+{
+    CourseName = "<span style="color: #8b0000;">数学</span>",
+    StudentName = "<span style="color: #8b0000;">学生A</span>",
+    Score = 60
+});
+datas.Add(<span style="color: #0000ff;">new</span> ScoreClass
+{
+    CourseName = "<span style="color: #8b0000;">数学</span>",
+    StudentName = "<span style="color: #8b0000;">学生B</span>",
+    Score = 65
+});
+datas.Add(<span style="color: #0000ff;">new</span> ScoreClass
+{
+    CourseName = "<span style="color: #8b0000;">数学</span>",
+    StudentName = "<span style="color: #8b0000;">学生C</span>",
+    Score = 70
+});
+datas.Add(<span style="color: #0000ff;">new</span> ScoreClass
+{
+    CourseName = "<span style="color: #8b0000;">数学</span>",
+    StudentName = "<span style="color: #8b0000;">学生D</span>",
+    Score = 75
+});
+datas.Add(<span style="color: #0000ff;">new</span> ScoreClass
+{
+    CourseName = "<span style="color: #8b0000;">数学</span>",
+    StudentName = "<span style="color: #8b0000;">学生E</span>",
+    Score = 80
+});
+datas.Add(<span style="color: #0000ff;">new</span> ScoreClass
+{
+    CourseName = "<span style="color: #8b0000;">数学</span>",
+    StudentName = "<span style="color: #8b0000;">学生F</span>",
+    Score = 81
+});
+datas.Add(<span style="color: #0000ff;">new</span> ScoreClass
+{
+    CourseName = "<span style="color: #8b0000;">数学</span>",
+    StudentName = "<span style="color: #8b0000;">学生G</span>",
+    Score = 82
+});
+datas.Add(<span style="color: #0000ff;">new</span> ScoreClass
+{
+    CourseName = "<span style="color: #8b0000;">数学</span>",
+    StudentName = "<span style="color: #8b0000;">学生H</span>",
+    Score = 83
+});
+datas.Add(<span style="color: #0000ff;">new</span> ScoreClass
+{
+    CourseName = "<span style="color: #8b0000;">数学</span>",
+    StudentName = "<span style="color: #8b0000;">学生I</span>",
+    Score = 84
+});
+</pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>好了现在我们就查询数据</p>
+<div class="cnblogs_code">
+<pre><code>var request = <span style="color: #0000ff;">new</span> ScoreRequest()
+            {
+                CourseName = "<span style="color: #8b0000;">数</span>",
+                StudentName = "<span style="color: #8b0000;">H</span>"
+            };
+            var resultDatas = datas.Where(e =&gt; e.CourseName.Contains(request.CourseName) &amp;&amp; e.StudentName.Contains(request.StudentName))
+                .ToList();</pre>
+</div>
+<p>如果查询对象里面CourseName和StudentName字段都有值得话，这样写没问题。如果没值，那就最后的数据，就不准确了。</p>
+<p>如果是直接拼凑sql语句，我们可以用if(String.IsNullOrEmpty())来判断，但是现在判断了，怎么拼凑Lambda表达式呢？</p>
+<p>所以就需要我们对Lambda表达式进行扩展，让他支持这种情况。那上面的问题，就不用再专门回答了吧！！！！</p>
+<p>创建一个LambdaExtension的类，代码如下</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">class</span> LambdaExtension
+{
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> Expression&lt;Func&lt;T, <span style="color: #0000ff;">bool</span>&gt;&gt; True&lt;T&gt;() { <span style="color: #0000ff;">return</span> param =&gt; <span style="color: #0000ff;">true</span>; }
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> Expression&lt;Func&lt;T, <span style="color: #0000ff;">bool</span>&gt;&gt; False&lt;T&gt;() { <span style="color: #0000ff;">return</span> param =&gt; <span style="color: #0000ff;">false</span>; }
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> Expression&lt;Func&lt;T, <span style="color: #0000ff;">bool</span>&gt;&gt; And&lt;T&gt;(<span style="color: #0000ff;">this</span> Expression&lt;Func&lt;T, <span style="color: #0000ff;">bool</span>&gt;&gt; first, Expression&lt;Func&lt;T, <span style="color: #0000ff;">bool</span>&gt;&gt; second)
+    {
+        <span style="color: #0000ff;">return</span> first.Compose(second, Expression.AndAlso);
+    }
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> Expression&lt;Func&lt;T, <span style="color: #0000ff;">bool</span>&gt;&gt; Or&lt;T&gt;(<span style="color: #0000ff;">this</span> Expression&lt;Func&lt;T, <span style="color: #0000ff;">bool</span>&gt;&gt; first, Expression&lt;Func&lt;T, <span style="color: #0000ff;">bool</span>&gt;&gt; second)
+    {
+        <span style="color: #0000ff;">return</span> first.Compose(second, Expression.OrElse);
+    }
+    <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> Expression&lt;T&gt; Compose&lt;T&gt;(<span style="color: #0000ff;">this</span> Expression&lt;T&gt; first, Expression&lt;T&gt; second, Func&lt;Expression, Expression, Expression&gt; merge)
+    {
+        var map = first.Parameters
+            .Select((f, i) =&gt; <span style="color: #0000ff;">new</span> { f, s = second.Parameters[i] })
+            .ToDictionary(p =&gt; p.s, p =&gt; p.f);
+        var secondBody = PFTParameterExtension.ReplaceParameters(map, second.Body);
+        <span style="color: #0000ff;">return</span> Expression.Lambda&lt;T&gt;(merge(first.Body, secondBody), first.Parameters);
+    }
+
+    <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">class</span> PFTParameterExtension : ExpressionVisitor
+    {
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">readonly</span> Dictionary&lt;ParameterExpression, ParameterExpression&gt; map;
+
+        <span style="color: #0000ff;">public</span> PFTParameterExtension()
+        {
+
+        }
+
+        <span style="color: #0000ff;">public</span> PFTParameterExtension(Dictionary&lt;ParameterExpression, ParameterExpression&gt; map)
+        {
+            <span style="color: #0000ff;">this</span>.map = map ?? <span style="color: #0000ff;">new</span> Dictionary&lt;ParameterExpression, ParameterExpression&gt;();
+        }
+
+        <span style="color: #808080;">/// &lt;summary&gt;</span>
+        <span style="color: #808080;">/// 替换参数</span>
+        <span style="color: #808080;">/// &lt;/summary&gt;</span>
+        <span style="color: #808080;">/// &lt;param name="map"&gt;The map.&lt;/param&gt;</span>
+        <span style="color: #808080;">/// &lt;param name="exp"&gt;The exp.&lt;/param&gt;</span>
+        <span style="color: #808080;">/// &lt;returns&gt;Expression&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> Expression ReplaceParameters(Dictionary&lt;ParameterExpression, ParameterExpression&gt; map, Expression exp)
+        {
+            <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span> PFTParameterExtension(map).Visit(exp);
+        }
+
+        <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">override</span> Expression VisitParameter(ParameterExpression p)
+        {
+            ParameterExpression replacement;
+            <span style="color: #0000ff;">if</span> (map != <span style="color: #0000ff;">null</span> &amp;&amp; map.Count &gt; 0 &amp;&amp; map.TryGetValue(p, <span style="color: #0000ff;">out</span> replacement))
+            {
+                p = replacement;
+            }
+            <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">base</span>.VisitParameter(p);
+        }
+
+    }
+
+}</pre>
+</div>
+<p>这里面私有化了一个表达式树访问器，他的作用主要是用来同步Lambda表达式里面的参数。</p>
+<p>下面是调用方式</p>
+<div class="cnblogs_code">
+<pre><code>            var expression = LambdaExtension.True&lt;ScoreClass&gt;();
+            <span style="color: #0000ff;">if</span> (!<span style="color: #0000ff;">string</span>.IsNullOrWhiteSpace(request.CourseName))
+                expression = expression.And(e =&gt; e.CourseName.Contains(request.CourseName));
+            <span style="color: #0000ff;">if</span> (!<span style="color: #0000ff;">string</span>.IsNullOrWhiteSpace(request.StudentName))
+                expression = expression.And(et =&gt; et.StudentName.Contains(request.StudentName));
+
+            var resultDatas = datas.Where(expression.Compile())
+                .ToList();
+            Console.WriteLine($"<span style="color: #8b0000;">查询结果：\n{string.Join(</span>"\n"<span style="color: #8b0000;">, resultDatas.Select(e =&gt; $</span>"{e.StudentName} {e.CourseName} {e.Score}"<span style="color: #8b0000;">))}</span>");
+</pre>
+</div>
+<p>where条件里面只能带委托，而我们的expression是Lambda表达式，所以需要Compile进行委托编译。</p>
+<p>运行结果：</p>
+<p><a href="https://img2018.cnblogs.com/blog/1764554/201909/1764554-20190915233248551-1551453117.png"><img style="display: inline; background-image: none;" title="image" src="./images/C# 表达式树Lambda扩展（四）4.png" alt="image" width="491" height="179" border="0" /></a></p>
+<p>仔细看代码，第一个条件And里面的参数是&ldquo;e&rdquo;，第二个条件里面的参数是et，同一个Lambda表达式里面（这里只有一个参数），参数肯定是一致的，所以在LambdaExtension类中，在合并两个Lambda表达式的时候，就需要将参数合并成一个。</p>
+<p>经过这样的扩展，我们就可以根据我们的实际情况，拼凑好需要的表达式，得到我们想要的结果。</p>
+<h2>三、总结</h2>
+<p>表达式树方面的讲解，终于可以告一段落了。一直后没有这样的写文章，现在觉得写文章还是真的挺累的，今年中秋节的这三天，算是全部的给博客园了。不过这三天讲解的内容，基本上把后面Dapper的扩展需要用的技术都铺垫了，后面我们就继续对ORM的讲解了。其实没写一篇博文，蜗牛都会去罗列和梳理相关知识点，这也让蜗牛获益匪浅，也希望蜗牛的博客能帮助到园友，这就是所谓的&ldquo;赠人玫瑰，手留余香&rdquo;吧。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

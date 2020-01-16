@@ -1,0 +1,395 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修高德离线地图瓦片坐标偏移纠偏' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>高德离线地图瓦片坐标偏移纠偏</center></div><div class='banquan'>原文出处:本文由博客园博主秋荷雨翔提供。<br/>
+原文连接:https://www.cnblogs.com/s0611163/p/12034779.html</div><br>
+    <p>对于地图坐标偏移，以leaflet为例，有如下解决办法</p>
+<p>方法1、修改leaflet源码，解决地图坐标偏移问题</p>
+<p>方法2、将点位真实的经纬度经过偏移算法，添加到加密的地图上</p>
+<p>方法3、直接对离线地图瓦片进行纠偏</p>
+<p>方法1需要修改源码</p>
+<p>方法2有缺陷，地图依然是偏移的，如果把地图经纬度显示出来，经纬度也是不对的</p>
+<p>我使用的是方法3，原理是：虽然偏移不是线性的，我也不知道纠偏算法，但是在市级或者县级区域，偏移近似线性的，所以对于市级或县级地图应用，可以对地图瓦片进行简单的纠编，优点是得到的地图瓦片可以认为是没有偏移的。</p>
+<p>我用C#写了一个高德地图瓦片纠偏程序，代码如下：</p>
+<p><strong>1、配置文件</strong></p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('2ab26134-9a34-4061-bdbe-0f1a70a4bda9')"><img id="code_img_closed_2ab26134-9a34-4061-bdbe-0f1a70a4bda9" class="code_img_closed" src="./images/高德离线地图瓦片坐标偏移纠偏0.png" alt="" /><img id="code_img_opened_2ab26134-9a34-4061-bdbe-0f1a70a4bda9" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('2ab26134-9a34-4061-bdbe-0f1a70a4bda9',event)" src="./images/高德离线地图瓦片坐标偏移纠偏1.png" alt="" />
+<div id="cnblogs_code_open_2ab26134-9a34-4061-bdbe-0f1a70a4bda9" class="cnblogs_code_hide">
+<pre><code><span style="color: #0000ff;">&lt;?</span><span style="color: #ff00ff;">xml version="1.0" encoding="utf-8" </span><span style="color: #0000ff;">?&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">configuration</span><span style="color: #0000ff;">&gt;</span>
+  <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">startup</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">supportedRuntime </span><span style="color: #ff0000;">version</span><span style="color: #0000ff;">="v4.0"</span><span style="color: #ff0000;"> sku</span><span style="color: #0000ff;">=".NETFramework,Version=v4.5"</span> <span style="color: #0000ff;">/&gt;</span>
+  <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">startup</span><span style="color: #0000ff;">&gt;</span>
+  <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">appSettings</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">add </span><span style="color: #ff0000;">key</span><span style="color: #0000ff;">="inputPath"</span><span style="color: #ff0000;"> value</span><span style="color: #0000ff;">="D:\_临时文件\GISMap\1818940751"</span><span style="color: #0000ff;">/&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">add </span><span style="color: #ff0000;">key</span><span style="color: #0000ff;">="outputPath"</span><span style="color: #ff0000;"> value</span><span style="color: #0000ff;">="D:\_临时文件\GISMapOutput\1818940751"</span><span style="color: #0000ff;">/&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">add </span><span style="color: #ff0000;">key</span><span style="color: #0000ff;">="deltaPixcelX"</span><span style="color: #ff0000;"> value</span><span style="color: #0000ff;">="1031"</span><span style="color: #0000ff;">/&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">add </span><span style="color: #ff0000;">key</span><span style="color: #0000ff;">="deltaPixcelY"</span><span style="color: #ff0000;"> value</span><span style="color: #0000ff;">="421"</span><span style="color: #0000ff;">/&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">add </span><span style="color: #ff0000;">key</span><span style="color: #0000ff;">="fromMapZoom"</span><span style="color: #ff0000;"> value</span><span style="color: #0000ff;">="1"</span><span style="color: #0000ff;">/&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">add </span><span style="color: #ff0000;">key</span><span style="color: #0000ff;">="toMapZoom"</span><span style="color: #ff0000;"> value</span><span style="color: #0000ff;">="16"</span><span style="color: #0000ff;">/&gt;</span>
+  <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">appSettings</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">configuration</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p><strong>deltaPixcelX和deltaPixcelY根据不同城市而不同，单位是像素，在太乐地图下载器上，开启网络，放大到18级，使用下载器的纠偏计算，定位点位和纠偏后的点位，基本用眼可以看出来，差一个格就是256像素，不足一格的自己算一下，就把<strong>deltaPixcelX和deltaPixcelY</strong>参数算出来了。</strong></p>
+<p><strong>2、纠偏代码</strong></p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('bbd67896-c7b7-44b1-a03d-5f4133d30b6c')"><img id="code_img_closed_bbd67896-c7b7-44b1-a03d-5f4133d30b6c" class="code_img_closed" src="./images/高德离线地图瓦片坐标偏移纠偏0.png" alt="" /><img id="code_img_opened_bbd67896-c7b7-44b1-a03d-5f4133d30b6c" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('bbd67896-c7b7-44b1-a03d-5f4133d30b6c',event)" src="./images/高德离线地图瓦片坐标偏移纠偏1.png" alt="" />
+<div id="cnblogs_code_open_bbd67896-c7b7-44b1-a03d-5f4133d30b6c" class="cnblogs_code_hide">
+<pre><code><span style="color: #0000ff;">using</span><span style="color: #000000;"> System;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Collections.Generic;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.ComponentModel;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Configuration;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Data;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Drawing;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Drawing.Imaging;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.IO;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Linq;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Text;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Text.RegularExpressions;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Threading;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Threading.Tasks;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Windows.Forms;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> Utils;
+
+</span><span style="color: #0000ff;">namespace</span><span style="color: #000000;"> TileProcess
+{
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">partial</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Form1 : Form
+    {
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">int</span> _count = <span style="color: #800080;">0</span><span style="color: #000000;">;
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> _deltaPixcelX;
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> _deltaPixcelY;
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">string</span><span style="color: #000000;"> _inputPath;
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">string</span><span style="color: #000000;"> _outputPath;
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> _fromMapZoom;
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> _toMapZoom;
+
+        </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> DateTime _startTime;
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> _lastCount;
+
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">object</span> _lock = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">object</span><span style="color: #000000;">();
+
+        </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> Form1()
+        {
+            InitializeComponent();
+
+            _deltaPixcelX </span>= Convert.ToInt32(ConfigurationManager.AppSettings[<span style="color: #800000;">"</span><span style="color: #800000;">deltaPixcelX</span><span style="color: #800000;">"</span><span style="color: #000000;">]);
+            _deltaPixcelY </span>= Convert.ToInt32(ConfigurationManager.AppSettings[<span style="color: #800000;">"</span><span style="color: #800000;">deltaPixcelY</span><span style="color: #800000;">"</span><span style="color: #000000;">]);
+            _inputPath </span>= ConfigurationManager.AppSettings[<span style="color: #800000;">"</span><span style="color: #800000;">inputPath</span><span style="color: #800000;">"</span><span style="color: #000000;">];
+            _outputPath </span>= ConfigurationManager.AppSettings[<span style="color: #800000;">"</span><span style="color: #800000;">outputPath</span><span style="color: #800000;">"</span><span style="color: #000000;">];
+            _fromMapZoom </span>= Convert.ToInt32(ConfigurationManager.AppSettings[<span style="color: #800000;">"</span><span style="color: #800000;">fromMapZoom</span><span style="color: #800000;">"</span><span style="color: #000000;">]);
+            _toMapZoom </span>= Convert.ToInt32(ConfigurationManager.AppSettings[<span style="color: #800000;">"</span><span style="color: #800000;">toMapZoom</span><span style="color: #800000;">"</span><span style="color: #000000;">]);
+        }
+
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> btnTileProcess_Click(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)
+        {
+            </span><span style="color: #0000ff;">this</span>.btnTileProcess.Enabled = <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+
+            Task.Factory.StartNew(() </span>=&gt;<span style="color: #000000;">
+            {
+                LogUtil.Log(</span><span style="color: #800000;">"</span><span style="color: #800000;">开始处理</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                Process();
+            });
+
+            Thread thread </span>= <span style="color: #0000ff;">new</span> Thread(<span style="color: #0000ff;">new</span> ThreadStart(() =&gt;<span style="color: #000000;">
+            {
+                </span><span style="color: #0000ff;">int</span> sleepInterval = <span style="color: #800080;">1000</span><span style="color: #000000;">;
+                </span><span style="color: #0000ff;">while</span> (<span style="color: #0000ff;">true</span><span style="color: #000000;">)
+                {
+                    Thread.Sleep(sleepInterval);
+                    </span><span style="color: #0000ff;">this</span>.BeginInvoke(<span style="color: #0000ff;">new</span> Action(() =&gt;<span style="color: #000000;">
+                    {
+                        </span><span style="color: #0000ff;">double</span> totalSeconds =<span style="color: #000000;"> DateTime.Now.Subtract(_startTime).TotalSeconds;
+                        </span><span style="color: #0000ff;">int</span> avg = (<span style="color: #0000ff;">int</span>)(_count /<span style="color: #000000;"> totalSeconds);
+                        lblMsg.Text </span>= <span style="color: #0000ff;">string</span>.Format(<span style="color: #800000;">"</span><span style="color: #800000;">已处理 {0} 张瓦片图</span><span style="color: #800000;">"</span><span style="color: #000000;">, _count);
+                        </span><span style="color: #0000ff;">if</span> (_count - _lastCount &gt; <span style="color: #800080;">0</span><span style="color: #000000;">)
+                        {
+                            lblSpeed.Text </span>= <span style="color: #0000ff;">string</span>.Format(<span style="color: #800000;">"</span><span style="color: #800000;">当前速度：{0} 张/每秒，平均速度：{1} 张/每秒</span><span style="color: #800000;">"</span>, (_count - _lastCount) * <span style="color: #800080;">1000.0</span> /<span style="color: #000000;"> sleepInterval, avg);
+                        }
+                        _lastCount </span>=<span style="color: #000000;"> _count;
+                    }));
+                }
+            }));
+            thread.IsBackground </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+            thread.Start();
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 瓦片纠偏处理
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> Process()
+        {
+            _startTime </span>=<span style="color: #000000;"> DateTime.Now;
+            Regex regex </span>= <span style="color: #0000ff;">new</span> Regex(<span style="color: #800000;">@"</span><span style="color: #800000;">\\(\d+)\\(\d+).png</span><span style="color: #800000;">"</span><span style="color: #000000;">, RegexOptions.IgnoreCase);
+            </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = _fromMapZoom; i &lt;= _toMapZoom; i++<span style="color: #000000;">)
+            {
+                </span><span style="color: #0000ff;">int</span> deltaPixcelX = (<span style="color: #0000ff;">int</span>)Math.Round(_deltaPixcelX / Math.Round(Math.Pow(<span style="color: #800080;">2</span>, <span style="color: #800080;">18</span> -<span style="color: #000000;"> i)));
+                </span><span style="color: #0000ff;">int</span> deltaPixcelY = (<span style="color: #0000ff;">int</span>)Math.Round(_deltaPixcelY / Math.Round(Math.Pow(<span style="color: #800080;">2</span>, <span style="color: #800080;">18</span> -<span style="color: #000000;"> i)));
+
+                </span><span style="color: #0000ff;">string</span>[] fileArr = Directory.GetFiles(_inputPath + <span style="color: #800000;">"</span><span style="color: #800000;">\\</span><span style="color: #800000;">"</span> + i, <span style="color: #800000;">"</span><span style="color: #800000;">*.*</span><span style="color: #800000;">"</span><span style="color: #000000;">, SearchOption.AllDirectories);
+                </span><span style="color: #0000ff;">foreach</span> (<span style="color: #0000ff;">string</span> file <span style="color: #0000ff;">in</span><span style="color: #000000;"> fileArr)
+                {
+                    ThreadData data </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> ThreadData();
+                    data.File </span>=<span style="color: #000000;"> file;
+                    data.I </span>=<span style="color: #000000;"> i;
+                    data.DeltaPixcelX </span>=<span style="color: #000000;"> deltaPixcelX;
+                    data.DeltaPixcelY </span>=<span style="color: #000000;"> deltaPixcelY;
+
+                    ThreadUtil.Run((obj) </span>=&gt;<span style="color: #000000;">
+                    {
+                        ThreadData d </span>= obj <span style="color: #0000ff;">as</span><span style="color: #000000;"> ThreadData;
+
+                        Match match </span>=<span style="color: #000000;"> regex.Match(d.File);
+                        </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (match.Success)
+                        {
+                            </span><span style="color: #0000ff;">int</span> x = Convert.ToInt32(match.Groups[<span style="color: #800080;">1</span><span style="color: #000000;">].Value);
+                            </span><span style="color: #0000ff;">int</span> y = Convert.ToInt32(match.Groups[<span style="color: #800080;">2</span><span style="color: #000000;">].Value);
+
+                            </span><span style="color: #0000ff;">string</span> pathTarget = <span style="color: #0000ff;">string</span>.Format(<span style="color: #0000ff;">string</span>.Format(<span style="color: #800000;">@"</span><span style="color: #800000;">{0}\{1}\{2}\{3}.png</span><span style="color: #800000;">"</span><span style="color: #000000;">, _outputPath, d.I, x, y));
+                            </span><span style="color: #0000ff;">if</span> (!<span style="color: #000000;">File.Exists(pathTarget))
+                            {
+                                </span><span style="color: #0000ff;">if</span> (!<span style="color: #000000;">Directory.Exists(Path.GetDirectoryName(pathTarget)))
+                                {
+                                    Directory.CreateDirectory(Path.GetDirectoryName(pathTarget));
+                                }
+                                Bitmap bmpNew </span>= <span style="color: #0000ff;">new</span> Bitmap(<span style="color: #800080;">256</span>, <span style="color: #800080;">256</span><span style="color: #000000;">, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+                                bmpNew.SetResolution(</span><span style="color: #800080;">96</span>, <span style="color: #800080;">96</span><span style="color: #000000;">);
+                                Graphics graph </span>=<span style="color: #000000;"> Graphics.FromImage(bmpNew);
+
+                                </span><span style="color: #0000ff;">int</span> deltaX = data.DeltaPixcelX / <span style="color: #800080;">256</span><span style="color: #000000;">;
+                                </span><span style="color: #0000ff;">int</span> deltaY = data.DeltaPixcelY / <span style="color: #800080;">256</span><span style="color: #000000;">;
+
+                                </span><span style="color: #008000;">//</span><span style="color: #008000;">临时变量定义</span>
+                                <span style="color: #0000ff;">string</span> pathSource = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+                                FileStream fs </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+                                </span><span style="color: #0000ff;">byte</span>[] bArr = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+                                MemoryStream ms </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+                                Bitmap bmpSource </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+
+                                </span><span style="color: #008000;">//</span><span style="color: #008000;">起始</span>
+                                pathSource = <span style="color: #0000ff;">string</span>.Format(<span style="color: #800000;">@"</span><span style="color: #800000;">{0}\{1}\{2}\{3}.png</span><span style="color: #800000;">"</span>, _inputPath, d.I, x + deltaX, y +<span style="color: #000000;"> deltaY);
+                                </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (File.Exists(pathSource))
+                                {
+                                    fs </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> FileStream(pathSource, FileMode.Open, FileAccess.Read);
+                                    bArr </span>= <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">byte</span><span style="color: #000000;">[fs.Length];
+                                    </span><span style="color: #0000ff;">int</span> readCount = fs.Read(bArr, <span style="color: #800080;">0</span><span style="color: #000000;">, bArr.Length);
+                                    ms </span>= <span style="color: #0000ff;">new</span> MemoryStream(bArr, <span style="color: #800080;">0</span><span style="color: #000000;">, readCount);
+                                    bmpSource </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Bitmap(ms);
+                                    bmpSource.SetResolution(</span><span style="color: #800080;">96</span>, <span style="color: #800080;">96</span><span style="color: #000000;">);
+                                    graph.DrawImage(bmpSource, </span><span style="color: #800080;">0</span>, <span style="color: #800080;">0</span>, <span style="color: #0000ff;">new</span> RectangleF(data.DeltaPixcelX % <span style="color: #800080;">256</span>, data.DeltaPixcelY % <span style="color: #800080;">256</span>, <span style="color: #800080;">256</span> - data.DeltaPixcelX % <span style="color: #800080;">256</span>, <span style="color: #800080;">256</span> - data.DeltaPixcelY % <span style="color: #800080;">256</span><span style="color: #000000;">), GraphicsUnit.Pixel);
+                                    graph.Flush();
+
+                                    fs.Close();
+                                    fs </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+                                    ms.Close();
+                                    ms </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+                                    bmpSource.Dispose();
+                                    bmpSource </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+                                }
+
+                                </span><span style="color: #008000;">//</span><span style="color: #008000;">右</span>
+                                pathSource = <span style="color: #0000ff;">string</span>.Format(<span style="color: #800000;">@"</span><span style="color: #800000;">{0}\{1}\{2}\{3}.png</span><span style="color: #800000;">"</span>, _inputPath, d.I, x + deltaX + <span style="color: #800080;">1</span>, y +<span style="color: #000000;"> deltaY);
+                                </span><span style="color: #0000ff;">if</span> (File.Exists(pathSource) &amp;&amp; (data.DeltaPixcelX &gt; <span style="color: #800080;">0</span> || data.DeltaPixcelY &gt; <span style="color: #800080;">0</span><span style="color: #000000;">))
+                                {
+                                    fs </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> FileStream(pathSource, FileMode.Open, FileAccess.Read);
+                                    bArr </span>= <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">byte</span><span style="color: #000000;">[fs.Length];
+                                    </span><span style="color: #0000ff;">int</span> readCount = fs.Read(bArr, <span style="color: #800080;">0</span><span style="color: #000000;">, bArr.Length);
+                                    ms </span>= <span style="color: #0000ff;">new</span> MemoryStream(bArr, <span style="color: #800080;">0</span><span style="color: #000000;">, readCount);
+                                    bmpSource </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Bitmap(ms);
+                                    bmpSource.SetResolution(</span><span style="color: #800080;">96</span>, <span style="color: #800080;">96</span><span style="color: #000000;">);
+                                    graph.DrawImage(bmpSource, </span><span style="color: #800080;">256</span> - data.DeltaPixcelX % <span style="color: #800080;">256</span>, <span style="color: #800080;">0</span>, <span style="color: #0000ff;">new</span> RectangleF(<span style="color: #800080;">0</span>, data.DeltaPixcelY % <span style="color: #800080;">256</span>, data.DeltaPixcelX % <span style="color: #800080;">256</span>, <span style="color: #800080;">256</span> - data.DeltaPixcelY % <span style="color: #800080;">256</span><span style="color: #000000;">), GraphicsUnit.Pixel);
+                                    graph.Flush();
+
+                                    fs.Close();
+                                    fs </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+                                    ms.Close();
+                                    ms </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+                                    bmpSource.Dispose();
+                                    bmpSource </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+                                }
+
+                                </span><span style="color: #008000;">//</span><span style="color: #008000;">下</span>
+                                pathSource = <span style="color: #0000ff;">string</span>.Format(<span style="color: #800000;">@"</span><span style="color: #800000;">{0}\{1}\{2}\{3}.png</span><span style="color: #800000;">"</span>, _inputPath, d.I, x + deltaX, y + deltaY + <span style="color: #800080;">1</span><span style="color: #000000;">);
+                                </span><span style="color: #0000ff;">if</span> (File.Exists(pathSource) &amp;&amp; (data.DeltaPixcelX &gt; <span style="color: #800080;">0</span> || data.DeltaPixcelY &gt; <span style="color: #800080;">0</span><span style="color: #000000;">))
+                                {
+                                    fs </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> FileStream(pathSource, FileMode.Open, FileAccess.Read);
+                                    bArr </span>= <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">byte</span><span style="color: #000000;">[fs.Length];
+                                    </span><span style="color: #0000ff;">int</span> readCount = fs.Read(bArr, <span style="color: #800080;">0</span><span style="color: #000000;">, bArr.Length);
+                                    ms </span>= <span style="color: #0000ff;">new</span> MemoryStream(bArr, <span style="color: #800080;">0</span><span style="color: #000000;">, readCount);
+                                    bmpSource </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Bitmap(ms);
+                                    bmpSource.SetResolution(</span><span style="color: #800080;">96</span>, <span style="color: #800080;">96</span><span style="color: #000000;">);
+                                    graph.DrawImage(bmpSource, </span><span style="color: #800080;">0</span>, <span style="color: #800080;">256</span> - data.DeltaPixcelY % <span style="color: #800080;">256</span>, <span style="color: #0000ff;">new</span> RectangleF(data.DeltaPixcelX % <span style="color: #800080;">256</span>, <span style="color: #800080;">0</span>, <span style="color: #800080;">256</span> - data.DeltaPixcelX % <span style="color: #800080;">256</span>, data.DeltaPixcelY % <span style="color: #800080;">256</span><span style="color: #000000;">), GraphicsUnit.Pixel);
+                                    graph.Flush();
+
+                                    fs.Close();
+                                    fs </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+                                    ms.Close();
+                                    ms </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+                                    bmpSource.Dispose();
+                                    bmpSource </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+                                }
+
+                                </span><span style="color: #008000;">//</span><span style="color: #008000;">右下</span>
+                                pathSource = <span style="color: #0000ff;">string</span>.Format(<span style="color: #800000;">@"</span><span style="color: #800000;">{0}\{1}\{2}\{3}.png</span><span style="color: #800000;">"</span>, _inputPath, d.I, x + deltaX + <span style="color: #800080;">1</span>, y + deltaY + <span style="color: #800080;">1</span><span style="color: #000000;">);
+                                </span><span style="color: #0000ff;">if</span> (File.Exists(pathSource) &amp;&amp; (data.DeltaPixcelX &gt; <span style="color: #800080;">0</span> || data.DeltaPixcelY &gt; <span style="color: #800080;">0</span><span style="color: #000000;">))
+                                {
+                                    fs </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> FileStream(pathSource, FileMode.Open, FileAccess.Read);
+                                    bArr </span>= <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">byte</span><span style="color: #000000;">[fs.Length];
+                                    </span><span style="color: #0000ff;">int</span> readCount = fs.Read(bArr, <span style="color: #800080;">0</span><span style="color: #000000;">, bArr.Length);
+                                    ms </span>= <span style="color: #0000ff;">new</span> MemoryStream(bArr, <span style="color: #800080;">0</span><span style="color: #000000;">, readCount);
+                                    bmpSource </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Bitmap(ms);
+                                    bmpSource.SetResolution(</span><span style="color: #800080;">96</span>, <span style="color: #800080;">96</span><span style="color: #000000;">);
+                                    graph.DrawImage(bmpSource, </span><span style="color: #800080;">256</span> - data.DeltaPixcelX % <span style="color: #800080;">256</span>, <span style="color: #800080;">256</span> - data.DeltaPixcelY % <span style="color: #800080;">256</span>, <span style="color: #0000ff;">new</span> RectangleF(<span style="color: #800080;">0</span>, <span style="color: #800080;">0</span>, data.DeltaPixcelX % <span style="color: #800080;">256</span>, data.DeltaPixcelY % <span style="color: #800080;">256</span><span style="color: #000000;">), GraphicsUnit.Pixel);
+                                    graph.Flush();
+
+                                    fs.Close();
+                                    fs </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+                                    ms.Close();
+                                    ms </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+                                    bmpSource.Dispose();
+                                    bmpSource </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+                                }
+
+                                bmpNew.Save(pathTarget);
+                                </span><span style="color: #008000;">//</span><span style="color: #008000;">bmpNew.Save("d:\\_临时文件\\1234.png"); </span><span style="color: #008000;">//</span><span style="color: #008000;">测试用</span>
+<span style="color: #000000;">
+                                bmpNew.Dispose();
+                                bmpNew </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+                                graph.Dispose();
+                                graph </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+                            } </span><span style="color: #008000;">//</span><span style="color: #008000;">end if (!File.Exists(pathTarget))</span>
+
+                            <span style="color: #0000ff;">lock</span><span style="color: #000000;"> (_lock)
+                            {
+                                _count</span>++<span style="color: #000000;">;
+                            }
+                        } </span><span style="color: #008000;">//</span><span style="color: #008000;">end if (match.Success)</span>
+                    }, data, (ex) =&gt;<span style="color: #000000;">
+                    {
+                        </span><span style="color: #0000ff;">this</span>.BeginInvoke(<span style="color: #0000ff;">new</span> Action(() =&gt;<span style="color: #000000;">
+                        {
+                            lblErrorMsg.Text </span>= <span style="color: #800000;">"</span><span style="color: #800000;">出错：</span><span style="color: #800000;">"</span> + ex.Message + <span style="color: #800000;">"</span><span style="color: #800000;">\r\n</span><span style="color: #800000;">"</span> +<span style="color: #000000;"> ex.StackTrace;
+                            LogUtil.LogError(ex, </span><span style="color: #800000;">"</span><span style="color: #800000;">出错</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                        }));
+                    }); </span><span style="color: #008000;">//</span><span style="color: #008000;">end ThreadUtil.Run</span>
+                } <span style="color: #008000;">//</span><span style="color: #008000;">end foreach (string file in fileArr)</span>
+            } <span style="color: #008000;">//</span><span style="color: #008000;">end for (int i = _fromMapZoom; i &lt;= _toMapZoom; i++)</span>
+<span style="color: #000000;">        }
+
+    }
+}</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>辅助类ThreadUtil：</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('b5133ab1-4858-416b-b4ef-36cfde7e2cde')"><img id="code_img_closed_b5133ab1-4858-416b-b4ef-36cfde7e2cde" class="code_img_closed" src="./images/高德离线地图瓦片坐标偏移纠偏0.png" alt="" /><img id="code_img_opened_b5133ab1-4858-416b-b4ef-36cfde7e2cde" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('b5133ab1-4858-416b-b4ef-36cfde7e2cde',event)" src="./images/高德离线地图瓦片坐标偏移纠偏1.png" alt="" />
+<div id="cnblogs_code_open_b5133ab1-4858-416b-b4ef-36cfde7e2cde" class="cnblogs_code_hide">
+<pre><code><span style="color: #0000ff;">using</span><span style="color: #000000;"> System;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Collections.Generic;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Linq;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Text;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Threading;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Threading.Tasks;
+
+</span><span style="color: #0000ff;">namespace</span><span style="color: #000000;"> Utils
+{
+    </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+    <span style="color: #808080;">///</span><span style="color: #008000;"> 线程工具类
+    </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> ThreadUtil
+    {
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 使用的逻辑处理器数
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> _ProcessorCount;
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span><span style="color: #000000;"> Semaphore _semaphore;
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> List&lt;Task&gt; _TaskList = <span style="color: #0000ff;">new</span> List&lt;Task&gt;<span style="color: #000000;">();
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">object</span> _lock = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">object</span><span style="color: #000000;">();
+
+        </span><span style="color: #0000ff;">static</span><span style="color: #000000;"> ThreadUtil()
+        {
+            _ProcessorCount </span>= Environment.ProcessorCount * <span style="color: #800080;">2</span> / <span style="color: #800080;">4</span>; <span style="color: #008000;">//</span><span style="color: #008000;">使用的逻辑处理器数</span>
+            <span style="color: #0000ff;">if</span> (_ProcessorCount &lt; <span style="color: #800080;">1</span>) _ProcessorCount = <span style="color: #800080;">1</span><span style="color: #000000;">;
+            _semaphore </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Semaphore(_ProcessorCount, _ProcessorCount);
+        }
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Run(Action&lt;<span style="color: #0000ff;">object</span>&gt; doWork, <span style="color: #0000ff;">object</span> arg, Action&lt;Exception&gt;<span style="color: #000000;"> errorAction)
+        {
+            Task task </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+            task </span>= Task.Factory.StartNew((obj) =&gt;<span style="color: #000000;">
+            {
+                _semaphore.WaitOne();
+
+                </span><span style="color: #0000ff;">try</span><span style="color: #000000;">
+                {
+                    doWork(obj);
+                }
+                </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception ex)
+                {
+                    errorAction(ex);
+                }
+
+                _semaphore.Release();
+
+                </span><span style="color: #0000ff;">lock</span><span style="color: #000000;"> (_lock)
+                {
+                    _TaskList.Remove(task);
+                }
+            }, arg);
+
+            </span><span style="color: #0000ff;">lock</span><span style="color: #000000;"> (_lock)
+            {
+                _TaskList.Add(task);
+            }
+        }
+
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> WaitAll()
+        {
+            Task.WaitAll(_TaskList.ToArray());
+        }
+    }
+}</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>辅助类ThreadData：</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('18057e80-9cb9-41cb-908c-a7e8a844e467')"><img id="code_img_closed_18057e80-9cb9-41cb-908c-a7e8a844e467" class="code_img_closed" src="./images/高德离线地图瓦片坐标偏移纠偏0.png" alt="" /><img id="code_img_opened_18057e80-9cb9-41cb-908c-a7e8a844e467" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('18057e80-9cb9-41cb-908c-a7e8a844e467',event)" src="./images/高德离线地图瓦片坐标偏移纠偏1.png" alt="" />
+<div id="cnblogs_code_open_18057e80-9cb9-41cb-908c-a7e8a844e467" class="cnblogs_code_hide">
+<pre><code><span style="color: #0000ff;">using</span><span style="color: #000000;"> System;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Collections.Generic;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Linq;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Text;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Threading.Tasks;
+
+</span><span style="color: #0000ff;">namespace</span><span style="color: #000000;"> TileProcess
+{
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> ThreadData
+    {
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span> I { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> File { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span> DeltaPixcelX { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span> DeltaPixcelY { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+    }
+}</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>写日志工具类就不贴了，可以用其它日志工具代替</p>
+<p>处理速度大约每称300张瓦片，具体根据电脑性能不同，一个城市的瓦片大约1个小时左右能处理完。</p>
+<p>纠偏后的地图做最佳路径分析，显示的路径和道路基本吻合，略有误差。</p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,68 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修SmtpClient发送邮件时附件名称乱码' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>SmtpClient发送邮件时附件名称乱码</center></div><div class='banquan'>原文出处:本文由博客园博主BoyTNT提供。<br/>
+原文连接:https://www.cnblogs.com/BoyTNT/p/11887281.html</div><br>
+    <p>在用户环境发现一个现象，使用System.Net.Mail.SmtpClient发送邮件，当附件名包含中文且长度较长时，最终的邮件里附件名会乱掉，写个简单的测试程序：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> mail = <span style="color: #0000ff;">new</span> MailMessage(<span style="color: #800000;">"</span><span style="color: #800000;">from@test.com</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">to@test.com</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+mail.Subject </span>= <span style="color: #800000;">"</span><span style="color: #800000;">测试邮件乱码</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+</span><span style="color: #0000ff;">var</span> atta = <span style="color: #0000ff;">new</span> Attachment(<span style="color: #800000;">@"</span><span style="color: #800000;">C:\测试邮件中文出现乱码20150115.rar</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+mail.Attachments.Add(atta);
+
+</span><span style="color: #0000ff;">var</span> smtp = <span style="color: #0000ff;">new</span><span style="color: #000000;"> SmtpClient();
+smtp.Host </span>= <span style="color: #800000;">"</span><span style="color: #800000;">test.com</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+smtp.Credentials </span>= <span style="color: #0000ff;">new</span> NetworkCredential(<span style="color: #800000;">"</span><span style="color: #800000;">from</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">test</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+smtp.Send(mail);</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>使用Foxmail接收邮件，然后查看邮件原始信息，发现附件部分的MIME居然是这样的：</p>
+<p><img src="./images/SmtpClient发送邮件时附件名称乱码0.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>这个怪异的name导致了在邮件客户端里显示乱码。换不同的机器测试，有些机器是正常的，说明与软件环境有关。正常的邮件应该是这样的：</p>
+<p><img src="./images/SmtpClient发送邮件时附件名称乱码1.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>研究了一下，发现是.Net Framework的BUG，详见微软网站：http://support.microsoft.com/kb/2402064，&nbsp;当附件名超过41个utf8 byte时，会错误的进行2次编码导致的。 补丁见&nbsp;https://connect.microsoft.com/VisualStudio/Downloads/DownloadDetails.aspx?DownloadID=31723。</p>
+<p>&nbsp;</p>
+<p>如果服务器未升级，可以暂时修改程序来避开这个BUG，主要是手工指定附件的名称：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> mail = <span style="color: #0000ff;">new</span> MailMessage(<span style="color: #800000;">"</span><span style="color: #800000;">from@test.com</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">to@test.com</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+mail.Subject </span>= <span style="color: #800000;">"</span><span style="color: #800000;">测试邮件乱码</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+</span><span style="color: #0000ff;">string</span> file = <span style="color: #800000;">@"</span><span style="color: #800000;">C:\测试邮件中文出现乱码20150115.rar</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+</span><span style="color: #0000ff;">var</span> atta = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Attachment(file);
+</span><span style="color: #0000ff;">string</span> name =<span style="color: #000000;"> Path.GetFileName(file);
+</span><span style="color: #0000ff;">string</span> base64 =<span style="color: #000000;"> Convert.ToBase64String(Encoding.UTF8.GetBytes(name));
+atta.ContentDisposition.FileName </span>= <span style="color: #0000ff;">string</span>.Format(<span style="color: #800000;">"</span><span style="color: #800000;">=?utf-8?B?{0}?=</span><span style="color: #800000;">"</span>, base64);   <span style="color: #008000;">//</span><span style="color: #008000;">指定附件的filename</span>
+atta.Name = <span style="color: #800000;">"</span><span style="color: #800000;">p_w_upload</span><span style="color: #800000;">"</span>;           <span style="color: #008000;">//</span><span style="color: #008000;">指定MimePart的Name，不包含中文，这样就不会被BUG影响</span>
+atta.NameEncoding =<span style="color: #000000;"> Encoding.UTF8;
+mail.Attachments.Add(atta);
+
+</span><span style="color: #0000ff;">var</span> smtp = <span style="color: #0000ff;">new</span><span style="color: #000000;"> SmtpClient();
+smtp.Host </span>= <span style="color: #800000;">"</span><span style="color: #800000;">test.com</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+smtp.Credentials </span>= <span style="color: #0000ff;">new</span> NetworkCredential(<span style="color: #800000;">"</span><span style="color: #800000;">from</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">test</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+smtp.Send(mail);</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>此时收到的邮件是这样的，注意划红线部分：</p>
+<p><img src="./images/SmtpClient发送邮件时附件名称乱码2.png" alt="" /></p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,79 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C# 调用OpenCVSharp报错“尝试读取或写入受保护的内存。这通常指示其他内存已损坏”' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C# 调用OpenCVSharp报错“尝试读取或写入受保护的内存。这通常指示其他内存已损坏”</center></div><div class='banquan'>原文出处:本文由博客园博主cherish1024提供。<br/>
+原文连接:https://www.cnblogs.com/cherish836138981/p/11987954.html</div><br>
+    <p>一、描述问题</p>
+<p>当托管代码调用非托管代码的时候，经常会出现如下报错：&ldquo;尝试读取或写入受保护的内存。这通常指示其他内存已损坏&rdquo;。</p>
+<p>二、原因分析</p>
+<p>由于非托管代码的内存指针的回收是由非托管代码自身手动完成的，而不是像托管代码一样有统一的垃圾回收机制，比如.NET的GC。</p>
+<p>所以对于托管代码的调用方来说无法控制其内存回收。以上问题的产生原因很可能是托管代码调用了已经被回收的非托管对象。封装</p>
+<p>的好一点的非托管代码一般都会有内存释放的接口供外部调用，这样调用方就可以管理非托管代码的内存回收。</p>
+<p>三、解决方法</p>
+<p>尽量不用使用不确定的非托管代码里面提供的对象。如果必须使用的话，实例化完成后直接使用而不要通过什么方法传递，委托回调等方式来</p>
+<p>获取里面的对象，在这些复杂未知的过程中，很可能非托管的对象已经被回收了。</p>
+<p>四、示例说明</p>
+<p>当使用C#调用OpenCVSharp的时候，经常会出现以上问题。</p>
+<p>错误代码如下：</p>
+<p>1、订阅鼠标回调方法，并将mat的指针Data作为参数传递给回调方法。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span>   <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> button15_Click(<span style="color: #0000ff;">object</span><span style="color: #000000;"> sender, EventArgs e)
+</span><span style="color: #008080;">2</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">3</span>             Mat mat = GetMat();<span style="color: #008000;">//</span><span style="color: #008000;">获取Mat对象</span>
+<span style="color: #008080;">4</span>             Cv2.SetMouseCallback(<span style="color: #800000;">"</span><span style="color: #800000;">输入图像</span><span style="color: #800000;">"</span><span style="color: #000000;">, GetRGBCvMouseCallback, mat.Data);
+</span><span style="color: #008080;">5</span>         }</pre>
+</div>
+<p>2、回调方法，获取每个点的RGB值</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span>   <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> GetRGBCallbackMethod(MouseEvent @event, <span style="color: #0000ff;">int</span> x, <span style="color: #0000ff;">int</span><span style="color: #000000;"> y, MouseEvent flags, IntPtr userdata)
+</span><span style="color: #008080;"> 2</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;"> 3</span>             <span style="color: #0000ff;">switch</span><span style="color: #000000;"> (@event)
+</span><span style="color: #008080;"> 4</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 5</span>                 <span style="color: #0000ff;">case</span><span style="color: #000000;"> MouseEvent.LButtonDown:
+</span><span style="color: #008080;"> 6</span> 
+<span style="color: #008080;"> 7</span>                     <span style="color: #0000ff;">using</span> (Mat mat = <span style="color: #0000ff;">new</span> Mat(Rows, Cols, _MatType, userdata))<span style="color: #008000;">//</span><span style="color: #008000;">这种方式会被内存回收，直接在这里面获取对象</span>
+<span style="color: #008080;"> 8</span> <span style="color: #000000;">                    {
+</span><span style="color: #008080;"> 9</span>                         <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; Rows; i++<span style="color: #000000;">)
+</span><span style="color: #008080;">10</span> <span style="color: #000000;">                        {
+</span><span style="color: #008080;">11</span>                             <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> j = <span style="color: #800080;">0</span>; j &lt; Cols; j++<span style="color: #000000;">)
+</span><span style="color: #008080;">12</span> <span style="color: #000000;">                            {
+</span><span style="color: #008080;">13</span>                                 Vec3b s = mat.At&lt;Vec3b&gt;(j, i);<span style="color: #008000;">//</span><span style="color: #008000;">获取第i0行第i1列)  这个方法会死 尝试读取收保护内存</span>
+<span style="color: #008080;">14</span> <span style="color: #000000;">                            }
+</span><span style="color: #008080;">15</span> 
+<span style="color: #008080;">16</span> <span style="color: #000000;">                        }</span>
+<span style="color: #008080;">17</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">18</span>                     <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+</span><span style="color: #008080;">19</span>                 <span style="color: #0000ff;">default</span><span style="color: #000000;">:
+</span><span style="color: #008080;">20</span>                     <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+</span><span style="color: #008080;">21</span>            }</pre>
+</div>
+<p>运行报错，截图如下：</p>
+<p><img src="./images/C# 调用OpenCVSharp报错“尝试读取或写入受保护的内存。这通常指示其他内存已损坏”0.png" alt="" width="488" height="261" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>正确代码：</p>
+<p>&nbsp;<span style="color: #ff0000;"> &nbsp;将7行代码Mat mat = new Mat(Rows, Cols, _MatType, userdata)改成using (Mat mat=GetMat()) ，就不会出现以上问题。</span></p>
+<p>原因分析：</p>
+<p><span style="color: #ff0000;">原因很可能是userData中回调的过程中已经被回收了，当再次使用时就会报尝试访问被保护的内存的错误。为了</span></p>
+<p><span style="color: #ff0000;">防止此问题的发生，解决办法就是重新实例化一个Mat对象，不使用可能被回收的userData数据。</span></p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

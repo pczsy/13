@@ -1,0 +1,163 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C#  连接 Socks5 代理' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C#  连接 Socks5 代理</center></div><div class='banquan'>原文出处:本文由博客园博主凡人陈提供。<br/>
+原文连接:https://www.cnblogs.com/mayblog/p/11007595.html</div><br>
+    <p>public class Socks5ProxyHelp<br />
+{<br />
+private Socks5ProxyHelp() { }</p>
+<pre><code><code>    public static string[] errorMsgs = {
+     &quot;Operation completed successfully.&quot;,//操作成功完成
+     &quot;General SOCKS server failure.&quot;,//常规服务器失败
+     &quot;Connection not allowed by ruleset.&quot;,//连接不被允许
+     &quot;Network unreachable.&quot;,//网络不能到达
+     &quot;Host unreachable.&quot;,//主机不能到达
+     &quot;Connection refused.&quot;,//连接被拒绝
+     &quot;TTL expired.&quot;,//TTL期满
+     &quot;Command not supported.&quot;,//不支持的命令
+     &quot;Address type not supported.&quot;,//不被支持的地址类型
+     &quot;Unknown error.&quot;//未名的错误
+    };
+
+
+
+    // &lt;summary&gt;
+    // 连接到socks5代理
+    // &lt;/summary&gt;
+    // &lt;param name=&quot;proxyAdress&quot;&gt;代理服务期地址&lt;/param&gt;
+    // &lt;param name=&quot;proxyPort&quot;&gt;代理服务器端口&lt;/param&gt;
+    // &lt;param name=&quot;destAddress&quot;&gt;目标地址  Destination: 目的地,UDP命令时是本机的地址&lt;/param&gt;
+    // &lt;param name=&quot;destPort&quot;&gt;目标端口,UDP命令时是本机的UDP端口&lt;/param&gt;
+    // &lt;param name=&quot;userName&quot;&gt;用户名&lt;/param&gt;
+    // &lt;param name=&quot;password&quot;&gt;密码&lt;/param&gt;
+    // &lt;returns&gt;用于TCP连接的SOCKET&lt;/returns&gt;
+    public static void ConnectToSocks5Proxy(string proxyAdress, int proxyPort, string userName, string password, out string ErrorMsg)
+    {
+        ErrorMsg = &quot;&quot;;
+        IPAddress proxyIP = null;
+        byte[] request = new byte[257]; //请求
+        byte[] response = new byte[257];//应答
+        ushort nIndex;
+        try
+        {
+            proxyIP = IPAddress.Parse(proxyAdress);
+        }
+        catch (FormatException)
+        {
+            proxyIP = Dns.GetHostEntry(proxyAdress).AddressList[0];
+        }
+        // 解析 destAddress (要求是类似 &quot;212.116.65.112&quot; 的string),否则是类似 &quot;www.microsoft.com&quot;的地址
+
+        IPEndPoint proxyEndPoint = new IPEndPoint(proxyIP, proxyPort);
+        Socket s = null;
+        try
+        {
+            s = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            s.Connect(proxyEndPoint);//客户端连到服务器后，然后就发送请求来协商版本和认证方法： 
+
+            nIndex = 0;
+            request[nIndex++] = 0x05; // V 5.              [版本]
+            request[nIndex++] = 0x02; // 2种验证方式    [方法的数目]
+            request[nIndex++] = 0x00; // X&#39;00&#39;  不需要认证 [方法1]
+            request[nIndex++] = 0x02; // X&#39;02&#39;  用户名/密码[方法2]
+            s.Send(request, nIndex, SocketFlags.None);
+            // 收到2个字节的应答,填充到response中,如果不是两个字节,则抛出异常
+            int nGot = s.Receive(response, 2, SocketFlags.None);
+            if (nGot != 2) throw new Exception(&quot;从 proxy server 返回错误的应答.&quot;);
+
+            // 当前定义的方法有：
+            // X&#39;00&#39;  不需要认证
+            // X&#39;01&#39;     GSSAPI
+            // X&#39;02&#39;     用户名/密码
+            // X&#39;03&#39; -- X&#39;7F&#39;   由IANA分配
+            // X&#39;80&#39; -- X&#39;FE&#39;  为私人方法所保留的
+            // X&#39;FF&#39;      没有可以接受的方法
+            switch (response[1])
+            {
+                case 0xFF:
+                    没有可以接受的方法(s);
+                    break;
+                case 0x02:
+                    用户名密码验证(s, userName, password);
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMsg = ex.Message;
+        }
+        finally
+        {
+            if (s != null)
+            {
+                s.Close();
+                s.Dispose();
+                s = null;
+            }
+        }
+        //SendUDP.UDP命令(s);
+    }
+    static void 没有可以接受的方法(Socket s)
+    {
+        // 客户端没有一中验证方式能被服务器接受,则关闭该socket.
+        s.Close();
+        throw new Exception(&quot;客户端没有一中验证方式能被代理服务器接受.&quot;);
+    }
+    static bool 用户名密码验证(Socket s, string userName, string password)
+    {
+        byte[] request = new byte[257]; //请求
+        byte[] response = new byte[257];//应答
+        ushort nIndex;
+        byte[] rawBytes;
+        nIndex = 0;
+
+        request[nIndex++] = 0x05; // Version 5.   不清楚为什么报文的首字节是0x01(按照惯例应当是0x05)
+
+        // 加入 user name
+        request[nIndex++] = (byte)userName.Length;  //一个字节,放UserName的长度
+        rawBytes = Encoding.Default.GetBytes(userName);
+        rawBytes.CopyTo(request, nIndex);          //将userName 加入
+        nIndex += (ushort)rawBytes.Length;
+
+        // 加入 password
+        request[nIndex++] = (byte)password.Length;  //一个字节,放PassWord的长度
+        rawBytes = Encoding.Default.GetBytes(password);
+        rawBytes.CopyTo(request, nIndex);
+        nIndex += (ushort)rawBytes.Length;
+
+        // 发送 Username/Password 请求
+        s.Send(request, nIndex, SocketFlags.None);
+        int nGot = s.Receive(response, 2, SocketFlags.None);
+        if (nGot != 2)
+        {
+            throw new Exception(&quot;从 proxy server 返回错误的应答.&quot;);
+        }
+        if (response[1] != 0x00) //返回如下的报文字节序列映像为：0x01 | 验证结果标志--&gt;0x00 验证通过，其余均表示有故障
+        {
+            throw new Exception(&quot;账号或密码错误！&quot;);
+        }
+        Console.WriteLine(&quot;okpass&quot;);
+        return true;
+    }
+}</code></pre>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

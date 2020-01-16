@@ -1,0 +1,249 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修聊聊多线程那一些事儿（task）之 三 异步取消和异步方法' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>聊聊多线程那一些事儿（task）之 三 异步取消和异步方法</center></div><div class='banquan'>原文出处:本文由博客园博主程序员修炼之旅提供。<br/>
+原文连接:https://www.cnblogs.com/xiaoXuZhi/p/XYH_tsak_WhenAny.html</div><br>
+    <p>&nbsp;　　hello,咋们又见面啦，通过前面两篇文章的介绍，对task的创建、运行、阻塞、同步、延续操作等都有了很好的认识和使用，结合实际的场景介绍，这样一来在实际的工作中也能够解决很大一部分的关于多线程的业务，但是只有这一些是远远不够的，比如，比如，如果这么一个场景，当开启tsak异步任务后，有某个条件触发，需要终止tsak的执行又该如何实现呢？这一些问题正是我们今天需要交流分享的部分，带着这一些问题，咱们共同进入到今天的主题，谢谢！</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;在进入主题前，如果你没有阅读前面的两篇文章，欢迎您点击下面地址先阅读一下，这样能够更加连贯的掌握了解今天的内容，谢谢！</p>
+<p>　</p>
+<p>　第一篇：<a href="https://www.cnblogs.com/xiaoXuZhi/p/XYH_tsak_one.html" target="_blank" data-itemshowtype="0" data-linktype="2">聊聊多线程哪一些事儿（task）之 一创建运行与阻塞</a></p>
+<p>　第二篇：<a href="https://www.cnblogs.com/xiaoXuZhi/p/XYH_tsak_WhenAll.html" target="_blank" data-itemshowtype="0" data-linktype="2">聊聊多线程哪一些事儿（task）之 二 延续操作</a></p>
+<p>　第三篇：<a id="cb_post_title_url" class="postTitle2" href="https://www.cnblogs.com/xiaoXuZhi/p/XYH_tsak_WhenAny1.html">聊聊多线程那一些事儿（task）之 三 异步取消和异步方法</a></p>
+<p>　第四篇：<a id="cb_post_title_url" class="postTitle2" href="https://www.cnblogs.com/xiaoXuZhi/p/XYH_Task_o4.html">聊聊多线程那一些事儿 之 四 经典应用（取与舍、动态创建）</a></p>
+<p>&nbsp;</p>
+<p><span style="color: #ffffff; background-color: #00ccff; font-size: 14pt;"><strong>Task之任务取消：CancellationTokenSource</strong></span></p>
+<p>&nbsp;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;关于线程取消，我相信大家在实际工作中都会遇到这样的问题，无论是采用哪一种方式实现异步线程，都会有相应的机制来取消线程操作。本次将同时对Thread的线程取消实现，Tsak的线程取消实现同时通过实例说明。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;在我的工作经验中，需要取消异步线程作业的实际使用场景往往是一些异步作业程序，也就是一些周期性的，循环业务操作。比如周期性的数据同步、数据更新等等操作。比如：电商系统常见的一个场景，订单超时取消等等。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;为了与前两篇的实例保持一致性，我现在还是以酒店平台的数据同步业务为例：</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;需求：每周三凌晨3点钟，通过携程提供的酒店分页查询接口，全量同步一次最新的酒店数据。并且能够通过人为的干预来终止数据同步操作。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;下面我将分别通过Thread和task两种方式来实现</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;其一、Thread时代之任务取消</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;哈哈，实话实话说，在几年前的项目中，我也是采用Thread来实现异步线程的，也会遇到线程的取消的业务场景。我当时的实现方式是，定义一个全局变量，isStopThread(是否终止线程)，去过需要取消任务，只需要控制isStopThread的值即可，每一次执行具体的业务时，首先判断一下isStopThread，只有非终止状态才执行具体的业务逻辑。</p>
+<div class="cnblogs_code">
+<pre><code> <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+ <span style="color: #808080;">///</span><span style="color: #008000;"> 携程 酒店数据同步作业(Thread)
+ </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+ <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> CtripHoteDataSynchrByThread()
+ {
+    // CancellationTokenSource cancellationTokenSource </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> CancellationTokenSource();
+     </span><span style="color: #008000;">//</span><span style="color: #008000;"> 第一步通过thread开启一个线程</span>
+     Thread thread = <span style="color: #0000ff;">new</span> Thread(() =&gt;<span style="color: #000000;">
+     {
+         </span><span style="color: #008000;">//</span><span style="color: #008000;"> 获取数据的次数</span>
+         <span style="color: #0000ff;">int</span> getDataIndex = <span style="color: #800080;">1</span><span style="color: #000000;">;
+         isStopCtripHoteDataSynchr </span>= <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+
+         </span><span style="color: #008000;">//</span><span style="color: #008000;"> 通过调用携程的分页服务，获取其有效的酒店数据
+         </span><span style="color: #008000;">//</span><span style="color: #008000;"> 在获取数据前，首先判断一下是否终止获取</span></pre>
+<pre><code>         // while (!<span>cancellationTokenSource.IsCancellationRequested)</span></pre>
+<pre><code><span style="color: #0000ff;">         while</span> (!isStopCtripHoteDataSynchr <span>)</span></pre>
+<pre><code><em id="__mceDel"><span style="color: #000000;">         {
+             </span><span style="color: #008000;">//</span><span style="color: #008000;"> 现在假设模拟，获取携程的所有有效的酒店数据通过 3 次就获取完毕</span>
+             Console.WriteLine($<span style="color: #800000;">"</span><span style="color: #800000;">开始获取携程第 {getDataIndex} 页酒店数据....\n</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+
+             Thread.Sleep(</span><span style="color: #800080;">3000</span><span style="color: #000000;">);
+             Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">携程第 {getDataIndex} 页酒店数据获取完毕\n</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+             getDataIndex</span>++<span style="color: #000000;">;
+
+             </span><span style="color: #008000;">//</span><span style="color: #008000;"> 模拟获取完第三页数据，代表数据获取完毕，直接终止掉</span>
+             <span style="color: #0000ff;">if</span> (getDataIndex == <span style="color: #800080;">4</span><span style="color: #000000;">)
+             {
+                 Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">同步完毕携程的所有酒店数据\n</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                 </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+             }
+         }
+
+         </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (isStopCtripHoteDataSynchr)
+         {
+             Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">取消同步携程酒店数据\n</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+         }
+     });
+
+     thread.Start();
+
+     Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">携程酒店数据同步中.....\n</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+     </span><span style="color: #008000;">//</span><span style="color: #008000;"> 模拟实际数据同步中的取消操作</span>
+     Console.WriteLine(<span style="color: #800000;">"</span><span style="color: #800000;">如果需要取消数据同步，那么请输入任意字符即可取消操作\n</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+
+     Console.ReadLine();
+
+     // cancellationTokenSource.Cancel();
+     isStopCtripHoteDataSynchr </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+
+     Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">发起取消同步携程酒店数据请求\n</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+ }</span></em></pre>
+</div>
+<pre class="code-snippet__js" data-lang="cs"></pre>
+<p><strong>执行结果：</strong></p>
+<p><img src="./images/聊聊多线程那一些事儿（task）之 三 异步取消和异步方法0.png" alt="" /></p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;通过测试结果我们可以看到，在获取第2页数据时，此时发起了一个取消线程命令，当第二页数据获取完毕后，线程就里面终止了，从而到达了线程取消的目的。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;其二、Task时代之任务取消</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;随着Task的推出，微软也推出了一个专门服务于线程取消的帮助类（CancellationTokenSource），通过该类能够很好的帮助我们取消一个线程，话不多说，我们先通过CancellationTokenSource类实现上面示例的功能。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+ <span style="color: #808080;">///</span><span style="color: #008000;"> 携程 酒店数据同步作业(Task)
+ </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+ <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> CtripHoteDataSynchrByTask()
+ {
+     </span><span style="color: #008000;">//</span><span style="color: #008000;"> 定义任务取消机制</span>
+     CancellationTokenSource cancellationTokenSource = <span style="color: #0000ff;">new</span><span style="color: #000000;"> CancellationTokenSource();
+
+     </span><span style="color: #008000;">//</span><span style="color: #008000;"> 第一步通过thread开启一个线程</span>
+     Task thread = <span style="color: #0000ff;">new</span> Task(() =&gt;<span style="color: #000000;">
+     {
+         </span><span style="color: #008000;">//</span><span style="color: #008000;"> 获取数据的次数</span>
+         <span style="color: #0000ff;">int</span> getDataIndex = <span style="color: #800080;">1</span><span style="color: #000000;">;
+
+         </span><span style="color: #008000;">//</span><span style="color: #008000;"> 通过调用携程的分页服务，获取其有效的酒店数据
+         </span><span style="color: #008000;">//</span><span style="color: #008000;"> 在获取数据前，首先判断一下是否终止获取</span>
+
+         <span style="color: #0000ff;">while</span> (!<span style="color: #000000;">cancellationTokenSource.IsCancellationRequested)
+         {
+             </span><span style="color: #008000;">//</span><span style="color: #008000;"> 现在假设模拟，获取携程的所有有效的酒店数据通过 3 次就获取完毕</span>
+             Console.WriteLine($<span style="color: #800000;">"</span><span style="color: #800000;">开始获取携程第 {getDataIndex} 页酒店数据....\n</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+
+             Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">携程第 {getDataIndex} 页酒店数据获取完毕\n</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+             getDataIndex</span>++<span style="color: #000000;">;
+
+             </span><span style="color: #008000;">//</span><span style="color: #008000;"> 模拟获取完第三页数据，代表数据获取完毕，直接终止掉</span>
+             <span style="color: #0000ff;">if</span> (getDataIndex == <span style="color: #800080;">4</span><span style="color: #000000;">)
+             {
+                 Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">同步完毕携程的所有酒店数据\n</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                 </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+             }
+         }
+
+         </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (cancellationTokenSource.IsCancellationRequested)
+         {
+             Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">取消同步携程酒店数据\n</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+         }
+     });
+     thread.Start();
+
+     Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">携程酒店数据同步中.....\n</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+     </span><span style="color: #008000;">//</span><span style="color: #008000;"> 模拟实际数据同步中的取消操作</span>
+     Console.WriteLine(<span style="color: #800000;">"</span><span style="color: #800000;">如果需要取消数据同步，那么请输入任意字符即可取消操作\n</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+
+     Console.ReadLine();
+
+     </span><span style="color: #008000;">//</span><span style="color: #008000;"> 直接取消线程</span>
+<span style="color: #000000;">     cancellationTokenSource.Cancel();
+
+     </span><span style="color: #008000;">//</span><span style="color: #008000;"> 在指定时间后取消线程
+     </span><span style="color: #008000;">//</span><span style="color: #008000;"> cancellationTokenSource.CancelAfter(1000);</span>
+<span style="color: #000000;">
+     Console.WriteLine($</span><span style="color: #800000;">"</span><span style="color: #800000;">发起取消同步携程酒店数据请求\n</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+ }</span></pre>
+</div>
+<pre class="code-snippet__js" data-lang="cs"><code><span class="code-snippet_outer">&nbsp;</span></code></pre>
+<p><strong>测试结果：</strong></p>
+<p>&nbsp;<img src="./images/聊聊多线程那一些事儿（task）之 三 异步取消和异步方法1.png" alt="" /></p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;通过测试结果，两种实现方式的结果完全一致</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;当然，CancellationTokenSource 还提供了CancelAfter(多久后取消)方法，来实现多久后取消线程。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;说到这儿，不知道大家有没有发现一个问题CancellationTokenSource 其实现是不是与Task和Thread没有多少关系，在第一个实例中通过Thread实现的线程取消，同样可以结合CancellationTokenSource 来实现。所以说，在开始我说CancellationTokenSource 是微软提供的一个线程取消的一个帮助类就是这个原因。其实我可以打开CancellationTokenSource 的实现源码，其实我们就会一目了然，其取消线程的核心逻辑和我们上面的说Thread取消的原理很类似，都是控制一个变量的值来实现，只是CancellationTokenSource 对其所有操作进行了一个封装。其中的CancelAfter里面是开启了一个定义器，定时器的最终实现还是和Canel一样。如果想看CancellationTokenSource的源码，大家可以查看下面地址：https://www.cnblogs.com/majiang/p/7920102.html</p>
+<p>最后需要说明的是Task与CancellationTokenSource都是.net Framework4.0+、.NET Core、.NET Standard。</p>
+<p>&nbsp;</p>
+<p><span style="background-color: #00ccff; color: #ffffff; font-size: 14pt;">异步方法之：（async/await)</span></p>
+<p>&nbsp;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;c#5.0微软推出了一个新的特性那就是异步方法，其关键词为async。有了async我们要实现一个异步方法就简单的多啦，你会发现和实现一个同步方法很相似，只需要对方法加以async修饰即可。当然如果只是简单的修饰调用，那么也会是同步调用，为了达到真正的异步调用，往往是需要另外一个关键词await来配合使用。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;<strong>先简单介绍一下async异步函数：</strong></p>
+<p>&nbsp;&nbsp;&nbsp; async的三种返回类型：</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;Tsak：其主要适用场景是，主程序只关心异步方法执行状态，不需要和主线程有任何执行结果数据交互。</p>
+<p>&nbsp;&nbsp;&nbsp; Task&lt;T&gt;：其主要适用场景是，主程序不仅仅关心异步方法执行状态，并且还希望执行后返回一个数据类型为T的结果</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;void:&nbsp;主程序既不关系异步方法执行状态，也不关心其执行结果，只是主程序调用一次异步方法，对于除事件处理程序以外的代码，通常不鼓励使用 async void 方法，因为调用方不能</p>
+<p>&nbsp;&nbsp;<strong>&nbsp;&nbsp;在介绍一下await关键词：</strong></p>
+<p>&nbsp;&nbsp;&nbsp; await其顾名思义就是等待的意思，其运行原理就是：调用方执行到await时就会立即返回，但是异步方法等待异步执行结果。所以await只能存在于async修饰的异步方法体中，await不阻塞主线程，只是阻塞当前异步方法继续往下执行，这样就能够达到真正异步的目的。</p>
+<p>下面以一个简单的例子来说明一下每一种情况的使用：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+ {
+     Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">主线程开始\n</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+     Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">主线程调用同步方法：SynTest\n</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+     SynTest();
+
+     Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">主线程调用异步方法：AsyncTestNoAwait\n</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+     AsyncTestNoAwait();
+
+     Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">主线程调用异步方法：AsyncTestHasAwait\n</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+     AsyncTestHasAwait();
+
+     Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">主线程结束\n</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+     Console.ReadKey();
+ }
+
+ </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+ <span style="color: #808080;">///</span><span style="color: #008000;"> 同步方法测试
+ </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+ <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> SynTest()
+ {
+     Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">同步方法SynTest开始运行\n</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+     Thread.Sleep(</span><span style="color: #800080;">5000</span><span style="color: #000000;">);
+     Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">同步方法SynTest运行结束\n</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+ }
+
+ </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+ <span style="color: #808080;">///</span><span style="color: #008000;"> 异步方法测试（不带有 await关键词）
+ </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+ <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">async</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> AsyncTestNoAwait()
+ {
+     Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">异步方法AsyncTestNoAwait开始运行\n</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+     Thread.Sleep(</span><span style="color: #800080;">5000</span><span style="color: #000000;">);
+     Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">异步方法AsyncTestNoAwait运行结束\n</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+ }
+
+ </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+ <span style="color: #808080;">///</span><span style="color: #008000;"> 异步方法测试（带有 await关键词）
+ </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+ <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">async</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> AsyncTestHasAwait()
+ {
+     Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">异步方法AsyncTestHasAwait开始运行\n</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+     </span><span style="color: #0000ff;">await</span> Task.Delay(<span style="color: #800080;">5000</span><span style="color: #000000;">);
+     Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">异步方法AsyncTestHasAwait运行结束\n</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+ }</span></pre>
+</div>
+<pre class="code-snippet__js" data-lang="cs"><strong style="font-family: 'PingFang SC', 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 14px;"><br />运行结果：</strong></pre>
+<p><img src="./images/聊聊多线程那一些事儿（task）之 三 异步取消和异步方法2.png" alt="" /></p>
+<p>从运行结果我们可以很好的得出：</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;1、异步方法async如果没有await关键词，其执行原理还是同步调用</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;2、await关键词只能存在云async修饰的方法体中</p>
+<p>&nbsp;&nbsp;&nbsp; 3、异步方法async在调用时，只有遇到await关键词后的程序块才是异步执行，其await关键词前的代码块还是同步执行</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;好了，管理async先介绍到这儿，由于时间和文章篇幅原因，就不在详细介绍，里面还有很多内容需要注意，后续在根据实际做一个async/await的专题文章。</p>
+<p><span style="background-color: #00ccff; color: #ffffff; font-size: 14pt;"><strong>总结：</strong></span></p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;到目前为止，有关Task的3篇文章都到此结束，下面在回顾总结一下Task的相关功能点吧！</p>
+<p>&nbsp;&nbsp;&nbsp; 1、Task的创建运行可以有三种方式：new Task/Task.Factory/Task.Run</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;2、Task的返回参数定义Task&lt;返回类型&gt;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;获取返回值：Task.Result-&gt;要阻塞主流程</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;3、Task线程的同步实现不仅仅可以通过RunSynchronously来实现同步运行，当然还可以通过Task.Result/Task.Wait等方式来变向实现</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;4、Task的wait/waitAll/waitAny实现阻塞等待执行结果</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;5、Task的WhenAny、WhenAll、ContinueWith实现延续操作</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;6、CancellationTokenSource实现异步任务取消</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;7、异步方法之:(async/await)实现同步和异步调用等</p>
+<p>&nbsp;</p>
+<p><strong>猜您喜欢：</strong>&nbsp;</p>
+<p>　第一篇：<a href="https://www.cnblogs.com/xiaoXuZhi/p/XYH_tsak_one.html" target="_blank" data-itemshowtype="0" data-linktype="2">聊聊多线程哪一些事儿（task）之 一创建运行与阻塞</a></p>
+<p>　第二篇：<a href="https://www.cnblogs.com/xiaoXuZhi/p/XYH_tsak_WhenAll.html" target="_blank" data-itemshowtype="0" data-linktype="2">聊聊多线程哪一些事儿（task）之 二 延续操作</a></p>
+<p>　第三篇：<a id="cb_post_title_url" class="postTitle2" href="https://www.cnblogs.com/xiaoXuZhi/p/XYH_tsak_WhenAny1.html">聊聊多线程那一些事儿（task）之 三 异步取消和异步方法</a></p>
+<p>　第四篇：<a id="cb_post_title_url" class="postTitle2" href="https://www.cnblogs.com/xiaoXuZhi/p/XYH_Task_o4.html">聊聊多线程那一些事儿 之 四 经典应用（取与舍、动态创建）</a></p>
+<p>END<br />为了更高的交流，欢迎大家关注我的公众号，扫描下面二维码即可关注，谢谢：</p>
+<p><img src="./images/聊聊多线程那一些事儿（task）之 三 异步取消和异步方法3.png" alt="" width="262" height="262" /></p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

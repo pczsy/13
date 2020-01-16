@@ -1,0 +1,141 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修第29章 保护API - Identity Server 4 中文文档(v1.0.0)' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>第29章 保护API - Identity Server 4 中文文档(v1.0.0)</center></div><div class='banquan'>原文出处:本文由博客园博主ThinksJay提供。<br/>
+原文连接:https://www.cnblogs.com/thinksjay/p/10780431.html</div><br>
+    <p>IdentityServer 默认以<a href="https://tools.ietf.org/html/rfc7519">JWT</a>（JSON Web令牌）格式发出访问令牌。</p>
+<p>今天的每个相关平台都支持验证JWT令牌，<a href="https://jwt.io/">这里</a>可以找到一个很好的JWT库列表。热门库例如：</p>
+<ul>
+<li>ASP.NET Core的<a href="https://www.nuget.org/packages/Microsoft.AspNetCore.Authentication.JwtBearer/">JWT bearer authentication handler</a></li>
+<li>Katana的<a href="https://www.nuget.org/packages/Microsoft.Owin.Security.Jwt">JWT bearer authentication middleware</a></li>
+<li>Katana的<a href="https://identityserver.github.io/Documentation/docsv2/consuming/overview.html">IdentityServer authentication middleware</a></li>
+<li>NodeJS的<a href="https://www.npmjs.com/package/jsonwebtoken">jsonwebtoken</a></li>
+</ul>
+<p>保护基于ASP.NET Core的API只需在DI中配置JWT承载认证处理程序，并将认证中间件添加到管道：</p>
+<pre><code><code>public class Startup
+{
+    public void ConfigureServices(IServiceCollection services)
+    {
+        services.AddMvc();
+
+        services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            .AddJwtBearer(options =&gt;
+            {
+                // base-address of your identityserver
+                options.Authority = &quot;https://demo.identityserver.io&quot;;
+
+                // name of the API resource
+                options.Audience = &quot;api1&quot;;
+            });
+    }
+
+    public void Configure(IApplicationBuilder app, ILoggerFactory loggerFactory)
+    {
+        app.UseAuthentication();
+        app.UseMvc();
+    }
+}</code></pre>
+<h2 id="identityserver身份验证处理程序">29.1 IdentityServer身份验证处理程序</h2>
+<p>我们的身份验证处理程序与上述处理程序的用途相同（实际上它在内部使用Microsoft JWT库），但添加了一些其他功能：</p>
+<ul>
+<li>支持JWT和参考令牌</li>
+<li>用于引用标记的可扩展缓存</li>
+<li>统一配置模型</li>
+<li>范围验证</li>
+</ul>
+<p>对于最简单的情况，我们的处理程序配置看起来非常类似于上面的代码段：</p>
+<pre><code><code>public class Startup
+{
+    public void ConfigureServices(IServiceCollection services)
+    {
+        services.AddMvc();
+
+        services.AddAuthentication(IdentityServerAuthenticationDefaults.AuthenticationScheme)
+            .AddIdentityServerAuthentication(options =&gt;
+            {
+                // base-address of your identityserver
+                options.Authority = &quot;https://demo.identityserver.io&quot;;
+
+                // name of the API resource
+                options.ApiName = &quot;api1&quot;;
+            });
+    }
+
+    public void Configure(IApplicationBuilder app, ILoggerFactory loggerFactory)
+    {
+        app.UseAuthentication();
+        app.UseMvc();
+    }
+}</code></pre>
+<p>你可以从<a href="https://www.nuget.org/packages/IdentityServer4.AccessTokenValidation/">nuget</a>或<a href="https://github.com/IdentityServer/IdentityServer4.AccessTokenValidation">github</a>获得包。</p>
+<h2 id="支持引用标记">29.2 支持引用标记</h2>
+<p>如果传入令牌不是JWT，我们的中间件将联系发现文档中的内省端点以验证令牌。由于内省端点需要身份验证，因此您需要提供已配置的API密钥，例如：</p>
+<pre><code><code>.AddIdentityServerAuthentication(options =&gt;
+{
+    // base-address of your identityserver
+    options.Authority = &quot;https://demo.identityserver.io&quot;;
+
+    // name of the API resource
+    options.ApiName = &quot;api1&quot;;
+    options.ApiSecret = &quot;secret&quot;;
+})</code></pre>
+<p>通常，您不希望为每个传入请求执行到内省端点的往返。中间件有一个内置缓存，您可以像这样启用：</p>
+<pre><code><code>.AddIdentityServerAuthentication(options =&gt;
+{
+    // base-address of your identityserver
+    options.Authority = &quot;https://demo.identityserver.io&quot;;
+
+    // name of the API resource
+    options.ApiName = &quot;api1&quot;;
+    options.ApiSecret = &quot;secret&quot;;
+
+    options.EnableCaching = true;
+    options.CacheDuration = TimeSpan.FromMinutes(10); // that&#39;s the default
+})</code></pre>
+<p>处理程序将使用在DI容器中注册的任何<em>IDistributedCache</em>实现（例如标准的<em>MemoryDistributedCache</em>）。</p>
+<h2 id="验证范围">29.3 验证范围</h2>
+<p>所述<em>ApiName</em>属性检查该令牌具有匹配观众（或短<code>aud</code>），如权利要求。</p>
+<p>在IdentityServer中，您还可以将API细分为多个范围。如果需要该粒度，可以使用ASP.NET Core授权策略系统来检查范围。</p>
+<h3 id="制定全球政策">29.3.1 制定全球政策：</h3>
+<pre><code><code>services
+    .AddMvcCore(options =&gt;
+    {
+        // require scope1 or scope2
+        var policy = ScopePolicy.Create(&quot;scope1&quot;, &quot;scope2&quot;);
+        options.Filters.Add(new AuthorizeFilter(policy));
+    })
+    .AddJsonFormatters()
+    .AddAuthorization();</code></pre>
+<h3 id="制定范围政策">29.3.2 制定范围政策：</h3>
+<pre><code><code>services.AddAuthorization(options =&gt;
+{
+    options.AddPolicy(&quot;myPolicy&quot;, builder =&gt;
+    {
+        // require scope1
+        builder.RequireScope(&quot;scope1&quot;);
+        // and require scope2 or scope3
+        builder.RequireScope(&quot;scope2&quot;, &quot;scope3&quot;);
+    });
+});</code></pre>
+<p><a href="https://github.com/thinksjay/IdentityServer4">github地址</a></p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

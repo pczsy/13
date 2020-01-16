@@ -1,0 +1,156 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修AutoCAD C# 利用反射导出所注册的命令' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>AutoCAD C# 利用反射导出所注册的命令</center></div><div class='banquan'>原文出处:本文由博客园博主南胜NanSheng提供。<br/>
+原文连接:https://www.cnblogs.com/NanShengBlogs/p/10957636.html</div><br>
+    <p>主函数导出某一程序集AutoCAD 注册命令<div class="cnblogs_code" style="padding: 5px; border: 1px solid rgb(204, 204, 204); border-image: none; background-color: rgb(245, 245, 245);"><pre><code><span style="color: rgb(128, 128, 128);">///</span> <span style="color: rgb(128, 128, 128);">&lt;summary&gt;</span>
+     <span style="color: rgb(128, 128, 128);">///</span><span style="color: rgb(0, 128, 0);">提取所有的命令
+     </span><span style="color: rgb(128, 128, 128);">///</span> <span style="color: rgb(128, 128, 128);">&lt;/summary&gt;</span>
+     <span style="color: rgb(128, 128, 128);">///</span> <span style="color: rgb(128, 128, 128);">&lt;param name="dllFiles"&gt;</span><span style="color: rgb(0, 128, 0);">dll的路径</span><span style="color: rgb(128, 128, 128);">&lt;/param&gt;</span>
+     <span style="color: rgb(128, 128, 128);">///</span> <span style="color: rgb(128, 128, 128);">&lt;returns&gt;&lt;/returns&gt;</span>
+        <span style="color: rgb(0, 0, 255);">public</span> <span style="color: rgb(0, 0, 255);">static</span> List&lt;gcadDllcmd&gt; GetDllCmds(<span style="color: rgb(0, 0, 255);">params</span> <span style="color: rgb(0, 0, 255);">string</span><span style="color: rgb(0, 0, 0);">[] dllFiles)
+        {
+            List</span>&lt;gcadDllcmd&gt; res = <span style="color: rgb(0, 0, 255);">new</span> List&lt;gcadDllcmd&gt;<span style="color: rgb(0, 0, 0);">();
+            List</span>&lt;gcadCmds&gt; cmds = <span style="color: rgb(0, 0, 255);">new</span> List&lt;gcadCmds&gt;<span style="color: rgb(0, 0, 0);">();
+            </span><span style="color: rgb(0, 0, 255);">#region</span> 提取所以的命令
+            <span style="color: rgb(0, 0, 255);">for</span> (<span style="color: rgb(0, 0, 255);">int</span> i = <span style="color: rgb(128, 0, 128);">0</span>; i &lt; dllFiles.Length; i++<span style="color: rgb(0, 0, 0);">)
+            {
+                Assembly ass </span>= Assembly.LoadFile(dllFiles[i]);<span style="color: rgb(0, 128, 0);">//</span><span style="color: rgb(0, 128, 0);">反射加载dll程序集</span>
+                <span style="color: rgb(0, 0, 255);">var</span> clsCollection = ass.GetTypes().Where(t =&gt; t.IsClass &amp;&amp;<span style="color: rgb(0, 0, 0);"> t.IsPublic).ToList();
+                </span><span style="color: rgb(0, 0, 255);">if</span> (clsCollection.Count &gt; <span style="color: rgb(128, 0, 128);">0</span><span style="color: rgb(0, 0, 0);">)
+                {
+                    </span><span style="color: rgb(0, 0, 255);">foreach</span> (<span style="color: rgb(0, 0, 255);">var</span> cls <span style="color: rgb(0, 0, 255);">in</span><span style="color: rgb(0, 0, 0);"> clsCollection)
+                    {
+                        </span><span style="color: rgb(0, 0, 255);">var</span> methods = cls.GetMethods().Where(m =&gt; m.IsPublic &amp;&amp; m.GetCustomAttributes(<span style="color: rgb(0, 0, 255);">true</span>).Length &gt; <span style="color: rgb(128, 0, 128);">0</span><span style="color: rgb(0, 0, 0);">).ToList();
+                        </span><span style="color: rgb(0, 0, 255);">if</span> (methods.Count &gt; <span style="color: rgb(128, 0, 128);">0</span><span style="color: rgb(0, 0, 0);">)
+                        {
+                            </span><span style="color: rgb(0, 0, 255);">foreach</span> (MethodInfo mi <span style="color: rgb(0, 0, 255);">in</span><span style="color: rgb(0, 0, 0);"> methods)
+                            {
+                                </span><span style="color: rgb(0, 0, 255);">var</span> atts = mi.GetCustomAttributes(<span style="color: rgb(0, 0, 255);">true</span>).Where(c =&gt; c <span style="color: rgb(0, 0, 255);">is</span><span style="color: rgb(0, 0, 0);"> CommandMethodAttribute).ToList();
+                                </span><span style="color: rgb(0, 0, 255);">if</span> (atts.Count == <span style="color: rgb(128, 0, 128);">1</span><span style="color: rgb(0, 0, 0);">)
+                                {
+                                    gcadCmds cmd </span>= <span style="color: rgb(0, 0, 255);">new</span> gcadCmds(cls.Name, mi.Name, (atts[<span style="color: rgb(128, 0, 128);">0</span>] <span style="color: rgb(0, 0, 255);">as</span> CommandMethodAttribute).GlobalName, ass.ManifestModule.Name.Substring(<span style="color: rgb(128, 0, 128);">0</span>, ass.ManifestModule.Name.Length - <span style="color: rgb(128, 0, 128);">4</span><span style="color: rgb(0, 0, 0);">));
+                                    cmds.Add(cmd);
+                                }
+                            }
+                        }
+                    }
+                }
+
+            }
+            </span><span style="color: rgb(0, 0, 255);">#endregion</span>
+            <span style="color: rgb(0, 0, 255);">if</span> (cmds.Count &gt; <span style="color: rgb(128, 0, 128);">0</span><span style="color: rgb(0, 0, 0);">)
+            {
+                List</span>&lt;<span style="color: rgb(0, 0, 255);">string</span>&gt; dllName = <span style="color: rgb(0, 0, 255);">new</span> List&lt;<span style="color: rgb(0, 0, 255);">string</span>&gt;<span style="color: rgb(0, 0, 0);">();
+                </span><span style="color: rgb(0, 0, 255);">foreach</span> (<span style="color: rgb(0, 0, 255);">var</span> item <span style="color: rgb(0, 0, 255);">in</span><span style="color: rgb(0, 0, 0);"> cmds)
+                {
+                    </span><span style="color: rgb(0, 0, 255);">if</span> (!<span style="color: rgb(0, 0, 0);">dllName.Contains(item.dllName)) dllName.Add(item.dllName);
+                }
+                </span><span style="color: rgb(0, 0, 255);">foreach</span> (<span style="color: rgb(0, 0, 255);">var</span> item <span style="color: rgb(0, 0, 255);">in</span> dllName) res.Add(<span style="color: rgb(0, 0, 255);">new</span><span style="color: rgb(0, 0, 0);"> gcadDllcmd(item, cmds));
+            }
+            </span><span style="color: rgb(0, 0, 255);">return</span><span style="color: rgb(0, 0, 0);"> res;
+            </span><span style="color: rgb(0, 128, 0);">//
+</span>        }</pre></div><p><br><p>1# 定义自定义的class，<div class="cnblogs_code" style="padding: 5px; border: 1px solid rgb(204, 204, 204); border-image: none; background-color: rgb(245, 245, 245);"><pre><code><span style="color: rgb(128, 128, 128);">///</span> <span style="color: rgb(128, 128, 128);">&lt;summary&gt;</span>
+    <span style="color: rgb(128, 128, 128);">///</span><span style="color: rgb(0, 128, 0);"> 储存自定义的cad命令的信息的类
+    </span><span style="color: rgb(128, 128, 128);">///</span> <span style="color: rgb(128, 128, 128);">&lt;/summary&gt;</span>
+    <span style="color: rgb(0, 0, 255);">public</span> <span style="color: rgb(0, 0, 255);">class</span><span style="color: rgb(0, 0, 0);"> gcadCmds
+    {
+        </span><span style="color: rgb(0, 0, 255);">public</span> <span style="color: rgb(0, 0, 255);">string</span> clsName { <span style="color: rgb(0, 0, 255);">get</span>; <span style="color: rgb(0, 0, 255);">set</span><span style="color: rgb(0, 0, 0);">; }
+        </span><span style="color: rgb(0, 0, 255);">public</span> <span style="color: rgb(0, 0, 255);">string</span> cmdName { <span style="color: rgb(0, 0, 255);">get</span>; <span style="color: rgb(0, 0, 255);">set</span><span style="color: rgb(0, 0, 0);">; }
+        </span><span style="color: rgb(0, 0, 255);">public</span> <span style="color: rgb(0, 0, 255);">string</span> cmdMacro { <span style="color: rgb(0, 0, 255);">get</span>; <span style="color: rgb(0, 0, 255);">set</span><span style="color: rgb(0, 0, 0);">; }
+        </span><span style="color: rgb(0, 0, 255);">public</span> <span style="color: rgb(0, 0, 255);">string</span> dllName { <span style="color: rgb(0, 0, 255);">get</span>; <span style="color: rgb(0, 0, 255);">set</span><span style="color: rgb(0, 0, 0);">; }
+
+        </span><span style="color: rgb(0, 0, 255);">public</span> gcadCmds(<span style="color: rgb(0, 0, 255);">string</span> _clsName, <span style="color: rgb(0, 0, 255);">string</span> _cmdName, <span style="color: rgb(0, 0, 255);">string</span> _macro, <span style="color: rgb(0, 0, 255);">string</span><span style="color: rgb(0, 0, 0);"> _dllName)
+        {
+            </span><span style="color: rgb(0, 0, 255);">this</span>.dllName =<span style="color: rgb(0, 0, 0);"> _dllName;
+            </span><span style="color: rgb(0, 0, 255);">this</span>.clsName =<span style="color: rgb(0, 0, 0);"> _clsName;
+            </span><span style="color: rgb(0, 0, 255);">this</span>.cmdMacro =<span style="color: rgb(0, 0, 0);"> _macro;
+            </span><span style="color: rgb(0, 0, 255);">this</span>.cmdName =<span style="color: rgb(0, 0, 0);"> _cmdName;
+        }
+
+    }</span></pre></div><p>2# 定义类</p><div class="cnblogs_code" style="padding: 5px; border: 1px solid rgb(204, 204, 204); border-image: none; background-color: rgb(245, 245, 245);"><pre><code><span style="color: rgb(128, 128, 128);">///</span> <span style="color: rgb(128, 128, 128);">&lt;summary&gt;</span>
+    <span style="color: rgb(128, 128, 128);">///</span><span style="color: rgb(0, 128, 0);"> 储存包含自定命令的类
+    </span><span style="color: rgb(128, 128, 128);">///</span> <span style="color: rgb(128, 128, 128);">&lt;/summary&gt;</span>
+    <span style="color: rgb(0, 0, 255);">public</span> <span style="color: rgb(0, 0, 255);">class</span><span style="color: rgb(0, 0, 0);"> gcadClscmd
+    {
+        </span><span style="color: rgb(0, 0, 255);">public</span> <span style="color: rgb(0, 0, 255);">string</span> clsName { <span style="color: rgb(0, 0, 255);">get</span>; <span style="color: rgb(0, 0, 255);">set</span><span style="color: rgb(0, 0, 0);">; }
+
+        </span><span style="color: rgb(0, 0, 255);">public</span> <span style="color: rgb(0, 0, 255);">string</span> dllName { <span style="color: rgb(0, 0, 255);">get</span>; <span style="color: rgb(0, 0, 255);">set</span><span style="color: rgb(0, 0, 0);">; }
+
+        </span><span style="color: rgb(0, 0, 255);">public</span> <span style="color: rgb(0, 0, 255);">bool</span> HasGcadcmds { <span style="color: rgb(0, 0, 255);">get</span>; <span style="color: rgb(0, 0, 255);">set</span><span style="color: rgb(0, 0, 0);">; }
+
+        </span><span style="color: rgb(0, 0, 255);">public</span> List&lt;gcadCmds&gt; curClscmds { <span style="color: rgb(0, 0, 255);">get</span>; <span style="color: rgb(0, 0, 255);">set</span><span style="color: rgb(0, 0, 0);">; }
+
+        </span><span style="color: rgb(0, 0, 255);">public</span> gcadClscmd(<span style="color: rgb(0, 0, 255);">string</span> _clsName, List&lt;gcadCmds&gt;<span style="color: rgb(0, 0, 0);"> cmds)
+        {
+            </span><span style="color: rgb(0, 0, 255);">this</span>.clsName =<span style="color: rgb(0, 0, 0);"> _clsName;
+            </span><span style="color: rgb(0, 0, 255);">this</span>.dllName =<span style="color: rgb(0, 0, 0);"> cmds.First().dllName;
+            </span><span style="color: rgb(0, 0, 255);">var</span> clsCmds = cmds.Where(c =&gt; c.clsName == <span style="color: rgb(0, 0, 255);">this</span><span style="color: rgb(0, 0, 0);">.clsName).ToList();
+            </span><span style="color: rgb(0, 0, 255);">if</span> (clsCmds.Count &gt; <span style="color: rgb(128, 0, 128);">0</span><span style="color: rgb(0, 0, 0);">)
+            {
+                </span><span style="color: rgb(0, 0, 255);">this</span>.HasGcadcmds = <span style="color: rgb(0, 0, 255);">true</span><span style="color: rgb(0, 0, 0);">;
+                </span><span style="color: rgb(0, 0, 255);">this</span>.curClscmds = <span style="color: rgb(0, 0, 255);">new</span> List&lt;gcadCmds&gt;<span style="color: rgb(0, 0, 0);">();
+                </span><span style="color: rgb(0, 0, 255);">foreach</span> (<span style="color: rgb(0, 0, 255);">var</span> item <span style="color: rgb(0, 0, 255);">in</span><span style="color: rgb(0, 0, 0);"> clsCmds)
+                {
+                    </span><span style="color: rgb(0, 0, 255);">if</span> (item.clsName == <span style="color: rgb(0, 0, 255);">this</span>.clsName) <span style="color: rgb(0, 0, 255);">this</span><span style="color: rgb(0, 0, 0);">.curClscmds.Add(item);
+                }
+
+            }
+            </span><span style="color: rgb(0, 0, 255);">else</span> <span style="color: rgb(0, 0, 255);">this</span>.HasGcadcmds = <span style="color: rgb(0, 0, 255);">false</span><span style="color: rgb(0, 0, 0);">;
+        }
+    }</span></pre></div><p>3# 存储每个dll的</p><div class="cnblogs_code" style="padding: 5px; border: 1px solid rgb(204, 204, 204); border-image: none; background-color: rgb(245, 245, 245);"><pre><code><span style="color: rgb(128, 128, 128);">///</span> <span style="color: rgb(128, 128, 128);">&lt;summary&gt;</span>
+    <span style="color: rgb(128, 128, 128);">///</span><span style="color: rgb(0, 128, 0);"> 储存每个dll类的
+    </span><span style="color: rgb(128, 128, 128);">///</span> <span style="color: rgb(128, 128, 128);">&lt;/summary&gt;</span>
+    <span style="color: rgb(0, 0, 255);">public</span> <span style="color: rgb(0, 0, 255);">class</span><span style="color: rgb(0, 0, 0);"> gcadDllcmd
+    {
+        </span><span style="color: rgb(0, 0, 255);">public</span> <span style="color: rgb(0, 0, 255);">string</span> DllName { <span style="color: rgb(0, 0, 255);">get</span>; <span style="color: rgb(0, 0, 255);">set</span><span style="color: rgb(0, 0, 0);">; }
+        </span><span style="color: rgb(0, 0, 255);">public</span> <span style="color: rgb(0, 0, 255);">bool</span> HasGcadcls { <span style="color: rgb(0, 0, 255);">get</span>; <span style="color: rgb(0, 0, 255);">set</span><span style="color: rgb(0, 0, 0);">; }
+        </span><span style="color: rgb(0, 0, 255);">public</span> List&lt;gcadClscmd&gt; clsCmds { <span style="color: rgb(0, 0, 255);">get</span>; <span style="color: rgb(0, 0, 255);">set</span><span style="color: rgb(0, 0, 0);">; }
+        </span><span style="color: rgb(0, 0, 255);">public</span> List&lt;gcadCmds&gt; curDllcmds { <span style="color: rgb(0, 0, 255);">get</span>; <span style="color: rgb(0, 0, 255);">set</span><span style="color: rgb(0, 0, 0);">; }
+        </span><span style="color: rgb(0, 0, 255);">public</span> gcadDllcmd(<span style="color: rgb(0, 0, 255);">string</span> _dllname, List&lt;gcadCmds&gt;<span style="color: rgb(0, 0, 0);"> cmds)
+        {
+            </span><span style="color: rgb(0, 0, 255);">this</span>.DllName =<span style="color: rgb(0, 0, 0);"> _dllname;
+            </span><span style="color: rgb(0, 0, 255);">var</span> curDllcmds = cmds.Where(c =&gt; c.dllName == <span style="color: rgb(0, 0, 255);">this</span><span style="color: rgb(0, 0, 0);">.DllName).ToList();
+            </span><span style="color: rgb(0, 0, 255);">if</span> (curDllcmds.Count &gt; <span style="color: rgb(128, 0, 128);">0</span><span style="color: rgb(0, 0, 0);">)
+            {
+                </span><span style="color: rgb(0, 0, 255);">this</span>.HasGcadcls = <span style="color: rgb(0, 0, 255);">true</span><span style="color: rgb(0, 0, 0);">;
+                </span><span style="color: rgb(0, 0, 255);">this</span>.curDllcmds =<span style="color: rgb(0, 0, 0);"> curDllcmds;
+                List</span>&lt;<span style="color: rgb(0, 0, 255);">string</span>&gt; listClsName = <span style="color: rgb(0, 0, 255);">new</span> List&lt;<span style="color: rgb(0, 0, 255);">string</span>&gt;<span style="color: rgb(0, 0, 0);">();
+                </span><span style="color: rgb(0, 0, 255);">foreach</span> (gcadCmds item <span style="color: rgb(0, 0, 255);">in</span> <span style="color: rgb(0, 0, 255);">this</span><span style="color: rgb(0, 0, 0);">.curDllcmds)
+                {
+                    </span><span style="color: rgb(0, 0, 255);">if</span> (!<span style="color: rgb(0, 0, 0);">listClsName.Contains(item.clsName)) listClsName.Add(item.clsName);
+                }
+                </span><span style="color: rgb(0, 0, 255);">this</span>.clsCmds = <span style="color: rgb(0, 0, 255);">new</span> List&lt;gcadClscmd&gt;<span style="color: rgb(0, 0, 0);">();
+                </span><span style="color: rgb(0, 0, 255);">foreach</span> (<span style="color: rgb(0, 0, 255);">var</span> item <span style="color: rgb(0, 0, 255);">in</span><span style="color: rgb(0, 0, 0);"> listClsName)
+                {
+                    gcadClscmd clsCmds </span>= <span style="color: rgb(0, 0, 255);">new</span> gcadClscmd(item, <span style="color: rgb(0, 0, 255);">this</span>.curDllcmds.Where(c =&gt; c.clsName ==<span style="color: rgb(0, 0, 0);"> item).ToList());
+                    </span><span style="color: rgb(0, 0, 255);">this</span><span style="color: rgb(0, 0, 0);">.clsCmds.Add(clsCmds);
+                }
+
+
+            }
+            </span><span style="color: rgb(0, 0, 255);">else</span> <span style="color: rgb(0, 0, 255);">this</span>.HasGcadcls = <span style="color: rgb(0, 0, 255);">false</span><span style="color: rgb(0, 0, 0);">;
+        }
+
+
+    }</span></pre><pre><code><span style="color: rgb(0, 0, 0);"><br></span></pre></div>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

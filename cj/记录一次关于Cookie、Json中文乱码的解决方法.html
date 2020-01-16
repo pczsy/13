@@ -1,0 +1,184 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修记录一次关于Cookie、Json中文乱码的解决方法' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>记录一次关于Cookie、Json中文乱码的解决方法</center></div><div class='banquan'>原文出处:本文由博客园博主贰拾~提供。<br/>
+原文连接:https://www.cnblogs.com/zousc/p/11091035.html</div><br>
+    <p><span style="font-family: 宋体;">今天工作上遇到一个问题，需要把一个对象集合</span>List&lt;Model&gt;存入一个Cookie，按照原来都封装方法存入都ok，但是到取值都时候中文会变成乱码。</p>
+<p><span style="font-family: 宋体;">首先，我们可以确认</span><span style="background-color: #ffff99;">Json</span>和<span style="background-color: #ffff99;">Cookie</span>都有可能乱码，我们可以在转换Json和写入写出Cookie的时候都加入调试代码，这样可以看到转换Json和Cookie的值。</p>
+<p><span style="font-family: 宋体;">先解决</span>Json转换问题，乱码的原因无非在于编码问题（一般都是吧）所以在转换Json格式的时候呢我们需要对字符进行<span style="background-color: #ffff99;">编码</span>：</p>
+<div class="cnblogs_code">
+<pre><code>Encoding encode = System.Text.Encoding.GetEncoding(<span style="color: #800000;">"</span><span style="color: #800000;">Unicode</span><span style="color: #800000;">"</span>);</pre>
+</div>
+<p><span style="font-family: 宋体;">对</span>Json编码后中文就可以正常显示了~</p>
+<p>&nbsp;</p>
+<p>Cookie都名称或子cookie的名称或子cookie的名称不能为中文,否则无法获得cookie，所以就不能使用中文，这算是个解决都办法吧，但是如果需要使用的数据中有中文呢，那就只能进行编码了，如下：</p>
+<p><span style="font-family: 宋体;">存</span>Cookie的时候进行编码：</p>
+<div class="cnblogs_code">
+<pre><code>cookie.Value = HttpUtility.UrlEncode(<span style="color: #800000;">"</span><span style="color: #800000;">Name</span><span style="color: #800000;">"</span>);</pre>
+</div>
+<p>&nbsp;</p>
+<p><span style="font-family: 宋体;">取</span>cookie时候,进行解码:</p>
+<div class="cnblogs_code">
+<pre><code>cookieValue = HttpUtility.UrlDecode(cookie.Value);</pre>
+</div>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><span style="font-family: 宋体;">最后，编码和解码要保持一致：</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">System.Web.HttpUtility.UrlDecode
+
+System.Web.HttpUtility.UrlEncode</span></pre>
+</div>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">System.Web.HttpContext.Current.Server.UrlDecode
+
+System.Web.HttpContext.Current.Server.UrlEncode</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><strong><span style="font-size: 18px;">解决方法：</span></strong></p>
+<p><span style="font-family: 宋体;">1.先把集合转成</span>Json字符串（我使用下面转换Json方法的时候没有乱码）：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">string</span> json = ToJson(List&lt;Model&gt;);</pre>
+</div>
+<p>&nbsp;</p>
+<p><span style="font-family: 宋体;">2.接下来我们把转换好的</span>Json字符串写入Cookie：</p>
+<div class="cnblogs_code">
+<pre><code>WriteCookie1(<span style="color: #800000;">"</span><span style="color: #800000;">cook</span><span style="color: #800000;">"</span>, json);</pre>
+</div>
+<p>&nbsp;</p>
+<p>这样就写入成功了！！！</p>
+<p>&nbsp;</p>
+<p>3.接下来就可以通过以下代码取出数据：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">string</span> jsonStr =GetCookie(<span style="color: #800000;">"</span><span style="color: #800000;">cook</span><span style="color: #800000;">"</span>);<span style="color: #008000;">//</span><span style="color: #008000;">获取json</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>4.获取实体集合</p>
+<div class="cnblogs_code">
+<pre><code>List&lt;Model&gt; list=ToObject&lt;List&lt;Model&gt;&gt;(jsonStr);<span style="color: #008000;">//</span><span style="color: #008000;">json转换成实体集合</span></pre>
+</div>
+<p>&nbsp;</p>
+<p><span style="text-decoration: underline; font-size: 16px;"><span style="font-family: 宋体;">以下是</span> <span style="font-family: 宋体;">存取</span>Cookie、转换Json都方法：</span></p>
+<p>&nbsp;</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span>  
+<span style="color: #008080;"> 2</span> 
+<span style="color: #008080;"> 3</span> <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;"> 4</span> 
+<span style="color: #008080;"> 5</span> <span style="color: #808080;">///</span><span style="color: #008000;"> 写cookie值，包括中文编码
+</span><span style="color: #008080;"> 6</span> 
+<span style="color: #008080;"> 7</span> <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;"> 8</span> 
+<span style="color: #008080;"> 9</span> <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="strName"&gt;</span><span style="color: #008000;">名称</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;">10</span> 
+<span style="color: #008080;">11</span> <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="strValue"&gt;</span><span style="color: #008000;">值</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;">12</span> 
+<span style="color: #008080;">13</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> WriteCookie(<span style="color: #0000ff;">string</span> strName, <span style="color: #0000ff;">string</span><span style="color: #000000;"> strValue)
+</span><span style="color: #008080;">14</span> 
+<span style="color: #008080;">15</span> <span style="color: #000000;">{
+</span><span style="color: #008080;">16</span> 
+<span style="color: #008080;">17</span> HttpCookie cookie =<span style="color: #000000;"> HttpContext.Current.Request.Cookies[strName];
+</span><span style="color: #008080;">18</span> 
+<span style="color: #008080;">19</span> <span style="color: #0000ff;">if</span> (cookie == <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+</span><span style="color: #008080;">20</span> 
+<span style="color: #008080;">21</span> <span style="color: #000000;">{
+</span><span style="color: #008080;">22</span> 
+<span style="color: #008080;">23</span> cookie = <span style="color: #0000ff;">new</span><span style="color: #000000;"> HttpCookie(strName);
+</span><span style="color: #008080;">24</span> 
+<span style="color: #008080;">25</span> <span style="color: #000000;">}
+</span><span style="color: #008080;">26</span> 
+<span style="color: #008080;">27</span> cookie.Value = HttpUtility.UrlEncode(strValue, Encoding.GetEncoding(<span style="color: #800000;">"</span><span style="color: #800000;">UTF-8</span><span style="color: #800000;">"</span><span style="color: #000000;">));
+</span><span style="color: #008080;">28</span> 
+<span style="color: #008080;">29</span> <span style="color: #000000;">HttpContext.Current.Response.AppendCookie(cookie);
+</span><span style="color: #008080;">30</span> 
+<span style="color: #008080;">31</span> <span style="color: #000000;">}
+</span><span style="color: #008080;">32</span> 
+<span style="color: #008080;">33</span> <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+<span style="color: #008080;">34</span> 
+<span style="color: #008080;">35</span> <span style="color: #808080;">///</span><span style="color: #008000;"> 读cookie值，包括中文编码
+</span><span style="color: #008080;">36</span> 
+<span style="color: #008080;">37</span> <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">38</span> 
+<span style="color: #008080;">39</span> <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="strName"&gt;</span><span style="color: #008000;">名称</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;">40</span> 
+<span style="color: #008080;">41</span> <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;</span><span style="color: #008000;">cookie值</span><span style="color: #808080;">&lt;/returns&gt;</span>
+<span style="color: #008080;">42</span> 
+<span style="color: #008080;">43</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">string</span> GetCookie(<span style="color: #0000ff;">string</span><span style="color: #000000;"> strName)
+</span><span style="color: #008080;">44</span> 
+<span style="color: #008080;">45</span> <span style="color: #000000;">{
+</span><span style="color: #008080;">46</span> 
+<span style="color: #008080;">47</span> <span style="color: #0000ff;">if</span> (HttpContext.Current.Request.Cookies != <span style="color: #0000ff;">null</span> &amp;&amp; HttpContext.Current.Request.Cookies[strName] != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+</span><span style="color: #008080;">48</span> 
+<span style="color: #008080;">49</span> <span style="color: #000000;">{
+</span><span style="color: #008080;">50</span> 
+<span style="color: #008080;">51</span> <span style="color: #0000ff;">return</span> HttpUtility.UrlDecode(HttpContext.Current.Request.Cookies[strName].Value.ToString(), Encoding.GetEncoding(<span style="color: #800000;">"</span><span style="color: #800000;">UTF-8</span><span style="color: #800000;">"</span><span style="color: #000000;">));
+</span><span style="color: #008080;">52</span> 
+<span style="color: #008080;">53</span> <span style="color: #000000;">}
+</span><span style="color: #008080;">54</span> 
+<span style="color: #008080;">55</span> <span style="color: #0000ff;">return</span> <span style="color: #800000;">""</span><span style="color: #000000;">;
+</span><span style="color: #008080;">56</span> 
+<span style="color: #008080;">57</span> <span style="color: #000000;">}
+</span><span style="color: #008080;">58</span> 
+<span style="color: #008080;">59</span> 
+<span style="color: #008080;">60</span> <span style="color: #0000ff;">#region</span> Json序列化
+<span style="color: #008080;">61</span> 
+<span style="color: #008080;">62</span> <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span><span style="color: #008000;">Json序列化</span><span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">63</span> 
+<span style="color: #008080;">64</span> <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="obj"&gt;</span><span style="color: #008000;">object </span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;">65</span> 
+<span style="color: #008080;">66</span> <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+<span style="color: #008080;">67</span> 
+<span style="color: #008080;">68</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">string</span> ToJson(<span style="color: #0000ff;">object</span><span style="color: #000000;"> obj) {
+</span><span style="color: #008080;">69</span> 
+<span style="color: #008080;">70</span> <span style="color: #0000ff;">var</span> idtc = <span style="color: #0000ff;">new</span> Newtonsoft.Json.Converters.IsoDateTimeConverter { DateTimeFormat = <span style="color: #800000;">"</span><span style="color: #800000;">yyyy-MM-dd hh:mm:ss</span><span style="color: #800000;">"</span><span style="color: #000000;"> };
+</span><span style="color: #008080;">71</span> 
+<span style="color: #008080;">72</span>  
+<span style="color: #008080;">73</span> 
+<span style="color: #008080;">74</span> <span style="color: #0000ff;">return</span><span style="color: #000000;"> JsonConvert.SerializeObject(obj, idtc);
+</span><span style="color: #008080;">75</span> 
+<span style="color: #008080;">76</span> <span style="color: #000000;">}
+</span><span style="color: #008080;">77</span> 
+<span style="color: #008080;">78</span> <span style="color: #0000ff;">#endregion</span>
+<span style="color: #008080;">79</span> 
+<span style="color: #008080;">80</span>  
+<span style="color: #008080;">81</span> 
+<span style="color: #008080;">82</span> <span style="color: #0000ff;">#region</span> Json反序列化
+<span style="color: #008080;">83</span> 
+<span style="color: #008080;">84</span> <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span><span style="color: #008000;">反序列化</span><span style="color: #808080;">&lt;/summary&gt;</span>
+<span style="color: #008080;">85</span> 
+<span style="color: #008080;">86</span> <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;typeparam name="T"&gt;</span><span style="color: #008000;">类型</span><span style="color: #808080;">&lt;/typeparam&gt;</span>
+<span style="color: #008080;">87</span> 
+<span style="color: #008080;">88</span> <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="text"&gt;</span><span style="color: #008000;">json字符串</span><span style="color: #808080;">&lt;/param&gt;</span>
+<span style="color: #008080;">89</span> 
+<span style="color: #008080;">90</span> <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;</span><span style="color: #008000;">类型数据</span><span style="color: #808080;">&lt;/returns&gt;</span>
+<span style="color: #008080;">91</span> 
+<span style="color: #008080;">92</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> T ToObject&lt;T&gt;(<span style="color: #0000ff;">string</span><span style="color: #000000;"> text) {
+</span><span style="color: #008080;">93</span> 
+<span style="color: #008080;">94</span> <span style="color: #0000ff;">return</span> (T)JsonConvert.DeserializeObject(text, <span style="color: #0000ff;">typeof</span><span style="color: #000000;">(T));
+</span><span style="color: #008080;">95</span> 
+<span style="color: #008080;">96</span> }</pre>
+</div>
+<p>有什么写的不对的欢迎留言~~~~~~</p>
+<p><img src="./images/记录一次关于Cookie、Json中文乱码的解决方法0.png" alt="" /></p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

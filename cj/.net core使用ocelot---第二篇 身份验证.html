@@ -1,0 +1,322 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修.net core使用ocelot---第二篇 身份验证' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>.net core使用ocelot---第二篇 身份验证</center></div><div class='banquan'>原文出处:本文由博客园博主一截生长提供。<br/>
+原文连接:https://www.cnblogs.com/xlxr45/p/11321134.html</div><br>
+    <p><strong>简介</strong><a href="https://www.c-sharpcorner.com/article/building-api-gateway-using-ocelot-in-asp-net-core-part-two/">原文链接</a></p>
+<p>　&nbsp; &nbsp; &nbsp;<a href="https://www.cnblogs.com/xlxr45/p/11320988.html" target="_blank">.net core使用ocelot---第一篇 简单使用</a></p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 接上文，我将继续介绍使用asp.net core 创建API网关，主要介绍身份验证(authentication&nbsp;)相关内容。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; API服务是需要保护的资源，我们应该尽可能的保证他们的安全。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 通常，我们会使用<a href="https://github.com/aspnet/Security/">aspnet security</a> 来保证我们项目的安全，aspnet security代码库是为asp.net core 设计的安全和授权中间件。已经让事情变得简单。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 那么我们在项目中引入API网关会不会导致巨大的改变？答案是，不会。我们的修改微乎其微，但是却让安全和授权变得简单。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 先看下面的截图。</p>
+<p><img src="./images/.net core使用ocelot---第二篇 身份验证0.png" alt="" /></p>
+<p>　　截图显示，当我们访问我们的服务，API网关会让我们首先访问其授权模块。我们必须访问授权服务获得访问令牌（access token），然后用访问令牌访问受保护的服务。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 可能你倾向将授权服务独立，这意味客户端得先访问授权服务获得访问令牌。然后携带令牌访问API网关。毫无疑问这样做没问题，但是我建议将授权服务和其他服务放在一起。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; APIGateway是我们所有服务的入口，对于身份未验证的客户端仅可以访问授权服务。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; OK，开始我们的表演。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 我会使用上一个demo的部分内容，便于理解。</p>
+<p><strong>Step1</strong></p>
+<table style="width: 100%;" border="1" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td>
+<p><strong>项目名称</strong></p>
+</td>
+<td>
+<p><strong>项目类型</strong></p>
+</td>
+<td>
+<p>描述</p>
+</td>
+</tr>
+<tr>
+<td>
+<p>APIGateway</p>
+</td>
+<td>
+<p>ASP.NET Core Empty</p>
+</td>
+<td>
+<p>示例的入口</p>
+</td>
+</tr>
+<tr>
+<td>
+<p>CustomersAPIServices</p>
+</td>
+<td>
+<p>ASP.NET Core Web API</p>
+</td>
+<td>
+<p>API 服务处理消费者的操作</p>
+</td>
+</tr>
+<tr>
+<td>
+<p>AuthServer</p>
+</td>
+<td>
+<p>ASP.NET Core Web API</p>
+</td>
+<td>
+<p>API 服务处理授权操作</p>
+</td>
+</tr>
+<tr>
+<td>
+<p>ClientApp</p>
+</td>
+<td>
+<p>Console App</p>
+</td>
+<td>
+<p>控制台程序模拟客户端</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p>　　APIGateway和CustomerAPIServices和上篇文章的例子一样，你可以在<a href="https://github.com/catcherwong-archive/APIGatewayDemo/tree/master/APIGatewayBasicDemo" target="_blank">APIGatewayBasicDemo</a>获得。</p>
+<p><strong>Step2</strong></p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 创建AuthServer，AuthServer主要是为request请求生成访问令牌（access token）,我们需要添加一个方法处理。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">[HttpGet]  
+</span><span style="color: #0000ff;">public</span> IActionResult Get(<span style="color: #0000ff;">string</span> name, <span style="color: #0000ff;">string</span><span style="color: #000000;"> pwd)  
+{  
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">just hard code here.  </span>
+    <span style="color: #0000ff;">if</span> (name == <span style="color: #800000;">"</span><span style="color: #800000;">catcher</span><span style="color: #800000;">"</span> &amp;&amp; pwd == <span style="color: #800000;">"</span><span style="color: #800000;">123</span><span style="color: #800000;">"</span><span style="color: #000000;">)  
+    {  
+        </span><span style="color: #0000ff;">var</span> now =<span style="color: #000000;"> DateTime.UtcNow;  
+  
+        </span><span style="color: #0000ff;">var</span> claims = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Claim[]  
+        {  
+            </span><span style="color: #0000ff;">new</span><span style="color: #000000;"> Claim(JwtRegisteredClaimNames.Sub, name),  
+            </span><span style="color: #0000ff;">new</span><span style="color: #000000;"> Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),  
+            </span><span style="color: #0000ff;">new</span><span style="color: #000000;"> Claim(JwtRegisteredClaimNames.Iat, now.ToUniversalTime().ToString(), ClaimValueTypes.Integer64)  
+        };  
+  
+        </span><span style="color: #0000ff;">var</span> signingKey = <span style="color: #0000ff;">new</span><span style="color: #000000;"> SymmetricSecurityKey(Encoding.ASCII.GetBytes(_settings.Value.Secret));  
+        </span><span style="color: #0000ff;">var</span> tokenValidationParameters = <span style="color: #0000ff;">new</span><span style="color: #000000;"> TokenValidationParameters  
+        {  
+            ValidateIssuerSigningKey </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">,  
+            IssuerSigningKey </span>=<span style="color: #000000;"> signingKey,  
+            ValidateIssuer </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">,  
+            ValidIssuer </span>=<span style="color: #000000;"> _settings.Value.Iss,  
+            ValidateAudience </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">,  
+            ValidAudience </span>=<span style="color: #000000;"> _settings.Value.Aud,  
+            ValidateLifetime </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">,  
+            ClockSkew </span>=<span style="color: #000000;"> TimeSpan.Zero,  
+            RequireExpirationTime </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">,  
+  
+        };  
+  
+        </span><span style="color: #0000ff;">var</span> jwt = <span style="color: #0000ff;">new</span><span style="color: #000000;"> JwtSecurityToken(  
+            issuer: _settings.Value.Iss,  
+            audience: _settings.Value.Aud,  
+            claims: claims,  
+            notBefore: now,  
+            expires: now.Add(TimeSpan.FromMinutes(</span><span style="color: #800080;">2</span><span style="color: #000000;">)),  
+            signingCredentials: </span><span style="color: #0000ff;">new</span><span style="color: #000000;"> SigningCredentials(signingKey, SecurityAlgorithms.HmacSha256)  
+        );  
+        </span><span style="color: #0000ff;">var</span> encodedJwt = <span style="color: #0000ff;">new</span><span style="color: #000000;"> JwtSecurityTokenHandler().WriteToken(jwt);  
+        </span><span style="color: #0000ff;">var</span> responseJson = <span style="color: #0000ff;">new</span><span style="color: #000000;">  
+        {  
+            access_token </span>=<span style="color: #000000;"> encodedJwt,  
+            expires_in </span>= (<span style="color: #0000ff;">int</span>)TimeSpan.FromMinutes(<span style="color: #800080;">2</span><span style="color: #000000;">).TotalSeconds  
+        };  
+  
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> Json(responseJson);  
+    }  
+    </span><span style="color: #0000ff;">else</span><span style="color: #000000;">  
+    {  
+        </span><span style="color: #0000ff;">return</span> Json(<span style="color: #800000;">""</span><span style="color: #000000;">);  
+    }  
+}  </span></pre>
+</div>
+<p>　　在验证用户时。我使用硬编码将用户名写死，因为对于本文这个不是那么重要。</p>
+<p>　　这样我们就完成了授权服务，现在跑起来。</p>
+<p><img src="./images/.net core使用ocelot---第二篇 身份验证1.png" alt="" /></p>
+<p><strong>Step3</strong></p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 回到CustomersAPIServices项目，我们应该保护这个服务。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 修改Startup，我们可以使用授权。在这我用JwtBearer进行授权，我会给TestKey设置默认的授权方案。TestKey我将在下面提到。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> ConfigureServices(IServiceCollection services)  
+{  
+    </span><span style="color: #0000ff;">var</span> audienceConfig = Configuration.GetSection(<span style="color: #800000;">"</span><span style="color: #800000;">Audience</span><span style="color: #800000;">"</span><span style="color: #000000;">);  
+  
+    </span><span style="color: #0000ff;">var</span> signingKey = <span style="color: #0000ff;">new</span> SymmetricSecurityKey(Encoding.ASCII.GetBytes(audienceConfig[<span style="color: #800000;">"</span><span style="color: #800000;">Secret</span><span style="color: #800000;">"</span><span style="color: #000000;">]));  
+    </span><span style="color: #0000ff;">var</span> tokenValidationParameters = <span style="color: #0000ff;">new</span><span style="color: #000000;"> TokenValidationParameters  
+    {  
+        ValidateIssuerSigningKey </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">,  
+        IssuerSigningKey </span>=<span style="color: #000000;"> signingKey,  
+        ValidateIssuer </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">,  
+        ValidIssuer </span>= audienceConfig[<span style="color: #800000;">"</span><span style="color: #800000;">Iss</span><span style="color: #800000;">"</span><span style="color: #000000;">],  
+        ValidateAudience </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">,  
+        ValidAudience </span>= audienceConfig[<span style="color: #800000;">"</span><span style="color: #800000;">Aud</span><span style="color: #800000;">"</span><span style="color: #000000;">],  
+        ValidateLifetime </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">,  
+        ClockSkew </span>=<span style="color: #000000;"> TimeSpan.Zero,  
+        RequireExpirationTime </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">,  
+    };  
+  
+    services.AddAuthentication()  
+            .AddJwtBearer(</span><span style="color: #800000;">"</span><span style="color: #800000;">TestKey</span><span style="color: #800000;">"</span>, x =&gt;<span style="color: #000000;">  
+             {  
+                 x.RequireHttpsMetadata </span>= <span style="color: #0000ff;">false</span><span style="color: #000000;">;  
+                 x.TokenValidationParameters </span>=<span style="color: #000000;"> tokenValidationParameters;  
+             });  
+  
+    services.AddMvc();  
+}  
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> Configure(IApplicationBuilder app)  
+{              
+    app.UseAuthentication();  
+    app.UseMvc();  
+} </span></pre>
+</div>
+<p>　　接下来，对需要保护的方法，添加Authorize。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">[Authorize]  
+[HttpGet]  
+</span><span style="color: #0000ff;">public</span> IEnumerable&lt;<span style="color: #0000ff;">string</span>&gt;<span style="color: #000000;"> Get()  
+{  
+    </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">string</span>[] { <span style="color: #800000;">"</span><span style="color: #800000;">Catcher Wong</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">James Li</span><span style="color: #800000;">"</span><span style="color: #000000;"> };  
+}  </span></pre>
+</div>
+<p><strong>注意</strong></p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 该项目基于asp.net core 2.0. 如果你的项目是1.X，可能有些不同，建议用<a href="https://docs.microsoft.com/en-us/aspnet/core/migration/1x-to-2x/identity-2x?view=aspnetcore-2.2">迁移</a>迁移到2.0.以上。接下来就是见证奇迹的时候了。</p>
+<p><img src="./images/.net core使用ocelot---第二篇 身份验证2.png" alt="" /></p>
+<p><strong>Step4</strong></p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 最重要的步骤来了，在APIGateway中配置授权。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> ConfigureServices(IServiceCollection services)  
+{  
+    </span><span style="color: #0000ff;">var</span> audienceConfig = Configuration.GetSection(<span style="color: #800000;">"</span><span style="color: #800000;">Audience</span><span style="color: #800000;">"</span><span style="color: #000000;">);  
+  
+    </span><span style="color: #0000ff;">var</span> signingKey = <span style="color: #0000ff;">new</span> SymmetricSecurityKey(Encoding.ASCII.GetBytes(audienceConfig[<span style="color: #800000;">"</span><span style="color: #800000;">Secret</span><span style="color: #800000;">"</span><span style="color: #000000;">]));  
+    </span><span style="color: #0000ff;">var</span> tokenValidationParameters = <span style="color: #0000ff;">new</span><span style="color: #000000;"> TokenValidationParameters  
+    {  
+        ValidateIssuerSigningKey </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">,  
+        IssuerSigningKey </span>=<span style="color: #000000;"> signingKey,  
+        ValidateIssuer </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">,  
+        ValidIssuer </span>= audienceConfig[<span style="color: #800000;">"</span><span style="color: #800000;">Iss</span><span style="color: #800000;">"</span><span style="color: #000000;">],  
+        ValidateAudience </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">,  
+        ValidAudience </span>= audienceConfig[<span style="color: #800000;">"</span><span style="color: #800000;">Aud</span><span style="color: #800000;">"</span><span style="color: #000000;">],  
+        ValidateLifetime </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">,  
+        ClockSkew </span>=<span style="color: #000000;"> TimeSpan.Zero,  
+        RequireExpirationTime </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">,  
+    };  
+  
+    services.AddAuthentication()  
+            .AddJwtBearer(</span><span style="color: #800000;">"</span><span style="color: #800000;">TestKey</span><span style="color: #800000;">"</span>, x =&gt;<span style="color: #000000;">  
+             {  
+                 x.RequireHttpsMetadata </span>= <span style="color: #0000ff;">false</span><span style="color: #000000;">;  
+                 x.TokenValidationParameters </span>=<span style="color: #000000;"> tokenValidationParameters;  
+             });  
+  
+    services.AddOcelot(Configuration);  
+}  </span></pre>
+</div>
+<p>&nbsp;</p>
+<p>　　这个配置的大部分代码和Customer Service一样。</p>
+<p>　　当Ocelot启动，它会查看ReRoutes&nbsp;》AuthenticationOptions 》AuthenticationProviderKey 的值，</p>
+<p>检查该值是否被授权服务注册，如果没有，Ocelot不会启动，如果有，Ocelot在执行时使用授权服务。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 所以，我们得修改configuration.json，我们需要添加新的节点，并将其值赋为在Startup 类中定义的一样。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">{  
+    </span><span style="color: #800000;">"</span><span style="color: #800000;">DownstreamPathTemplate</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">/api/customers</span><span style="color: #800000;">"</span><span style="color: #000000;">,  
+    </span><span style="color: #800000;">"</span><span style="color: #800000;">DownstreamScheme</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">http</span><span style="color: #800000;">"</span><span style="color: #000000;">,  
+    </span><span style="color: #800000;">"</span><span style="color: #800000;">DownstreamHost</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">localhost</span><span style="color: #800000;">"</span><span style="color: #000000;">,  
+    </span><span style="color: #800000;">"</span><span style="color: #800000;">DownstreamPort</span><span style="color: #800000;">"</span>: <span style="color: #800080;">9001</span><span style="color: #000000;">,  
+    </span><span style="color: #800000;">"</span><span style="color: #800000;">UpstreamPathTemplate</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">/customers</span><span style="color: #800000;">"</span><span style="color: #000000;">,  
+    </span><span style="color: #800000;">"</span><span style="color: #800000;">UpstreamHttpMethod</span><span style="color: #800000;">"</span>: [ <span style="color: #800000;">"</span><span style="color: #800000;">Get</span><span style="color: #800000;">"</span><span style="color: #000000;"> ],  
+    </span><span style="color: #800000;">"</span><span style="color: #800000;">AuthenticationOptions</span><span style="color: #800000;">"</span><span style="color: #000000;">: {  
+        </span><span style="color: #800000;">"</span><span style="color: #800000;">AuthenticationProviderKey</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">TestKey</span><span style="color: #800000;">"</span><span style="color: #000000;">,  
+        </span><span style="color: #800000;">"</span><span style="color: #800000;">AllowedScopes</span><span style="color: #800000;">"</span><span style="color: #000000;">: []  
+    }  
+}  </span></pre>
+</div>
+<p>　　<span style="font-family: 宋体;">启动服务。</span></p>
+<p class="MsoNormal" style="margin-left: 18.0pt;">&nbsp;</p>
+<p><img src="./images/.net core使用ocelot---第二篇 身份验证3.png" alt="" /></p>
+<p class="MsoNoSpacing"><strong><span style="font-family: 宋体; mso-ascii-font-family: 等线; mso-ascii-theme-font: minor-latin; mso-hansi-font-family: 等线; mso-hansi-theme-font: minor-latin;">注意</span></strong></p>
+<p class="MsoNormal"><span lang="EN-US">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span><span style="font-family: 宋体; mso-ascii-font-family: 等线; mso-ascii-theme-font: minor-latin; mso-hansi-font-family: 等线; mso-hansi-theme-font: minor-latin;">当你启动项目时遇到下面的错误，你应该检查你的代码，查看</span><span style="font-family: Arial, sans-serif; color: #212121; background-image: initial; background-position: initial; background-size: initial; background-repeat: initial; background-attachment: initial; background-origin: initial; background-clip: initial;" lang="EN-US">AddJwtBearer&nbsp;</span><span style="font-family: 宋体; color: #212121; background-image: initial; background-position: initial; background-size: initial; background-repeat: initial; background-attachment: initial; background-origin: initial; background-clip: initial;">方法是否指明授权方案。</span></p>
+<p class="MsoNormal"><em><span style="font-family: Arial, sans-serif; color: #212121; background-image: initial; background-position: initial; background-size: initial; background-repeat: initial; background-attachment: initial; background-origin: initial; background-clip: initial;" lang="EN-US">&nbsp; &nbsp; &nbsp; &nbsp; Unhandled Exception: System.InvalidOperationException: Scheme already exists: Bearer</span></em></p>
+<p class="MsoNoSpacing"><em><span style="font-family: Arial, sans-serif; color: #212121; background-image: initial; background-position: initial; background-size: initial; background-repeat: initial; background-attachment: initial; background-origin: initial; background-clip: initial;" lang="EN-US">Step5</span></em></p>
+<p class="MsoNormal"><span lang="EN-US">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span><span style="font-family: 宋体; mso-ascii-font-family: 等线; mso-ascii-theme-font: minor-latin; mso-hansi-font-family: 等线; mso-hansi-theme-font: minor-latin;">我们已经准备完毕，我们用我们的客户端模拟</span><span lang="EN-US">APIGateway</span><span style="font-family: 宋体; mso-ascii-font-family: 等线; mso-ascii-theme-font: minor-latin; mso-hansi-font-family: 等线; mso-hansi-theme-font: minor-latin;">的某些请求。</span></p>
+<p>&nbsp;</p>
+<p class="MsoNormal"><span lang="EN-US">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span><span style="font-family: 宋体; mso-ascii-font-family: 等线; mso-ascii-theme-font: minor-latin; mso-hansi-font-family: 等线; mso-hansi-theme-font: minor-latin;">我们先添加获得访问令牌的方法。</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">string</span><span style="color: #000000;"> GetJwt()  
+{  
+    HttpClient client </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> HttpClient();  
+    client.BaseAddress </span>= <span style="color: #0000ff;">new</span> Uri( <span style="color: #800000;">"</span><span style="color: #800000;">http://localhost:9000</span><span style="color: #800000;">"</span><span style="color: #000000;">);  
+    client.DefaultRequestHeaders.Clear();  
+    </span><span style="color: #0000ff;">var</span> res2 = client.GetAsync(<span style="color: #800000;">"</span><span style="color: #800000;">/api/auth?name=catcher&amp;pwd=123</span><span style="color: #800000;">"</span><span style="color: #000000;">).Result;  
+    </span><span style="color: #0000ff;">dynamic</span> jwt =<span style="color: #000000;"> JsonConvert.DeserializeObject(res2.Content.ReadAsStringAsync().Result);  
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> jwt.access_token;  
+} </span></pre>
+</div>
+<p>&nbsp;</p>
+<p class="MsoNormal" style="margin-left: 18.0pt;"><span style="font-family: 宋体; mso-ascii-font-family: 等线; mso-ascii-theme-font: minor-latin; mso-hansi-font-family: 等线; mso-hansi-theme-font: minor-latin;">&nbsp;接下来，编写通过</span><span lang="EN-US">APIGateway</span><span style="font-family: 宋体; mso-ascii-font-family: 等线; mso-ascii-theme-font: minor-latin; mso-hansi-font-family: 等线; mso-hansi-theme-font: minor-latin;">访问</span><span lang="EN-US">Customer Service</span><span style="font-family: 宋体; mso-ascii-font-family: 等线; mso-ascii-theme-font: minor-latin; mso-hansi-font-family: 等线; mso-hansi-theme-font: minor-latin;">方法的代码。</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)  
+{  
+    HttpClient client </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> HttpClient();  
+      
+    client.DefaultRequestHeaders.Clear();  
+    client.BaseAddress </span>= <span style="color: #0000ff;">new</span> Uri(<span style="color: #800000;">"</span><span style="color: #800000;">http://localhost:9000</span><span style="color: #800000;">"</span><span style="color: #000000;">);  
+      
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 1. without access_token will not access the service  
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">    and return 401 .  </span>
+    <span style="color: #0000ff;">var</span> resWithoutToken = client.GetAsync(<span style="color: #800000;">"</span><span style="color: #800000;">/customers</span><span style="color: #800000;">"</span><span style="color: #000000;">).Result;  
+      
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">print something here   
+      
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">2. with access_token will access the service  
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">   and return result.  </span>
+<span style="color: #000000;">    client.DefaultRequestHeaders.Clear();  
+    </span><span style="color: #0000ff;">var</span> jwt =<span style="color: #000000;"> GetJwt();  
+      
+    client.DefaultRequestHeaders.Add(</span><span style="color: #800000;">"</span><span style="color: #800000;">Authorization</span><span style="color: #800000;">"</span>, $<span style="color: #800000;">"</span><span style="color: #800000;">Bearer {jwt}</span><span style="color: #800000;">"</span><span style="color: #000000;">);  
+    </span><span style="color: #0000ff;">var</span> resWithToken = client.GetAsync(<span style="color: #800000;">"</span><span style="color: #800000;">/customers</span><span style="color: #800000;">"</span><span style="color: #000000;">).Result;  
+      
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">print something here   
+      
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">3. visit no auth service   </span>
+<span style="color: #000000;">    client.DefaultRequestHeaders.Clear();  
+    </span><span style="color: #0000ff;">var</span> res = client.GetAsync(<span style="color: #800000;">"</span><span style="color: #800000;">/customers/1</span><span style="color: #800000;">"</span><span style="color: #000000;">).Result;  
+      
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">print something here   </span>
+<span style="color: #000000;">      
+    Console.Read();  
+}  </span></pre>
+</div>
+<p>&nbsp;</p>
+<p class="MsoNormal" style="margin-left: 18.0pt;"><span style="font-family: 宋体; mso-ascii-font-family: 等线; mso-ascii-theme-font: minor-latin; mso-hansi-font-family: 等线; mso-hansi-theme-font: minor-latin;">运行结果。</span></p>
+<p class="MsoNormal" style="margin-left: 18.0pt;"><span style="font-family: 宋体; mso-ascii-font-family: 等线; mso-ascii-theme-font: minor-latin; mso-hansi-font-family: 等线; mso-hansi-theme-font: minor-latin;"><img src="./images/.net core使用ocelot---第二篇 身份验证4.png" alt="" /></span></p>
+<p class="MsoNormal" style="margin-left: 18.0pt;">&nbsp;</p>
+<p>　　完工。</p>
+<p>　　源码<a href="https://github.com/catcherwong-archive/APIGatewayDemo/tree/master/APIGatewayJWTAuthenticationDemo">在此</a>。</p>
+<p><strong>总结</strong></p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;没啥。</p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

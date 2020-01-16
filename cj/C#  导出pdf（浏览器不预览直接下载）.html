@@ -1,0 +1,255 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C#  导出pdf（浏览器不预览直接下载）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C#  导出pdf（浏览器不预览直接下载）</center></div><div class='banquan'>原文出处:本文由博客园博主好名字可以让你的朋友更容易记住你提供。<br/>
+原文连接:https://www.cnblogs.com/hahahayang/p/12053913.html</div><br>
+    <p><span style="font-size: 16px;">一.接口部分的代码</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">        [HttpGet]
+        </span><span style="color: #0000ff;">public</span> HttpResponseMessage ExportPdf(<span style="color: #0000ff;">string</span><span style="color: #000000;"> id)
+        {
+            </span><span style="color: #0000ff;">string</span> pdfName = <span style="color: #800000;">""</span><span style="color: #000000;">;<br />　　　　　　　//id 查询条件，根据实际情况修改即可<br />　　　　　　　//pdfName 例如download.pdf
+            </span><span style="color: #0000ff;">byte</span>[] pdfData= _policyGapManagerService.ExportPdf(id, <span style="color: #0000ff;">out</span> pdfName);<span style="color: #008000;">//</span><span style="color: #008000;">获得pdf字节</span>
+            <span style="color: #0000ff;">var</span> result = <span style="color: #0000ff;">new</span><span style="color: #000000;"> HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> ByteArrayContent(pdfData)
+            };
+            result.Content.Headers.ContentDisposition </span>=
+                <span style="color: #0000ff;">new</span> ContentDispositionHeaderValue(<span style="color: #800000;">"</span><span style="color: #800000;">attachment</span><span style="color: #800000;">"</span><span style="color: #000000;">)
+                {
+                    FileName </span>=<span style="color: #000000;"> pdfName
+                };
+            result.Content.Headers.ContentType </span>=<span style="color: #0000ff;">new</span> MediaTypeHeaderValue(<span style="color: #800000;">"</span><span style="color: #800000;">application/pdf</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> result;
+        }</span></pre>
+</div>
+<p><span style="font-size: 16px;">二.返回pdfbyte数组</span></p>
+<p><span style="font-size: 16px;">1.下载http模式的pdf文件（以ASP.NET为例，将PDF存在项目的目录下，可以通过http直接打开项目下的pdf文件）</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">#region</span> 调用本地文件使用返回pdfbyte数组
+
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 调用本地文件使用返回pdfbyte数组
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="srcPdfFile"&gt;</span><span style="color: #008000;">&lsquo;D:\in2434341555551.pdf&rsquo;</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">byte</span>[] GetSignaturePDFByte(<span style="color: #0000ff;">string</span><span style="color: #000000;"> srcPdfFile)
+        {
+            </span><span style="color: #0000ff;">using</span> (FileStream fsRead = <span style="color: #0000ff;">new</span><span style="color: #000000;"> FileStream(srcPdfFile, FileMode.Open, FileAccess.Read, FileShare.Read))
+            {
+                </span><span style="color: #0000ff;">int</span> fsLen = (<span style="color: #0000ff;">int</span><span style="color: #000000;">)fsRead.Length;
+                </span><span style="color: #0000ff;">byte</span>[] hebyte = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">byte</span><span style="color: #000000;">[fsLen];
+                fsRead.Read(hebyte, </span><span style="color: #800080;">0</span><span style="color: #000000;">, hebyte.Length);
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> hebyte;
+            }
+        }
+
+        </span><span style="color: #0000ff;">#endregion</span> 调用本地文件使用返回pdfbyte数组
+
+        <span style="color: #0000ff;">#region</span> 从网站上下载pdf，转化为字节流
+
+
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 从网站上下载pdf，转化为字节流
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="srcPdfFile"&gt;</span><span style="color: #008000;">文件地址：'https://******/group2/M00/00/04/wKj-mlpcoZ2IUbK5AACrpaV6k98AAAB6gAAAAAAAKu9562.pdf'</span><span style="color: #808080;">&lt;/param&gt;</span>
+
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> Byte[] GetByteByRemoteURL(<span style="color: #0000ff;">string</span><span style="color: #000000;"> srcPdfFile)
+        {
+            </span><span style="color: #0000ff;">byte</span><span style="color: #000000;">[] arraryByte;
+            HttpWebRequest req </span>=<span style="color: #000000;"> (HttpWebRequest)HttpWebRequest.Create(srcPdfFile);
+            req.Method </span>= <span style="color: #800000;">"</span><span style="color: #800000;">GET</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">using</span> (WebResponse wr =<span style="color: #000000;"> req.GetResponse())
+            {
+                StreamReader responseStream </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> StreamReader(wr.GetResponseStream(), Encoding.UTF8);
+                </span><span style="color: #0000ff;">int</span> length = (<span style="color: #0000ff;">int</span><span style="color: #000000;">)wr.ContentLength;
+                </span><span style="color: #0000ff;">byte</span>[] bs = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">byte</span><span style="color: #000000;">[length];
+
+                HttpWebResponse response </span>= wr <span style="color: #0000ff;">as</span><span style="color: #000000;"> HttpWebResponse;
+                Stream stream </span>=<span style="color: #000000;"> response.GetResponseStream();
+
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">读取到内存</span>
+                MemoryStream stmMemory = <span style="color: #0000ff;">new</span><span style="color: #000000;"> MemoryStream();
+                </span><span style="color: #0000ff;">byte</span>[] buffer1 = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">byte</span><span style="color: #000000;">[length];
+                </span><span style="color: #0000ff;">int</span><span style="color: #000000;"> i;
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">将字节逐个放入到Byte 中</span>
+                <span style="color: #0000ff;">while</span> ((i = stream.Read(buffer1, <span style="color: #800080;">0</span>, buffer1.Length)) &gt; <span style="color: #800080;">0</span><span style="color: #000000;">)
+                {
+                    stmMemory.Write(buffer1, </span><span style="color: #800080;">0</span><span style="color: #000000;">, i);
+                }
+                arraryByte </span>=<span style="color: #000000;"> stmMemory.ToArray();
+                stmMemory.Close();
+            }
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> arraryByte;
+        }
+
+        </span><span style="color: #0000ff;">#endregion</span> 从网站上下载pdf，转化为字节流
+
+        <span style="color: #0000ff;">#region</span> 从网站上下载文件，保存到其他路径
+
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 从网站上下载文件，保存到其他路径
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="pdfFile"&gt;</span><span style="color: #008000;">文件地址</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="saveLoadFile"&gt;</span><span style="color: #008000;">保存文件路径：D:\12221.pdf</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> SaveRemoteFile( <span style="color: #0000ff;">string</span> saveLoadFile , <span style="color: #0000ff;">string</span><span style="color: #000000;"> pdfFile)
+        {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">bool flag = false;</span>
+            <span style="color: #0000ff;">var</span> f = saveLoadFile + Guid.NewGuid().ToString(<span style="color: #800000;">"</span><span style="color: #800000;">D</span><span style="color: #800000;">"</span>) + <span style="color: #800000;">"</span><span style="color: #800000;">.pdf</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            Uri downUri </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Uri(pdfFile);
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">建立一个ＷＥＢ请求，返回HttpWebRequest对象</span>
+            HttpWebRequest hwr =<span style="color: #000000;"> (HttpWebRequest)WebRequest.Create(downUri);
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">流对象使用完后自动关闭</span>
+            <span style="color: #0000ff;">using</span> (Stream stream =<span style="color: #000000;"> hwr.GetResponse().GetResponseStream())
+            {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">文件流，流信息读到文件流中，读完关闭</span>
+                <span style="color: #0000ff;">using</span> (FileStream fs =<span style="color: #000000;"> File.Create(f))
+                {
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">建立字节组，并设置它的大小是多少字节</span>
+                    <span style="color: #0000ff;">byte</span>[] bytes = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">byte</span>[<span style="color: #800080;">102400</span><span style="color: #000000;">];
+                    </span><span style="color: #0000ff;">int</span> n = <span style="color: #800080;">1</span><span style="color: #000000;">;
+                    </span><span style="color: #0000ff;">while</span> (n &gt; <span style="color: #800080;">0</span><span style="color: #000000;">)
+                    {
+                        </span><span style="color: #008000;">//</span><span style="color: #008000;">一次从流中读多少字节，并把值赋给Ｎ，当读完后，Ｎ为０,并退出循环</span>
+                        n = stream.Read(bytes, <span style="color: #800080;">0</span>, <span style="color: #800080;">10240</span><span style="color: #000000;">);
+                        fs.Write(bytes, </span><span style="color: #800080;">0</span>, n);　<span style="color: #008000;">//</span><span style="color: #008000;">将指定字节的流信息写入文件流中</span>
+<span style="color: #000000;">                    }
+                }
+            }
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">return flag;
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">return _outPath + saveLoadFile;</span>
+            <span style="color: #0000ff;">return</span><span style="color: #000000;"> f;
+        }
+
+        </span><span style="color: #0000ff;">#endregion</span> 从网站上下载文件，保存到其他路径</pre>
+</div>
+<p><span style="font-size: 16px;">2.ftp模式的pdf文件</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 下载FTP文件。
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="offsetPath"&gt;</span><span style="color: #008000;">相对路径</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="fileName"&gt;</span><span style="color: #008000;">文件名称</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;</span><span style="color: #008000;">下载结果，本地文件路径</span><span style="color: #808080;">&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> DownLoad(<span style="color: #0000ff;">string</span> offsetPath,<span style="color: #0000ff;">string</span><span style="color: #000000;"> fileName)
+        {
+            </span><span style="color: #0000ff;">try</span><span style="color: #000000;">
+            {
+                FtpWebRequest ftpWeb </span>= (FtpWebRequest)WebRequest.Create(_ftpRootPath + offsetPath +<span style="color: #000000;"> fileName);
+                ftpWeb.Method </span>=<span style="color: #000000;"> WebRequestMethods.Ftp.DownloadFile;
+                ftpWeb.UseBinary </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+                </span><span style="color: #0000ff;">var</span> resp =<span style="color: #000000;"> ftpWeb.GetResponse();
+                </span><span style="color: #0000ff;">using</span> (FileStream fs = <span style="color: #0000ff;">new</span> FileStream(_outPath +<span style="color: #000000;"> fileName, FileMode.Create))
+                {
+                    </span><span style="color: #0000ff;">using</span> (<span style="color: #0000ff;">var</span> s =<span style="color: #000000;"> resp.GetResponseStream())
+                    {
+                        </span><span style="color: #0000ff;">if</span> (s == <span style="color: #0000ff;">null</span>) { <span style="color: #0000ff;">return</span> <span style="color: #800000;">"</span><span style="color: #800000;">文件不存在!</span><span style="color: #800000;">"</span><span style="color: #000000;">; }
+
+                        </span><span style="color: #0000ff;">int</span> readCout = <span style="color: #800080;">0</span><span style="color: #000000;">;
+                        </span><span style="color: #0000ff;">byte</span>[] bytes = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">byte</span>[<span style="color: #800080;">1024</span><span style="color: #000000;">];
+                        readCout </span>= s.Read(bytes, <span style="color: #800080;">0</span>, <span style="color: #800080;">1024</span><span style="color: #000000;">);
+                        </span><span style="color: #0000ff;">while</span> (readCout &gt; <span style="color: #800080;">0</span><span style="color: #000000;">)
+                        {
+                            fs.Write(bytes, </span><span style="color: #800080;">0</span><span style="color: #000000;">, readCout);
+                            readCout </span>= s.Read(bytes, <span style="color: #800080;">0</span>, <span style="color: #800080;">1024</span><span style="color: #000000;">);
+                        }
+                    }
+                }
+                resp.Close();
+                </span><span style="color: #0000ff;">return</span> _outPath +<span style="color: #000000;"> fileName;
+            }
+            </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception e)
+            {
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> e.Message;
+            }
+            
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 判断文件是否存在
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="offsetPath"&gt;&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="fileName"&gt;&lt;/param&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">bool</span> FileExists(<span style="color: #0000ff;">string</span> offsetPath, <span style="color: #0000ff;">string</span><span style="color: #000000;"> fileName)
+        {
+            </span><span style="color: #0000ff;">try</span><span style="color: #000000;">
+            {
+                FtpWebRequest ftpWeb </span>= (FtpWebRequest)WebRequest.Create(_ftpRootPath + offsetPath +<span style="color: #000000;"> fileName);
+                ftpWeb.Method </span>=<span style="color: #000000;"> WebRequestMethods.Ftp.DownloadFile;
+                ftpWeb.UseBinary </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+                </span><span style="color: #0000ff;">var</span> resp =<span style="color: #000000;"> (FtpWebResponse)ftpWeb.GetResponse();
+                resp.Close();
+                </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+            }
+            </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception)
+            {
+                </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+            }
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 获取目录下所有文件
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;returns&gt;&lt;/returns&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span>[] Files(<span style="color: #0000ff;">string</span><span style="color: #000000;"> offsetPath)
+        {
+            </span><span style="color: #0000ff;">try</span><span style="color: #000000;">
+            {
+                FtpWebRequest ftpWeb </span>= (FtpWebRequest)WebRequest.Create(_ftpRootPath +<span style="color: #000000;"> offsetPath);
+                ftpWeb.Method </span>=<span style="color: #000000;"> WebRequestMethods.Ftp.ListDirectory;
+                Stream stream </span>=<span style="color: #000000;"> ftpWeb.GetResponse().GetResponseStream();
+                </span><span style="color: #0000ff;">if</span> (stream == <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+                {
+                    </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+                }
+                List</span>&lt;<span style="color: #0000ff;">string</span>&gt; fileList = <span style="color: #0000ff;">new</span> List&lt;<span style="color: #0000ff;">string</span>&gt;<span style="color: #000000;">();
+                </span><span style="color: #0000ff;">using</span> (StreamReader sr = <span style="color: #0000ff;">new</span><span style="color: #000000;"> StreamReader(stream))
+                {
+                    StringBuilder sb </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> StringBuilder();
+                    </span><span style="color: #0000ff;">do</span><span style="color: #000000;">
+                    {
+                        sb.Append(sr.ReadLine());
+                        </span><span style="color: #0000ff;">if</span> (sb.Length &gt; <span style="color: #800080;">0</span><span style="color: #000000;">)
+                        {
+                            fileList.Add(sb.ToString());
+                            sb.Clear();
+                        }
+                        </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+                        {
+                            </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+                        }
+                    } </span><span style="color: #0000ff;">while</span> (<span style="color: #0000ff;">true</span><span style="color: #000000;">);
+                }
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> fileList.ToArray();
+            }
+            </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception)
+            {
+                 </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+            }
+        }</span></pre>
+</div>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

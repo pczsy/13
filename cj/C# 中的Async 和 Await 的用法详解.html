@@ -1,0 +1,216 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修C# 中的Async 和 Await 的用法详解' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>C# 中的Async 和 Await 的用法详解</center></div><div class='banquan'>原文出处:本文由博客园博主逆骨苍狼提供。<br/>
+原文连接:https://www.cnblogs.com/ma8023/p/11677394.html</div><br>
+    <p>众所周知C#提供Async和Await关键字来实现异步编程。在本文中，我们将共同探讨并介绍什么是Async 和 Await，以及如何在C#中使用Async 和 Await。</p>
+<div class="postBody">
+<div id="cnblogs_post_body" class="blogpost-body ">
+<p><em id="__mceDel">同样本文的内容也大多是翻译的，只不过加上了自己的理解进行了相关知识点的补充，如果你认为自己的英文水平还不错，大可直接跳转到文章末尾查看原文链接进行阅读。</em></p>
+<blockquote>
+<p>作者：依乐祝<br />原文链接：<a class="uri" href="https://www.cnblogs.com/yilezhu/p/10555849.html">https://www.cnblogs.com/yilezhu/p/10555849.html</a></p>
+
+
+
+
+
+
+
+</blockquote>
+<h2 id="写在前面">写在前面</h2>
+<p>自从C# 5.0时代引入async和await关键字后，异步编程就变得流行起来。尤其在现在的.NET Core时代，如果你的代码中没有出现async或者await关键字，都会让人感觉到很奇怪。</p>
+<p>想象一下当我们在处理UI和按钮单击时，我们需要运行一个长时间运行的方法，比如读取一个大文件或其他需要很长时间的任务，在这种情况下，整个应用程序必须等待这个长时间运行的任务完成才算完成整个任务。</p>
+<p>换句话说，如果同步应用程序中的任何进程被阻塞，则整个应用程序将被阻塞，我们的应用程序将停止响应，直到整个任务完成。</p>
+<p>在这种情况下，异步编程将非常有用。通过使用异步编程，应用程序可以继续进行不依赖于整个任务完成的其他工作。</p>
+<p>在Async 和 await关键字的帮助下，使得异步编程变得很简单，而且我们将获得传统异步编程的所有好处。</p>
+<h2 id="实例讲解">实例讲解</h2>
+<p>假设我们分别使用了两种方法，即Method 1和Method 2，这两种方法不相互依赖，而Method 1需要很长时间才能完成它的任务。在同步编程中，它将执行第一个Method 1，并等待该方法的完成，然后执行Method 2。因此，这将是一个时间密集型的过程，即使这两种方法并不相互依赖。</p>
+<p>我们可以使用简单的多线程编程并行运行所有方法，但是它会阻塞UI并等待完成所有任务。要解决这个问题，我们必须在传统编程中编写很多的代码，但是现在我们有了Async 和 await关键字，那么我们将通过书写很少的并且简洁的代码来解决这个问题。</p>
+<p>此外，我们还将看到更多的示例，如果任何第三个方法(如Method 3)都依赖于Method 1，那么它将在Wait关键字的帮助下等待Method 1的完成。</p>
+<p>Async 和 await是代码标记，它标记代码位置为任务完成后控件应该恢复的位置。</p>
+<p>下面让我们举几个例子来更好进行理解吧</p>
+<p>C#中Async 和 await关键字的示例</p>
+<p>我们将采用控制台应用程序进行演示。</p>
+<h3 id="第一个例子">第一个例子</h3>
+<p>在这个例子中，我们将采取两个不相互依赖的方法。</p>
+<pre><code><code><span class="hljs-keyword">class <span class="hljs-title">Program
+{  
+    <span class="hljs-function"><span class="hljs-keyword">static <span class="hljs-keyword">void <span class="hljs-title">Main(<span class="hljs-params"><span class="hljs-keyword">string[] args)
+    {  
+Method1();
+Method2();
+Console.ReadKey();
+    }  
+  
+    <span class="hljs-function"><span class="hljs-keyword">public <span class="hljs-keyword">static <span class="hljs-keyword">async Task <span class="hljs-title">Method1(<span class="hljs-params">)
+    {  
+<span class="hljs-keyword">await Task.Run(() =&gt;
+        {  
+            <span class="hljs-keyword">for (<span class="hljs-keyword">int i = <span class="hljs-number">0; i &lt; <span class="hljs-number">100; i++)
+            {  
+Console.WriteLine(<span class="hljs-string">" Method 1");  
+            }  
+        });  
+    }  
+  
+  
+    <span class="hljs-function"><span class="hljs-keyword">public <span class="hljs-keyword">static <span class="hljs-keyword">void <span class="hljs-title">Method2(<span class="hljs-params">)
+    {  
+        <span class="hljs-keyword">for (<span class="hljs-keyword">int i = <span class="hljs-number">0; i &lt; <span class="hljs-number">25; i++)
+        {  
+Console.WriteLine(<span class="hljs-string">" Method 2");  
+        }  
+    }  
+}  </span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></code></pre>
+<p>在上面给出的代码中，Method 1和Method 2不相互依赖，我们是从主方法调用的。</p>
+<p>在这里，我们可以清楚地看到，方法1和方法2并不是在等待对方完成。</p>
+<p><strong>输出</strong></p>
+<p><strong><img src="./images/C# 中的Async 和 Await 的用法详解0.png" alt="img" /></strong></p>
+<p>现在来看第二个例子，假设我们有Method 3，它依赖于Method 1</p>
+<h3 id="第二个例子">第二个例子</h3>
+<p>在本例中，Method 1将总长度作为整数值返回，我们在Method 3中以长度的形式传递一个参数，它来自Method 1。</p>
+<p>在这里，在传递Method 3中的参数之前，我们必须使用AWAIT关键字，为此，我们必须使用调用方法中的async 关键字。</p>
+<p>在控制台应用程序的Main方法中，因为不能使用async关键字而不能使用await 关键字，因为它会给出下面给出的错误。(但是如果你使用的是C#7.1及以上的方法是不会有问题的，因为C#7.1及以上的语法支持Mian方法前加async)</p>
+<p><img src="./images/C# 中的Async 和 Await 的用法详解1.png" alt="img" /><br />我们将创建一个新的方法，作为CallMethod，在这个方法中，我们将调用我们的所有方法，分别为Method 1、Method 2和Method 3。</p>
+<pre><code><code><span class="hljs-keyword">class <span class="hljs-title">Program
+{  
+    <span class="hljs-function"><span class="hljs-keyword">static <span class="hljs-keyword">void <span class="hljs-title">Main(<span class="hljs-params"><span class="hljs-keyword">string[] args)
+    {  
+callMethod();
+Console.ReadKey();
+    }  
+  
+    <span class="hljs-function"><span class="hljs-keyword">public <span class="hljs-keyword">static <span class="hljs-keyword">async <span class="hljs-keyword">void <span class="hljs-title">callMethod(<span class="hljs-params">)
+    {  
+Task&lt;<span class="hljs-keyword">int&gt; task = Method1();
+Method2();
+        <span class="hljs-keyword">int count = <span class="hljs-keyword">await task;
+Method3(count);
+    }  
+  
+    <span class="hljs-function"><span class="hljs-keyword">public <span class="hljs-keyword">static <span class="hljs-keyword">async Task&lt;<span class="hljs-keyword">int&gt; <span class="hljs-title">Method1(<span class="hljs-params">)
+    {  
+        <span class="hljs-keyword">int count = <span class="hljs-number">0;
+<span class="hljs-keyword">await Task.Run(() =&gt;
+        {  
+            <span class="hljs-keyword">for (<span class="hljs-keyword">int i = <span class="hljs-number">0; i &lt; <span class="hljs-number">100; i++)
+            {  
+Console.WriteLine(<span class="hljs-string">" Method 1");  
+count += <span class="hljs-number">1;
+            }  
+        });  
+        <span class="hljs-keyword">return count;
+    }  
+  
+    <span class="hljs-function"><span class="hljs-keyword">public <span class="hljs-keyword">static <span class="hljs-keyword">void <span class="hljs-title">Method2(<span class="hljs-params">)
+    {  
+        <span class="hljs-keyword">for (<span class="hljs-keyword">int i = <span class="hljs-number">0; i &lt; <span class="hljs-number">25; i++)
+        {  
+Console.WriteLine(<span class="hljs-string">" Method 2");  
+        }  
+    }  
+  
+    <span class="hljs-function"><span class="hljs-keyword">public <span class="hljs-keyword">static <span class="hljs-keyword">void <span class="hljs-title">Method3(<span class="hljs-params"><span class="hljs-keyword">int count)
+    {  
+Console.WriteLine(<span class="hljs-string">"Total count is " + count);
+    }  
+}  </span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></code></pre>
+<p>在上面给出的代码中，Method 3需要一个参数，即Method 1的返回类型。在这里，await关键字对于等待Method 1任务的完成起着至关重要的作用。</p>
+<p><strong>输出</strong></p>
+<p><strong><img src="./images/C# 中的Async 和 Await 的用法详解2.png" alt="img" /></strong></p>
+<h3 id="第三个例子">第三个例子</h3>
+<p>.NET Framework4.5中有一些支持API，Windows运行时包含支持异步编程的方法。</p>
+<p>在Async 和 await关键字的帮助下，我们可以在实时项目中使用所有这些，以便更快地执行任务。</p>
+<p>包含异步方法的API有HttpClient, SyndicationClient, StorageFile, StreamWriter, StreamReader, XmlReader, MediaCapture, BitmapEncoder, BitmapDecoder 等。</p>
+<p>在本例中，我们将异步读取大型文本文件中的所有字符，并获取所有字符的总长度。</p>
+<pre><code><code><span class="hljs-keyword">class <span class="hljs-title">Program
+{  
+    <span class="hljs-function"><span class="hljs-keyword">static <span class="hljs-keyword">void <span class="hljs-title">Main(<span class="hljs-params">)
+    {  
+Task task = <span class="hljs-keyword">new Task(CallMethod);
+task.Start();
+task.Wait();
+Console.ReadLine();
+    }  
+  
+    <span class="hljs-function"><span class="hljs-keyword">static <span class="hljs-keyword">async <span class="hljs-keyword">void <span class="hljs-title">CallMethod(<span class="hljs-params">)
+    {  
+        <span class="hljs-keyword">string filePath = <span class="hljs-string">"E:\\sampleFile.txt";  
+Task&lt;<span class="hljs-keyword">int&gt; task = ReadFile(filePath);
+  
+Console.WriteLine(<span class="hljs-string">" Other Work 1");  
+Console.WriteLine(<span class="hljs-string">" Other Work 2");  
+Console.WriteLine(<span class="hljs-string">" Other Work 3");  
+  
+        <span class="hljs-keyword">int length = <span class="hljs-keyword">await task;
+Console.WriteLine(<span class="hljs-string">" Total length: " + length);
+  
+Console.WriteLine(<span class="hljs-string">" After work 1");  
+Console.WriteLine(<span class="hljs-string">" After work 2");  
+    }  
+  
+    <span class="hljs-function"><span class="hljs-keyword">static <span class="hljs-keyword">async Task&lt;<span class="hljs-keyword">int&gt; <span class="hljs-title">ReadFile(<span class="hljs-params"><span class="hljs-keyword">string file)
+    {  
+        <span class="hljs-keyword">int length = <span class="hljs-number">0;
+  
+Console.WriteLine(<span class="hljs-string">" File reading is stating");  
+        <span class="hljs-keyword">using (StreamReader reader = <span class="hljs-keyword">new StreamReader(file))
+        {  
+            <span class="hljs-comment">// Reads all characters from the current position to the end of the stream asynchronously   
+            <span class="hljs-comment">// and returns them as one string.   
+            <span class="hljs-keyword">string s = <span class="hljs-keyword">await reader.ReadToEndAsync();
+  
+length = s.Length;
+        }  
+Console.WriteLine(<span class="hljs-string">" File reading is completed");  
+        <span class="hljs-keyword">return length;
+    }  
+}  </span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></code></pre>
+<p>在上面给出的代码中，我们调用ReadFile方法来读取文本文件的内容，并获取文本文件中总字符的长度。</p>
+<p>在sampleText.txt中，文件包含了太多的字符，因此读取所有字符需要很长时间。</p>
+<p>在这里，我们使用异步编程从文件中读取所有内容，所以它不会等待从这个方法获得一个返回值并执行其他代码行，但是它必须等待下面给出的代码行，因为我们使用的是等待关键字，我们将对下面给出的代码行使用返回值。</p>
+<pre><code><code class="hljs perl"><span class="hljs-keyword">int <span class="hljs-keyword">length = await task;
+Console.WriteLine(<span class="hljs-string">" Total length: " + <span class="hljs-keyword">length);  </span></span></span></span></code></pre>
+<p>随后，将按顺序执行其他代码行。</p>
+<pre><code><code class="hljs less"><span class="hljs-selector-tag">Console<span class="hljs-selector-class">.WriteLine(<span class="hljs-string">" After work 1");  
+<span class="hljs-selector-tag">Console<span class="hljs-selector-class">.WriteLine(<span class="hljs-string">" After work 2");   </span></span></span></span></span></span></code></pre>
+<p><strong>输出</strong></p>
+<p><strong><img src="./images/C# 中的Async 和 Await 的用法详解3.png" alt="img" /></strong></p>
+<h2 id="最后">最后</h2>
+<p>在这里，我们必须了解非常重要的一点，如果我们没有使用await 关键字，那么该方法就作为一个同步方法。编译器将向我们显示警告，但不会显示任何错误。<br />像上面这种简单的方式一样，我们可以在C#代码中使用async 和await关键字来愉快的进行异步编程了。<br />最后的最后感谢大家的阅读！<br />本文大部分内容翻译自：<a class="uri" href="https://www.c-sharpcorner.com/article/async-and-await-in-c-sharp/">https://www.c-sharpcorner.com/article/async-and-await-in-c-sharp/</a></p>
+
+
+
+
+
+
+
+</div>
+
+
+
+
+
+
+
+</div>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

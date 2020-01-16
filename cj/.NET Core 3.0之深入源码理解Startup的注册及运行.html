@@ -1,0 +1,770 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修.NET Core 3.0之深入源码理解Startup的注册及运行' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>.NET Core 3.0之深入源码理解Startup的注册及运行</center></div><div class='banquan'>原文出处:本文由博客园博主艾心❤提供。<br/>
+原文连接:https://www.cnblogs.com/edison0621/p/10743228.html</div><br>
+    <div class="wlWriterHeaderFooter" style="float: right; margin: 0px; padding: 0px 0px 4px 8px;">&nbsp;</div>
+<h1 style="font-size: 200%; border-bottom: #5ea2d6 1px solid; font-weight: bold; color: #0378bb; padding-bottom: 10px; padding-top: 0px; padding-left: 20px; clear: both; border-left: #3d97cb 12px solid; line-height: 1.5em; padding-right: 100px;">写在前面</h1>
+<p>开发.NET Core应用，直接映入眼帘的就是Startup类和Program类，它们是.NET Core应用程序的起点。通过使用Startup，可以配置化处理所有向应用程序所做的请求的管道，同时也可以减少.NET应用程序对单一服务器的依赖性，使我们在更大程度上专注于面向多服务器为中心的开发模式。</p>
+<p>目录：</p>
+<ul>
+<li>Startup讨论
+<ul>
+<li>Starup所承担的角色</li>
+<li>Startup编写规范</li>
+<li>ConfigureServices</li>
+<li>Configure</li>
+<li>扩展Startup方法</li>
+</ul>
+</li>
+<li>深入源码查看Startup是如何注册和执行的
+<ul>
+<li>UseStartup源码</li>
+<li>创建Startup实例</li>
+<li>ConfigureServices和Configure</li>
+</ul>
+</li>
+</ul>
+<h1 style="font-size: 200%; border-bottom: #5ea2d6 1px solid; font-weight: bold; color: #0378bb; padding-bottom: 10px; padding-top: 0px; padding-left: 20px; clear: both; border-left: #3d97cb 12px solid; line-height: 1.5em; padding-right: 100px;">Startup讨论</h1>
+<h2 style="font-size: 18px; color: #aa7652; padding-bottom: 5px; padding-top: 5px; padding-left: 30px; padding-right: 8px; background-color: #f5f5f4; border-radius: 5px; border: #d0cfcf 1px solid;">Starup所承担的角色</h2>
+<p>Startup作为一个概念是ASP.NET Core程序中所必须的，Startup类本身可以使用多种修饰符(public、protect，private、internal)，作为ASP.NET Core应用程序的入口，它包含与应用程序相关配置的功能或者说是接口。</p>
+<p>虽然在程序里我们使用的类名就是Startup，但是需要注意的是，Startup是一个<strong>抽象概念</strong>，你完全可以名称成其他的，比如MyAppStartup或者其他的什么名称，只要你在Program类中启动你所定义的启动类即可。</p>
+<p>当然如果不想写Startup，可以在Program类中配置服务和请求处理管道，请参见<strong>评论区5楼，</strong>非常感谢<strong><a id="Header1_HeaderTitle" class="headermaintitle" href="https://www.cnblogs.com/emrys5/">Emrys</a></strong>耐心而又全面的指正<strong>。</strong></p>
+<p>以下是基于ASP.NET Core Preview 3模板中提供的写法：</p>
+<div class="csharpcode">
+<pre><code><span class="lnum">   1:  </span><span class="kwrd">public</span> <span class="kwrd">class</span> Program</pre>
+<pre><code><span class="lnum">   2:  </span>{</pre>
+<pre><code><span class="lnum">   3:  </span>    <span class="kwrd">public</span> <span class="kwrd">static</span> <span class="kwrd">void</span> Main(<span class="kwrd">string</span>[] args)</pre>
+<pre><code><span class="lnum">   4:  </span>    {</pre>
+<pre><code><span class="lnum">   5:  </span>        CreateHostBuilder(args).Build().Run();</pre>
+<pre><code><span class="lnum">   6:  </span>    }</pre>
+<pre><code><span class="lnum">   7:  </span>&nbsp;</pre>
+<pre><code><span class="lnum">   8:  </span>    <span class="kwrd">public</span> <span class="kwrd">static</span> IHostBuilder CreateHostBuilder(<span class="kwrd">string</span>[] args) =&gt;</pre>
+<pre><code><span class="lnum">   9:  </span>        Host.CreateDefaultBuilder(args)</pre>
+<pre><code><span class="lnum">  10:  </span>            .ConfigureWebHostDefaults(webBuilder =&gt;</pre>
+<pre><code><span class="lnum">  11:  </span>            {</pre>
+<pre><code><span class="lnum">  12:  </span>                <strong><span style="color: #ff0000;">webBuilder.UseStartup&lt;Startup&gt;();</span></strong></pre>
+<pre><code><span class="lnum">  13:  </span>            });</pre>
+<pre><code><span class="lnum">  14:  </span>}</pre>
+</div>
+<style><!--
+.csharpcode, .csharpcode pre
+{
+	font-size: small;
+	color: black;
+	font-family: consolas, "Courier New", courier, monospace;
+	background-color: #ffffff;
+	/*white-space: pre;*/
+}
+.csharpcode pre { margin: 0em; }
+.csharpcode .rem { color: #008000; }
+.csharpcode .kwrd { color: #0000ff; }
+.csharpcode .str { color: #006080; }
+.csharpcode .op { color: #0000c0; }
+.csharpcode .preproc { color: #cc6633; }
+.csharpcode .asp { background-color: #ffff00; }
+.csharpcode .html { color: #800000; }
+.csharpcode .attr { color: #ff0000; }
+.csharpcode .alt 
+{
+	background-color: #f4f4f4;
+	width: 100%;
+	margin: 0em;
+}
+.csharpcode .lnum { color: #606060; }
+--></style>
+<p>不管你命名成什么，只要将<span style="color: #ff0000;"><strong>webBuilder.UseStartup&lt;&gt;()</strong></span><span style="color: #000000;">中的泛型类配置成你定义的入口类即可;</span></p>
+<h2 style="font-size: 18px; color: #aa7652; padding-bottom: 5px; padding-top: 5px; padding-left: 30px; padding-right: 8px; background-color: #f5f5f4; border-radius: 5px; border: #d0cfcf 1px solid;">Startup编写规范</h2>
+<p>下面是ASP.NET Core 3.0 Preview 3模板中Startup的写法：</p>
+<div class="csharpcode">
+<pre><code><span class="lnum">   1:  </span><span class="rem">// This method gets called by the runtime. Use this method to configure the HTTP request pipeline.</span></pre>
+<pre><code><span class="lnum">   2:  </span><span class="kwrd">public</span> <span class="kwrd">void</span> Configure(IApplicationBuilder app, IWebHostEnvironment env)</pre>
+<pre><code><span class="lnum">   3:  </span>{</pre>
+<pre><code><span class="lnum">   4:  </span>    <span class="kwrd">if</span> (env.IsDevelopment())</pre>
+<pre><code><span class="lnum">   5:  </span>    {</pre>
+<pre><code><span class="lnum">   6:  </span>        app.UseDeveloperExceptionPage();</pre>
+<pre><code><span class="lnum">   7:  </span>    }</pre>
+<pre><code><span class="lnum">   8:  </span>    <span class="kwrd">else</span></pre>
+<pre><code><span class="lnum">   9:  </span>    {</pre>
+<pre><code><span class="lnum">  10:  </span>        <span class="rem">// The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.</span></pre>
+<pre><code><span class="lnum">  11:  </span>        app.UseHsts();</pre>
+<pre><code><span class="lnum">  12:  </span>    }</pre>
+<pre><code><span class="lnum">  13:  </span>&nbsp;</pre>
+<pre><code><span class="lnum">  14:  </span>    app.UseHttpsRedirection();</pre>
+<pre><code><span class="lnum">  15:  </span>&nbsp;</pre>
+<pre><code><span class="lnum">  16:  </span>    app.UseRouting(routes =&gt;</pre>
+<pre><code><span class="lnum">  17:  </span>    {</pre>
+<pre><code><span class="lnum">  18:  </span>        routes.MapControllers();</pre>
+<pre><code><span class="lnum">  19:  </span>    });</pre>
+<pre><code><span class="lnum">  20:  </span>&nbsp;</pre>
+<pre><code><span class="lnum">  21:  </span>    app.UseAuthorization();</pre>
+<pre><code><span class="lnum">  22:  </span>}</pre>
+</div>
+<style><!--
+.csharpcode, .csharpcode pre
+{
+	font-size: small;
+	color: black;
+	font-family: consolas, "Courier New", courier, monospace;
+	background-color: #ffffff;
+	/*white-space: pre;*/
+}
+.csharpcode pre { margin: 0em; }
+.csharpcode .rem { color: #008000; }
+.csharpcode .kwrd { color: #0000ff; }
+.csharpcode .str { color: #006080; }
+.csharpcode .op { color: #0000c0; }
+.csharpcode .preproc { color: #cc6633; }
+.csharpcode .asp { background-color: #ffff00; }
+.csharpcode .html { color: #800000; }
+.csharpcode .attr { color: #ff0000; }
+.csharpcode .alt 
+{
+	background-color: #f4f4f4;
+	width: 100%;
+	margin: 0em;
+}
+.csharpcode .lnum { color: #606060; }
+--></style>
+<p><span style="font-family: verdana;">通过以上代码可以知道，Startup类中一般包括</span></p>
+<style><!--
+.csharpcode, .csharpcode pre
+{
+	font-size: small;
+	color: black;
+	font-family: consolas, "Courier New", courier, monospace;
+	background-color: #ffffff;
+	/*white-space: pre;*/
+}
+.csharpcode pre { margin: 0em; }
+.csharpcode .rem { color: #008000; }
+.csharpcode .kwrd { color: #0000ff; }
+.csharpcode .str { color: #006080; }
+.csharpcode .op { color: #0000c0; }
+.csharpcode .preproc { color: #cc6633; }
+.csharpcode .asp { background-color: #ffff00; }
+.csharpcode .html { color: #800000; }
+.csharpcode .attr { color: #ff0000; }
+.csharpcode .alt 
+{
+	background-color: #f4f4f4;
+	width: 100%;
+	margin: 0em;
+}
+.csharpcode .lnum { color: #606060; }
+--></style>
+<ul>
+<li>构造函数：通过我们以前的开发经验，我们可以知道，该构造方法可以包括多个对象
+<ul>
+<li>IConfiguration：表示一组键/值应用程序配置属性。</li>
+<li>IApplicationBuilder：是一个包含与当前环境相关的属性和方法的接口。它用于获取应用程序中的环境变量。</li>
+<li>IHostingEnvironment：是一个包含与运行应用程序的Web宿主环境相关信息的接口。使用这个接口方法，我们可以改变应用程序的行为。</li>
+<li>ILoggerFactory：是为ASP.NET Core中的日志记录系统提供配置的接口。它还创建日志系统的实例。</li>
+</ul>
+</li>
+<li>ConfigureServices</li>
+<li>Configure</li>
+</ul>
+<blockquote>
+<p>Startup在创建服务时，会执行依赖项注册服务，以便在应用程序的其它地方使用这些依赖项。ConfigureServices 用于注册服务，Configure 方法允许我们向HTTP管道添加中间件和服务。这就是ConfigureServices先于Configure 之前调用的原因。</p>
+</blockquote>
+<h2 style="font-size: 18px; color: #aa7652; padding-bottom: 5px; padding-top: 5px; padding-left: 30px; padding-right: 8px; background-color: #f5f5f4; border-radius: 5px; border: #d0cfcf 1px solid;">ConfigureServices</h2>
+<p>该方法时可选的，非强制约束，它主要用于对依赖注入或ApplicationServices在整个应用中的支持，该方法必须是public的，其典型模式是调用所有 <code>Add{Service}</code> 方法，主要场景包括实体框架、认证和 MVC 注册服务：</p>
+<div class="csharpcode">
+<pre><code><span class="lnum">   1:  </span>services.AddDbContext&lt;ApplicationDbContext&gt;(options =&gt;options.UseSqlServer(Configuration.GetConnectionString(<span class="str">"DefaultConnection"</span>)));</pre>
+<pre><code><span class="lnum">   2:  </span>services.AddDefaultIdentity&lt;IdentityUser&gt;().AddDefaultUI(UIFramework.Bootstrap4).AddEntityFrameworkStores&lt;ApplicationDbContext&gt;();</pre>
+<pre><code><span class="lnum">   3:  </span>services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2);</pre>
+<pre><code><span class="lnum">   4:  </span><span class="rem">// Add application services.此处主要是注册IOC服务</span></pre>
+<pre><code><span class="lnum">   5:  </span>services.AddTransient&lt;IEmailSender, AuthMessageSender&gt;();</pre>
+<pre><code><span class="lnum">   6:  </span>services.AddTransient&lt;ISmsSender, AuthMessageSender&gt;();</pre>
+</div>
+<h2 style="font-size: 18px; color: #aa7652; padding-bottom: 5px; padding-top: 5px; padding-left: 30px; padding-right: 8px; background-color: #f5f5f4; border-radius: 5px; border: #d0cfcf 1px solid;">Configure</h2>
+<p>该方法主要用于定义应用程序对每个HTTP请求的响应方式，即我们可以控制ASP.NET管道，还可用于在HTTP管道中配置中间件。请求管道中的每个中间件组件负责调用管道中的下一个组件，或在适当情况下使链发生短路。 如果中间件链中未发生短路，则每个中间件都有第二次机会在将请求发送到客户端前处理该请求。</p>
+<p>该方法接受IApplicationBuilder作为参数，同时还可以接收其他一些可选参数，如IHostingEnvironment和ILoggerFactory。</p>
+<p>一般而言，只要将服务注册到configureServices方法中时，都可以在该方法中使用。</p>
+<div class="csharpcode">
+<pre><code><span class="lnum">   1:  </span>app.UseDeveloperExceptionPage();   </pre>
+<pre><code><span class="lnum">   2:  </span>app.UseHsts();   </pre>
+<pre><code><span class="lnum">   3:  </span>app.UseHttpsRedirection();   </pre>
+<pre><code><span class="lnum">   4:  </span>app.UseRouting(routes =&gt;   </pre>
+<pre><code><span class="lnum">   5:  </span>{   </pre>
+<pre><code><span class="lnum">   6:  </span>    routes.MapControllers();   </pre>
+<pre><code><span class="lnum">   7:  </span>});   </pre>
+<pre><code><span class="lnum">   8:  </span>app.UseAuthorization();</pre>
+</div>
+<style><!--
+.csharpcode, .csharpcode pre
+{
+	font-size: small;
+	color: black;
+	font-family: consolas, "Courier New", courier, monospace;
+	background-color: #ffffff;
+	/*white-space: pre;*/
+}
+.csharpcode pre { margin: 0em; }
+.csharpcode .rem { color: #008000; }
+.csharpcode .kwrd { color: #0000ff; }
+.csharpcode .str { color: #006080; }
+.csharpcode .op { color: #0000c0; }
+.csharpcode .preproc { color: #cc6633; }
+.csharpcode .asp { background-color: #ffff00; }
+.csharpcode .html { color: #800000; }
+.csharpcode .attr { color: #ff0000; }
+.csharpcode .alt 
+{
+	background-color: #f4f4f4;
+	width: 100%;
+	margin: 0em;
+}
+.csharpcode .lnum { color: #606060; }
+--></style>
+<h2 style="font-size: 18px; color: #aa7652; padding-bottom: 5px; padding-top: 5px; padding-left: 30px; padding-right: 8px; background-color: #f5f5f4; border-radius: 5px; border: #d0cfcf 1px solid;">扩展Startup方法</h2>
+<p>使用IStartupFilter来对Startup功能进行扩展，在应用的Configure中间件管道的开头或末尾使用IStartupFilter来配置中间件。IStartupFilter有助于确保当库在应用请求处理管道的开端或末尾添加中间件的前后运行中间件。</p>
+<p>以下是IStartupFilter的源代码，通过源代码我们可以知道，该接口有一个Action&lt;IApplicationBuilder&gt;类型，并命名为Configure的方法。由于传入参数类型和返回类型一样，这就保证了扩展的传递性及顺序性，具体的演示代码，可以参数<a href="https://docs.microsoft.com/zh-cn/aspnet/core/fundamentals/startup?view=aspnetcore-2.2">MSDN</a></p>
+<div class="csharpcode">
+<pre><code><span class="lnum">   1:  </span><span class="kwrd">using</span> System;   </pre>
+<pre><code><span class="lnum">   2:  </span><span class="kwrd">using</span> Microsoft.AspNetCore.Builder;   </pre>
+<pre><code><span class="lnum">   3:  </span>  </pre>
+<pre><code><span class="lnum">   4:  </span><span class="kwrd">namespace</span> Microsoft.AspNetCore.Hosting   </pre>
+<pre><code><span class="lnum">   5:  </span>{   </pre>
+<pre><code><span class="lnum">   6:  </span>  <span class="kwrd">public</span> <span class="kwrd">interface</span> IStartupFilter   </pre>
+<pre><code><span class="lnum">   7:  </span>  {   </pre>
+<pre><code><span class="lnum">   8:  </span>      Action&lt;IApplicationBuilder&gt; Configure(Action&lt;IApplicationBuilder&gt; next);   </pre>
+<pre><code><span class="lnum">   9:  </span>  }  </pre>
+<pre><code><span class="lnum">  10:  </span>}</pre>
+</div>
+<style><!--
+.csharpcode, .csharpcode pre
+{
+	font-size: small;
+	color: black;
+	font-family: consolas, "Courier New", courier, monospace;
+	background-color: #ffffff;
+	/*white-space: pre;*/
+}
+.csharpcode pre { margin: 0em; }
+.csharpcode .rem { color: #008000; }
+.csharpcode .kwrd { color: #0000ff; }
+.csharpcode .str { color: #006080; }
+.csharpcode .op { color: #0000c0; }
+.csharpcode .preproc { color: #cc6633; }
+.csharpcode .asp { background-color: #ffff00; }
+.csharpcode .html { color: #800000; }
+.csharpcode .attr { color: #ff0000; }
+.csharpcode .alt 
+{
+	background-color: #f4f4f4;
+	width: 100%;
+	margin: 0em;
+}
+.csharpcode .lnum { color: #606060; }
+--></style>
+<style><!--
+.csharpcode, .csharpcode pre
+{
+	font-size: small;
+	color: black;
+	font-family: consolas, "Courier New", courier, monospace;
+	background-color: #ffffff;
+	/*white-space: pre;*/
+}
+.csharpcode pre { margin: 0em; }
+.csharpcode .rem { color: #008000; }
+.csharpcode .kwrd { color: #0000ff; }
+.csharpcode .str { color: #006080; }
+.csharpcode .op { color: #0000c0; }
+.csharpcode .preproc { color: #cc6633; }
+.csharpcode .asp { background-color: #ffff00; }
+.csharpcode .html { color: #800000; }
+.csharpcode .attr { color: #ff0000; }
+.csharpcode .alt 
+{
+	background-color: #f4f4f4;
+	width: 100%;
+	margin: 0em;
+}
+.csharpcode .lnum { color: #606060; }
+--></style>
+<h1 style="font-size: 200%; border-bottom: #5ea2d6 1px solid; font-weight: bold; color: #0378bb; padding-bottom: 10px; padding-top: 0px; padding-left: 20px; clear: both; border-left: #3d97cb 12px solid; line-height: 1.5em; padding-right: 100px;">Startup是如何注册和执行的</h1>
+<p>此段文字，只是我想深入了解其内部机制而写的，如果本身也不了解，其实是不影响我们正常编写.NET Core应用的。</p>
+<h2 style="font-size: 18px; color: #aa7652; padding-bottom: 5px; padding-top: 5px; padding-left: 30px; padding-right: 8px; background-color: #f5f5f4; border-radius: 5px; border: #d0cfcf 1px solid;">UseStartup源码</h2>
+<p>ASP.NET Core通过调用IWebHostBuilder.UseStartup方法，传入Startup类型，注意开篇就已经说过Startup是一个抽象概念，我们看下源代码：</p>
+<div class="csharpcode">
+<pre><code><span class="lnum">   1:  </span><span class="rem">/// &lt;summary&gt;</span></pre>
+<pre><code><span class="lnum">   2:  </span> <span class="rem">/// Specify the startup type to be used by the web host.</span></pre>
+<pre><code><span class="lnum">   3:  </span> <span class="rem">/// &lt;/summary&gt;</span></pre>
+<pre><code><span class="lnum">   4:  </span> <span class="rem">/// &lt;param name="hostBuilder"&gt;The &lt;see cref="IWebHostBuilder"/&gt; to configure.&lt;/param&gt;</span></pre>
+<pre><code><span class="lnum">   5:  </span> <span class="rem">/// &lt;param name="startupType"&gt;The &lt;see cref="Type"/&gt; to be used.&lt;/param&gt;</span></pre>
+<pre><code><span class="lnum">   6:  </span> <span class="rem">/// &lt;returns&gt;The &lt;see cref="IWebHostBuilder"/&gt;.&lt;/returns&gt;</span></pre>
+<pre><code><span class="lnum">   7:  </span> <span class="kwrd">public</span> <span class="kwrd">static</span> IWebHostBuilder UseStartup(<span class="kwrd">this</span> IWebHostBuilder hostBuilder, Type startupType)</pre>
+<pre><code><span class="lnum">   8:  </span> {</pre>
+<pre><code><span class="lnum">   9:  </span>     var startupAssemblyName = startupType.GetTypeInfo().Assembly.GetName().Name;</pre>
+<pre><code><span class="lnum">  10:  </span> </pre>
+<pre><code><span class="lnum">  11:  </span>    hostBuilder.UseSetting(WebHostDefaults.ApplicationKey, startupAssemblyName);</pre>
+<pre><code><span class="lnum">  12:  </span> </pre>
+<pre><code><span class="lnum">  13:  </span>    <span class="rem">// Light up the GenericWebHostBuilder implementation</span></pre>
+<pre><code><span class="lnum">  14:  </span>    <span class="kwrd">if</span> (hostBuilder <span class="kwrd">is</span> ISupportsStartup supportsStartup)</pre>
+<pre><code><span class="lnum">  15:  </span>    {</pre>
+<pre><code><span class="lnum">  16:  </span>        <span class="kwrd">return</span> supportsStartup.UseStartup(startupType);</pre>
+<pre><code><span class="lnum">  17:  </span>    }</pre>
+<pre><code><span class="lnum">  18:  </span> </pre>
+<pre><code><span class="lnum">  19:  </span>    <span class="kwrd">return</span> hostBuilder</pre>
+<pre><code><span class="lnum">  20:  </span>        .ConfigureServices(services =&gt;</pre>
+<pre><code><span class="lnum">  21:  </span>        {</pre>
+<pre><code><span class="lnum">  22:  </span>            <span class="kwrd">if</span> (<span class="kwrd">typeof</span>(IStartup).GetTypeInfo().IsAssignableFrom(startupType.GetTypeInfo()))</pre>
+<pre><code><span class="lnum">  23:  </span>            {</pre>
+<pre><code><span class="lnum">  24:  </span>                services.AddSingleton(<span class="kwrd">typeof</span>(IStartup), startupType);</pre>
+<pre><code><span class="lnum">  25:  </span>            }</pre>
+<pre><code><span class="lnum">  26:  </span>            <span class="kwrd">else</span></pre>
+<pre><code><span class="lnum">  27:  </span>            {</pre>
+<pre><code><span class="lnum">  28:  </span>                services.AddSingleton(<span class="kwrd">typeof</span>(IStartup), sp =&gt;</pre>
+<pre><code><span class="lnum">  29:  </span>                {</pre>
+<pre><code><span class="lnum">  30:  </span>                    var hostingEnvironment = sp.GetRequiredService&lt;IHostEnvironment&gt;();</pre>
+<pre><code><span class="lnum">  31:  </span>                    <span class="kwrd">return</span> <span class="kwrd">new</span> ConventionBasedStartup(StartupLoader.LoadMethods(sp, startupType, hostingEnvironment.EnvironmentName));</pre>
+<pre><code><span class="lnum">  32:  </span>                });</pre>
+<pre><code><span class="lnum">  33:  </span>            }</pre>
+<pre><code><span class="lnum">  34:  </span>        });</pre>
+<pre><code><span class="lnum">  35:  </span>}</pre>
+<pre><code><span class="lnum">  36:  </span> </pre>
+<pre><code><span class="lnum">  37:  </span><span class="rem">/// &lt;summary&gt;</span></pre>
+<pre><code><span class="lnum">  38:  </span><span class="rem">/// Specify the startup type to be used by the web host.</span></pre>
+<pre><code><span class="lnum">  39:  </span><span class="rem">/// &lt;/summary&gt;</span></pre>
+<pre><code><span class="lnum">  40:  </span><span class="rem">/// &lt;param name="hostBuilder"&gt;The &lt;see cref="IWebHostBuilder"/&gt; to configure.&lt;/param&gt;</span></pre>
+<pre><code><span class="lnum">  41:  </span><span class="rem">/// &lt;typeparam name ="TStartup"&gt;The type containing the startup methods for the application.&lt;/typeparam&gt;</span></pre>
+<pre><code><span class="lnum">  42:  </span><span class="rem">/// &lt;returns&gt;The &lt;see cref="IWebHostBuilder"/&gt;.&lt;/returns&gt;</span></pre>
+<pre><code><span class="lnum">  43:  </span><span class="kwrd">public</span> <span class="kwrd">static</span> IWebHostBuilder UseStartup&lt;TStartup&gt;(<span class="kwrd">this</span> IWebHostBuilder hostBuilder) <span class="kwrd">where</span> TStartup ： <span class="kwrd">class</span></pre>
+<pre><code><span class="lnum">  44:  </span>{</pre>
+<pre><code><span class="lnum">  45:  </span>    <span class="kwrd">return</span> hostBuilder.UseStartup(<span class="kwrd">typeof</span>(TStartup));</pre>
+<pre><code><span class="lnum">  46:  </span>}</pre>
+</div>
+<style><!--
+.csharpcode, .csharpcode pre
+{
+	font-size: small;
+	color: black;
+	font-family: consolas, "Courier New", courier, monospace;
+	background-color: #ffffff;
+	/*white-space: pre;*/
+}
+.csharpcode pre { margin: 0em; }
+.csharpcode .rem { color: #008000; }
+.csharpcode .kwrd { color: #0000ff; }
+.csharpcode .str { color: #006080; }
+.csharpcode .op { color: #0000c0; }
+.csharpcode .preproc { color: #cc6633; }
+.csharpcode .asp { background-color: #ffff00; }
+.csharpcode .html { color: #800000; }
+.csharpcode .attr { color: #ff0000; }
+.csharpcode .alt 
+{
+	background-color: #f4f4f4;
+	width: 100%;
+	margin: 0em;
+}
+.csharpcode .lnum { color: #606060; }
+--></style>
+<h2 style="font-size: 18px; color: #aa7652; padding-bottom: 5px; padding-top: 5px; padding-left: 30px; padding-right: 8px; background-color: #f5f5f4; border-radius: 5px; border: #d0cfcf 1px solid;">创建Startup实例</h2>
+<div class="csharpcode">
+<pre><code><span class="lnum">   1:  </span><span class="rem">/// &lt;summary&gt;</span></pre>
+<pre><code><span class="lnum">   2:  </span><span class="rem">/// Adds a delegate for configuring additional services for the host or web application. This may be called</span></pre>
+<pre><code><span class="lnum">   3:  </span><span class="rem">/// multiple times.</span></pre>
+<pre><code><span class="lnum">   4:  </span><span class="rem">/// &lt;/summary&gt;</span></pre>
+<pre><code><span class="lnum">   5:  </span><span class="rem">/// &lt;param name="configureServices"&gt;A delegate for configuring the &lt;see cref="IServiceCollection"/&gt;.&lt;/param&gt;</span></pre>
+<pre><code><span class="lnum">   6:  </span><span class="rem">/// &lt;returns&gt;The &lt;see cref="IWebHostBuilder"/&gt;.&lt;/returns&gt;</span></pre>
+<pre><code><span class="lnum">   7:  </span><span class="kwrd">public</span> IWebHostBuilder ConfigureServices(Action&lt;IServiceCollection&gt; configureServices)</pre>
+<pre><code><span class="lnum">   8:  </span>{</pre>
+<pre><code><span class="lnum">   9:  </span>    <span class="kwrd">if</span> (configureServices == <span class="kwrd">null</span>)</pre>
+<pre><code><span class="lnum">  10:  </span>    {</pre>
+<pre><code><span class="lnum">  11:  </span>        <span class="kwrd">throw</span> <span class="kwrd">new</span> ArgumentNullException(nameof(configureServices));</pre>
+<pre><code><span class="lnum">  12:  </span>    }</pre>
+<pre><code><span class="lnum">  13:  </span>&nbsp;</pre>
+<pre><code><span class="lnum">  14:  </span>    <span class="kwrd">return</span> ConfigureServices((_, services) =&gt; configureServices(services));</pre>
+<pre><code><span class="lnum">  15:  </span>}</pre>
+<pre><code><span class="lnum">  16:  </span>&nbsp;</pre>
+<pre><code><span class="lnum">  17:  </span><span class="rem">/// &lt;summary&gt;</span></pre>
+<pre><code><span class="lnum">  18:  </span><span class="rem">/// Adds a delegate for configuring additional services for the host or web application. This may be called</span></pre>
+<pre><code><span class="lnum">  19:  </span><span class="rem">/// multiple times.</span></pre>
+<pre><code><span class="lnum">  20:  </span><span class="rem">/// &lt;/summary&gt;</span></pre>
+<pre><code><span class="lnum">  21:  </span><span class="rem">/// &lt;param name="configureServices"&gt;A delegate for configuring the &lt;see cref="IServiceCollection"/&gt;.&lt;/param&gt;</span></pre>
+<pre><code><span class="lnum">  22:  </span><span class="rem">/// &lt;returns&gt;The &lt;see cref="IWebHostBuilder"/&gt;.&lt;/returns&gt;</span></pre>
+<pre><code><span class="lnum">  23:  </span><span class="kwrd">public</span> IWebHostBuilder ConfigureServices(Action&lt;WebHostBuilderContext, IServiceCollection&gt; configureServices)</pre>
+<pre><code><span class="lnum">  24:  </span>{</pre>
+<pre><code><span class="lnum">  25:  </span>    _configureServices += configureServices;</pre>
+<pre><code><span class="lnum">  26:  </span>    <span class="kwrd">return</span> <span class="kwrd">this</span>;</pre>
+<pre><code><span class="lnum">  27:  </span>}</pre>
+</div>
+<p>关于ConfigureServices的定义及注册方式，是在IWebHostBuilder.ConfigureServices实现的，同时可以注意一下<strong><span style="color: #ff0000;">25</span></strong>行代码，向大家说明了多次注册Startup的ConfigureServices方法时，会合并起来的根源。此处抽象委托用的也非常多。</p>
+<p>该类里面还有Build方法，我就不贴出代码了，只需要知道，主进程在此处开始了。接下来一个比较重要的方法，是<strong>BuildCommonServices，</strong>它向当前ServiceCollection中添加一些公共框架级服务，以下是部分代码，具体代码请查看<a href="https://github.com/aspnet/AspNetCore/blob/master/src/Hosting/Hosting/src/WebHostBuilder.cs">WebHostBuilder</a>。</p>
+<div class="csharpcode">
+<pre><code><span class="lnum">   1:  </span><span class="kwrd">try</span></pre>
+<pre><code><span class="lnum">   2:  </span>{</pre>
+<pre><code><span class="lnum">   3:  </span>    var startupType = StartupLoader.FindStartupType(_options.StartupAssembly, _hostingEnvironment.EnvironmentName);</pre>
+<pre><code><span class="lnum">   4:  </span>&nbsp;</pre>
+<pre><code><span class="lnum">   5:  </span>    <span class="kwrd">if</span> (<span class="kwrd">typeof</span>(IStartup).GetTypeInfo().IsAssignableFrom(startupType.GetTypeInfo()))</pre>
+<pre><code><span class="lnum">   6:  </span>    {</pre>
+<pre><code><span class="lnum">   7:  </span>        services.AddSingleton(<span class="kwrd">typeof</span>(IStartup), startupType);</pre>
+<pre><code><span class="lnum">   8:  </span>    }</pre>
+<pre><code><span class="lnum">   9:  </span>    <span class="kwrd">else</span></pre>
+<pre><code><span class="lnum">  10:  </span>    {</pre>
+<pre><code><span class="lnum">  11:  </span>        services.AddSingleton(<span class="kwrd">typeof</span>(IStartup), sp =&gt;</pre>
+<pre><code><span class="lnum">  12:  </span>        {</pre>
+<pre><code><span class="lnum">  13:  </span>            var hostingEnvironment = sp.GetRequiredService&lt;IHostEnvironment&gt;();</pre>
+<pre><code><span class="lnum">  14:  </span>            var methods = StartupLoader.LoadMethods(sp, startupType, hostingEnvironment.EnvironmentName);</pre>
+<pre><code><span class="lnum">  15:  </span>            <span class="kwrd">return</span> <span class="kwrd">new</span> ConventionBasedStartup(methods);</pre>
+<pre><code><span class="lnum">  16:  </span>        });</pre>
+<pre><code><span class="lnum">  17:  </span>    }</pre>
+<pre><code><span class="lnum">  18:  </span>}</pre>
+<pre><code><span class="lnum">  19:  </span><span class="kwrd">catch</span> (Exception ex)</pre>
+<pre><code><span class="lnum">  20:  </span>{</pre>
+<pre><code><span class="lnum">  21:  </span>    var capture = ExceptionDispatchInfo.Capture(ex);</pre>
+<pre><code><span class="lnum">  22:  </span>    services.AddSingleton&lt;IStartup&gt;(_ =&gt;</pre>
+<pre><code><span class="lnum">  23:  </span>    {</pre>
+<pre><code><span class="lnum">  24:  </span>        capture.Throw();</pre>
+<pre><code><span class="lnum">  25:  </span>        <span class="kwrd">return</span> <span class="kwrd">null</span>;</pre>
+<pre><code><span class="lnum">  26:  </span>    });</pre>
+<pre><code><span class="lnum">  27:  </span>}</pre>
+</div>
+<style><!--
+.csharpcode, .csharpcode pre
+{
+	font-size: small;
+	color: black;
+	font-family: consolas, "Courier New", courier, monospace;
+	background-color: #ffffff;
+	/*white-space: pre;*/
+}
+.csharpcode pre { margin: 0em; }
+.csharpcode .rem { color: #008000; }
+.csharpcode .kwrd { color: #0000ff; }
+.csharpcode .str { color: #006080; }
+.csharpcode .op { color: #0000c0; }
+.csharpcode .preproc { color: #cc6633; }
+.csharpcode .asp { background-color: #ffff00; }
+.csharpcode .html { color: #800000; }
+.csharpcode .attr { color: #ff0000; }
+.csharpcode .alt 
+{
+	background-color: #f4f4f4;
+	width: 100%;
+	margin: 0em;
+}
+.csharpcode .lnum { color: #606060; }
+--></style>
+<div class="csharpcode">
+<pre><code>由此可见，如果我们的Startup类直接实现IStartup，它可以并且将直接注册为IStartup的实现类型。只不过ASP.NET Core模板代码并没有实现IStartup，它更多的是一种约定，并通过DI调用委托，依此调用Startup内的构造函数还有另外两个方法。</pre>
+<pre><code>同时上述代码还展示了如何创建Startup类型，就是用到了静态方法StartupLoader.LoadMethods类生成StartupMethods实例。</pre>
+<h2 style="font-size: 18px; color: #aa7652; padding-bottom: 5px; padding-top: 5px; padding-left: 30px; padding-right: 8px; background-color: #f5f5f4; border-radius: 5px; border: #d0cfcf 1px solid;"><strong>ConfigureServices</strong>和<strong>Configure</strong></h2>
+</div>
+<div class="csharpcode">
+<div class="csharpcode">
+<pre><code>当WebHost初始化时，框架会去查找相应的方法，这里，我们主要查看源代码，其中的核心方法是StartupLoader.FindMethods</pre>
+<div class="csharpcode">
+<pre><code><span class="lnum">   1:  </span><span class="kwrd">private</span> <span class="kwrd">static</span> MethodInfo FindMethod(Type startupType, <span class="kwrd">string</span> methodName, <span class="kwrd">string</span> environmentName, Type returnType = <span class="kwrd">null</span>, <span class="kwrd">bool</span> required = <span class="kwrd">true</span>)</pre>
+<pre><code><span class="lnum">   2:  </span>{</pre>
+<pre><code><span class="lnum">   3:  </span>    var methodNameWithEnv = <span class="kwrd">string</span>.Format(CultureInfo.InvariantCulture, methodName, environmentName);</pre>
+<pre><code><span class="lnum">   4:  </span>    var methodNameWithNoEnv = <span class="kwrd">string</span>.Format(CultureInfo.InvariantCulture, methodName, <span class="str">""</span>);</pre>
+<pre><code><span class="lnum">   5:  </span>&nbsp;</pre>
+<pre><code><span class="lnum">   6:  </span>    var methods = startupType.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static);</pre>
+<pre><code><span class="lnum">   7:  </span>    var selectedMethods = methods.Where(method =&gt; method.Name.Equals(methodNameWithEnv, StringComparison.OrdinalIgnoreCase)).ToList();</pre>
+<pre><code><span class="lnum">   8:  </span>    <span class="kwrd">if</span> (selectedMethods.Count &gt; 1)</pre>
+<pre><code><span class="lnum">   9:  </span>    {</pre>
+<pre><code><span class="lnum">  10:  </span>        <span class="kwrd">throw</span> <span class="kwrd">new</span> InvalidOperationException(<span class="kwrd">string</span>.Format(<span class="str">"Having multiple overloads of method '{0}' is not supported."</span>, methodNameWithEnv));</pre>
+<pre><code><span class="lnum">  11:  </span>    }</pre>
+<pre><code><span class="lnum">  12:  </span>    <span class="kwrd">if</span> (selectedMethods.Count == 0)</pre>
+<pre><code><span class="lnum">  13:  </span>    {</pre>
+<pre><code><span class="lnum">  14:  </span>        selectedMethods = methods.Where(method =&gt; method.Name.Equals(methodNameWithNoEnv, StringComparison.OrdinalIgnoreCase)).ToList();</pre>
+<pre><code><span class="lnum">  15:  </span>        <span class="kwrd">if</span> (selectedMethods.Count &gt; 1)</pre>
+<pre><code><span class="lnum">  16:  </span>        {</pre>
+<pre><code><span class="lnum">  17:  </span>            <span class="kwrd">throw</span> <span class="kwrd">new</span> InvalidOperationException(<span class="kwrd">string</span>.Format(<span class="str">"Having multiple overloads of method '{0}' is not supported."</span>, methodNameWithNoEnv));</pre>
+<pre><code><span class="lnum">  18:  </span>        }</pre>
+<pre><code><span class="lnum">  19:  </span>    }</pre>
+<pre><code><span class="lnum">  20:  </span>&nbsp;</pre>
+<pre><code><span class="lnum">  21:  </span>    var methodInfo = selectedMethods.FirstOrDefault();</pre>
+<pre><code><span class="lnum">  22:  </span>    <span class="kwrd">if</span> (methodInfo == <span class="kwrd">null</span>)</pre>
+<pre><code><span class="lnum">  23:  </span>    {</pre>
+<pre><code><span class="lnum">  24:  </span>        <span class="kwrd">if</span> (required)</pre>
+<pre><code><span class="lnum">  25:  </span>        {</pre>
+<pre><code><span class="lnum">  26:  </span>            <span class="kwrd">throw</span> <span class="kwrd">new</span> InvalidOperationException(<span class="kwrd">string</span>.Format(<span class="str">"A public method named '{0}' or '{1}' could not be found in the '{2}' type."</span>,</pre>
+<pre><code><span class="lnum">  27:  </span>                methodNameWithEnv,</pre>
+<pre><code><span class="lnum">  28:  </span>                methodNameWithNoEnv,</pre>
+<pre><code><span class="lnum">  29:  </span>                startupType.FullName));</pre>
+<pre><code><span class="lnum">  30:  </span>&nbsp;</pre>
+<pre><code><span class="lnum">  31:  </span>        }</pre>
+<pre><code><span class="lnum">  32:  </span>        <span class="kwrd">return</span> <span class="kwrd">null</span>;</pre>
+<pre><code><span class="lnum">  33:  </span>    }</pre>
+<pre><code><span class="lnum">  34:  </span>    <span class="kwrd">if</span> (returnType != <span class="kwrd">null</span> &amp;&amp; methodInfo.ReturnType != returnType)</pre>
+<pre><code><span class="lnum">  35:  </span>    {</pre>
+<pre><code><span class="lnum">  36:  </span>        <span class="kwrd">if</span> (required)</pre>
+<pre><code><span class="lnum">  37:  </span>        {</pre>
+<pre><code><span class="lnum">  38:  </span>            <span class="kwrd">throw</span> <span class="kwrd">new</span> InvalidOperationException(<span class="kwrd">string</span>.Format(<span class="str">"The '{0}' method in the type '{1}' must have a return type of '{2}'."</span>,</pre>
+<pre><code><span class="lnum">  39:  </span>                methodInfo.Name,</pre>
+<pre><code><span class="lnum">  40:  </span>                startupType.FullName,</pre>
+<pre><code><span class="lnum">  41:  </span>                returnType.Name));</pre>
+<pre><code><span class="lnum">  42:  </span>        }</pre>
+<pre><code><span class="lnum">  43:  </span>        <span class="kwrd">return</span> <span class="kwrd">null</span>;</pre>
+<pre><code><span class="lnum">  44:  </span>    }</pre>
+<pre><code><span class="lnum">  45:  </span>    <span class="kwrd">return</span> methodInfo;</pre>
+<pre><code><span class="lnum">  46:  </span>}</pre>
+</div>
+</div>
+</div>
+<style><!--
+.csharpcode, .csharpcode pre
+{
+	font-size: small;
+	color: black;
+	font-family: consolas, "Courier New", courier, monospace;
+	background-color: #ffffff;
+	/*white-space: pre;*/
+}
+.csharpcode pre { margin: 0em; }
+.csharpcode .rem { color: #008000; }
+.csharpcode .kwrd { color: #0000ff; }
+.csharpcode .str { color: #006080; }
+.csharpcode .op { color: #0000c0; }
+.csharpcode .preproc { color: #cc6633; }
+.csharpcode .asp { background-color: #ffff00; }
+.csharpcode .html { color: #800000; }
+.csharpcode .attr { color: #ff0000; }
+.csharpcode .alt 
+{
+	background-color: #f4f4f4;
+	width: 100%;
+	margin: 0em;
+}
+.csharpcode .lnum { color: #606060; }
+--></style>
+<div class="csharpcode">
+<div class="csharpcode">
+<pre><code>它查找的第一个委托是ConfigureDelegate，该委托将用于构建应用程序的中间件管道。FindMethod完成了大部分工作，具体的代码请查看<a href="https://github.com/aspnet/AspNetCore/blob/master/src/Hosting/Hosting/src/Internal/StartupLoader.cs">StartupLoader</a>。此方法根据传递给它的methodName参数在Startup类中查找响应的方法。</pre>
+<pre><code>我们知道，Startup的定义更多的是约定，所以会去查找Configure和ConfigureServices。当然，通过源代码我还知道，除了提供标准的&ldquo;Configure&rdquo;方法之外，我们还可以通过环境配置找到响应的Configure和ConfigureServices。根本来说，我们最终查找到的是ConfigureContainerDelegate。</pre>
+<pre><code>接下来，一个比较重要的方法是LoadMethods</pre>
+<div class="csharpcode">
+<pre><code><span class="lnum">   1:  </span><span class="kwrd">public</span> <span class="kwrd">static</span> StartupMethods LoadMethods(IServiceProvider hostingServiceProvider, Type startupType, <span class="kwrd">string</span> environmentName)</pre>
+<pre><code><span class="lnum">   2:  </span>{</pre>
+<pre><code><span class="lnum">   3:  </span>    var configureMethod = FindConfigureDelegate(startupType, environmentName);</pre>
+<pre><code><span class="lnum">   4:  </span>&nbsp;</pre>
+<pre><code><span class="lnum">   5:  </span>    var servicesMethod = FindConfigureServicesDelegate(startupType, environmentName);</pre>
+<pre><code><span class="lnum">   6:  </span>    var configureContainerMethod = FindConfigureContainerDelegate(startupType, environmentName);</pre>
+<pre><code><span class="lnum">   7:  </span>&nbsp;</pre>
+<pre><code><span class="lnum">   8:  </span>    <span class="kwrd">object</span> instance = <span class="kwrd">null</span>;</pre>
+<pre><code><span class="lnum">   9:  </span>    <span class="kwrd">if</span> (!configureMethod.MethodInfo.IsStatic || (servicesMethod != <span class="kwrd">null</span> &amp;&amp; !servicesMethod.MethodInfo.IsStatic))</pre>
+<pre><code><span class="lnum">  10:  </span>    {</pre>
+<pre><code><span class="lnum">  11:  </span>        instance = ActivatorUtilities.GetServiceOrCreateInstance(hostingServiceProvider, startupType);</pre>
+<pre><code><span class="lnum">  12:  </span>    }</pre>
+<pre><code><span class="lnum">  13:  </span>&nbsp;</pre>
+<pre><code><span class="lnum">  14:  </span>    <span class="rem">// The type of the TContainerBuilder. If there is no ConfigureContainer method we can just use object as it's not</span></pre>
+<pre><code><span class="lnum">  15:  </span>    <span class="rem">// going to be used for anything.</span></pre>
+<pre><code><span class="lnum">  16:  </span>    var type = configureContainerMethod.MethodInfo != <span class="kwrd">null</span> ? configureContainerMethod.GetContainerType() : <span class="kwrd">typeof</span>(<span class="kwrd">object</span>);</pre>
+<pre><code><span class="lnum">  17:  </span>&nbsp;</pre>
+<pre><code><span class="lnum">  18:  </span>    var builder = (ConfigureServicesDelegateBuilder) Activator.CreateInstance(</pre>
+<pre><code><span class="lnum">  19:  </span>        <span class="kwrd">typeof</span>(ConfigureServicesDelegateBuilder&lt;&gt;).MakeGenericType(type),</pre>
+<pre><code><span class="lnum">  20:  </span>        hostingServiceProvider,</pre>
+<pre><code><span class="lnum">  21:  </span>        servicesMethod,</pre>
+<pre><code><span class="lnum">  22:  </span>        configureContainerMethod,</pre>
+<pre><code><span class="lnum">  23:  </span>        instance);</pre>
+<pre><code><span class="lnum">  24:  </span>&nbsp;</pre>
+<pre><code><span class="lnum">  25:  </span>    <span class="kwrd">return</span> <span class="kwrd">new</span> StartupMethods(instance, configureMethod.Build(instance), builder.Build());</pre>
+<pre><code><span class="lnum">  26:  </span>}</pre>
+</div>
+</div>
+</div>
+<style><!--
+.csharpcode, .csharpcode pre
+{
+	font-size: small;
+	color: black;
+	font-family: consolas, "Courier New", courier, monospace;
+	background-color: #ffffff;
+	/*white-space: pre;*/
+}
+.csharpcode pre { margin: 0em; }
+.csharpcode .rem { color: #008000; }
+.csharpcode .kwrd { color: #0000ff; }
+.csharpcode .str { color: #006080; }
+.csharpcode .op { color: #0000c0; }
+.csharpcode .preproc { color: #cc6633; }
+.csharpcode .asp { background-color: #ffff00; }
+.csharpcode .html { color: #800000; }
+.csharpcode .attr { color: #ff0000; }
+.csharpcode .alt 
+{
+	background-color: #f4f4f4;
+	width: 100%;
+	margin: 0em;
+}
+.csharpcode .lnum { color: #606060; }
+--></style>
+<div class="csharpcode">
+<pre><code>&nbsp;</pre>
+</div>
+<div class="csharpcode">
+<div class="csharpcode">
+<pre><code>该方法通过查找对应的方法，由于Startup并未在DI中注册，所以会调用GetServiceOrCreateInstance创建一个Startup实例，此时构造函数也在此得到解析。</pre>
+<pre><code>通过一系列的调用，最终到达了ConfigureServicesBuilder.Invoke里面。Invoke方法使用反射来获取和检查在Startup类上定义的ConfigureServices方法所需的参数。</pre>
+<div class="csharpcode">
+<pre><code><span class="lnum">   1:  </span><span class="kwrd">private</span> IServiceProvider InvokeCore(<span class="kwrd">object</span> instance, IServiceCollection services)</pre>
+<pre><code><span class="lnum">   2:  </span>{</pre>
+<pre><code><span class="lnum">   3:  </span>    <span class="kwrd">if</span> (MethodInfo == <span class="kwrd">null</span>)</pre>
+<pre><code><span class="lnum">   4:  </span>    {</pre>
+<pre><code><span class="lnum">   5:  </span>        <span class="kwrd">return</span> <span class="kwrd">null</span>;</pre>
+<pre><code><span class="lnum">   6:  </span>    }</pre>
+<pre><code><span class="lnum">   7:  </span>&nbsp;</pre>
+<pre><code><span class="lnum">   8:  </span>    <span class="rem">// Only support IServiceCollection parameters</span></pre>
+<pre><code><span class="lnum">   9:  </span>    var parameters = MethodInfo.GetParameters();</pre>
+<pre><code><span class="lnum">  10:  </span>    <span class="kwrd">if</span> (parameters.Length &gt; 1 ||</pre>
+<pre><code><span class="lnum">  11:  </span>        parameters.Any(p =&gt; p.ParameterType != <span class="kwrd">typeof</span>(IServiceCollection)))</pre>
+<pre><code><span class="lnum">  12:  </span>    {</pre>
+<pre><code><span class="lnum">  13:  </span>        <span class="kwrd">throw</span> <span class="kwrd">new</span> InvalidOperationException(<span class="str">"The ConfigureServices method must either be parameterless or take only one parameter of type IServiceCollection."</span>);</pre>
+<pre><code><span class="lnum">  14:  </span>    }</pre>
+<pre><code><span class="lnum">  15:  </span>&nbsp;</pre>
+<pre><code><span class="lnum">  16:  </span>    var arguments = <span class="kwrd">new</span> <span class="kwrd">object</span>[MethodInfo.GetParameters().Length];</pre>
+<pre><code><span class="lnum">  17:  </span>&nbsp;</pre>
+<pre><code><span class="lnum">  18:  </span>    <span class="kwrd">if</span> (parameters.Length &gt; 0)</pre>
+<pre><code><span class="lnum">  19:  </span>    {</pre>
+<pre><code><span class="lnum">  20:  </span>        arguments[0] = services;</pre>
+<pre><code><span class="lnum">  21:  </span>    }</pre>
+<pre><code><span class="lnum">  22:  </span>&nbsp;</pre>
+<pre><code><span class="lnum">  23:  </span>    <span class="kwrd">return</span> MethodInfo.Invoke(instance, arguments) <span class="kwrd">as</span> IServiceProvider;</pre>
+<pre><code><span class="lnum">  24:  </span>}</pre>
+</div>
+</div>
+</div>
+<style><!--
+.csharpcode, .csharpcode pre
+{
+	font-size: small;
+	color: black;
+	font-family: consolas, "Courier New", courier, monospace;
+	background-color: #ffffff;
+	/*white-space: pre;*/
+}
+.csharpcode pre { margin: 0em; }
+.csharpcode .rem { color: #008000; }
+.csharpcode .kwrd { color: #0000ff; }
+.csharpcode .str { color: #006080; }
+.csharpcode .op { color: #0000c0; }
+.csharpcode .preproc { color: #cc6633; }
+.csharpcode .asp { background-color: #ffff00; }
+.csharpcode .html { color: #800000; }
+.csharpcode .attr { color: #ff0000; }
+.csharpcode .alt 
+{
+	background-color: #f4f4f4;
+	width: 100%;
+	margin: 0em;
+}
+.csharpcode .lnum { color: #606060; }
+--></style>
+<style><!--
+.csharpcode, .csharpcode pre
+{
+	font-size: small;
+	color: black;
+	font-family: consolas, "Courier New", courier, monospace;
+	background-color: #ffffff;
+	/*white-space: pre;*/
+}
+.csharpcode pre { margin: 0em; }
+.csharpcode .rem { color: #008000; }
+.csharpcode .kwrd { color: #0000ff; }
+.csharpcode .str { color: #006080; }
+.csharpcode .op { color: #0000c0; }
+.csharpcode .preproc { color: #cc6633; }
+.csharpcode .asp { background-color: #ffff00; }
+.csharpcode .html { color: #800000; }
+.csharpcode .attr { color: #ff0000; }
+.csharpcode .alt 
+{
+	background-color: #f4f4f4;
+	width: 100%;
+	margin: 0em;
+}
+.csharpcode .lnum { color: #606060; }
+--></style>
+<p>最后我们来看一下ConfigureBuilder类，它需要一个Action&lt;IApplicationBuilder&gt;委托变量，其中包含每个IStartupFilter的一组包装的Configure方法，最后一个是Startup.Configure方法的委托。此时，所调用的配置链首先命中的是AutoRequestServicesStartupFilter.Configure方法。并将该委托链作为下一个操作，之后会调用ConventionBasedStartup.Configure方法。这将在其本地StartupMethods对象上调用ConfigureDelegate。</p>
+<div class="csharpcode">
+<pre><code><span class="lnum">   1:  </span><span class="kwrd">private</span> <span class="kwrd">void</span> Invoke(<span class="kwrd">object</span> instance, IApplicationBuilder builder)</pre>
+<pre><code><span class="lnum">   2:  </span>{</pre>
+<pre><code><span class="lnum">   3:  </span>    <span class="rem">// Create a scope for Configure, this allows creating scoped dependencies</span></pre>
+<pre><code><span class="lnum">   4:  </span>    <span class="rem">// without the hassle of manually creating a scope.</span></pre>
+<pre><code><span class="lnum">   5:  </span>    <span class="kwrd">using</span> (var scope = builder.ApplicationServices.CreateScope())</pre>
+<pre><code><span class="lnum">   6:  </span>    {</pre>
+<pre><code><span class="lnum">   7:  </span>        var serviceProvider = scope.ServiceProvider;</pre>
+<pre><code><span class="lnum">   8:  </span>        var parameterInfos = MethodInfo.GetParameters();</pre>
+<pre><code><span class="lnum">   9:  </span>        var parameters = <span class="kwrd">new</span> <span class="kwrd">object</span>[parameterInfos.Length];</pre>
+<pre><code><span class="lnum">  10:  </span>        <span class="kwrd">for</span> (var index = 0; index &lt; parameterInfos.Length; index++)</pre>
+<pre><code><span class="lnum">  11:  </span>        {</pre>
+<pre><code><span class="lnum">  12:  </span>            var parameterInfo = parameterInfos[index];</pre>
+<pre><code><span class="lnum">  13:  </span>            <span class="kwrd">if</span> (parameterInfo.ParameterType == <span class="kwrd">typeof</span>(IApplicationBuilder))</pre>
+<pre><code><span class="lnum">  14:  </span>            {</pre>
+<pre><code><span class="lnum">  15:  </span>                parameters[index] = builder;</pre>
+<pre><code><span class="lnum">  16:  </span>            }</pre>
+<pre><code><span class="lnum">  17:  </span>            <span class="kwrd">else</span></pre>
+<pre><code><span class="lnum">  18:  </span>            {</pre>
+<pre><code><span class="lnum">  19:  </span>                <span class="kwrd">try</span></pre>
+<pre><code><span class="lnum">  20:  </span>                {</pre>
+<pre><code><span class="lnum">  21:  </span>                    parameters[index] = serviceProvider.GetRequiredService(parameterInfo.ParameterType);</pre>
+<pre><code><span class="lnum">  22:  </span>                }</pre>
+<pre><code><span class="lnum">  23:  </span>                <span class="kwrd">catch</span> (Exception ex)</pre>
+<pre><code><span class="lnum">  24:  </span>                {</pre>
+<pre><code><span class="lnum">  25:  </span>                    <span class="kwrd">throw</span> <span class="kwrd">new</span> Exception(<span class="kwrd">string</span>.Format(</pre>
+<pre><code><span class="lnum">  26:  </span>                        <span class="str">"Could not resolve a service of type '{0}' for the parameter '{1}' of method '{2}' on type '{3}'."</span>,</pre>
+<pre><code><span class="lnum">  27:  </span>                        parameterInfo.ParameterType.FullName,</pre>
+<pre><code><span class="lnum">  28:  </span>                        parameterInfo.Name,</pre>
+<pre><code><span class="lnum">  29:  </span>                        MethodInfo.Name,</pre>
+<pre><code><span class="lnum">  30:  </span>                        MethodInfo.DeclaringType.FullName), ex);</pre>
+<pre><code><span class="lnum">  31:  </span>                }</pre>
+<pre><code><span class="lnum">  32:  </span>            }</pre>
+<pre><code><span class="lnum">  33:  </span>        }</pre>
+<pre><code><span class="lnum">  34:  </span>        MethodInfo.Invoke(instance, parameters);</pre>
+<pre><code><span class="lnum">  35:  </span>    }</pre>
+<pre><code><span class="lnum">  36:  </span>}</pre>
+</div>
+<style><!--
+.csharpcode, .csharpcode pre
+{
+	font-size: small;
+	color: black;
+	font-family: consolas, "Courier New", courier, monospace;
+	background-color: #ffffff;
+	/*white-space: pre;*/
+}
+.csharpcode pre { margin: 0em; }
+.csharpcode .rem { color: #008000; }
+.csharpcode .kwrd { color: #0000ff; }
+.csharpcode .str { color: #006080; }
+.csharpcode .op { color: #0000c0; }
+.csharpcode .preproc { color: #cc6633; }
+.csharpcode .asp { background-color: #ffff00; }
+.csharpcode .html { color: #800000; }
+.csharpcode .attr { color: #ff0000; }
+.csharpcode .alt 
+{
+	background-color: #f4f4f4;
+	width: 100%;
+	margin: 0em;
+}
+.csharpcode .lnum { color: #606060; }
+--></style>
+<p>Startup.Configure方法会调用ServiceProvider所解析的相应的参数，该方法还可以使用IApplicationBuilder将中间件添加到应用程序管道中。最终的RequestDelegate是从IApplicationBuilder构建并返回的，至此WebHost初始化完成。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

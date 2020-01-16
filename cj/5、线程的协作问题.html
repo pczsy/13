@@ -1,0 +1,295 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修5、线程的协作问题' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>5、线程的协作问题</center></div><div class='banquan'>原文出处:本文由博客园博主拭不去の泪痕提供。<br/>
+原文连接:https://www.cnblogs.com/schangxiang/p/11297098.html</div><br>
+    <h1><strong>1<span style="font-family: 宋体;">、实例背景</span></strong></h1>
+<p>&nbsp;&nbsp;<span style="font-family: 宋体;">打印机做两件事情：</span></p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="font-family: 宋体;">第一件事件负责接受外界打印的请求，包括其他的电脑，把这个打印任务添加到打印队列当中。</span></p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="font-family: 宋体;">另一件事情就是打印，从打印队列中取出一个打印任务，完成打印任务，将这个打印任务去掉。</span></p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="font-family: 宋体;">可以肯定的是，这两件事情是并发进行的，不可能打印机一直去打印，而不去接受新的打印任务，也不可能一直接受请求，而不去打印，等到让油墨干了纸张烂掉了</span></p>
+<p><span style="font-family: 宋体;">如果我们用程序让打印机干活的话，显然我们可以用两个线程同时做这两件事情，当然还要考虑其他的事情，就是前面说的并发问题，因为存在着并发竞争资源</span>--<span style="font-family: 宋体;">打印机队列。</span></p>
+<p><span style="font-family: 宋体;">我们希望的理想情况是最好两个线程能交替执行，即接受一次打印请求的操作，再执行一次打印的操作，而不是接受请求</span>N<span style="font-family: 宋体;">次后才执行一次打印任务，所以说我们还需要解决线程之间配合工作的问题，也就是线程协作的问题。</span></p>
+<p>&nbsp;</p>
+<p>关于线程协作，我们考虑三个问题：</p>
+<p>（1）如何在当前线程中通知其他的线程的执行</p>
+<p>（2）如何阻止当前线程的执行</p>
+<p>（3）其他线程执行完毕如何继续当前线程的执行</p>
+<p>&nbsp;&nbsp;&nbsp;<span style="font-family: 宋体;">答案：（</span>1<span style="font-family: 宋体;">）</span>Monitor.Pulse()</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(2)Monitor.Wait()</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(3)Monitor.Wait()</p>
+<p>&nbsp;</p>
+<h1><strong>2<span style="font-family: 宋体;">、</span></strong><strong>没有线程协作的打印机工作</strong></h1>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">class</span><span style="color: #000000;"> MonitorTest
+
+    {
+
+        </span><span style="color: #0000ff;">int</span> MAX = <span style="color: #800080;">10</span>;<span style="color: #008000;">//</span><span style="color: #008000;">最多允许10个打印作业</span>
+<span style="color: #000000;">
+ 
+
+        Queue</span>&lt;<span style="color: #0000ff;">int</span>&gt; queue; <span style="color: #008000;">//</span><span style="color: #008000;">表示对象的先进先出的集合</span>
+
+        <span style="color: #0000ff;">public</span><span style="color: #000000;"> MonitorTest()
+
+        {
+
+            queue </span>= <span style="color: #0000ff;">new</span> Queue&lt;<span style="color: #0000ff;">int</span>&gt;<span style="color: #000000;">();
+
+        }
+
+ 
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">生产者线程调用的方法：模拟添加打印作业</span>
+
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> ProducerThread()
+
+        {
+
+            Random r </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Random();
+
+ 
+
+            </span><span style="color: #0000ff;">lock</span><span style="color: #000000;"> (queue)
+
+            {
+
+                </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> counter = <span style="color: #800080;">0</span>; counter &lt; MAX; counter++<span style="color: #000000;">)
+
+                {
+
+                    </span><span style="color: #0000ff;">int</span> value = r.Next(<span style="color: #800080;">100</span><span style="color: #000000;">);
+
+                    queue.Enqueue(value);    </span><span style="color: #008000;">//</span><span style="color: #008000;">随机数入队列</span>
+<span style="color: #000000;">
+                    Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">生产：</span><span style="color: #800000;">"</span> +<span style="color: #000000;"> value);
+
+                }
+
+            }
+
+        }
+
+ 
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">消费者线程</span>
+
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> ConsumerThread()
+
+        {
+
+            </span><span style="color: #0000ff;">lock</span><span style="color: #000000;"> (queue)
+
+            {
+
+                </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> counter = <span style="color: #800080;">0</span>; counter &lt; MAX; counter++<span style="color: #000000;">)
+
+                {
+
+                    </span><span style="color: #0000ff;">int</span> value = (<span style="color: #0000ff;">int</span>)queue.Dequeue(); <span style="color: #008000;">//</span><span style="color: #008000;">第一个元素出队列</span>
+<span style="color: #000000;">
+                    Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">消费：</span><span style="color: #800000;">"</span> +<span style="color: #000000;"> value);
+
+                }
+
+            }
+
+        }
+
+ 
+
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+
+        {
+
+            MonitorTest monitor </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> MonitorTest();
+
+            Thread producer </span>= <span style="color: #0000ff;">new</span> Thread(<span style="color: #0000ff;">new</span><span style="color: #000000;"> ThreadStart(monitor.ProducerThread));
+
+            Thread consumer </span>= <span style="color: #0000ff;">new</span> Thread(<span style="color: #0000ff;">new</span><span style="color: #000000;"> ThreadStart(monitor.ConsumerThread));
+
+ 
+
+            producer.Start();
+
+            consumer.Start();
+
+ 
+
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">打印机工作完毕</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+
+            Console.ReadLine();
+
+        }
+
+    }</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;<img src="./images/5、线程的协作问题0.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>发现：先把所有的生产任务添加进来，然后再执行消费作业。这是不符合我们的要求的。我们要求是添加一个打印任务就执行一次消费作业</p>
+<p>&nbsp;</p>
+<h1><strong>3<span style="font-family: 宋体;">、</span></strong><strong>有线程协作的打印机工作</strong></h1>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;&nbsp;</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">class</span><span style="color: #000000;"> MonitorTest
+
+    {
+
+        </span><span style="color: #0000ff;">int</span> MAX = <span style="color: #800080;">10</span>;<span style="color: #008000;">//</span><span style="color: #008000;">最多允许10个打印作业</span>
+<span style="color: #000000;">
+ 
+
+        Queue</span>&lt;<span style="color: #0000ff;">int</span>&gt; queue; <span style="color: #008000;">//</span><span style="color: #008000;">表示对象的先进先出的集合</span>
+
+        <span style="color: #0000ff;">public</span><span style="color: #000000;"> MonitorTest()
+
+        {
+
+            queue </span>= <span style="color: #0000ff;">new</span> Queue&lt;<span style="color: #0000ff;">int</span>&gt;<span style="color: #000000;">();
+
+        }
+
+ 
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">生产者线程调用的方法：模拟添加打印作业</span>
+
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> ProducerThread()
+
+        {
+
+            Random r </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Random();
+
+ 
+
+            </span><span style="color: #0000ff;">lock</span><span style="color: #000000;"> (queue)
+
+            {
+
+                </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> counter = <span style="color: #800080;">0</span>; counter &lt; MAX; counter++<span style="color: #000000;">)
+
+                {
+
+                    </span><span style="color: #0000ff;">int</span> value = r.Next(<span style="color: #800080;">100</span><span style="color: #000000;">);
+
+                    queue.Enqueue(value);    </span><span style="color: #008000;">//</span><span style="color: #008000;">随机数入队列</span>
+<span style="color: #000000;">
+                    Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">生产：</span><span style="color: #800000;">"</span> +<span style="color: #000000;"> value);
+
+ 
+
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">producer线程通知consumer线程从阻塞队列进入准备队列</span>
+<span style="color: #000000;">
+                    Monitor.Pulse(queue); </span><span style="color: #008000;">//</span><span style="color: #008000;">释放等待线程
+
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">producer线程进入阻塞队列，并放弃了锁定，使consumer线程得以执行</span>
+<span style="color: #000000;">
+                    Monitor.Wait(queue);  </span><span style="color: #008000;">//</span><span style="color: #008000;">等待CosumerThread()完成</span>
+<span style="color: #000000;">
+ 
+
+                }
+
+            }
+
+        }
+
+ 
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">消费者线程</span>
+
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> ConsumerThread()
+
+        {
+
+            </span><span style="color: #0000ff;">lock</span><span style="color: #000000;"> (queue)
+
+            {
+
+                </span><span style="color: #0000ff;">do</span><span style="color: #000000;">
+
+                {
+
+                    </span><span style="color: #0000ff;">if</span> (queue.Count&gt;<span style="color: #800080;">0</span><span style="color: #000000;">)
+
+                    {
+
+                        </span><span style="color: #0000ff;">int</span> value = (<span style="color: #0000ff;">int</span>)queue.Dequeue(); <span style="color: #008000;">//</span><span style="color: #008000;">第一个元素出队列</span>
+<span style="color: #000000;">
+                        Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">消费：</span><span style="color: #800000;">"</span> +<span style="color: #000000;"> value);
+
+ 
+
+                        Monitor.Pulse(queue);</span><span style="color: #008000;">//</span><span style="color: #008000;">释放</span>
+<span style="color: #000000;">
+                    }
+
+                } </span><span style="color: #0000ff;">while</span> (Monitor.Wait(queue)); <span style="color: #008000;">//</span><span style="color: #008000;"> 等待ProducerThread()放入数据</span>
+<span style="color: #000000;">
+            }
+
+        }
+
+ 
+
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+
+        {
+
+            MonitorTest monitor </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> MonitorTest();
+
+            Thread producer </span>= <span style="color: #0000ff;">new</span> Thread(<span style="color: #0000ff;">new</span><span style="color: #000000;"> ThreadStart(monitor.ProducerThread));
+
+            Thread consumer </span>= <span style="color: #0000ff;">new</span> Thread(<span style="color: #0000ff;">new</span><span style="color: #000000;"> ThreadStart(monitor.ConsumerThread));
+
+ 
+
+            producer.Start();
+
+            consumer.Start();
+
+ 
+
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">打印机工作完毕</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+
+            Console.ReadLine();
+
+        }
+
+    }
+
+ </span></pre>
+</div>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>解释：</p>
+<p><span style="font-family: 宋体;">当</span>producer<span style="font-family: 宋体;">线程</span><span style="font-family: 'Times New Roman';">Start</span><span style="font-family: 宋体;">启动后，进入运行状态后，产生了一个随机数，并添加到</span><span style="font-family: 'Times New Roman';">queue</span><span style="font-family: 宋体;">队列容器里，然后碰到代码 </span>Monitor.Pulse(queue) ; <span style="font-family: 宋体;">那么</span>producer<span style="font-family: 宋体;">线程就通知线程</span><span style="font-family: 'Times New Roman';">consumer</span><span style="font-family: 宋体;">从阻塞队列进入准备队列。然后</span><span style="font-family: 'Times New Roman';">producer</span><span style="font-family: 宋体;">线程又碰到</span><span style="font-family: 'Times New Roman';">Monitor.Wait(queue);</span>&nbsp;producer<span style="font-family: 宋体;">线程进入等待状态（即阻塞了自己），他放弃了对</span><span style="font-family: 'Times New Roman';">queue</span><span style="font-family: 宋体;">的锁定，所以线程</span><span style="font-family: 'Times New Roman';">consumer</span><span style="font-family: 宋体;">得以执行。</span></p>
+<p>&nbsp;&nbsp;<span style="font-family: 宋体;">那么线程</span>consumer<span style="font-family: 宋体;">执行了，当执行到</span><span style="font-family: 'Times New Roman';">do**while</span><span style="font-family: 宋体;">循环处，由于第一次执行，所以不判断条件，直接从</span><span style="font-family: 'Times New Roman';">queue</span><span style="font-family: 宋体;">队列里&ldquo;请出&rdquo;第一个元素，然后他碰到代码</span>Monitor.Pulse(queue) ; <span style="font-family: 宋体;">，那么</span><span style="font-family: 宋体;">线程</span>consumer<span style="font-family: 宋体;">就通知</span><span style="font-family: 'Times New Roman';">producer</span><span style="font-family: 宋体;">线程从阻塞队列进入准备队列，然后他判断</span><span style="font-family: 'Times New Roman';">while</span><span style="font-family: 宋体;">（</span><span style="font-family: 'Times New Roman';">Monitor.Wait(queue);</span>&nbsp;），因为这是第一次执行，所以</p>
+<p>&nbsp;</p>
+<p>&nbsp;<img src="./images/5、线程的协作问题1.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>结果显示是&nbsp;<span style="font-family: 宋体;">生产者生产一个，消费者接着就消费一个。如此循环中。。。</span></p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

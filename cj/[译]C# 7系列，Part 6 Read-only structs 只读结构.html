@@ -1,0 +1,114 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修[译]C# 7系列，Part 6 Read-only structs 只读结构' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>[译]C# 7系列，Part 6 Read-only structs 只读结构</center></div><div class='banquan'>原文出处:本文由博客园博主wenhx提供。<br/>
+原文连接:https://www.cnblogs.com/wenhx/p/csharp-7-series-part-6-read-only-structs.html</div><br>
+    <p>原文：<a href="https://blogs.msdn.microsoft.com/mazhou/2017/11/21/c-7-series-part-6-read-only-structs/">https://blogs.msdn.microsoft.com/mazhou/2017/11/21/c-7-series-part-6-read-only-structs/</a></p>
+<p><span style="font-size: 18pt;">背景</span></p>
+<p><span class="tgt" data-section="0" data-sentence="0" data-group="0-0">在.NET世界中，有两种基本类型：引用类型和值类型。简单地说<span class="tgt" data-section="0" data-sentence="1" data-group="0-1">，引用类型是可以继承/扩展的类，当传递引用类型对象时，传递的是一个&ldquo;指针&rdquo;；<span class="tgt" data-section="0" data-sentence="2" data-group="0-2">值类型是不能继承/扩展的结构，当传递值类型对象时，传递的是一个&ldquo;副本&rdquo;。</span></span></span></p>
+<p><span class="tgt" data-section="0" data-sentence="0" data-group="0-0"><span class="tgt" data-section="0" data-sentence="1" data-group="0-1"><span class="tgt" data-section="0" data-sentence="2" data-group="0-2"><span class="tgt" data-section="0" data-sentence="0" data-group="0-0">C#中的struct是一个值类型，它&ldquo;内部继承&rdquo;自System.ValueType。<span class="tgt" data-section="0" data-sentence="1" data-group="0-1">(我说的是结构之间没有继承。)</span></span></span></span></span></p>
+<p><span class="tgt" data-section="0" data-sentence="0" data-group="0-0"><span class="tgt" data-section="0" data-sentence="1" data-group="0-1"><span class="tgt" data-section="0" data-sentence="2" data-group="0-2"><span class="tgt" data-section="0" data-sentence="0" data-group="0-0"><span class="tgt" data-section="0" data-sentence="1" data-group="0-1">当在参数中使用struct时，会生成struct的副本，使用struct可能是高效的，因为它减少了堆对象分配的时间。</span></span></span></span></span></p>
+<p><span class="tgt" data-section="0" data-sentence="0" data-group="0-0"><span class="tgt" data-section="0" data-sentence="1" data-group="0-1"><span class="tgt" data-section="0" data-sentence="2" data-group="0-2"><span class="tgt" data-section="0" data-sentence="0" data-group="0-0"><span class="tgt" data-section="0" data-sentence="1" data-group="0-1">在许多场景中，开发人员使用结构作为传递值的有效方法，例如方法的返回对象，或者跨应用程序使用的基本数据结构。</span></span></span></span></span></p>
+<p><span class="tgt" style="font-size: 18pt;" data-section="0" data-sentence="0" data-group="0-0"><span class="tgt" data-section="0" data-sentence="1" data-group="0-1"><span class="tgt" data-section="0" data-sentence="2" data-group="0-2"><span class="tgt" data-section="0" data-sentence="0" data-group="0-0"><span class="tgt" data-section="0" data-sentence="1" data-group="0-1">只读结构</span></span></span></span></span></p>
+<p><span class="tgt" data-section="0" data-sentence="0" data-group="0-0"><span class="tgt" data-section="0" data-sentence="1" data-group="0-1"><span class="tgt" data-section="0" data-sentence="2" data-group="0-2"><span class="tgt" data-section="0" data-sentence="0" data-group="0-0"><span class="tgt" data-section="0" data-sentence="1" data-group="0-1">只读结构是其公共成员为只读的结构，就好像&ldquo;this&rdquo;变量一样。</span></span></span></span></span></p>
+<p><span class="tgt" data-section="0" data-sentence="0" data-group="0-0"><span class="tgt" data-section="0" data-sentence="1" data-group="0-1"><span class="tgt" data-section="0" data-sentence="2" data-group="0-2"><span class="tgt" data-section="0" data-sentence="0" data-group="0-0"><span class="tgt" data-section="0" data-sentence="1" data-group="0-1">看一下下面的声明：</span></span></span></span></span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">struct</span><span style="color: #000000;"> S
+{
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span> Age { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> Name { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+
+    </span><span style="color: #0000ff;">public</span> S(<span style="color: #0000ff;">int</span> age, <span style="color: #0000ff;">string</span><span style="color: #000000;"> name)
+    {
+        </span><span style="color: #0000ff;">this</span>.Age =<span style="color: #000000;"> age;
+        </span><span style="color: #0000ff;">this</span>.Name =<span style="color: #000000;"> name;
+    }
+
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> S(S other)
+    {
+        </span><span style="color: #0000ff;">this</span> =<span style="color: #000000;"> other;
+    }
+
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> S Replace(S other)
+    {
+        S value </span>= <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+        </span><span style="color: #0000ff;">this</span> =<span style="color: #000000;"> other;
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> value;
+    }
+}</span></pre>
+</div>
+<p>可以看到，我可以完全访问已声明的属性Age和Name，还可以访问this变量，这样就可以用另一个实例S来替换this实例。</p>
+<p>如果我在声明中添加readonly修饰符，我的访问权限将受到限制:</p>
+<ul>
+<li>所有的成员（属性、字段）必须是自读；</li>
+<li>我需要在公共的有参构造函数中初始化成员；</li>
+<li>除了在构造函数中，&ldquo;this&rdquo;变量在其他地方都是只读的；</li>
+<li>你不能定义&ldquo;类字段&rdquo;事件；</li>
+</ul>
+<p>下面的截图显示了上面的代码改成了readonly struct后需要修正的地方。</p>
+<p><img src="./images/[译]C# 7系列，Part 6 Read-only structs 只读结构0.png" alt="" width="595" height="595" /></p>
+<p>下面是修改后的代码：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">readonly</span> <span style="color: #0000ff;">struct</span><span style="color: #000000;"> S
+{
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span> Age { <span style="color: #0000ff;">get</span><span style="color: #000000;">; }
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> Name { <span style="color: #0000ff;">get</span><span style="color: #000000;">; }
+
+    </span><span style="color: #0000ff;">public</span> S(<span style="color: #0000ff;">int</span> age, <span style="color: #0000ff;">string</span><span style="color: #000000;"> name)
+    {
+        </span><span style="color: #0000ff;">this</span>.Age =<span style="color: #000000;"> age;
+        </span><span style="color: #0000ff;">this</span>.Name =<span style="color: #000000;"> name;
+    }
+
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> S(S other)
+    {
+        </span><span style="color: #0000ff;">this</span> =<span style="color: #000000;"> other;
+    }
+}</span></pre>
+</div>
+<p><span class="tgt" data-section="0" data-sentence="0" data-group="0-0">你可以像往常一样初始化S的新实例。<span class="tgt" data-section="0" data-sentence="1" data-group="0-1">但是你不能修改任何实例的任何成员。你<span class="tgt" data-section="0" data-sentence="2" data-group="0-2">应该总是调用有参(而不是无参)构造函数来正确初始化实例对象，否则您将获得实例的默认值(所有成员都被初始化为成员类型的默认值)。</span></span></span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> Test()
+{
+    S s </span>= <span style="color: #0000ff;">new</span> S(<span style="color: #800080;">18</span>, <span style="color: #800000;">"</span><span style="color: #800000;">Anna</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+    </span><span style="color: #0000ff;">ref</span> S other = <span style="color: #0000ff;">ref</span><span style="color: #000000;"> s;
+    other </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> S(other);
+    </span><span style="color: #0000ff;">bool</span> equal = s.Equals(other); <span style="color: #008000;">//</span><span style="color: #008000;"> true.</span>
+}</pre>
+</div>
+<p><span style="font-size: 18pt;">结论</span></p>
+<p><span class="tgt" data-section="0" data-sentence="0" data-group="0-0">只读结构是一个方便的特性，可以帮助保护你的值被意外修改的影响；<span class="tgt" data-section="0" data-sentence="1" data-group="0-1">与其他新特性相结合(例如，ref结构和in参数)，它将使你的C#代码更容易地面向低级别的编程。<span class="tgt" data-section="0" data-sentence="2" data-group="0-2">在接下来的几篇文章中，我将解释所有这些新事物。<span class="tgt" data-section="0" data-sentence="3" data-group="0-3">请注意，你需要C# 7.2才能使用这个特性，它在Visual Studio 2017.5 Preview 4或更高版本中可用。</span></span></span></span></p>
+<p>&nbsp;</p>
+<p class="tgt" data-section="4"><span style="font-size: 14pt;">系列文章：</span></p>
+<ul>
+<li class="tgt" data-section="4"><a href="https://www.cnblogs.com/wenhx/p/csharp-7-series-part-1-value-tuples.html" target="_blank">[译]C# 7系列，Part 1: Value Tuples 值元组</a></li>
+<li class="tgt" data-section="4"><a href="https://www.cnblogs.com/wenhx/p/csharp-7-series-part-2-async-main.html" target="_blank">[译]C# 7系列，Part 2: Async Main 异步Main方法</a></li>
+<li class="tgt" data-section="4"><a href="https://www.cnblogs.com/wenhx/p/csharp-7-series-part-3-default-literals.html" target="_blank">[译]C# 7系列，Part 3: Default Literals 默认文本表达式</a></li>
+<li><a href="https://www.cnblogs.com/wenhx/p/csharp-7-series-part-4-discards.html" target="_blank">[译]C# 7系列，Part 4: Discards 弃元</a></li>
+<li><a href="https://www.cnblogs.com/wenhx/p/csharp-7-series-part-5-private-protected.html" target="_blank">[译]C# 7系列，Part 5: private protected 访问修饰符</a></li>
+<li>&nbsp;[译]C# 7系列，Part 6: Read-only structs 只读结构 （本文）</li>
+<li><a href="https://www.cnblogs.com/wenhx/p/csharp-7-series-part-7-ref-returns.html" target="_blank">[译]C# 7系列，Part 7: ref Returns ref返回结果</a></li>
+<li><a href="https://www.cnblogs.com/wenhx/p/csharp-7-series-part-8-in-parameters.html" target="_blank">[译]C# 7系列，Part 8: in Parameters in参数</a></li>
+<li><a href="https://www.cnblogs.com/wenhx/p/csharp-7-series-part-9-ref-structs.html" target="_blank">[译]C# 7系列，Part 9: ref structs ref结构</a></li>
+<li><a href="https://www.cnblogs.com/wenhx/p/csharp-7-series-part-10-spant-and-universal-memory-management.html" target="_blank">[译]C# 7系列，Part 10: Span&lt;T&gt; and universal memory management Span&lt;T&gt;和统一内存管理</a>&nbsp;（完）</li>
+</ul>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

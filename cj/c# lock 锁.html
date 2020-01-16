@@ -1,0 +1,224 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修c# lock 锁' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>c# lock 锁</center></div><div class='banquan'>原文出处:本文由博客园博主我是你帅哥提供。<br/>
+原文连接:https://www.cnblogs.com/HandsomeBlog/p/11357589.html</div><br>
+    <ul>
+<li>
+<h2>lock语句</h2>
+</li>
+</ul>
+<p><span data-ttu-id="0662a-104"><code>lock</code>&nbsp;语句获取给定对象的互斥 lock，执行语句块，然后释放 lock。&nbsp;<span data-ttu-id="0662a-105">持有 lock 时，持有 lock 的线程可以再次获取并释放 lock。&nbsp;<span data-ttu-id="0662a-106">阻止任何其他线程获取 lock 并等待释放 lock。</span></span></span></p>
+<p>&nbsp;</p>
+<ul>
+<li>
+<h2>为什么需要锁</h2>
+</li>
+</ul>
+<p>作为C#的程序员来说，在遇到线程同步的需求时最常用的就是lock关键字。lock 的目的很明确，就是不想让别人使用这段代码，体现在多线程情况下，只允许当前线程执行该代码区域，其他线程等待直到该线程执行结束；这样可以多线程避免同时使用某一方法造成数据混乱。</p>
+<p>&nbsp;</p>
+<ul>
+<li>
+<h2>lock的等效代码</h2>
+</li>
+</ul>
+<p>在.NET的多线程程序中，经常会遇到lock关键字来控制同步，比如下列代码：</p>
+<p>private object o = new object();</p>
+<p>public void Work()</p>
+<p>{</p>
+<p>　　lock(o)</p>
+<p>　　{</p>
+<p>　　　　//做一些需要线程同步的工作</p>
+<p>　　}</p>
+<p>}</p>
+<p>事实上，lock这个关键字是C#为方便程序员而定义的语法，它等效于安全地使用System.Threading.Monitor类型。上面的代码就直接等效于下面的代码：</p>
+<p>private object o = new object();</p>
+<p>public void Work()</p>
+<p>{</p>
+<p>　　//这里很重要，是为了避免直接使用私有成员o，而导致线程不安全</p>
+<p>　　object temp = o;</p>
+<p>　　System.Threading.Monitor.Enter(temp);</p>
+<p>　　try</p>
+<p>　　{</p>
+<p>　　　　//做一些需要线程同步的工作</p>
+<p>　　}</p>
+<p>　　finally</p>
+<p>　　{</p>
+<p>　　　　System.Threading.Monitor.Exit(temp);</p>
+<p>　　}</p>
+<p>}</p>
+<p>&nbsp;正如你看到的，真正实现了线程同步功能的，就是System.Threading.Monitor类型，lock关键字只是用来代替调用Enter、Exit方法，并且将所有的工作包含在try块内，以保证其最终退出同步。</p>
+<h3><span style="color: #ff0000;">注意：我们lock的一般是对象，不是值类型和字符串。</span></h3>
+<p>1、为什么不能lock值类型</p>
+<p>&nbsp;&nbsp;&nbsp; 比如lock(1)呢?lock本质上Monitor.Enter，Monitor.Enter会使值类型装箱，每次lock的是装箱后的对象。lock 其实是类似编译器的语法糖，因此编译器直接限制住不能lock值类型。退一万步说，就算能编译器允许你lock(1)，但是 object.ReferenceEquals(1,1)始终返回false(因为每次装箱后都是不同对象),也就是说每次都会判断成未申请互斥锁，这样 在同一时间，别的线程照样能够访问里面的代码，达不到同步的效果。同理lock((object)1)也不行。</p>
+<p>&nbsp;2、Lock字符串</p>
+<p>&nbsp;&nbsp;&nbsp; 那么lock("xxx")字符串呢?MSDN上的原话是：</p>
+<p>锁定字符串尤其危险，因为字符串被公共语言运行库 (CLR)&ldquo;暂留&rdquo;。 这意味着整个程序中任何给定字符串都只有一个实例，同一个对象表示了所有运行的应用程序域的所有线程中的该文本。因此，只要在应用程序进程中的任何 位置处具有相同内容的字符串上放置了锁，就将锁定应用程序中该字符串的所有实例。</p>
+<p>&nbsp;3、MSDN推荐的Lock对象</p>
+<p>&nbsp;&nbsp;&nbsp; 通常，最好避免锁定 public 类型或锁定不受应用程序控制的对象实例。例如，如果该实例可以被公开访问，则 lock(this) 可能会有问题，因为不受控制的代码也可能会锁定该对象。这可能导致死锁，即两个或更多个线程等待释放同一对象。出于同样的原因，锁定公共数据类型(相比于 对象)也可能导致问题。</p>
+<p>&nbsp;&nbsp;&nbsp; 而且lock(this)只对当前对象有效，如果多个对象之间就达不到同步的效果。</p>
+<p>&nbsp;&nbsp;&nbsp; 而自定义类推荐用私有的只读静态对象，比如：</p>
+<p>private static readonly object obj = new object();</p>
+<p>为什么要设置成只读的呢?这是因为如果在lock代码段中改变obj的值，其它线程就畅通无阻了，因为互斥锁的对象变了，object.ReferenceEquals必然返回false。</p>
+<p>&nbsp;</p>
+<ul>
+<li>
+<h2 class="title-article">&nbsp;Lock 关键字锁定静态变量和非静态变量的区别</h2>
+</li>
+</ul>
+<div class="cnblogs_code" onclick="cnblogs_code_show('09c75566-06cd-4f11-9ee4-6dd316b4c53d')"><img id="code_img_closed_09c75566-06cd-4f11-9ee4-6dd316b4c53d" class="code_img_closed" src="./images/c# lock 锁0.png" alt="" /><img id="code_img_opened_09c75566-06cd-4f11-9ee4-6dd316b4c53d" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('09c75566-06cd-4f11-9ee4-6dd316b4c53d',event)" src="./images/c# lock 锁1.png" alt="" />
+<div id="cnblogs_code_open_09c75566-06cd-4f11-9ee4-6dd316b4c53d" class="cnblogs_code_hide">
+<pre><code><span style="color: #0000ff;">using</span><span style="color: #000000;"> System;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Collections.Generic;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Linq;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Text;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Threading;
+</span><span style="color: #0000ff;">using</span><span style="color: #000000;"> System.Threading.Tasks;
+
+</span><span style="color: #0000ff;">namespace</span><span style="color: #000000;"> testLock
+{
+    </span><span style="color: #0000ff;">class</span><span style="color: #000000;"> Program
+    { 
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Main(<span style="color: #0000ff;">string</span><span style="color: #000000;">[] args)
+        { 
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">----------开始测试单实例非静态锁----------</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+
+            MyLock myLock </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> MyLock(); 
+            </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; <span style="color: #800080;">5</span>; i++<span style="color: #000000;">)
+            {
+                Thread t </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Thread(myLock.Increment1); 
+                t.Start(); 
+            } 
+
+            Thread.Sleep(</span><span style="color: #800080;">3</span> * <span style="color: #800080;">1000</span><span style="color: #000000;">);
+
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">----------开始测试单实例静态锁----------</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+
+            MyLock myLock2 </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> MyLock(); 
+            </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; <span style="color: #800080;">5</span>; i++<span style="color: #000000;">)
+            {  
+                Thread t </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Thread(myLock2.Increment2); 
+                t.Start(); 
+            } 
+
+            Thread.Sleep(</span><span style="color: #800080;">3</span> * <span style="color: #800080;">1000</span><span style="color: #000000;">); 
+
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">----------开始测试多实例非静态锁----------</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+             
+
+            </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; <span style="color: #800080;">5</span>; i++<span style="color: #000000;">)
+            {
+                MyLock mlock </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> MyLock();
+                Thread t </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Thread(mlock.Increment1); 
+                t.Start(); 
+            }  
+
+            Thread.Sleep(</span><span style="color: #800080;">3</span> * <span style="color: #800080;">1000</span><span style="color: #000000;">); 
+
+            Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">----------开始测试多实例静态锁----------</span><span style="color: #800000;">"</span><span style="color: #000000;">); 
+
+            </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = <span style="color: #800080;">0</span>; i &lt; <span style="color: #800080;">5</span>; i++<span style="color: #000000;">)
+            {
+                MyLock mlock </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> MyLock();
+                Thread t </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Thread(mlock.Increment2); 
+                t.Start(); 
+            }
+ 
+
+            Console.Read();
+
+        }
+    } 
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> MyLock
+    {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">静态变量锁对象</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">readonly</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">object</span> staticObj = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">object</span><span style="color: #000000;">();
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">非静态变量锁对象</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">readonly</span> <span style="color: #0000ff;">object</span> obj = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">object</span><span style="color: #000000;">();
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">成员变量 </span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">int</span> i1 = <span style="color: #800080;">0</span><span style="color: #000000;">; 
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">int</span> i2 = <span style="color: #800080;">0</span><span style="color: #000000;">;
+
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 非静态锁
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="handleObject"&gt;</span><span style="color: #008000;">要处理的对象</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #0000ff;">public</span>  <span style="color: #0000ff;">void</span> Increment1(<span style="color: #0000ff;">object</span><span style="color: #000000;"> handleObject)
+        { 
+            </span><span style="color: #0000ff;">lock</span><span style="color: #000000;"> (obj)
+            { 
+
+                Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">i1的值为：{0}</span><span style="color: #800000;">"</span><span style="color: #000000;">, i1);
+
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">这里刻意制造线程并行机会，来检查同步的功能</span>
+<span style="color: #000000;">
+                Thread.Sleep(</span><span style="color: #800080;">200</span><span style="color: #000000;">);
+
+                i1</span>++<span style="color: #000000;">;
+
+                Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">i1自增后为：{0}</span><span style="color: #800000;">"</span><span style="color: #000000;">, i1);
+
+            } 
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 静态锁
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;param name="handleObject"&gt;</span><span style="color: #008000;">要处理的对象</span><span style="color: #808080;">&lt;/param&gt;</span>
+        <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> Increment2(<span style="color: #0000ff;">object</span><span style="color: #000000;"> handleObject)
+        { 
+            </span><span style="color: #0000ff;">lock</span><span style="color: #000000;"> (staticObj)
+            {
+
+                Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">i2的值为：{0}</span><span style="color: #800000;">"</span><span style="color: #000000;">, i2);
+
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">这里刻意制造线程并行机会，来检查同步的功能</span>
+<span style="color: #000000;">
+                Thread.Sleep(</span><span style="color: #800080;">200</span><span style="color: #000000;">);
+
+                i2</span>++<span style="color: #000000;">;
+
+                Console.WriteLine(</span><span style="color: #800000;">"</span><span style="color: #800000;">i2自增后为：{0}</span><span style="color: #800000;">"</span><span style="color: #000000;">, i2);
+
+            } 
+        } 
+        
+    }
+}</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp;</p>
+<p>单实例非静态锁，线程没有并发（加锁成功）；</p>
+<p><img src="./images/c# lock 锁2.png" alt="" /></p>
+<p>单实例静态锁，线程没有并发（加锁成功）；</p>
+<p><img src="./images/c# lock 锁3.png" alt="" /></p>
+<p>多实例非静态锁，线程并发（加锁失败）；</p>
+<p><img src="./images/c# lock 锁4.png" alt="" /></p>
+<p>多实例静态锁，线程没有并发（加锁成功）</p>
+<p><img src="./images/c# lock 锁5.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>说明：以上内容是根据网上内容进行整理，并加以归纳。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

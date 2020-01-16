@@ -1,0 +1,167 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修使用高性能Pipelines构建.NET通讯程序' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>使用高性能Pipelines构建.NET通讯程序</center></div><div class='banquan'>原文出处:本文由博客园博主波多尔斯基提供。<br/>
+原文连接:https://www.cnblogs.com/podolski/p/10807204.html</div><br>
+    <p>.NET Standard支持一组新的API，System.Span<T>, System.Memory<T>，还有System.IO.Pipelines。这几个新的API极大了提升了.NET程序的效能，将来.NET很多基础API都会使用它们进行重写。</p>
+<p>Pipelines旨在解决.NET编写Socket通信程序时的很多<a href="https://devblogs.microsoft.com/dotnet/system-io-pipelines-high-performance-io-in-net/">困难</a>，相信读者也对此不胜其烦，使用stream模型进行编程，就算能够解决，也是实在麻烦。</p>
+<p>System.IO.Pipelines使用简单的内存片段来管理数据，可以极大的简化编写程序的过程。关于Pipelines的详细介绍，可以看看<a href="http://www.cnblogs.com/xxfy1/p/9290235.html">这里</a>。现在ASP.NET Core中使用的Kestrel已经在使用这个API。（话说这个东西貌似就是Kestrel团队搞出来的。）</p>
+<p>可能是直接需要用Socket场景有限（物联网用的还挺多的），Pipelines相关的资料感觉不是很多。官方给出的示例是基于ASCII协议的，有固定结尾的协议，这里我以物联网设备常用的BINARY二进制自定义协议为例，讲解基于Pipelines的程序套路。</p>
+<h1 id="system.io.pipelines">System.IO.Pipelines</h1>
+<p>与基于Stream的方式不同，pipelines提供一个pipe，用于存储数据，pipe中间存储的数据有点链表的感觉，可以基于<code>SequencePosition</code>进行slice操作，这样就能得到一个<code>ReadOnlySequence&lt;T&gt;</code>对象。reader可以进行自定义操作，并在操作完成之后告诉pipe已经处理了多少数据，整个过程是不需要进行内存复制操作的，因此性能得到了提升，还少了很多麻烦。可以简单理解作为服务器端，流程：</p>
+<p>接受数据循环：接到数据-&gt;放pipe里面-&gt;告诉pipe放了多少数据<br />
+处理数据循环：在pipe里面找一条完整数据-&gt;交给处理流程-&gt;告诉pipe处理了多少数据</p>
+<h1 id="协议">协议</h1>
+<p>有一款设备，binary协议，数据包开头0x75, 0xbd, 0x7e, 0x97一共4个字节，随后跟数据包长度2个字节（固定2400字节，不固定长度也可以参照），随后是数据区。在设备连接成功之后，数据主动从设备发送到PC。</p>
+<h1 id="关键代码">关键代码</h1>
+<p>虽然是.NET Core平台的，但是.NET FRAMEWORK 4.6.1上面也可以nuget安装，直接</p>
+<pre><code><code>install-package system.io.pipelines</code></pre>
+<p>进行安装就可以了。Socket相关处理的代码不再写了，只列关键的。</p>
+<p>代码第一步是声明pipe。</p>
+<pre class="c#"><code>private async void InitPipe(Socket socket)
+{
+    Pipe pipe = new Pipe();
+    Task writing = FillPipeAsync(socket, pipe.Writer);
+    Task reading = ReadPipeAsync(socket, pipe.Reader);
+
+    await Task.WhenAll(reading, writing);
+}</code></pre>
+<p>pipe有reader还有一个writer，reader负责读取pipe数据，主要用在数据处理循环，writer负责将数据写入pipe，主要用在数据接受循环。</p>
+<pre class="c#"><code>//写入循环
+private async Task FillPipeAsync(Socket socket, PipeWriter writer)
+{
+    //数据流量比较大，用1M字节作为buffer
+    const int minimumBufferSize = 1024 * 1024;
+
+    while (running)
+    {
+        try
+        {
+            //从writer中，获得一段不少于指定大小的内存空间
+            Memory&lt;byte&gt; memory = writer.GetMemory(minimumBufferSize);
+
+            //将内存空间变成ArraySegment，提供给socket使用
+            if (!MemoryMarshal.TryGetArray((ReadOnlyMemory&lt;byte&gt;)memory, out ArraySegment&lt;byte&gt; arraySegment))
+            {
+                throw new InvalidOperationException(&quot;Buffer backed by array was expected&quot;);
+            }
+            //接受数据
+            int bytesRead = await SocketTaskExtensions.ReceiveAsync(socket, arraySegment, SocketFlags.None);
+            if (bytesRead == 0)
+            {
+                break;
+            }
+
+            //一次接受完毕，数据已经在pipe中，告诉pipe已经给它写了多少数据。
+            writer.Advance(bytesRead);
+        }
+        catch
+        {
+            break;
+        }
+
+        // 提示reader可以进行读取数据，reader可以继续执行readAsync()方法
+        FlushResult result = await writer.FlushAsync();
+
+        if (result.IsCompleted)
+        {
+            break;
+        }
+    }
+
+    // 告诉pipe完事了
+    writer.Complete();
+}
+
+//读取循环
+private async Task ReadPipeAsync(Socket socket, PipeReader reader)
+{
+    while (running)
+    {
+        //等待writer写数据
+        ReadResult result = await reader.ReadAsync();
+        //获得内存区域
+        ReadOnlySequence&lt;byte&gt; buffer = result.Buffer;
+        SequencePosition? position = null;
+
+        do
+        {
+            //寻找head的第一个字节所在的位置
+            position = buffer.PositionOf((byte)0x75);
+            if (position != null)
+            {
+                //由于是连续四个字节作为head，需要进行比对，我这里直接使用了ToArray方法，还是有了内存拷贝动作，不是很理想，但是写起来很方便。
+                //对性能有更高要求的场景，可以进行slice操作后的单独比对，这样不需要内存拷贝动作
+                var headtoCheck = buffer.Slice(position.Value, 4).ToArray();
+                //SequenceEqual需要引用System.Linq
+                if (headtoCheck.SequenceEqual(new byte[] { 0x75, 0xbd, 0x7e, 0x97 }))
+                {
+                    //到这里，认为找到包开头了（从position.value开始），接下来需要从开头处截取整包的长度，需要先判断长度是否足够
+                    if (buffer.Slice(position.Value).Length &gt;= 2400)
+                    {
+                        //长度足够，那么取出ReadOnlySequence，进行操作
+                        var mes = buffer.Slice(position.Value, 2400);
+                        //这里是数据处理的函数，可以参考官方文档对ReadOnlySequence进行操作，文档里面使用了span，那样性能会好一些。我这里简单实用ToArray()操作，这样也有了内存拷贝的问题，但是处理的直接是byte数组了。
+                        await ProcessMessage(mes.ToArray());
+                        //这一段就算是完成了，从开头位置，一整个包的长度就算完成了
+                        var next = buffer.GetPosition(2400, position.Value);
+                        //将buffer处理过的舍弃，替换为剩余的buffer引用
+                        buffer = buffer.Slice(next);
+                    }
+                    else
+                    {
+                        //长度不够，说明数据包不完整，等下一波数据进来再拼接，跳出循环。
+                        break;
+                    }
+                }
+                else
+                {
+                    //第一个是0x75但是后面不匹配，可能有数据传输问题，那么需要舍弃第一个，0x75后面的字节开始再重新找0x75
+                    var next = buffer.GetPosition(1, position.Value);
+                    buffer = buffer.Slice(next);
+                }
+            }
+        }
+        while (position != null);
+
+        //数据处理完毕，告诉pipe还剩下多少数据没有处理（数据包不完整的数据，找不到head）
+        reader.AdvanceTo(buffer.Start, buffer.End);
+
+        if (result.IsCompleted)
+        {
+            break;
+        }
+    }
+
+    reader.Complete();
+}
+</code></pre>
+<p>以上代码基本解决了以下问题：</p>
+<ul>
+<li>数据接收不完整，找不到开头结尾，导致数据大量丢弃，或者自己维护一个queue的代码复杂性</li>
+<li>数据接收与处理的同步问题</li>
+<li>一次性收到多条数据的情况</li>
+</ul>
+<h1 id="后记">后记</h1>
+<p>本文只是解释了pipeline处理的模式，对于茫茫多的ToArray方法，可以使用基于Span的操作进行优化（有时间就来填坑）。另外，如果在<code>await ProcessMessage(mes.ToArray());</code>这里，直接使用<code>Task.Run(()=&gt;ProcessMessage(mes);</code>代替的话，实测会出现莫名其妙的问题，很有可能是pipe运行快，在系统调度Task之前，已经将内存释放导致的，如果需要优化这一块的话，需要格外注意。</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

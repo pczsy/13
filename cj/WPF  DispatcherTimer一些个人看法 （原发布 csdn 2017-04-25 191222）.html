@@ -1,0 +1,98 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修WPF  DispatcherTimer一些个人看法 （原发布 csdn 2017-04-25 191222）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>WPF  DispatcherTimer一些个人看法 （原发布 csdn 2017-04-25 191222）</center></div><div class='banquan'>原文出处:本文由博客园博主njit_77提供。<br/>
+原文连接:https://www.cnblogs.com/njit-77/p/11468898.html</div><br>
+    <p>wpf中的DispatcherTimer基本用法，本文不在叙述。主要写一些不同的，来提醒自己不要再犯同样错误。</p>
+<p>前几天写代码时发现。当在非UI线程创建DispatcherTimer实例时，程序无法进入Tick事件</p>
+<pre><code><code>private static System.Windows.Threading.DispatcherTimer timer;
+
+private void Button_Click(object sender, RoutedEventArgs e)
+{
+    new System.Threading.Thread(CreateTimer).Start();
+}
+
+private void CreateTimer()
+{
+    timer = new System.Windows.Threading.DispatcherTimer();
+    timer.Interval = TimeSpan.FromSeconds(1);
+    timer.Tick += DispatcherTimer_Click;
+    timer.Start();
+}
+
+private void DispatcherTimer_Click(object sender, EventArgs e)
+{
+    Console.WriteLine(&quot;DispatcherTimer_Click&quot;);
+}</code></pre>
+<p>在DispatcherTimer_Click函数入口设断点，发现程序无法进入。</p>
+<p><img src="./images/WPF  DispatcherTimer一些个人看法 （原发布 csdn 2017-04-25 191222）0.png" /></p>
+<p>如果这样创建对象</p>
+<pre><code><code>private static System.Windows.Threading.DispatcherTimer timer;
+
+private void Button_Click(object sender, RoutedEventArgs e)
+{
+    new System.Threading.Thread(CreateTimer).Start();
+}
+
+private void CreateTimer()
+{
+    timer = new System.Windows.Threading.DispatcherTimer(System.Windows.Threading.DispatcherPriority.SystemIdle, this.Dispatcher);
+    timer.Interval = TimeSpan.FromSeconds(1);
+    timer.Tick += DispatcherTimer_Click;
+    timer.Start();
+}
+
+private void DispatcherTimer_Click(object sender, EventArgs e)
+{
+    Console.WriteLine(&quot;DispatcherTimer_Click&quot;);
+}</code></pre>
+<p>程序可以进入Tick事件。</p>
+<p><img src="./images/WPF  DispatcherTimer一些个人看法 （原发布 csdn 2017-04-25 191222）1.png" /></p>
+<p>或者这样创建对象</p>
+<pre><code><code>private static System.Windows.Threading.DispatcherTimer timer;
+
+private void Button_Click(object sender, RoutedEventArgs e)
+{
+    new System.Threading.Thread(CreateTimer).Start();
+}
+
+private void CreateTimer()
+{
+    this.Dispatcher.Invoke(() =&gt; 
+    {
+        timer = new System.Windows.Threading.DispatcherTimer();
+    });
+    timer.Interval = TimeSpan.FromSeconds(1);
+    timer.Tick += DispatcherTimer_Click;
+    timer.Start();
+}
+
+private void DispatcherTimer_Click(object sender, EventArgs e)
+{
+    Console.WriteLine(&quot;DispatcherTimer_Click&quot;);
+}</code></pre>
+<p>原因如下</p>
+<p>DispatcherTimer.Tick 集成到按指定时间间隔和指定优先级处理的 Dispatcher 队列中的计时器。</p>
+<p>在线程中创建DispatcherTimer对象时，DispatcherTimer的Dispatcher是线程的Dispatcher。</p>
+<p>而此时如果线程如果没有操作UI对象，则其Dispatcher==null，<a href="https://www.cnblogs.com/DoNetCoder/p/4369903.html">详情见博客</a></p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

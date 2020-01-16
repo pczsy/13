@@ -1,0 +1,105 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修【C#】await &amp; Result DeadLock' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>【C#】await &amp; Result DeadLock</center></div><div class='banquan'>原文出处:本文由博客园博主毛毛虫提供。<br/>
+原文连接:https://www.cnblogs.com/catzhou/p/10727546.html</div><br>
+    <p>随意使用异步的await和Result，被弄得欲仙欲死，然后看了 <a href="http://blog.stephencleary.com/2012/07/dont-block-on-async-code.html">Don't Block on Async Code</a>，稍许明白，翻译然后加上自己的理解以加深印象。</p>
+<p><strong>会死锁的两个例子</strong></p>
+<p><strong>UI例子</strong></p>
+<pre><code><code>    public static async Task&lt;JObject&gt; GetJsonAsync(Uri uri)
+    {
+        using (var client = new HttpClient())
+        {
+            var jsonString = await client.GetStringAsync(uri);
+            return JObject.Parse(jsonString);
+        }
+    }
+
+    // My &quot;top-level&quot; method.
+    public void Button1_Click(...)
+    {
+        var jsonTask = GetJsonAsync(...);
+        textBox1.Text = jsonTask.Result;
+    }</code></pre>
+<p>** ASP.NET例子**</p>
+<pre><code><code>    public static async Task&lt;JObject&gt; GetJsonAsync(Uri uri)
+    {
+        using (var client = new HttpClient())
+        {
+            var jsonString = await client.GetStringAsync(uri);
+            return JObject.Parse(jsonString);
+        }
+    }
+
+    // My &quot;top-level&quot; method.
+    public class MyController : ApiController
+    {
+        public string Get()
+        {
+            var jsonTask = GetJsonAsync(...);
+            return jsonTask.Result.ToString();
+        }
+    }</code></pre>
+<p><strong>死锁的原因</strong></p>
+<p>await 一个Task后，当Task完成后将继续一个Context。</p>
+<p><em>UI例子</em>的content是 UI content，<em>ASP.NET例子</em>的Content是request content。在任何时候，这两个content只能属于一个线程，是不能被具体的线程捆绑（tied）。这个有趣或者恶心的特色没被官方文档说明，只在<a href="http://msdn.microsoft.com/en-us/magazine/gg598924.aspx">my MSDN article about SynchronizationContext</a>。</p>
+<p>上面两个例子的运行过程是：</p>
+<ol>
+<li>在UI/ASP.NET context，调用<em>GetJsonAsync</em>方法；</li>
+<li>在UI/ASP.NET context，<em>GetJsonAsync</em>方法调用<em>HttpClient.GetStringAsync</em>开始一个REST请求；</li>
+<li><em>GetStringAsync</em>返回一个未完成的Task，表示REST请求没有完成；</li>
+<li><em>GetJsonAsync</em>等待<em>GetStringAsync</em>返回的Task。当前Context被捕获（保存），当前Context在<em>GetJsonAsync</em>完成时将被调用。<em>GetJsonAsync</em>返回一个未完成的Task，表示<em>GetJsonAsync</em>方法未完成；</li>
+<li><em>jsonTask.Result</em>同步阻塞<em>GetJsonAsync</em>返回的任务，即阻塞context；</li>
+<li>...然后，REST请求完成了，然后通知<em>GetStringAsync</em>方法；</li>
+<li><em>GetStringAsync</em>准备继续任务，他等待context可用，然后他可以在context运行；</li>
+<li>死锁！<em>jsonTask.Result</em>阻塞了context线程，等待<em>GetStringAsync</em>完成，<em>GetStringAsync</em>等待context空闲，然后它可以完成。</li>
+</ol>
+<p><strong>防止死锁</strong></p>
+<p>两点经验：</p>
+<ol>
+<li>异步方法中，尽可能添加<em>ConfigureAwait(false) </em>；</li>
+<li>别阻塞；使用 async</li>
+</ol>
+<p>根据第一点经验：<br />
+var jsonString = await client.GetStringAsync(uri);<br />
+改成<br />
+var jsonString = await client.GetStringAsync(uri).ConfigureAwait(false);</p>
+<p>根据第二点经验，调用异步方法的代码如下：</p>
+<pre><code><code>    public async void Button1_Click(...)
+    {
+        var json = await GetJsonAsync(...);
+        textBox1.Text = json;
+    }
+
+    public class MyController : ApiController
+    {
+        public async Task&lt;string&gt; Get()
+        {
+            var json = await GetJsonAsync(...);
+            return json.ToString();
+        }
+    }</code></pre>
+<p><strong>await</strong> 是一个异步等待<br />
+<strong>.Result</strong>是一个同步等待</p>
+<p><strong>同步等待在控制台程序、单元测试中不会死锁</strong></p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

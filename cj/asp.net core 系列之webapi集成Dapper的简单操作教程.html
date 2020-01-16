@@ -1,0 +1,240 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修asp.net core 系列之webapi集成Dapper的简单操作教程' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>asp.net core 系列之webapi集成Dapper的简单操作教程</center></div><div class='banquan'>原文出处:本文由博客园博主Vincent-yuan提供。<br/>
+原文连接:https://www.cnblogs.com/Vincent-yuan/p/10778145.html</div><br>
+    <p>Dapper也是是一种ORM框架</p>
+<p>这里记录下，使用ASP.NET 集成 Dapper 的过程，方便自己查看</p>
+<p>至于Dapper的特性以及操作可以参考<a title="Dapper官方文档" href="https://dapper-tutorial.net/dapper" target="_blank">Dapper官方文档</a></p>
+<p>&nbsp;</p>
+<h3>1.创建数据库相关</h3>
+<ul>
+<li>在Sql Server 创建一个叫做 DapperDemo 的数据库</li>
+<li>再创建一个叫做&nbsp;Products 的表</li>
+</ul>
+<p>脚本如下</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">CREATE TABLE [dbo].[Products](
+    [ProductID] [</span><span style="color: #0000ff;">int</span>] IDENTITY(<span style="color: #800080;">1</span>,<span style="color: #800080;">1</span><span style="color: #000000;">) NOT NULL,
+    [Name] [nvarchar](max) NULL,
+    [Quantity] [</span><span style="color: #0000ff;">int</span><span style="color: #000000;">] NULL,
+    [Price] [</span><span style="color: #0000ff;">float</span><span style="color: #000000;">] NULL,
+ CONSTRAINT [PK_Products] PRIMARY KEY CLUSTERED 
+(
+    [ProductID] ASC
+)WITH (PAD_INDEX </span>= OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS =<span style="color: #000000;"> ON) ON [PRIMARY]
+) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+ 
+GO</span></pre>
+</div>
+<p>&nbsp;</p>
+<h3>2.创建一个ASP.NET Web Api 项目</h3>
+<ul>
+<li>文件-&gt;新建-&gt;项目</li>
+<li>选择 ASP.NET Core Web 应用 的模板，项目名 DapperDemo</li>
+<li>在新的 ASP.NET Core Web 应用的页面，选择 API 模板，并确定，不要选择支持Docker</li>
+</ul>
+<p>&nbsp;</p>
+<h3>3.增加model实体</h3>
+<ul>
+<li>右击项目，新增一个Models文件夹</li>
+<li>在Models文件夹下增加一个类(class)，Product</li>
+</ul>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Product
+{
+    [Key]
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span> ProductId { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">string</span> Name { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span> Quantity { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">double</span> Price { <span style="color: #0000ff;">get</span>; <span style="color: #0000ff;">set</span><span style="color: #000000;">; }
+}</span></pre>
+</div>
+<p>&nbsp;</p>
+<h3>4.引入Dapper NuGet包</h3>
+<ul>
+<li>工具-&gt;NuGet 包管理器 -&gt; 管理解决方案的 Nuget 包程序包</li>
+<li>搜索Dapper ，并且安装</li>
+</ul>
+<p><img src="./images/asp.net core 系列之webapi集成Dapper的简单操作教程0.png" alt="" /></p>
+<p>&nbsp;如下，安装</p>
+<p><img src="./images/asp.net core 系列之webapi集成Dapper的简单操作教程1.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>也可以使用&nbsp; 程序包管理器控制台 进行安装</p>
+<div class="cnblogs_code">
+<pre><code>Install-Package Dapper</pre>
+</div>
+<p>&nbsp;</p>
+<h3>5.使用Dapper</h3>
+<p>　　Dapper的使用需要下面三步：</p>
+<ul>
+<li>使用连接字符串( connection string )创建一个&nbsp;IDBConnection 对象</li>
+<li>编写你自己的sql 语句</li>
+<li>把 sql 语句传给 dapper</li>
+</ul>
+<p>&nbsp;</p>
+<p>所以，操作如下</p>
+<ul>
+<li>创建一个Repository文件夹</li>
+<li>在Repository文件夹里增加一个名为 ProductRepository 的class类</li>
+</ul>
+<p>代码如下</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> ProductRepository
+</span><span style="color: #008080;"> 2</span> <span style="color: #000000;">{
+</span><span style="color: #008080;"> 3</span>     <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">string</span><span style="color: #000000;"> connectionString;
+</span><span style="color: #008080;"> 4</span>     <span style="color: #0000ff;">public</span><span style="color: #000000;"> ProductRepository()
+</span><span style="color: #008080;"> 5</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;"> 6</span>         connectionString = <span style="color: #800000;">@"</span><span style="color: #800000;">Server=localhost;Database=DapperDemo;Trusted_Connection=true;</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 7</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;"> 8</span>  
+<span style="color: #008080;"> 9</span>     <span style="color: #0000ff;">public</span><span style="color: #000000;"> IDbConnection Connection
+</span><span style="color: #008080;">10</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;">11</span>         <span style="color: #0000ff;">get</span><span style="color: #000000;">  {
+</span><span style="color: #008080;">12</span>             <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> SqlConnection(connectionString);
+</span><span style="color: #008080;">13</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">14</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">15</span>  
+<span style="color: #008080;">16</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> Add(Product prod)
+</span><span style="color: #008080;">17</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;">18</span>         <span style="color: #0000ff;">using</span> (IDbConnection dbConnection =<span style="color: #000000;"> Connection)
+</span><span style="color: #008080;">19</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">20</span>             <span style="color: #0000ff;">string</span> sQuery = <span style="color: #800000;">"</span><span style="color: #800000;">INSERT INTO Products (Name, Quantity, Price)</span><span style="color: #800000;">"</span>
+<span style="color: #008080;">21</span>                             + <span style="color: #800000;">"</span><span style="color: #800000;"> VALUES(@Name, @Quantity, @Price)</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+</span><span style="color: #008080;">22</span> <span style="color: #000000;">            dbConnection.Open();
+</span><span style="color: #008080;">23</span> <span style="color: #000000;">            dbConnection.Execute(sQuery, prod);
+</span><span style="color: #008080;">24</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">25</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">26</span>  
+<span style="color: #008080;">27</span>     <span style="color: #0000ff;">public</span> IEnumerable&lt;Product&gt;<span style="color: #000000;"> GetAll()
+</span><span style="color: #008080;">28</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;">29</span>         <span style="color: #0000ff;">using</span> (IDbConnection dbConnection =<span style="color: #000000;"> Connection)
+</span><span style="color: #008080;">30</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">31</span> <span style="color: #000000;">            dbConnection.Open();
+</span><span style="color: #008080;">32</span>             <span style="color: #0000ff;">return</span> dbConnection.Query&lt;Product&gt;(<span style="color: #800000;">"</span><span style="color: #800000;">SELECT * FROM Products</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">33</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">34</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">35</span>  
+<span style="color: #008080;">36</span>     <span style="color: #0000ff;">public</span> Product GetByID(<span style="color: #0000ff;">int</span><span style="color: #000000;"> id)
+</span><span style="color: #008080;">37</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;">38</span>         <span style="color: #0000ff;">using</span> (IDbConnection dbConnection =<span style="color: #000000;"> Connection)
+</span><span style="color: #008080;">39</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">40</span>             <span style="color: #0000ff;">string</span> sQuery = <span style="color: #800000;">"</span><span style="color: #800000;">SELECT * FROM Products</span><span style="color: #800000;">"</span>
+<span style="color: #008080;">41</span>                            + <span style="color: #800000;">"</span><span style="color: #800000;"> WHERE ProductId = @Id</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+</span><span style="color: #008080;">42</span> <span style="color: #000000;">            dbConnection.Open();
+</span><span style="color: #008080;">43</span>             <span style="color: #0000ff;">return</span> dbConnection.Query&lt;Product&gt;(sQuery, <span style="color: #0000ff;">new</span> { Id =<span style="color: #000000;"> id }).FirstOrDefault();
+</span><span style="color: #008080;">44</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">45</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">46</span>  
+<span style="color: #008080;">47</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> Delete(<span style="color: #0000ff;">int</span><span style="color: #000000;"> id)
+</span><span style="color: #008080;">48</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;">49</span>         <span style="color: #0000ff;">using</span> (IDbConnection dbConnection =<span style="color: #000000;"> Connection)
+</span><span style="color: #008080;">50</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">51</span>              <span style="color: #0000ff;">string</span> sQuery = <span style="color: #800000;">"</span><span style="color: #800000;">DELETE FROM Products</span><span style="color: #800000;">"</span>
+<span style="color: #008080;">52</span>                           + <span style="color: #800000;">"</span><span style="color: #800000;"> WHERE ProductId = @Id</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+</span><span style="color: #008080;">53</span> <span style="color: #000000;">            dbConnection.Open();
+</span><span style="color: #008080;">54</span>             dbConnection.Execute(sQuery, <span style="color: #0000ff;">new</span> { Id =<span style="color: #000000;"> id });
+</span><span style="color: #008080;">55</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">56</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">57</span>  
+<span style="color: #008080;">58</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> Update(Product prod)
+</span><span style="color: #008080;">59</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;">60</span>         <span style="color: #0000ff;">using</span> (IDbConnection dbConnection =<span style="color: #000000;"> Connection)
+</span><span style="color: #008080;">61</span> <span style="color: #000000;">        {
+</span><span style="color: #008080;">62</span>             <span style="color: #0000ff;">string</span> sQuery = <span style="color: #800000;">"</span><span style="color: #800000;">UPDATE Products SET Name = @Name,</span><span style="color: #800000;">"</span>
+<span style="color: #008080;">63</span>                            + <span style="color: #800000;">"</span><span style="color: #800000;"> Quantity = @Quantity, Price= @Price</span><span style="color: #800000;">"</span>
+<span style="color: #008080;">64</span>                            + <span style="color: #800000;">"</span><span style="color: #800000;"> WHERE ProductId = @ProductId</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+</span><span style="color: #008080;">65</span> <span style="color: #000000;">            dbConnection.Open();
+</span><span style="color: #008080;">66</span> <span style="color: #000000;">            dbConnection.Query(sQuery, prod);
+</span><span style="color: #008080;">67</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">68</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">69</span> }</pre>
+</div>
+<p>&nbsp;</p>
+<p>这里的连接字符串是直接写在代码里的，可以根据需要自己调整</p>
+<p>&nbsp;</p>
+<h3>6.创建Controller</h3>
+<ul>
+<li>创建一个名为 ProductController 的类</li>
+</ul>
+<p>代码如下</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> [Route(<span style="color: #800000;">"</span><span style="color: #800000;">api/[controller]</span><span style="color: #800000;">"</span><span style="color: #000000;">)]
+</span><span style="color: #008080;"> 2</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> ProductController : Controller
+</span><span style="color: #008080;"> 3</span> <span style="color: #000000;">{
+</span><span style="color: #008080;"> 4</span>     <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">readonly</span><span style="color: #000000;"> ProductRepository productRepository;
+</span><span style="color: #008080;"> 5</span>     <span style="color: #0000ff;">public</span><span style="color: #000000;"> ProductController()
+</span><span style="color: #008080;"> 6</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;"> 7</span>         productRepository = <span style="color: #0000ff;">new</span><span style="color: #000000;"> ProductRepository();
+</span><span style="color: #008080;"> 8</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;"> 9</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> GET: api/values</span>
+<span style="color: #008080;">10</span> <span style="color: #000000;">    [HttpGet]
+</span><span style="color: #008080;">11</span>     <span style="color: #0000ff;">public</span> IEnumerable&lt;Product&gt;<span style="color: #000000;"> Get()
+</span><span style="color: #008080;">12</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;">13</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> productRepository.GetAll();
+</span><span style="color: #008080;">14</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">15</span>  
+<span style="color: #008080;">16</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> GET api/values/5</span>
+<span style="color: #008080;">17</span>     [HttpGet(<span style="color: #800000;">"</span><span style="color: #800000;">{id}</span><span style="color: #800000;">"</span><span style="color: #000000;">)]
+</span><span style="color: #008080;">18</span>     <span style="color: #0000ff;">public</span> Product Get(<span style="color: #0000ff;">int</span><span style="color: #000000;"> id)
+</span><span style="color: #008080;">19</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;">20</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> productRepository.GetByID(id);
+</span><span style="color: #008080;">21</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">22</span>  
+<span style="color: #008080;">23</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> POST api/values</span>
+<span style="color: #008080;">24</span> <span style="color: #000000;">    [HttpPost]
+</span><span style="color: #008080;">25</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> Post([FromBody]Product prod)
+</span><span style="color: #008080;">26</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;">27</span>         <span style="color: #0000ff;">if</span><span style="color: #000000;"> (ModelState.IsValid)
+</span><span style="color: #008080;">28</span> <span style="color: #000000;">            productRepository.Add(prod);
+</span><span style="color: #008080;">29</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">30</span>  
+<span style="color: #008080;">31</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> PUT api/values/5</span>
+<span style="color: #008080;">32</span>     [HttpPut(<span style="color: #800000;">"</span><span style="color: #800000;">{id}</span><span style="color: #800000;">"</span><span style="color: #000000;">)]
+</span><span style="color: #008080;">33</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> Put(<span style="color: #0000ff;">int</span><span style="color: #000000;"> id, [FromBody]Product prod)
+</span><span style="color: #008080;">34</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;">35</span>         prod.ProductId =<span style="color: #000000;"> id;
+</span><span style="color: #008080;">36</span>         <span style="color: #0000ff;">if</span><span style="color: #000000;"> (ModelState.IsValid)
+</span><span style="color: #008080;">37</span> <span style="color: #000000;">            productRepository.Update(prod);
+</span><span style="color: #008080;">38</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">39</span>  
+<span style="color: #008080;">40</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> DELETE api/values/5</span>
+<span style="color: #008080;">41</span>     [HttpDelete(<span style="color: #800000;">"</span><span style="color: #800000;">{id}</span><span style="color: #800000;">"</span><span style="color: #000000;">)]
+</span><span style="color: #008080;">42</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> Delete(<span style="color: #0000ff;">int</span><span style="color: #000000;"> id)
+</span><span style="color: #008080;">43</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;">44</span> <span style="color: #000000;">        productRepository.Delete(id);
+</span><span style="color: #008080;">45</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">46</span> }</pre>
+</div>
+<p>&nbsp;</p>
+<h3>7.运行，验证是否成功</h3>
+<p>在这之前，可以手动往数据库表里加几条数据，我这里没有加，只是在Get方法里打了个断点</p>
+<p>在浏览器中输入&nbsp;https://localhost:44315/api/product</p>
+<p><img src="./images/asp.net core 系列之webapi集成Dapper的简单操作教程2.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;因为我数据库里没有数据，这里返回的空的</p>
+<p>&nbsp;</p>
+<p>这里做记录方便查看，如有错误，欢迎指正</p>
+<p>参考网址：</p>
+<p>https://www.talkingdotnet.com/use-dapper-orm-with-asp-net-core/</p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,238 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修c# 自定义验证登录（Authorize）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>c# 自定义验证登录（Authorize）</center></div><div class='banquan'>原文出处:本文由博客园博主大稳&#183;杨提供。<br/>
+原文连接:https://www.cnblogs.com/dawenyang/p/11272534.html</div><br>
+    <p><span style="font-family: 'Microsoft YaHei'; font-size: 18px;">我们的项目本来是用azure的auth认证，是用过程中发现登录速度太慢了，所以还是自己搞一个吧，没想到搞起来挺简单的，不是用一个专门的认证服务器哈，就是一个简单的工具类。</span></p>
+<h1><span style="font-family: 'Microsoft YaHei'; font-size: 18px;">验证是否登录的类</span></h1>
+<div class="cnblogs_code">
+<pre><code>    <span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+    <span style="color: #808080;">///</span><span style="color: #008000;"> 认证类继承
+    </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> RequestAuthorizeAttribute : AuthorizeAttribute
+    {
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">override</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> OnAuthorization(HttpActionContext actionContext)
+        {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> 是否不需要验证 或者 已经登录</span>
+            <span style="color: #0000ff;">if</span> (SkipAuthorization(actionContext) ||<span style="color: #000000;"> IsLogin(actionContext))
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;">;
+
+            actionContext.Response </span>=<span style="color: #000000;"> GetResponse();
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 返回信息接口
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">private</span><span style="color: #000000;"> HttpResponseMessage GetResponse()
+        {
+            </span><span style="color: #0000ff;">var</span> response = ServiceResponse&lt;<span style="color: #0000ff;">bool</span>&gt;.WarningResponse(<span style="color: #800080;">401</span>, CommonConst.Msg_NoLogin, <span style="color: #0000ff;">false</span><span style="color: #000000;">);
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> JsonHelper.ToHttpResponseMessage(response);
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 判断是否匿名使用接口
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">bool</span><span style="color: #000000;"> SkipAuthorization(HttpActionContext actionContext)
+        {
+            </span><span style="color: #0000ff;">if</span> (!actionContext.ActionDescriptor.GetCustomAttributes&lt;AllowAnonymousAttribute&gt;().Any&lt;AllowAnonymousAttribute&gt;<span style="color: #000000;">())
+                </span><span style="color: #0000ff;">return</span> actionContext.ControllerContext.ControllerDescriptor.GetCustomAttributes&lt;AllowAnonymousAttribute&gt;().Any&lt;AllowAnonymousAttribute&gt;<span style="color: #000000;">();
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+        }
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 是否已经登录
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">bool</span><span style="color: #000000;"> IsLogin(HttpActionContext actionContext)
+        {
+            </span><span style="color: #0000ff;">var</span> authorization = Guid.Empty.ToString(); <span style="color: #008000;">//</span><span style="color: #008000;"> MD5值</span>
+            <span style="color: #0000ff;">if</span> (actionContext.Request.Headers.Authorization != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+            {
+                authorization </span>=<span style="color: #000000;"> actionContext.Request.Headers.Authorization.ToString();
+            }
+
+            </span><span style="color: #0000ff;">var</span> user =<span style="color: #000000;"> OperatorProvider.Provider.GetCurrent(authorization);
+            </span><span style="color: #0000ff;">return</span> user != <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+        }
+    }</span></pre>
+</div>
+<h2><span style="font-family: 'Microsoft YaHei'; font-size: 18px;">使用</span></h2>
+<p><img src="./images/c# 自定义验证登录（Authorize）0.png" alt="" width="771" height="338" /></p>
+<h1><span style="font-family: 'Microsoft YaHei'; font-size: 18px;">登录接口数据缓存处理，获取到用户信息后，生成guid作为token，每次登录都会重新生成token，返回给请求来源，web端只保存token值即可，每次请求的时候把token放到header里面。</span></h1>
+<p><img src="./images/c# 自定义验证登录（Authorize）1.png" alt="" /></p>
+<h1><span style="font-family: 'Microsoft YaHei'; font-size: 18px;">BaseApiController处理，获取header里面的token值，把用户信息放到缓存里面，从缓存中获取后放到基类里面的model中，子类都可以使用用户信息。</span></h1>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">    [RequestAuthorize]
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> BaseApiController : ApiController
+    {
+
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;summary&gt;</span>
+        <span style="color: #808080;">///</span><span style="color: #008000;"> 当前用户信息实体
+        </span><span style="color: #808080;">///</span> <span style="color: #808080;">&lt;/summary&gt;</span>
+        <span style="color: #0000ff;">public</span><span style="color: #000000;"> OperatorModel CurrentUserModel
+        {
+            </span><span style="color: #0000ff;">get</span><span style="color: #000000;">
+            {
+                </span><span style="color: #0000ff;">var</span> values = HttpContext.Current.Request.Headers.GetValues(<span style="color: #800000;">"</span><span style="color: #800000;">authorization</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+                </span><span style="color: #0000ff;">var</span> authorization=<span style="color: #000000;">Guid.Empty.ToString();
+                </span><span style="color: #0000ff;">if</span> (values != <span style="color: #0000ff;">null</span> &amp;&amp; values.Length &gt; <span style="color: #800080;">0</span><span style="color: #000000;">)
+                    authorization </span>= values[<span style="color: #800080;">0</span><span style="color: #000000;">];
+                </span><span style="color: #0000ff;">var</span> currentUserModel =<span style="color: #000000;"> OperatorProvider.Provider.GetCurrent(authorization);
+                </span><span style="color: #0000ff;">if</span> (currentUserModel == <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+                {
+                    currentUserModel </span>= <span style="color: #0000ff;">new</span> OperatorModel { LoginName = <span style="color: #800000;">"</span><span style="color: #800000;">admin</span><span style="color: #800000;">"</span><span style="color: #000000;"> };
+                }
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> currentUserModel;
+            }
+        }
+    }</span></pre>
+</div>
+<h1>&nbsp;web端使用token（VUE）</h1>
+<h2>token帮助类</h2>
+<div class="cnblogs_code">
+<pre><code>import Cookies from 'js-cookie'<span style="color: #000000;">
+
+const TokenKey </span>= 'hs_t'<span style="color: #000000;">
+
+export </span><span style="color: #0000ff;">function</span><span style="color: #000000;"> getToken() {
+  </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> Cookies.get(TokenKey)
+}
+
+export </span><span style="color: #0000ff;">function</span><span style="color: #000000;"> setToken(token) {
+  </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> Cookies.set(TokenKey, token)
+}
+
+export </span><span style="color: #0000ff;">function</span><span style="color: #000000;"> removeToken() {
+  </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> Cookies.remove(TokenKey)
+}</span></pre>
+</div>
+<h2><span style="font-family: 'Microsoft YaHei'; font-size: 18px;">login.vue</span></h2>
+<div class="cnblogs_code">
+<pre><code>&lt;template&gt;
+  &lt;div class="login-container"&gt;
+    &lt;el-form ref="model" :model="model" :rules="loginRules" class="login-form" autocomplete="on" label-position="left"&gt;
+      &lt;div class="title-container"&gt;
+        &lt;h3 class="title"&gt;教师中心&lt;/h3&gt;
+      &lt;/div&gt;
+
+      &lt;el-form-item prop="LoginName"&gt;
+        &lt;span class="svg-container"&gt;
+          &lt;svg-icon icon-class="user" /&gt;
+        &lt;/span&gt;
+        &lt;el-input ref="LoginName" v-model="model.LoginName" placeholder="登录名" name="LoginName" type="text" tabindex="1"<span style="color: #000000;">
+          autocomplete</span>="on" /&gt;
+      &lt;/el-form-item&gt;
+
+      &lt;el-tooltip v-model="capsTooltip" content="Caps lock is On" placement="right" manual&gt;
+        &lt;el-form-item prop="password"&gt;
+          &lt;span class="svg-container"&gt;
+            &lt;svg-icon icon-class="password" /&gt;
+          &lt;/span&gt;
+          &lt;el-input :key="passwordType" ref="password" v-model="model.password" :type="passwordType" placeholder="密码"<span style="color: #000000;">
+            name</span>="password" tabindex="2" autocomplete="on" @keyup.enter.native="login" /&gt;
+          &lt;span class="show-pwd" @click="showPwd"&gt;
+            &lt;svg-icon :icon-class="passwordType === 'password' ? 'eye' : 'eye-open'" /&gt;
+          &lt;/span&gt;
+        &lt;/el-form-item&gt;
+      &lt;/el-tooltip&gt;
+
+      &lt;el-button :loading="loading" type="primary" style="width:100%;margin-bottom:30px;" @click.native.prevent="login"&gt;<span style="color: #000000;">
+        登录</span>&lt;/el-button&gt;
+    &lt;/el-form&gt;
+  &lt;/div&gt;
+&lt;/template&gt;</pre>
+</div>
+<div class="cnblogs_code">
+<pre><code>&lt;script&gt;<span style="color: #000000;">
+  import { deepClone } from </span>"@/utils"<span style="color: #000000;">;
+  import { setToken, getToken } from </span>'@/utils/auth'<span style="color: #000000;">
+  import { login } from </span>"@/api/user"<span style="color: #000000;">;
+
+  const defaulModel </span>=<span style="color: #000000;"> {
+    LoginName: </span>""<span style="color: #000000;">,
+    password: </span>""<span style="color: #000000;">,
+    orgCode: </span>""<span style="color: #000000;">,
+    phone: </span>""<span style="color: #000000;">,
+    UserType: </span>"Teacher"<span style="color: #000000;">
+  };
+
+  export </span><span style="color: #0000ff;">default</span><span style="color: #000000;"> {
+    name: </span>'Login'<span style="color: #000000;">,
+    data() {
+
+      </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> {
+        model: deepClone(defaulModel),
+        loginForm: {
+          username: </span>'admin'<span style="color: #000000;">,
+          password: </span>'111111'<span style="color: #000000;">
+        },
+        loginRules: {
+          LoginName: [
+            { required: </span><span style="color: #0000ff;">true</span>, message: "请输入登录名", trigger: 'blur'<span style="color: #000000;"> }
+          ],
+          password: [
+            { required: </span><span style="color: #0000ff;">true</span>, message: "请输入密码", trigger: 'blur'<span style="color: #000000;"> }
+          ]
+        },
+        passwordType: </span>'password'<span style="color: #000000;">,
+        capsTooltip: </span><span style="color: #0000ff;">false</span><span style="color: #000000;">,
+        loading: </span><span style="color: #0000ff;">false</span><span style="color: #000000;">,
+        showDialog: </span><span style="color: #0000ff;">false</span><span style="color: #000000;">,
+        redirect: undefined,
+        otherQuery: {}
+      }
+    },
+    created() {
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> window.addEventListener('storage', this.afterQRScan)</span>
+<span style="color: #000000;">    },
+    methods: {
+      showPwd() {
+        </span><span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span>.passwordType === 'password'<span style="color: #000000;">) {
+          </span><span style="color: #0000ff;">this</span>.passwordType = ''<span style="color: #000000;">
+        } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+          </span><span style="color: #0000ff;">this</span>.passwordType = 'password'<span style="color: #000000;">
+        }
+        </span><span style="color: #0000ff;">this</span>.$nextTick(() =&gt;<span style="color: #000000;"> {
+          </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.$refs.password.focus()
+        })
+      },
+      async login() {
+        </span><span style="color: #0000ff;">var</span> v = <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+        </span><span style="color: #0000ff;">this</span>.$refs.model.validate(valid =&gt;<span style="color: #000000;"> {
+          v </span>=<span style="color: #000000;"> valid;
+        });
+        </span><span style="color: #0000ff;">if</span> (!<span style="color: #000000;">v) {
+          </span><span style="color: #008000;">//</span><span style="color: #008000;">验证不通过</span>
+          <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+        }
+        </span><span style="color: #0000ff;">var</span> res = await login(<span style="color: #0000ff;">this</span><span style="color: #000000;">.model)
+        console.log(res)
+        </span><span style="color: #0000ff;">if</span> (res.code == 200<span style="color: #000000;">) {
+          setToken(res.data)
+          </span><span style="color: #0000ff;">this</span>.$router.push("/"<span style="color: #000000;">);
+        }
+      }
+    }
+  }
+</span>&lt;/script&gt;</pre>
+</div>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>
